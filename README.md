@@ -1,4 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Born2Thrill
+
+Born2Thrill is a web application for collecting residential design requirements
+and, later, generating floor-plan concepts and architectural renderings.
+
+## Environment
+
+Copy `.env.example` to `.env.local` and provide the environment-specific
+values. Never commit `.env.local`, database passwords, connection strings, or
+Supabase elevated keys.
+
+The browser application may access only:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+`DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are reserved for trusted
+server-side processes.
+
+## Database
+
+Versioned Supabase migrations live in `supabase/migrations`. Every public table
+must have Row Level Security enabled before it is exposed through Supabase APIs.
 
 ## Getting Started
 
