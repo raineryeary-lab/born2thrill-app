@@ -34,14 +34,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const protectedPath = request.nextUrl.pathname.startsWith("/questionnaire");
-  if (!user && protectedPath) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
   if (user && request.nextUrl.pathname === "/login") {
     const questionnaireUrl = request.nextUrl.clone();
     questionnaireUrl.pathname = "/questionnaire";
