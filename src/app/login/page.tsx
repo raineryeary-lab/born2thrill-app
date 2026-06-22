@@ -17,25 +17,25 @@ export default async function LoginPage({
           </Link>
           <div>
             <p className="mb-5 text-xs font-semibold tracking-[0.24em] text-emerald-200 uppercase">
-              From wishes to a buildable idea
+              Von Wünschen zur tragfähigen Idee
             </p>
             <h1 className="max-w-md text-5xl leading-[1.03] font-medium tracking-tight">
-              Your home begins with the right questions.
+              Ihr Zuhause beginnt mit den richtigen Fragen.
             </h1>
           </div>
           <p className="max-w-sm text-sm leading-6 text-emerald-100/75">
-            Concept planning for German Einfamilienhäuser. Every result remains
-            an idea for discussion with qualified architects and engineers.
+            Konzeptplanung für deutsche Einfamilienhäuser. Jedes Ergebnis bleibt
+            eine Gesprächsgrundlage für qualifizierte Architekten und Fachplaner.
           </p>
         </section>
 
         <section className="p-7 sm:p-12 lg:p-14">
           <p className="mb-3 text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">
-            Welcome
+            Willkommen
           </p>
-          <h2 className="text-3xl font-medium tracking-tight">Create your house brief</h2>
+          <h2 className="text-3xl font-medium tracking-tight">Ihr Hausprofil erstellen</h2>
           <p className="mt-3 text-sm leading-6 text-stone-500">
-            Sign in, or create an account to save your questionnaire and return later.
+            Melden Sie sich an oder erstellen Sie ein Konto, um Ihre Angaben zu speichern und später fortzufahren.
           </p>
 
           {(params.error || params.message) && (
@@ -52,7 +52,7 @@ export default async function LoginPage({
 
           <form className="mt-8 space-y-5">
             <label className="block text-sm font-medium">
-              Name <span className="font-normal text-stone-400">(for new accounts)</span>
+              Name <span className="font-normal text-stone-400">(bei einem neuen Konto)</span>
               <input
                 name="displayName"
                 autoComplete="name"
@@ -61,18 +61,18 @@ export default async function LoginPage({
               />
             </label>
             <label className="block text-sm font-medium">
-              Email
+              E-Mail-Adresse
               <input
                 required
                 name="email"
                 type="email"
                 autoComplete="email"
                 className="mt-2 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 outline-none transition focus:border-emerald-700 focus:bg-white"
-                placeholder="you@example.de"
+                placeholder="sie@beispiel.de"
               />
             </label>
             <label className="block text-sm font-medium">
-              Password
+              Passwort
               <input
                 required
                 minLength={8}
@@ -80,7 +80,7 @@ export default async function LoginPage({
                 type="password"
                 autoComplete="current-password"
                 className="mt-2 w-full rounded-xl border border-stone-200 bg-stone-50 px-4 py-3 outline-none transition focus:border-emerald-700 focus:bg-white"
-                placeholder="At least 8 characters"
+                placeholder="Mindestens 8 Zeichen"
               />
             </label>
             <div className="grid gap-3 pt-2 sm:grid-cols-2">
@@ -88,18 +88,18 @@ export default async function LoginPage({
                 formAction={login}
                 className="rounded-full bg-[#18392f] px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-[#245446]"
               >
-                Sign in
+                Anmelden
               </button>
               <button
                 formAction={signup}
                 className="rounded-full border border-stone-300 px-5 py-3.5 text-sm font-semibold transition hover:border-emerald-800 hover:text-emerald-900"
               >
-                Create account
+                Konto erstellen
               </button>
             </div>
           </form>
           <Link href="/" className="mt-8 inline-block text-sm text-stone-500 hover:text-stone-900">
-            ← Back to overview
+            ← Zurück zur Übersicht
           </Link>
         </section>
       </div>
