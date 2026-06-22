@@ -19,10 +19,10 @@ export default async function QuestionnairePage() {
         </header>
         <div className="grid gap-8 lg:grid-cols-[300px_1fr]">
           <aside className="rounded-[2rem] bg-[#18392f] p-8 text-white">
-            <p className="text-xs font-semibold tracking-[0.2em] text-emerald-200 uppercase">House brief 01</p>
-            <h1 className="mt-5 text-3xl font-medium tracking-tight">A practical home starts with constraints.</h1>
-            <p className="mt-5 text-sm leading-6 text-emerald-100/70">Your answers become structured planning requirements—not a vague image prompt. We will use them to test adjacencies, daylight, circulation, plumbing, and stair continuity.</p>
-            <div className="mt-10 border-t border-white/15 pt-6 text-xs leading-5 text-emerald-100/60">Concept ideas only. Local planning law, structure, fire safety, energy design, and approvals must be verified by qualified German professionals.</div>
+            <p className="text-xs font-semibold tracking-[0.2em] text-emerald-200 uppercase">Hausprofil 01</p>
+            <h1 className="mt-5 text-3xl font-medium tracking-tight">Ein praktisches Zuhause beginnt mit klaren Rahmenbedingungen.</h1>
+            <p className="mt-5 text-sm leading-6 text-emerald-100/70">Ihre Antworten werden zu strukturierten Planungsanforderungen – nicht zu einem vagen Bildprompt. Damit prüfen wir Raumbeziehungen, Tageslicht, Erschließung, Leitungsführung und durchgängige Treppen.</p>
+            <div className="mt-10 border-t border-white/15 pt-6 text-xs leading-5 text-emerald-100/60">Nur Konzeptideen. Planungsrecht, Tragwerk, Brandschutz, Energieplanung und Genehmigungsfähigkeit müssen durch qualifizierte Fachleute in Deutschland geprüft werden.</div>
           </aside>
           <section className="rounded-[2rem] bg-white p-6 shadow-[0_24px_70px_rgba(41,37,36,0.08)] sm:p-10">
             <QuestionnaireForm />

@@ -27,14 +27,14 @@ export async function saveQuestionnaire(
     error: authError,
   } = await supabase.auth.getUser();
 
-  if (authError || !user) return { error: "Please sign in again before saving." };
+  if (authError || !user) return { error: "Bitte melden Sie sich vor dem Speichern erneut an." };
 
   const name = text(formData, "projectName");
   const area = number(formData, "targetArea");
   const floors = number(formData, "floors");
   const bundesland = text(formData, "bundesland");
   if (!name || !bundesland || area < 60 || area > 500 || floors < 1 || floors > 3) {
-    return { error: "Please check the project name, area, floors, and Bundesland." };
+    return { error: "Bitte prüfen Sie Projektname, Wohnfläche, Geschosse und Bundesland." };
   }
 
   const requirements = {
@@ -86,6 +86,6 @@ export async function saveQuestionnaire(
     .select("id, name")
     .single();
 
-  if (error) return { error: `Could not save the brief: ${error.message}` };
+  if (error) return { error: "Das Hausprofil konnte nicht gespeichert werden. Bitte versuchen Sie es erneut." };
   return { projectId: data.id, projectName: data.name };
 }
