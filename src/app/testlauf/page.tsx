@@ -11,19 +11,33 @@ import {
 } from "@/lib/generator/floorplan";
 
 function FloorSvg({ plan }: { plan: FloorPlan }) {
+  const stair = plan.stair;
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
       <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
-      <rect x="296" y="24" width="108" height="452" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
-      <text x="350" y="55" textAnchor="middle" fontSize="13" fill="#57534e">FLUR</text>
-      {plan.hasStair && (
+      <rect x="220" y="24" width="260" height="452" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
+      <text x="248" y="55" textAnchor="middle" fontSize="12" fill="#57534e">FLUR</text>
+      {plan.hasStair && stair && (
         <g>
-          <rect x="313" y="170" width="74" height="154" rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
-          {Array.from({ length: 9 }, (_, index) => (
-            <line key={index} x1="313" x2="387" y1={184 + index * 15} y2={184 + index * 15} stroke="#78716c" />
+          <rect x="284" y="66" width="132" height="184" rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
+          <rect x="284" y="66" width="132" height="58" fill="#d6d3d1" stroke="#292524" strokeWidth="1.5" />
+          <line x1="345" x2="345" y1="124" y2="250" stroke="#292524" strokeWidth="2" />
+          {Array.from({ length: 7 }, (_, index) => (
+            <g key={index}>
+              <line x1="284" x2="345" y1={142 + index * 16} y2={142 + index * 16} stroke="#78716c" />
+              <line x1="345" x2="416" y1={142 + index * 16} y2={142 + index * 16} stroke="#78716c" />
+            </g>
           ))}
-          <path d="M350 302 L350 192 M350 192 L341 207 M350 192 L359 207" fill="none" stroke="#18392f" strokeWidth="3" />
-          <text x="350" y="344" textAnchor="middle" fontSize="11" fill="#57534e">TREPPENKERN</text>
+          <path d="M314 235 L314 137 M314 137 L307 150 M314 137 L321 150" fill="none" stroke="#18392f" strokeWidth="3" />
+          <path d="M380 137 L380 235 M380 235 L373 222 M380 235 L387 222" fill="none" stroke="#18392f" strokeWidth="3" />
+          <rect x="224" y="66" width="52" height="270" fill="#fff" fillOpacity=".45" stroke="#0f766e" strokeDasharray="5 4" />
+          <rect x="424" y="66" width="52" height="270" fill="#fff" fillOpacity=".45" stroke="#0f766e" strokeDasharray="5 4" />
+          <text x="250" y="200" textAnchor="middle" fontSize="10" fill="#0f766e" transform="rotate(-90 250 200)">1,00 m FREIER WEG</text>
+          <text x="450" y="200" textAnchor="middle" fontSize="10" fill="#0f766e" transform="rotate(90 450 200)">1,00 m FREIER WEG</text>
+          <rect x="284" y="258" width="132" height="62" fill="none" stroke="#0f766e" strokeDasharray="6 4" />
+          <text x="350" y="286" textAnchor="middle" fontSize="10" fill="#0f766e">FREIE ANKUNFT</text>
+          <text x="350" y="302" textAnchor="middle" fontSize="9" fill="#57534e">mind. {stair.clearArrivalDepthM.toFixed(2)} m</text>
+          <text x="350" y="45" textAnchor="middle" fontSize="10" fill="#57534e">U-TREPPE {stair.footprintWidthM.toFixed(2)} × {stair.footprintLengthM.toFixed(2)} m</text>
         </g>
       )}
       {plan.floor === 0 && (
@@ -127,7 +141,7 @@ export default function TestlaufPage() {
 
         <section className="mt-8 grid gap-8 lg:grid-cols-[1.35fr_.65fr]">
           <div className="rounded-[2rem] bg-white p-6 sm:p-10"><p className="mb-5 text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Konzeptvisualisierung</p><HouseRendering brief={brief} /><p className="mt-4 text-xs leading-5 text-stone-500">Stilistische Konzeptansicht. Kubatur, Öffnungen und Dachform werden in späteren Stufen aus dem freigegebenen Grundrissmodell abgeleitet.</p></div>
-          <div className="rounded-[2rem] bg-white p-6 sm:p-8"><p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Regelprüfung</p><div className="mt-6 space-y-4">{variant.checks.map((check) => <div key={check.label} className="flex gap-3 text-sm leading-6"><span className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-xs text-emerald-800">✓</span><span>{check.label}</span></div>)}</div><div className="mt-8 border-t border-stone-200 pt-6 text-xs leading-5 text-stone-500">MVP-Logik für frühe Konzeptvarianten. Noch keine Genehmigungs- oder Ausführungsplanung.</div></div>
+          <div className="rounded-[2rem] bg-white p-6 sm:p-8"><p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Regelprüfung</p><div className="mt-6 space-y-4">{variant.checks.map((check) => <div key={check.label} className="flex gap-3 text-sm leading-6"><span className={`mt-1 flex size-5 shrink-0 items-center justify-center rounded-full text-xs ${check.passed ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`}>{check.passed ? "✓" : "!"}</span><span>{check.label}</span></div>)}</div>{variant.floors[0]?.stair && <div className="mt-7 rounded-2xl bg-stone-100 p-4 text-xs leading-5 text-stone-600"><p className="font-semibold text-stone-800">Treppengeometrie · Konzeptziel</p><p className="mt-2">Geschosshöhe {variant.floors[0].stair.floorToFloorHeightM.toFixed(2)} m · {variant.floors[0].stair.risers} Steigungen · Auftritt {variant.floors[0].stair.treadDepthCm} cm · Laufbreite {variant.floors[0].stair.usableFlightWidthM.toFixed(2)} m · Podest {variant.floors[0].stair.landingDepthM.toFixed(2)} m</p></div>}<div className="mt-8 border-t border-stone-200 pt-6 text-xs leading-5 text-stone-500">Konservative Konzeptziele für frühe Varianten. Die Treppe muss in der Fachplanung nach DIN 18065, Landesbauordnung, Statik und Brandschutz geprüft werden; dies ist keine Genehmigungs- oder Ausführungsplanung.</div></div>
         </section>
 
         <div className="mt-8 flex flex-wrap gap-3"><Link href="/questionnaire?test=1" className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold">Angaben ändern</Link><button onClick={() => window.print()} className="rounded-full bg-[#18392f] px-6 py-3 text-sm font-semibold text-white">Konzept drucken</button></div>
