@@ -1,18 +1,6 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
-let browserClient: SupabaseClient | undefined;
-
-/**
- * Returns the single Supabase client used by browser components.
- *
- * This helper deliberately reads only public environment variables. Database
- * credentials and elevated Supabase keys must remain in server-only code.
- */
-export function getSupabaseBrowserClient(): SupabaseClient {
-  if (browserClient) {
-    return browserClient;
-  }
-
+export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -22,6 +10,7 @@ export function getSupabaseBrowserClient(): SupabaseClient {
     );
   }
 
-  browserClient = createClient(url, publishableKey);
-  return browserClient;
+  return createBrowserClient(url, publishableKey);
 }
+
+export const getSupabaseBrowserClient = createClient;
