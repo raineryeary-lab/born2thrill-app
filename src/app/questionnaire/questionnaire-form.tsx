@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { saveQuestionnaire, type SaveState } from "./actions";
 
 const initialState: SaveState = {};
@@ -27,11 +28,81 @@ function Field({
 const inputClass =
   "w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-stone-900 outline-none transition focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100";
 
-export default function QuestionnaireForm() {
+export default function QuestionnaireForm({
+  testMode,
+  resume,
+}: {
+  testMode: boolean;
+  resume: boolean;
+}) {
+  const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [step, setStep] = useState(0);
   const [floors, setFloors] = useState(2);
   const [accessible, setAccessible] = useState(false);
   const [state, action, pending] = useActionState(saveQuestionnaire, initialState);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("born2thrill-house-brief");
+    if (!saved || !formRef.current) return;
+
+    const entries = JSON.parse(saved) as Array<[string, string]>;
+    const form = formRef.current;
+    const savedFloors = entries.find(([name]) => name === "floors")?.[1];
+    const savedAccessibility = entries.find(([name]) => name === "accessibility")?.[1];
+    window.setTimeout(() => {
+      if (savedFloors) setFloors(Number(savedFloors));
+      setAccessible(savedAccessibility === "yes");
+      if (resume) setStep(steps.length - 1);
+    }, 0);
+    entries.forEach(([name, value]) => {
+      const controls = form.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+        `[name="${CSS.escape(name)}"]`,
+      );
+      controls.forEach((control) => {
+        if (control instanceof HTMLInputElement && control.type === "checkbox") {
+          control.checked = entries.some(([entryName, entryValue]) =>
+            entryName === name && entryValue === control.value,
+          );
+        } else {
+          control.value = value;
+        }
+      });
+    });
+  }, [resume]);
+
+  function rememberDraft(form: HTMLFormElement) {
+    const entries = Array.from(new FormData(form).entries()).map(([name, value]) => [
+      name,
+      String(value),
+    ]);
+    window.localStorage.setItem("born2thrill-house-brief", JSON.stringify(entries));
+    return entries;
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    const entries = rememberDraft(event.currentTarget);
+    if (testMode) {
+      event.preventDefault();
+      window.sessionStorage.setItem("born2thrill-test-brief", JSON.stringify(entries));
+      router.push("/testlauf");
+    }
+  }
+
+  if (state.emailSent) {
+    return (
+      <div className="rounded-[2rem] border border-emerald-200 bg-emerald-50 p-8 sm:p-12">
+        <p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Fast geschafft</p>
+        <h2 className="mt-4 text-3xl font-medium tracking-tight text-emerald-950">
+          Bitte bestätigen Sie Ihre E-Mail-Adresse.
+        </h2>
+        <p className="mt-4 max-w-xl leading-7 text-emerald-900/70">
+          Wir haben einen persönlichen Link an {state.emailSent} gesendet. Ihre Angaben bleiben
+          in diesem Browser gespeichert. Nach der Bestätigung können Sie das Hausprofil absenden.
+        </p>
+      </div>
+    );
+  }
 
   if (state.projectId) {
     return (
@@ -56,7 +127,7 @@ export default function QuestionnaireForm() {
   }
 
   return (
-    <form action={action}>
+    <form ref={formRef} action={action} onSubmit={handleSubmit}>
       <div className="mb-9 flex items-center gap-2 overflow-x-auto pb-2">
         {steps.map((label, index) => (
           <button
@@ -181,6 +252,19 @@ export default function QuestionnaireForm() {
               ))}
             </div>
             <Field label="Was sollte der Entwurf außerdem berücksichtigen?" name="notes"><textarea id="notes" name="notes" rows={4} className={inputClass} placeholder="Ausblicke, Hobbys, Möbel, spätere Veränderungen …" /></Field>
+            {!testMode && (
+              <div className="mt-6 rounded-2xl bg-stone-100 p-5">
+                <Field label="Wohin dürfen wir Grundriss und Visualisierung senden?" name="email">
+                  <input id="email" name="email" type="email" autoComplete="email" className={inputClass} placeholder="sie@beispiel.de" />
+                </Field>
+                <p className="mt-3 text-xs leading-5 text-stone-500">Die E-Mail-Adresse wird erst jetzt benötigt, um Ihr Projekt zu sichern und die Ergebnisse bereitzustellen.</p>
+              </div>
+            )}
+            {testMode && (
+              <div className="mt-6 rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm leading-6 text-amber-900">
+                <strong>Testmodus:</strong> Der nächste Schritt überspringt E-Mail und Konto und übergibt diese Angaben direkt an die Entwicklungs-Pipeline.
+              </div>
+            )}
         </section>
       </div>
 
@@ -190,7 +274,7 @@ export default function QuestionnaireForm() {
         {step < steps.length - 1 ? (
           <button type="button" onClick={() => setStep((value) => value + 1)} className="rounded-full bg-[#18392f] px-6 py-3 text-sm font-semibold text-white hover:bg-[#245446]">Weiter</button>
         ) : (
-          <button disabled={pending} type="submit" className="rounded-full bg-[#18392f] px-6 py-3 text-sm font-semibold text-white disabled:opacity-50">{pending ? "Wird gespeichert …" : "Hausprofil speichern"}</button>
+          <button disabled={pending} type="submit" className="rounded-full bg-[#18392f] px-6 py-3 text-sm font-semibold text-white disabled:opacity-50">{pending ? "Wird vorbereitet …" : testMode ? "Testlauf starten" : "Projekt anfordern"}</button>
         )}
       </div>
     </form>
