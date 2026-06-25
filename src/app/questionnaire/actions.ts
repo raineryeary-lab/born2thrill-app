@@ -1,7 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { headers } from "next/headers";
 
 export type SaveState = {
   error?: string;
@@ -39,29 +38,7 @@ export async function saveQuestionnaire(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const email = text(formData, "email");
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      return { error: "Bitte geben Sie eine gültige E-Mail-Adresse ein." };
-    }
-
-    const requestHeaders = await headers();
-    const origin =
-      process.env.NEXT_PUBLIC_SITE_URL ??
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : requestHeaders.get("origin") ?? "http://localhost:3000");
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${origin}/auth/callback?next=/questionnaire?resume=1`,
-        shouldCreateUser: true,
-      },
-    });
-
-    if (error) {
-      return { error: "Die E-Mail konnte nicht versendet werden. Bitte versuchen Sie es erneut." };
-    }
-    return { emailSent: email };
+    return { projectId: "prototype", projectName: name || "Hausprofil" };
   }
 
   const requirements = {

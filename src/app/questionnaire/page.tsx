@@ -12,7 +12,7 @@ export default async function QuestionnairePage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const testMode = params.test === "1";
+  const testMode = params.test !== "0";
 
   return (
     <main className="min-h-screen bg-[#f3f1eb] px-5 py-8 text-stone-900 sm:py-12">
@@ -20,7 +20,7 @@ export default async function QuestionnairePage({
         <header className="mb-8 flex items-center justify-between">
           <Link href="/" className="text-sm font-bold tracking-[0.18em] uppercase">Born2Thrill</Link>
           <span className="max-w-[240px] truncate text-xs text-stone-500">
-            {testMode ? "Testmodus · ohne E-Mail" : user?.email ?? "Kostenlos · Anmeldung erst am Ende"}
+            {testMode ? "Testmodus · ohne E-Mail" : user?.email ?? "Prototyp · ohne Pflichtfragen"}
           </span>
         </header>
         <div className="grid gap-8 lg:grid-cols-[300px_1fr]">

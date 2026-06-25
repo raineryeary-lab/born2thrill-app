@@ -13,7 +13,7 @@ export default function Home() {
           <h1 className="mt-7 max-w-3xl text-5xl leading-[0.98] font-medium tracking-[-0.045em] sm:text-7xl">Ein Zuhause, geplant für Ihr echtes Leben.</h1>
           <p className="mt-8 max-w-xl text-lg leading-8 text-stone-600">Aus Grundstück, Raumbedarf, Ausrichtung und Alltag entsteht ein strukturiertes Raumprogramm – die Grundlage für praktische Grundrissideen und stilvolle Visualisierungen.</p>
           <div className="mt-10 flex flex-wrap gap-4">
-            <Link href="/questionnaire" className="rounded-full bg-[#18392f] px-7 py-4 text-sm font-semibold text-white hover:bg-[#245446]">Hausprofil erstellen</Link>
+            <Link href="/questionnaire?test=1" className="rounded-full bg-[#18392f] px-7 py-4 text-sm font-semibold text-white hover:bg-[#245446]">Hausprofil erstellen</Link>
             <a href="#how" className="rounded-full border border-stone-300 px-7 py-4 text-sm font-semibold hover:border-stone-900">So funktioniert es</a>
           </div>
         </div>
