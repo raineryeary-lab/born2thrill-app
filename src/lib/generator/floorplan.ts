@@ -2,15 +2,24 @@ export type HouseBrief = {
   projectName: string;
   area: number;
   floors: number;
+  adults: number;
+  children: number;
   bedrooms: number;
   bathrooms: number;
   office: boolean;
   guestWc: boolean;
   utilityRoom: boolean;
   groundFloorSleeping: boolean;
+  accessibility: boolean;
+  kitchen: "open" | "semi-open" | "separate";
+  gardenConnection: "generous" | "balanced" | "private";
+  stairPreference: "central" | "feature" | "separable" | "undecided";
+  basement: string;
   roof: string;
   style: string;
+  streetDirection: string;
   gardenDirection: string;
+  priorities: string[];
 };
 
 export type PlannedRoom = {
@@ -23,6 +32,7 @@ export type PlannedRoom = {
   height: number;
   area: number;
   side: "left" | "right";
+  zone: "garden" | "street" | "core";
 };
 
 export type FloorPlan = {
@@ -63,12 +73,23 @@ export type PlanVariant = {
   };
 };
 
-type RoomSeed = Omit<PlannedRoom, "id" | "x" | "y" | "width" | "height" | "area" | "side"> & {
+type RoomSeed = Omit<PlannedRoom, "id" | "x" | "y" | "width" | "height" | "area" | "side" | "zone"> & {
   targetArea: number;
   minArea: number;
   maxArea: number;
   preferredSide?: "left" | "right";
+  preferredZone: "garden" | "street" | "core";
   flexible?: boolean;
+};
+
+type VariantArchetype = {
+  id: string;
+  name: string;
+  ratioOffset: number;
+  mirrored: boolean;
+  livingSide: "left" | "right";
+  serviceSide: "left" | "right";
+  descriptionPrefix: string;
 };
 
 type BestsellerProfile = {
@@ -137,6 +158,36 @@ const STAIR_TARGETS = {
   minUsableFlightWidthM: 1,
   minArrivalDepthM: 1,
 } as const;
+
+const VARIANT_ARCHETYPES: VariantArchetype[] = [
+  {
+    id: "garden",
+    name: "Variante A · Gartenhaus",
+    ratioOffset: 0,
+    mirrored: false,
+    livingSide: "left",
+    serviceSide: "right",
+    descriptionPrefix: "Gartenorientierte Bestseller-Variante",
+  },
+  {
+    id: "compact",
+    name: "Variante B · Kompakt",
+    ratioOffset: -0.1,
+    mirrored: true,
+    livingSide: "left",
+    serviceSide: "right",
+    descriptionPrefix: "Kompaktere Bestseller-Variante",
+  },
+  {
+    id: "family-core",
+    name: "Variante C · Familienkern",
+    ratioOffset: 0.08,
+    mirrored: false,
+    livingSide: "right",
+    serviceSide: "left",
+    descriptionPrefix: "Familienvariante mit stärkerem Technik- und Treppenkern",
+  },
+];
 
 function createStairGeometry(): StairGeometry {
   const floorToFloorHeightM = 2.8;
@@ -218,49 +269,122 @@ export function parseBrief(entries: Array<[string, string]>): HouseBrief {
     const value = Number(get(name));
     return Number.isFinite(value) && value > 0 ? value : fallback;
   };
+  const choice = <T extends string>(name: string, fallback: T, allowed: readonly T[]) => {
+    const value = get(name);
+    return allowed.includes(value as T) ? value as T : fallback;
+  };
 
   return {
     projectName: get("projectName", "Testhaus"),
     area: number("targetArea", 145),
     floors: Math.min(3, number("floors", 2)),
+    adults: Math.min(8, number("adults", 2)),
+    children: Math.min(8, number("children", 2)),
     bedrooms: Math.min(8, number("bedrooms", 3)),
     bathrooms: Math.min(4, number("bathrooms", 2)),
     office: yes("office", true),
     guestWc: yes("guestWc", true),
     utilityRoom: yes("utilityRoom", true),
     groundFloorSleeping: yes("groundFloorSleeping"),
+    accessibility: yes("accessibility"),
+    kitchen: choice("kitchen", "open", ["open", "semi-open", "separate"] as const),
+    gardenConnection: choice("gardenConnection", "generous", ["generous", "balanced", "private"] as const),
+    stairPreference: choice("stairPreference", "central", ["central", "feature", "separable", "undecided"] as const),
+    basement: get("basement", "none"),
     roof: get("roofPreference", "gable"),
     style: get("constructionStyle", "timeless-modern"),
+    streetDirection: get("streetDirection", "Nord"),
     gardenDirection: get("gardenDirection", "Süd"),
+    priorities: entries
+      .filter(([name]) => name === "priorities")
+      .map(([, value]) => value),
   };
 }
 
-function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number): RoomSeed[] {
+function kitchenAreaAdjustment(brief: HouseBrief) {
+  if (brief.kitchen === "separate") return -5;
+  if (brief.kitchen === "semi-open") return -2;
+  return 0;
+}
+
+function gardenAreaAdjustment(brief: HouseBrief) {
+  if (brief.gardenConnection === "generous") return 3;
+  if (brief.gardenConnection === "private") return -2;
+  return 0;
+}
+
+function preferredLivingSide(archetype: VariantArchetype) {
+  return archetype.livingSide;
+}
+
+function preferredServiceSide(archetype: VariantArchetype) {
+  return archetype.serviceSide;
+}
+
+function finalSide(side: "left" | "right", archetype: VariantArchetype) {
+  if (!archetype.mirrored) return side;
+  return side === "left" ? "right" : "left";
+}
+
+function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, archetype: VariantArchetype): RoomSeed[] {
   if (floor === 0) {
-    const livingTarget = clamp(Math.round(floorArea * 0.52), REFERENCE_RANGES.livingKitchenMin, REFERENCE_RANGES.livingKitchenMax);
+    const livingTarget = clamp(
+      Math.round(floorArea * 0.52) + kitchenAreaAdjustment(brief) + gardenAreaAdjustment(brief),
+      REFERENCE_RANGES.livingKitchenMin,
+      REFERENCE_RANGES.livingKitchenMax,
+    );
     const rooms: RoomSeed[] = [
       {
-        name: "Wohnen / Essen / Kochen",
+        name: brief.kitchen === "separate" ? "Wohnen / Essen" : "Wohnen / Essen / Kochen",
         kind: "living",
         targetArea: livingTarget,
-        minArea: REFERENCE_RANGES.livingKitchenMin,
-        maxArea: REFERENCE_RANGES.livingKitchenMax,
-        preferredSide: "left",
+        minArea: brief.kitchen === "separate" ? 28 : REFERENCE_RANGES.livingKitchenMin,
+        maxArea: brief.kitchen === "separate" ? 45 : REFERENCE_RANGES.livingKitchenMax,
+        preferredSide: preferredLivingSide(archetype),
+        preferredZone: "garden",
         flexible: true,
       },
-      { name: "Diele", kind: "flex", targetArea: 8, minArea: 5, maxArea: 12, preferredSide: "right" },
+      { name: "Diele", kind: "flex", targetArea: 8, minArea: 5, maxArea: 12, preferredSide: preferredServiceSide(archetype), preferredZone: "street" },
     ];
-    if (brief.floors > 1) rooms.push({ name: "Treppe / Garderobe", kind: "flex", targetArea: 7, minArea: 5, maxArea: 10, preferredSide: "right" });
-    if (brief.utilityRoom) rooms.push({ name: "HWR / Technik", kind: "wet", targetArea: 10, minArea: REFERENCE_RANGES.utilityMin, maxArea: REFERENCE_RANGES.utilityMax, preferredSide: "right" });
-    if (brief.guestWc) rooms.push({ name: "Gäste-WC", kind: "wet", targetArea: 4, minArea: REFERENCE_RANGES.guestWcMin, maxArea: REFERENCE_RANGES.guestWcMax, preferredSide: "right" });
-    if (brief.office) rooms.push({ name: "Büro / Gast", kind: "flex", targetArea: 11, minArea: 9, maxArea: 16, preferredSide: "left" });
-    if (brief.groundFloorSleeping) rooms.push({ name: "Gast / Schlafen", kind: "sleeping", targetArea: 13, minArea: 11, maxArea: 16, preferredSide: "left" });
-    if (floorArea >= 82 && !brief.groundFloorSleeping) rooms.push({ name: "Speis / Abstell", kind: "service", targetArea: 4, minArea: 3, maxArea: 6, preferredSide: "right" });
+    if (brief.kitchen === "separate") {
+      rooms.push({
+        name: "Küche",
+        kind: "service",
+        targetArea: 12,
+        minArea: 10,
+        maxArea: 16,
+        preferredSide: preferredServiceSide(archetype),
+        preferredZone: "garden",
+      });
+    }
+    if (brief.floors > 1) {
+      rooms.push({
+        name: archetype.id === "family-core"
+          ? "Familienflur / Treppe"
+          : brief.stairPreference === "feature"
+            ? "Offene Treppe / Garderobe"
+            : "Treppe / Garderobe",
+        kind: "flex",
+        targetArea: archetype.id === "family-core" ? 9 : brief.stairPreference === "feature" ? 9 : 7,
+        minArea: 5,
+        maxArea: archetype.id === "family-core" || brief.stairPreference === "feature" ? 12 : 10,
+        preferredSide: preferredServiceSide(archetype),
+        preferredZone: "core",
+      });
+    }
+    if (brief.utilityRoom) rooms.push({ name: "HWR / Technik", kind: "wet", targetArea: 10, minArea: REFERENCE_RANGES.utilityMin, maxArea: REFERENCE_RANGES.utilityMax, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
+    if (brief.guestWc) rooms.push({ name: "Gäste-WC", kind: "wet", targetArea: 4, minArea: REFERENCE_RANGES.guestWcMin, maxArea: REFERENCE_RANGES.guestWcMax, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
+    if (brief.office) rooms.push({ name: "Büro / Gast", kind: "flex", targetArea: brief.accessibility ? 13 : 11, minArea: 9, maxArea: 16, preferredSide: preferredLivingSide(archetype), preferredZone: "street" });
+    if (brief.groundFloorSleeping || brief.accessibility) rooms.push({ name: "Gast / Schlafen", kind: "sleeping", targetArea: 13, minArea: 11, maxArea: 16, preferredSide: preferredLivingSide(archetype), preferredZone: "street" });
+    if (archetype.id === "family-core" && floorArea >= 72) {
+      rooms.push({ name: "Abstell / Vorrat", kind: "service", targetArea: 4, minArea: 3, maxArea: 6, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
+    }
+    if (floorArea >= 82 && !brief.groundFloorSleeping && !brief.accessibility) rooms.push({ name: "Speis / Abstell", kind: "service", targetArea: 4, minArea: 3, maxArea: 6, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
     return rooms;
   }
 
   const rooms: RoomSeed[] = [];
-  const bedroomsThisFloor = floor === 1 ? brief.bedrooms : Math.max(1, brief.bedrooms - 4);
+  const bedroomsThisFloor = floor === 1 ? Math.max(brief.bedrooms, Math.min(4, brief.children + 1)) : Math.max(1, brief.bedrooms - 4);
   for (let index = 0; index < Math.min(4, bedroomsThisFloor); index += 1) {
     rooms.push({
       name: index === 0 ? "Eltern" : `Zimmer ${index + 1}`,
@@ -268,7 +392,8 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number): Roo
       targetArea: index === 0 ? 16 : 13,
       minArea: index === 0 ? REFERENCE_RANGES.parentRoomMin : REFERENCE_RANGES.childRoomMin,
       maxArea: index === 0 ? REFERENCE_RANGES.parentRoomMax : REFERENCE_RANGES.childRoomMax,
-      preferredSide: index % 2 === 0 ? "left" : "right",
+      preferredSide: index % 2 === 0 ? preferredLivingSide(archetype) : preferredServiceSide(archetype),
+      preferredZone: index === 0 ? "garden" : "street",
       flexible: true,
     });
   }
@@ -280,24 +405,25 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number): Roo
       targetArea: index ? 6 : 11,
       minArea: index ? 4 : REFERENCE_RANGES.familyBathMin,
       maxArea: index ? 8 : REFERENCE_RANGES.familyBathMax,
-      preferredSide: "right",
+      preferredSide: preferredServiceSide(archetype),
+      preferredZone: "core",
     });
   }
-  if (floorArea >= 78 && brief.bedrooms <= 3) {
-    rooms.push({ name: "Ankleide", kind: "flex", targetArea: 6, minArea: 4, maxArea: 8, preferredSide: "right" });
+  if (floorArea >= 78 && brief.bedrooms <= 3 && brief.bathrooms <= 2) {
+    rooms.push({ name: "Ankleide", kind: "flex", targetArea: 6, minArea: 4, maxArea: 8, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
   }
-  rooms.push({ name: "Flur", kind: "flex", targetArea: 10, minArea: 7, maxArea: 13, preferredSide: "left" });
+  rooms.push({ name: "Flur", kind: "flex", targetArea: 10, minArea: 7, maxArea: 13, preferredSide: preferredLivingSide(archetype), preferredZone: "core" });
   return rooms;
 }
 
-function layoutFloor(brief: HouseBrief, floor: number, mirrored: boolean, stair: StairGeometry | null, floorArea: number): FloorPlan {
-  const seeds = seedsForFloor(brief, floor, floorArea);
+function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | null, floorArea: number, archetype: VariantArchetype): FloorPlan {
+  const seeds = seedsForFloor(brief, floor, floorArea, archetype);
   const areaByRoom = adjustedAreas(seeds, floorArea);
   const left: RoomSeed[] = [];
   const right: RoomSeed[] = [];
   seeds.forEach((seed) => {
     let side = seed.preferredSide ?? (left.length <= right.length ? "left" : "right");
-    if (mirrored) side = side === "left" ? "right" : "left";
+    if (archetype.mirrored) side = side === "left" ? "right" : "left";
     (side === "left" ? left : right).push(seed);
   });
 
@@ -326,6 +452,7 @@ function layoutFloor(brief: HouseBrief, floor: number, mirrored: boolean, stair:
         height,
         area: roomArea,
         side,
+        zone: room.preferredZone,
       };
       y += height;
       return planned;
@@ -342,16 +469,16 @@ function layoutFloor(brief: HouseBrief, floor: number, mirrored: boolean, stair:
 }
 
 export function generateVariants(brief: HouseBrief): PlanVariant[] {
-  return [false, true].map((mirrored, index) => {
+  return VARIANT_ARCHETYPES.map((archetype, index) => {
     const profile = profileForArea(brief.area);
     const baseFloorArea = targetAreaForFloor(brief, 0, profile);
-    const ratio = index === 0 ? profile.preferredFootprintRatio : Math.max(1.08, profile.preferredFootprintRatio - 0.1);
+    const ratio = Math.max(1.04, profile.preferredFootprintRatio + archetype.ratioOffset);
     const floorArea = brief.floors === 1 ? brief.area : baseFloorArea;
     const depth = Math.sqrt(floorArea / ratio);
     const width = depth * ratio;
     const stair = brief.floors > 1 ? createStairGeometry() : null;
     const floors = Array.from({ length: brief.floors }, (_, floor) =>
-      layoutFloor(brief, floor, mirrored, stair, targetAreaForFloor(brief, floor, profile)));
+      layoutFloor(brief, floor, stair, targetAreaForFloor(brief, floor, profile), archetype));
     const stairFits = !stair || (
       stair.footprintWidthM + stair.clearArrivalDepthM <= width
       && stair.footprintLengthM + stair.clearArrivalDepthM <= depth
@@ -370,7 +497,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     const wetAndServiceClustered = floors.every((plan) =>
       plan.rooms
         .filter((room) => room.kind === "wet" || room.kind === "service")
-        .every((room) => room.side === (mirrored ? "left" : "right")));
+        .every((room) => room.side === finalSide(archetype.serviceSide, archetype)));
     const hallAreasOk = floors.every((plan) => {
       const circulation = plan.rooms
         .filter((room) => room.name.includes("Flur") || room.name.includes("Diele") || room.name.includes("Treppe"))
@@ -381,10 +508,16 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     const bedroomSizesOk = upperRooms
       .filter((room) => room.kind === "sleeping")
       .every((room) => room.area >= REFERENCE_RANGES.childRoomMin && room.area <= REFERENCE_RANGES.parentRoomMax);
+    const lifestyleChecks = [
+      brief.kitchen === "separate" ? "separate Küche eingeplant" : brief.kitchen === "semi-open" ? "halboffene Wohnküche berücksichtigt" : "offene Wohnküche berücksichtigt",
+      brief.gardenConnection === "generous" ? "großer Gartenbezug priorisiert" : brief.gardenConnection === "private" ? "privatere Gartenorientierung priorisiert" : "ausgewogener Gartenbezug priorisiert",
+      brief.accessibility ? "EG-Schlaf-/Flexraum für barrierearme Nutzung ergänzt" : "klassische Familienhaus-Nutzung",
+    ];
     const checks = [
       { label: "Jeder Aufenthaltsraum liegt an einer Außenwand mit Fenster", passed: floors.every((plan) => plan.rooms.length > 0) },
       { label: `Referenzprofil aus Verkaufsschlagern erkannt: ${profile.name}`, passed: true },
-      { label: "EG folgt Bestseller-Sequenz: Eingang, Diele, Treppe, WC/HWR und offener Wohn-Ess-Kochbereich", passed: groundRooms.length >= 4 },
+      { label: `Fragebogen ausgewertet: ${lifestyleChecks.join(" · ")}`, passed: true },
+      { label: "EG folgt Bestseller-Sequenz: Eingang, Diele, Treppe, WC/HWR und Wohnen/Essen", passed: groundRooms.length >= 4 },
       { label: "OG folgt Familienhaus-Muster: Treppe, Flur, Bad, Eltern und Kinderzimmer", passed: brief.floors === 1 || upperRooms.some((room) => room.name === "Bad") },
       { label: "Flur-, Dielen- und Treppenflächen bleiben unter ca. 24 % der geplanten Fläche", passed: hallAreasOk },
       {
@@ -403,13 +536,11 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     ];
     const passedChecks = checks.filter((check) => check.passed).length;
     return {
-      id: index === 0 ? "garden" : "compact",
-      name: index === 0 ? "Variante A · Gartenhaus" : "Variante B · Kompakt",
-      description: index === 0
-        ? `Aus euren Verkaufsschlagern abgeleitete Familienhaus-Logik: offener Wohn-Ess-Kochbereich, kurzer Weg zur Terrasse, zentraler Treppenkern und gebündelte Haustechnik. ${profile.notes.join(" · ")}.`
-        : `Kompaktere Bestseller-Variante mit ähnlicher Raumfolge, reduzierter Hüllfläche und gespiegelt gebündeltem Installationskern. ${profile.notes.join(" · ")}.`,
+      id: archetype.id,
+      name: archetype.name,
+      description: `${archetype.descriptionPrefix}: ${brief.kitchen === "separate" ? "separate Küche" : brief.kitchen === "semi-open" ? "halboffene Küche" : "offener Wohn-Ess-Kochbereich"}, ${brief.gardenConnection === "private" ? "gezieltere Ausblicke" : "kurzer Weg zur Terrasse"}, ${brief.stairPreference === "feature" ? "offenere Treppe" : "zentraler Treppenkern"} und gebündelte Haustechnik. ${profile.notes.join(" · ")}.`,
       floors,
-      score: Math.round((passedChecks / checks.length) * (index === 0 ? 96 : 93)),
+      score: Math.round((passedChecks / checks.length) * ([96, 93, 94][index] ?? 92)),
       checks,
       metrics: {
         footprintWidthM: Number(width.toFixed(1)),

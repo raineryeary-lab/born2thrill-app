@@ -190,6 +190,9 @@ export default function TestlaufPage() {
 
         <div className="mt-8 flex gap-3 overflow-x-auto pb-2">
           {variants.map((item, index) => <button key={item.id} onClick={() => setSelected(index)} className={`whitespace-nowrap rounded-full px-5 py-3 text-sm font-semibold ${selected === index ? "bg-[#18392f] text-white" : "bg-white text-stone-600"}`}>{item.name}</button>)}
+          <button type="button" onClick={() => setSelected((current) => (current + 1) % variants.length)} className="whitespace-nowrap rounded-full border border-stone-300 bg-white px-5 py-3 text-sm font-semibold text-stone-700">
+            Andere Variante anzeigen
+          </button>
         </div>
 
         <section className="mt-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">

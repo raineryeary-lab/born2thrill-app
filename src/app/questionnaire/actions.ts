@@ -27,8 +27,8 @@ export async function saveQuestionnaire(
   const area = number(formData, "targetArea");
   const floors = number(formData, "floors");
   const bundesland = text(formData, "bundesland");
-  if (!name || !bundesland || area < 60 || area > 500 || floors < 1 || floors > 3) {
-    return { error: "Bitte prüfen Sie Projektname, Wohnfläche, Geschosse und Bundesland." };
+  if (area < 60 || area > 500 || floors < 1 || floors > 3) {
+    return { error: "Bitte prüfen Sie Wohnfläche und Geschosse." };
   }
 
   const supabase = await createClient();
@@ -103,7 +103,7 @@ export async function saveQuestionnaire(
     .from("projects")
     .insert({
       owner_id: user.id,
-      name,
+      name: name || "Hausprofil",
       notes: text(formData, "notes"),
       requirements,
       status: "draft",

@@ -81,12 +81,15 @@ export default function QuestionnaireForm({
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    const entries = rememberDraft(event.currentTarget);
     if (testMode) {
       event.preventDefault();
+      const entries = rememberDraft(event.currentTarget);
       window.sessionStorage.setItem("born2thrill-test-brief", JSON.stringify(entries));
       router.push("/testlauf");
+      return;
     }
+
+    rememberDraft(event.currentTarget);
   }
 
   if (state.emailSent) {
@@ -127,7 +130,7 @@ export default function QuestionnaireForm({
   }
 
   return (
-    <form ref={formRef} action={action} onSubmit={handleSubmit}>
+    <form ref={formRef} action={testMode ? undefined : action} onSubmit={handleSubmit}>
       <div className="mb-9 flex items-center gap-2 overflow-x-auto pb-2">
         {steps.map((label, index) => (
           <button
