@@ -10,6 +10,21 @@ import {
   type PlanVariant,
 } from "@/lib/generator/floorplan";
 
+type FeedbackRating = "up" | "down";
+
+type TestlaufFeedback = {
+  id: string;
+  createdAt: string;
+  rating: FeedbackRating;
+  reason: string;
+  variantId: string;
+  variantName: string;
+  score: number;
+  brief: HouseBrief;
+  metrics: PlanVariant["metrics"];
+  failedChecks: string[];
+};
+
 function FloorSvg({ plan }: { plan: FloorPlan }) {
   const stair = plan.stair;
   return (
@@ -105,14 +120,24 @@ function HouseRendering({ brief }: { brief: HouseBrief }) {
   );
 }
 
+function feedbackLabel(rating: FeedbackRating) {
+  return rating === "up" ? "Daumen hoch" : "Daumen runter";
+}
+
 export default function TestlaufPage() {
   const [entries, setEntries] = useState<Array<[string, string]>>([]);
   const [selected, setSelected] = useState(0);
+  const [feedbackRating, setFeedbackRating] = useState<FeedbackRating | null>(null);
+  const [feedbackReason, setFeedbackReason] = useState("");
+  const [feedbackStatus, setFeedbackStatus] = useState("");
+  const [feedbackCount, setFeedbackCount] = useState(0);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const raw = window.sessionStorage.getItem("born2thrill-test-brief");
       if (raw) setEntries(JSON.parse(raw) as Array<[string, string]>);
+      const feedbackRaw = window.localStorage.getItem("born2thrill-test-feedback");
+      if (feedbackRaw) setFeedbackCount((JSON.parse(feedbackRaw) as TestlaufFeedback[]).length);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -120,6 +145,39 @@ export default function TestlaufPage() {
   const brief = useMemo(() => parseBrief(entries), [entries]);
   const variants = useMemo(() => generateVariants(brief), [brief]);
   const variant: PlanVariant = variants[selected];
+
+  const saveFeedback = () => {
+    if (!feedbackRating) {
+      setFeedbackStatus("Bitte zuerst Daumen hoch oder runter auswählen.");
+      return;
+    }
+
+    const raw = window.localStorage.getItem("born2thrill-test-feedback");
+    const existing = raw ? (JSON.parse(raw) as TestlaufFeedback[]) : [];
+    const item: TestlaufFeedback = {
+      id: `${Date.now()}-${variant.id}`,
+      createdAt: new Date().toISOString(),
+      rating: feedbackRating,
+      reason: feedbackReason.trim(),
+      variantId: variant.id,
+      variantName: variant.name,
+      score: variant.score,
+      brief,
+      metrics: variant.metrics,
+      failedChecks: variant.checks.filter((check) => !check.passed).map((check) => check.label),
+    };
+
+    window.localStorage.setItem("born2thrill-test-feedback", JSON.stringify([item, ...existing].slice(0, 100)));
+    setFeedbackCount(existing.length + 1);
+    setFeedbackReason("");
+    setFeedbackStatus(`${feedbackLabel(feedbackRating)} gespeichert. Das wird später unser Lernmaterial.`);
+  };
+
+  const saveFeedbackAndTryNext = () => {
+    saveFeedback();
+    setSelected((current) => (current + 1) % variants.length);
+    setFeedbackRating(null);
+  };
 
   return (
     <main className="min-h-screen bg-[#f3f1eb] px-5 py-8 text-stone-900 sm:py-12">
@@ -135,13 +193,64 @@ export default function TestlaufPage() {
         </div>
 
         <section className="mt-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
-          <div className="flex flex-wrap items-start justify-between gap-5"><div><h2 className="text-3xl font-medium">{variant.name}</h2><p className="mt-3 max-w-2xl leading-7 text-stone-600">{variant.description}</p></div><div className="text-right text-sm text-stone-500"><p>{variant.metrics.footprintWidthM} × {variant.metrics.footprintDepthM} m</p><p>{variant.metrics.plannedAreaM2} m² Wohnfläche</p></div></div>
+          <div className="flex flex-wrap items-start justify-between gap-5"><div><h2 className="text-3xl font-medium">{variant.name}</h2><p className="mt-3 max-w-2xl leading-7 text-stone-600">{variant.description}</p><div className="mt-5 inline-flex rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900">Referenz: {variant.metrics.referenceProfile}</div></div><div className="text-right text-sm text-stone-500"><p>{variant.metrics.footprintWidthM} × {variant.metrics.footprintDepthM} m</p><p>{variant.metrics.plannedAreaM2} m² Wohnfläche</p>{variant.metrics.upperFloorAreaM2 > 0 && <p>EG ca. {variant.metrics.groundFloorAreaM2} m² · OG ca. {variant.metrics.upperFloorAreaM2} m²</p>}</div></div>
           <div className="mt-8 grid gap-8 xl:grid-cols-2">{variant.floors.map((floor) => <article key={floor.floor}><h3 className="mb-3 text-sm font-semibold">{floor.name}</h3><FloorSvg plan={floor} /></article>)}</div>
         </section>
 
         <section className="mt-8 grid gap-8 lg:grid-cols-[1.35fr_.65fr]">
           <div className="rounded-[2rem] bg-white p-6 sm:p-10"><p className="mb-5 text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Konzeptvisualisierung</p><HouseRendering brief={brief} /><p className="mt-4 text-xs leading-5 text-stone-500">Stilistische Konzeptansicht. Kubatur, Öffnungen und Dachform werden in späteren Stufen aus dem freigegebenen Grundrissmodell abgeleitet.</p></div>
           <div className="rounded-[2rem] bg-white p-6 sm:p-8"><p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Regelprüfung</p><div className="mt-6 space-y-4">{variant.checks.map((check) => <div key={check.label} className="flex gap-3 text-sm leading-6"><span className={`mt-1 flex size-5 shrink-0 items-center justify-center rounded-full text-xs ${check.passed ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-700"}`}>{check.passed ? "✓" : "!"}</span><span>{check.label}</span></div>)}</div>{variant.floors[0]?.stair && <div className="mt-7 rounded-2xl bg-stone-100 p-4 text-xs leading-5 text-stone-600"><p className="font-semibold text-stone-800">Treppengeometrie · Konzeptziel</p><p className="mt-2">Geschosshöhe {variant.floors[0].stair.floorToFloorHeightM.toFixed(2)} m · {variant.floors[0].stair.risers} Steigungen · Auftritt {variant.floors[0].stair.treadDepthCm} cm · Laufbreite {variant.floors[0].stair.usableFlightWidthM.toFixed(2)} m · Podest {variant.floors[0].stair.landingDepthM.toFixed(2)} m</p></div>}<div className="mt-8 border-t border-stone-200 pt-6 text-xs leading-5 text-stone-500">Konservative Konzeptziele für frühe Varianten. Die Treppe muss in der Fachplanung nach DIN 18065, Landesbauordnung, Statik und Brandschutz geprüft werden; dies ist keine Genehmigungs- oder Ausführungsplanung.</div></div>
+        </section>
+
+        <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
+          <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr]">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Learning by doing</p>
+              <h2 className="mt-3 text-2xl font-medium">Ist dieser Grundriss brauchbar?</h2>
+              <p className="mt-3 leading-7 text-stone-600">
+                Bewerte jede Variante kurz. Gute Varianten werden später verstärkt, schlechte Varianten geben uns konkrete Regeln, was der Generator vermeiden soll.
+              </p>
+              <p className="mt-4 text-xs text-stone-500">Gespeicherte Testbewertungen in diesem Browser: {feedbackCount}</p>
+            </div>
+            <div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFeedbackRating("up")}
+                  className={`rounded-full px-5 py-3 text-sm font-bold ${feedbackRating === "up" ? "bg-emerald-700 text-white" : "bg-emerald-50 text-emerald-900"}`}
+                >
+                  👍 Gut / weiter so
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFeedbackRating("down")}
+                  className={`rounded-full px-5 py-3 text-sm font-bold ${feedbackRating === "down" ? "bg-red-700 text-white" : "bg-red-50 text-red-900"}`}
+                >
+                  👎 Nicht gut
+                </button>
+              </div>
+              <label className="mt-5 block text-sm font-semibold text-stone-700" htmlFor="feedback-reason">
+                Warum? Was soll besser werden?
+              </label>
+              <textarea
+                id="feedback-reason"
+                value={feedbackReason}
+                onChange={(event) => setFeedbackReason(event.target.value)}
+                rows={4}
+                placeholder="z. B. Treppe falsch platziert, Küche zu klein, Flur zu groß, Bad nicht am Installationskern, Fenster fehlen..."
+                className="mt-2 w-full rounded-2xl border border-stone-200 bg-stone-50 p-4 text-sm outline-none transition focus:border-emerald-700 focus:bg-white"
+              />
+              {feedbackStatus && <p className="mt-3 text-sm text-emerald-800">{feedbackStatus}</p>}
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button type="button" onClick={saveFeedback} className="rounded-full bg-[#18392f] px-6 py-3 text-sm font-semibold text-white">
+                  Feedback speichern
+                </button>
+                <button type="button" onClick={saveFeedbackAndTryNext} className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700">
+                  Speichern & nächste Variante testen
+                </button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <div className="mt-8 flex flex-wrap gap-3"><Link href="/questionnaire?test=1" className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold">Angaben ändern</Link><button onClick={() => window.print()} className="rounded-full bg-[#18392f] px-6 py-3 text-sm font-semibold text-white">Konzept drucken</button></div>

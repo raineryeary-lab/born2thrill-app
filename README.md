@@ -22,6 +22,29 @@ server-side processes.
 Versioned Supabase migrations live in `supabase/migrations`. Every public table
 must have Row Level Security enabled before it is exposed through Supabase APIs.
 
+## Floor-plan training data
+
+The local floor-plan generator uses a small internal training schema before any
+model training is introduced. Both our own manually annotated Floorplan
+Simplifier packages and selected CubiCasa5K samples are normalized into:
+
+- an image path
+- room labels with polygons
+- optional room area values or area ratios
+- door, window and stair elements
+
+Adapters live in `src/lib/training`:
+
+- `import_our_simplifier_package(projectPath)` reads local packages with
+  `original_preview.png`, `annotations.json`, `training-data.json` and
+  `room_concept.png/svg`.
+- `import_cubicasa_sample(samplePath)` reads CubiCasa-style folders with
+  `F1_scaled.png`, `F1_original.png` and `model.svg`.
+
+CubiCasa5K is currently only an additional reference dataset for floor-plan
+semantics. The project is not redesigned around CubiCasa, and no LMDB or
+PyTorch training pipeline is required at this stage.
+
 ## Getting Started
 
 First, run the development server:
