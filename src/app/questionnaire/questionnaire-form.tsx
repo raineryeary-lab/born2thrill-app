@@ -130,7 +130,7 @@ export default function QuestionnaireForm({
   }
 
   return (
-    <form ref={formRef} action={testMode ? undefined : action} onSubmit={handleSubmit}>
+    <form ref={formRef} action={testMode ? undefined : action} onSubmit={handleSubmit} noValidate>
       <div className="mb-9 flex items-center gap-2 overflow-x-auto pb-2">
         {steps.map((label, index) => (
           <button
@@ -161,7 +161,7 @@ export default function QuestionnaireForm({
                 <input id="projectName" name="projectName" className={inputClass} placeholder="Haus am Garten" />
               </Field>
               <Field label="Gewünschte Wohnfläche (m²)" name="targetArea">
-                <input min="60" max="500" type="number" id="targetArea" name="targetArea" defaultValue="145" className={inputClass} />
+                <input type="number" id="targetArea" name="targetArea" defaultValue="145" className={inputClass} />
               </Field>
               <Field label="Oberirdische Geschosse" name="floors">
                 <select id="floors" name="floors" value={floors} onChange={(event) => setFloors(Number(event.target.value))} className={inputClass}>
@@ -200,8 +200,8 @@ export default function QuestionnaireForm({
         <section className={step === 1 ? "space-y-6" : "hidden"}>
             <div><p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Die Menschen</p><h2 className="mt-3 text-3xl font-medium tracking-tight">Für wen soll das Haus funktionieren?</h2></div>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Erwachsene" name="adults"><input id="adults" name="adults" type="number" min="1" max="8" defaultValue="2" className={inputClass} /></Field>
-              <Field label="Kinder" name="children"><input id="children" name="children" type="number" min="0" max="8" defaultValue="2" className={inputClass} /></Field>
+              <Field label="Erwachsene" name="adults"><input id="adults" name="adults" type="number" defaultValue="2" className={inputClass} /></Field>
+              <Field label="Kinder" name="children"><input id="children" name="children" type="number" defaultValue="2" className={inputClass} /></Field>
               <Field label="Barrierearmes Wohnen berücksichtigen?" name="accessibility">
                 <select id="accessibility" name="accessibility" className={inputClass} onChange={(event) => setAccessible(event.target.value === "yes")}>
                   <option value="no">Nicht erforderlich</option><option value="yes">Ja, jetzt oder zukünftig</option>
@@ -229,8 +229,8 @@ export default function QuestionnaireForm({
         <section className={step === 3 ? "space-y-6" : "hidden"}>
             <div><p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Das Raumprogramm</p><h2 className="mt-3 text-3xl font-medium tracking-tight">Welche Räume werden wirklich gebraucht?</h2></div>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Schlafzimmer" name="bedrooms"><input id="bedrooms" name="bedrooms" type="number" min="1" max="8" defaultValue="3" className={inputClass} /></Field>
-              <Field label="Bäder mit Dusche oder Wanne" name="bathrooms"><input id="bathrooms" name="bathrooms" type="number" min="1" max="5" defaultValue="2" className={inputClass} /></Field>
+              <Field label="Schlafzimmer" name="bedrooms"><input id="bedrooms" name="bedrooms" type="number" defaultValue="3" className={inputClass} /></Field>
+              <Field label="Bäder mit Dusche oder Wanne" name="bathrooms"><input id="bathrooms" name="bathrooms" type="number" defaultValue="2" className={inputClass} /></Field>
               <Field label="Separates Gäste-WC" name="guestWc"><select id="guestWc" name="guestWc" className={inputClass}><option value="yes">Ja</option><option value="no">Nein</option></select></Field>
               <Field label="Eigenes Arbeitszimmer" name="office"><select id="office" name="office" className={inputClass}><option value="yes">Ja</option><option value="no">Nein</option></select></Field>
               <Field label="Hauswirtschafts- / Technikraum" name="utilityRoom"><select id="utilityRoom" name="utilityRoom" className={inputClass}><option value="yes">Ja</option><option value="no">Nein</option></select></Field>

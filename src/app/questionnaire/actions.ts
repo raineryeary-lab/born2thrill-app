@@ -19,17 +19,19 @@ function number(formData: FormData, key: string) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function numberWithFallback(formData: FormData, key: string, fallback: number) {
+  const value = number(formData, key);
+  return value > 0 ? value : fallback;
+}
+
 export async function saveQuestionnaire(
   _state: SaveState,
   formData: FormData,
 ): Promise<SaveState> {
   const name = text(formData, "projectName");
-  const area = number(formData, "targetArea");
-  const floors = number(formData, "floors");
+  const area = Math.min(500, Math.max(60, numberWithFallback(formData, "targetArea", 145)));
+  const floors = Math.min(3, Math.max(1, numberWithFallback(formData, "floors", 2)));
   const bundesland = text(formData, "bundesland");
-  if (area < 60 || area > 500 || floors < 1 || floors > 3) {
-    return { error: "Bitte prüfen Sie Wohnfläche und Geschosse." };
-  }
 
   const supabase = await createClient();
   const {
@@ -73,7 +75,7 @@ export async function saveQuestionnaire(
       constructionStyle: text(formData, "constructionStyle"),
     },
     household: {
-      adults: number(formData, "adults"),
+      adults: numberWithFallback(formData, "adults", 2),
       children: number(formData, "children"),
       accessibility: text(formData, "accessibility") === "yes",
     },
@@ -84,8 +86,8 @@ export async function saveQuestionnaire(
       gardenDirection: text(formData, "gardenDirection"),
     },
     rooms: {
-      bedrooms: number(formData, "bedrooms"),
-      bathrooms: number(formData, "bathrooms"),
+      bedrooms: numberWithFallback(formData, "bedrooms", 3),
+      bathrooms: numberWithFallback(formData, "bathrooms", 2),
       guestWc: text(formData, "guestWc") === "yes",
       office: text(formData, "office") === "yes",
       utilityRoom: text(formData, "utilityRoom") === "yes",
