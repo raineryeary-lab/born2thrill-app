@@ -68,6 +68,25 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
   const wallStairTextX = wallStairX + wallStairWidth / 2;
   const internalDoorPx = 44;
   const frontDoorPx = 50.5;
+  const quarterDoorArc = (hingeX: number, hingeY: number, radius: number, direction: -1 | 1) => {
+    const startX = hingeX;
+    const startY = hingeY - radius;
+    const endX = hingeX + direction * radius;
+    const endY = hingeY;
+    const controlX = endX;
+    const controlY = startY;
+    return `M${startX} ${startY} Q${controlX} ${controlY} ${endX} ${endY}`;
+  };
+  const compactDoorArc = (hingeX: number, hingeY: number, radius: number, direction: -1 | 1) => {
+    const angle = Math.PI / 4;
+    const startX = hingeX;
+    const startY = hingeY - radius;
+    const endX = hingeX + direction * radius * Math.sin(angle);
+    const endY = hingeY - radius * Math.cos(angle);
+    const controlX = hingeX + direction * radius * 0.38;
+    const controlY = hingeY - radius;
+    return `M${startX} ${startY} Q${controlX} ${controlY} ${endX} ${endY}`;
+  };
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
       <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
@@ -100,19 +119,26 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
         <g>
           <line x1="330" y1="480" x2={330 + frontDoorPx} y2="480" stroke="white" strokeWidth="10" />
           <line x1="330" y1="480" x2="330" y2={480 - frontDoorPx} stroke="#0f766e" strokeWidth="2.5" />
-          <path d={`M${330 + frontDoorPx} 480 A${frontDoorPx} ${frontDoorPx} 0 0 0 330 ${480 - frontDoorPx}`} fill="none" stroke="#0f766e" strokeWidth="2" />
+          <path d={`M${330 + frontDoorPx} 480 Q${330 + frontDoorPx} ${480 - frontDoorPx} 330 ${480 - frontDoorPx}`} fill="none" stroke="#0f766e" strokeWidth="2" />
         </g>
       )}
       {plan.rooms.map((room) => {
         const doorX = room.side === "left" ? room.x + room.width : room.x;
         const windowX = room.side === "left" ? room.x : room.x + room.width;
         const cy = room.y + room.height / 2;
+        const doorDirection = room.side === "left" ? -1 : 1;
+        const compactSwing = room.height < 92 || room.area <= 6;
+        const doorLeafEndX = compactSwing
+          ? doorX + doorDirection * internalDoorPx * Math.sin(Math.PI / 4)
+          : doorX + doorDirection * internalDoorPx;
+        const doorLeafEndY = compactSwing
+          ? cy + internalDoorPx / 2 - internalDoorPx * Math.cos(Math.PI / 4)
+          : cy + internalDoorPx / 2;
         const hingeY = cy + internalDoorPx / 2;
         const farSideY = hingeY - internalDoorPx;
-        const openDoorX = room.side === "left" ? doorX - internalDoorPx : doorX + internalDoorPx;
-        const doorArc = room.side === "left"
-          ? `M${doorX} ${farSideY} A${internalDoorPx} ${internalDoorPx} 0 0 0 ${openDoorX} ${hingeY}`
-          : `M${doorX} ${farSideY} A${internalDoorPx} ${internalDoorPx} 0 0 1 ${openDoorX} ${hingeY}`;
+        const doorArc = compactSwing
+          ? compactDoorArc(doorX, hingeY, internalDoorPx, doorDirection)
+          : quarterDoorArc(doorX, hingeY, internalDoorPx, doorDirection);
         const fill = room.kind === "wet" ? "#dbeafe" : room.kind === "living" ? "#dcfce7" : room.kind === "service" ? "#fef3c7" : "#f5f5f4";
         return (
           <g key={room.id}>
@@ -122,7 +148,7 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
             <line x1={windowX} x2={windowX} y1={cy - 23} y2={cy + 23} stroke="white" strokeWidth="10" />
             <line x1={windowX} x2={windowX} y1={cy - 20} y2={cy + 20} stroke="#0ea5e9" strokeWidth="5" />
             <line x1={doorX} x2={doorX} y1={farSideY} y2={hingeY} stroke="white" strokeWidth="9" />
-            <line x1={doorX} x2={openDoorX} y1={hingeY} y2={hingeY} stroke="#0f766e" strokeWidth="2.5" />
+            <line x1={doorX} x2={doorLeafEndX} y1={hingeY} y2={doorLeafEndY} stroke="#0f766e" strokeWidth="2.5" />
             <path d={doorArc} fill="none" stroke="#0f766e" strokeWidth="2" />
           </g>
         );
