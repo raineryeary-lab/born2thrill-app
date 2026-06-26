@@ -135,9 +135,9 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
           ))}
           <path d={`M${wallStairX + 28} 320 L${wallStairX + 28} 176 M${wallStairX + 28} 176 L${wallStairX + 21} 189 M${wallStairX + 28} 176 L${wallStairX + 35} 189`} fill="none" stroke="#18392f" strokeWidth="3" />
           <path d={`M${wallStairX + 68} 176 L${wallStairX + 68} 320 M${wallStairX + 68} 320 L${wallStairX + 61} 307 M${wallStairX + 68} 320 L${wallStairX + 75} 307`} fill="none" stroke="#18392f" strokeWidth="3" />
-          <rect x={plan.wallStairSide === "left" ? 154 : 446} y="258" width="96" height="62" fill="#fff" fillOpacity=".65" stroke="#0f766e" strokeDasharray="6 4" />
-          <text x={plan.wallStairSide === "left" ? 202 : 494} y="286" textAnchor="middle" fontSize="10" fill="#0f766e">ANKUNFT</text>
-          <text x={plan.wallStairSide === "left" ? 202 : 494} y="302" textAnchor="middle" fontSize="9" fill="#57534e">mind. {stair.clearArrivalDepthM.toFixed(2)} m</text>
+          <rect x={hallX + 8} y="258" width={hallWidth - 16} height="62" fill="#fff" fillOpacity=".65" stroke="#0f766e" strokeDasharray="6 4" />
+          <text x={hallX + hallWidth / 2} y="286" textAnchor="middle" fontSize="9" fill="#0f766e">ANKUNFT</text>
+          <text x={hallX + hallWidth / 2} y="302" textAnchor="middle" fontSize="8" fill="#57534e">≥ {stair.clearArrivalDepthM.toFixed(2)} m</text>
           <text x={wallStairTextX} y="74" textAnchor="middle" fontSize="10" fill="#57534e">TREPPE AN AUSSENWAND</text>
         </g>
       )}

@@ -324,8 +324,11 @@ function wantsWallStair(brief: HouseBrief) {
     "außenwand",
     "aussenwand",
     "hinter",
+    "hinten",
     "rückseite",
     "rueckseite",
+    "rückwand",
+    "rueckwand",
     "verschwend",
     "platz",
     "flur zu gross",
@@ -497,11 +500,19 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
   const usableHeight = 452;
   const hallX = wallStair ? 306 : 220;
   const hallWidth = wallStair ? 88 : 260;
-  const columnWidth = wallStair ? 276 : 196;
+  const fullColumnWidth = wallStair ? 276 : 196;
+  const stairSideColumnWidth = wallStair ? 146 : fullColumnWidth;
 
   const placeColumn = (column: RoomSeed[], side: "left" | "right") => {
     const totalArea = column.reduce((sum, room) => sum + (areaByRoom.get(room.name) ?? room.targetArea), 0);
     let y = top;
+    const isStairSide = wallStair && side === wallStairSide;
+    const x = !wallStair
+      ? (side === "left" ? margin : hallX + hallWidth)
+      : side === "left"
+        ? (isStairSide ? 154 : margin)
+        : (isStairSide ? hallX + hallWidth + 6 : hallX + hallWidth);
+    const width = isStairSide ? stairSideColumnWidth : fullColumnWidth;
     return column.map((room, index) => {
       const roomArea = areaByRoom.get(room.name) ?? room.targetArea;
       const height = index === column.length - 1
@@ -511,9 +522,9 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
         id: `${floor}-${side}-${index}`,
         name: room.name,
         kind: room.kind,
-        x: side === "left" ? margin : hallX + hallWidth,
+        x,
         y,
-        width: columnWidth,
+        width,
         height,
         area: roomArea,
         side,
