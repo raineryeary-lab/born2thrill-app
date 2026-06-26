@@ -299,7 +299,16 @@ function stairIsReserved(plan: FloorPlan) {
 }
 
 function hasUsableRoomWidths(plan: FloorPlan) {
-  return plan.rooms.every((room) => room.width >= 96 || room.area <= 6);
+  return plan.rooms.every((room) => room.width >= 140 || room.area <= 6);
+}
+
+function hasExteriorWindowWall(plan: FloorPlan) {
+  const exteriorLeft = 24;
+  const exteriorRight = 670;
+  return plan.rooms.every((room) => {
+    if (room.side === "left") return room.x <= exteriorLeft + 1;
+    return room.x + room.width >= exteriorRight - 1;
+  });
 }
 
 export function parseBrief(entries: Array<[string, string]>): HouseBrief {
@@ -530,9 +539,18 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
   const areaByRoom = adjustedAreas(seeds, floorArea);
   const left: RoomSeed[] = [];
   const right: RoomSeed[] = [];
+  const stairSideLimit = 2;
+  let stairSideCount = 0;
   seeds.forEach((seed) => {
     let side = seed.preferredSide ?? (left.length <= right.length ? "left" : "right");
     if (archetype.mirrored) side = side === "left" ? "right" : "left";
+    if (wallStair && side === wallStairSide) {
+      if (stairSideCount >= stairSideLimit) {
+        side = side === "left" ? "right" : "left";
+      } else {
+        stairSideCount += 1;
+      }
+    }
     (side === "left" ? left : right).push(seed);
   });
 
@@ -542,28 +560,24 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
   const hallX = wallStair ? 306 : 220;
   const hallWidth = wallStair ? 88 : 260;
   const fullColumnWidth = wallStair ? 276 : 196;
-  const leftWallStairRoomX = FLOORPLAN_SVG.wallStairLeft.x + FLOORPLAN_SVG.wallStairLeft.width + FLOORPLAN_SVG.clearancePx;
-  const rightWallStairRoomX = hallX + hallWidth + FLOORPLAN_SVG.clearancePx;
-  const leftWallStairRoomWidth = hallX - leftWallStairRoomX;
-  const rightWallStairRoomWidth = FLOORPLAN_SVG.wallStairRight.x - FLOORPLAN_SVG.clearancePx - rightWallStairRoomX;
+  const stairSideTop = wallStair ? FLOORPLAN_SVG.wallStairLeft.y + FLOORPLAN_SVG.wallStairLeft.height + 18 : top;
+  const stairSideUsableHeight = top + usableHeight - stairSideTop;
 
   const placeColumn = (column: RoomSeed[], side: "left" | "right") => {
     const totalArea = column.reduce((sum, room) => sum + (areaByRoom.get(room.name) ?? room.targetArea), 0);
-    let y = top;
     const isStairSide = wallStair && side === wallStairSide;
+    const columnTop = isStairSide ? stairSideTop : top;
+    const columnUsableHeight = isStairSide ? stairSideUsableHeight : usableHeight;
+    let y = columnTop;
     const x = !wallStair
       ? (side === "left" ? margin : hallX + hallWidth)
-      : side === "left"
-        ? (isStairSide ? leftWallStairRoomX : margin)
-        : (isStairSide ? rightWallStairRoomX : hallX + hallWidth);
-    const width = isStairSide
-      ? (side === "left" ? leftWallStairRoomWidth : rightWallStairRoomWidth)
-      : fullColumnWidth;
+      : (side === "left" ? margin : hallX + hallWidth);
+    const width = fullColumnWidth;
     return column.map((room, index) => {
       const roomArea = areaByRoom.get(room.name) ?? room.targetArea;
       const height = index === column.length - 1
-        ? top + usableHeight - y
-        : usableHeight * (roomArea / Math.max(totalArea, 1));
+        ? columnTop + columnUsableHeight - y
+        : columnUsableHeight * (roomArea / Math.max(totalArea, 1));
       const planned: PlannedRoom = {
         id: `${floor}-${side}-${index}`,
         name: room.name,
@@ -638,6 +652,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     });
     const stairHasReservedFootprint = floors.every(stairIsReserved);
     const roomWidthsUsable = floors.every(hasUsableRoomWidths);
+    const exteriorWindowsOk = floors.every(hasExteriorWindowWall);
     const bedroomSizesOk = upperRooms
       .filter((room) => room.kind === "sleeping")
       .every((room) => room.area >= REFERENCE_RANGES.childRoomMin && room.area <= REFERENCE_RANGES.parentRoomMax);
@@ -661,6 +676,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       { label: "Flur-, Dielen- und Treppenflächen bleiben unter ca. 24 % der geplanten Fläche", passed: hallAreasOk },
       { label: "Interne Kollisionsprüfung: Treppe liegt nicht über Räumen oder Raumtexten", passed: stairHasReservedFootprint },
       { label: "Raumspalten bleiben zeichnerisch nutzbar und werden nicht zu Reststreifen", passed: roomWidthsUsable },
+      { label: "Fenster liegen an echten Außenwänden, nicht an Innenfluren oder Treppenresten", passed: exteriorWindowsOk },
       {
         label: stair
           ? `Treppenlauf bemessen: ${stair.risers} Steigungen à ${stair.riserHeightCm} cm, ${stair.treadDepthCm} cm Auftritt, ${stair.usableFlightWidthM.toFixed(2)} m Laufbreite und freie Ankunft`
