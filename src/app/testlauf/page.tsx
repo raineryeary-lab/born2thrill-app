@@ -66,6 +66,10 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
   const wallStairWidth = 132;
   const wallStairHeight = 184;
   const wallStairTextX = wallStairX + wallStairWidth / 2;
+  const wallStairConnectorX = plan.wallStairSide === "left" ? wallStairX + wallStairWidth : hallX + hallWidth;
+  const wallStairConnectorWidth = plan.wallStairSide === "left" ? hallX - wallStairConnectorX : wallStairX - wallStairConnectorX;
+  const wallStairLandingX = wallStairConnectorX + 8;
+  const wallStairLandingWidth = Math.max(44, wallStairConnectorWidth - 16);
   const internalDoorPx = 44;
   const frontDoorPx = 50.5;
   const doorSwingArc45 = (hingeX: number, hingeY: number, radius: number, direction: -1 | 1) => {
@@ -83,6 +87,12 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
       <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
+      {wallStair && (
+        <g>
+          <rect x={Math.min(wallStairX, hallX)} y="86" width={Math.max(wallStairX + wallStairWidth, hallX + hallWidth) - Math.min(wallStairX, hallX)} height="216" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
+          <text x={wallStairConnectorX + wallStairConnectorWidth / 2} y="246" textAnchor="middle" fontSize="10" fill="#57534e">TREPPENFLUR</text>
+        </g>
+      )}
       <rect x={hallX} y="24" width={hallWidth} height="452" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
       <text x={hallX + hallWidth / 2} y="55" textAnchor="middle" fontSize="12" fill="#57534e">{wallStair ? "KURZER FLUR" : "FLUR"}</text>
       {plan.hasStair && stair && !wallStair && (
@@ -157,9 +167,9 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
           ))}
           <path d={`M${wallStairX + 30} ${wallStairY + 170} L${wallStairX + 30} ${wallStairY + 72} M${wallStairX + 30} ${wallStairY + 72} L${wallStairX + 23} ${wallStairY + 85} M${wallStairX + 30} ${wallStairY + 72} L${wallStairX + 37} ${wallStairY + 85}`} fill="none" stroke="#18392f" strokeWidth="3" />
           <path d={`M${wallStairX + 96} ${wallStairY + 72} L${wallStairX + 96} ${wallStairY + 170} M${wallStairX + 96} ${wallStairY + 170} L${wallStairX + 89} ${wallStairY + 157} M${wallStairX + 96} ${wallStairY + 170} L${wallStairX + 103} ${wallStairY + 157}`} fill="none" stroke="#18392f" strokeWidth="3" />
-          <rect x={hallX + 8} y="258" width={hallWidth - 16} height="62" fill="#fff" fillOpacity=".65" stroke="#0f766e" strokeDasharray="6 4" />
-          <text x={hallX + hallWidth / 2} y="286" textAnchor="middle" fontSize="9" fill="#0f766e">ANKUNFT</text>
-          <text x={hallX + hallWidth / 2} y="302" textAnchor="middle" fontSize="8" fill="#57534e">≥ {stair.clearArrivalDepthM.toFixed(2)} m</text>
+          <rect x={wallStairLandingX} y="258" width={wallStairLandingWidth} height="38" fill="#fff" fillOpacity=".65" stroke="#0f766e" strokeDasharray="6 4" />
+          <text x={wallStairLandingX + wallStairLandingWidth / 2} y="278" textAnchor="middle" fontSize="9" fill="#0f766e">ANKUNFT</text>
+          <text x={wallStairLandingX + wallStairLandingWidth / 2} y="291" textAnchor="middle" fontSize="8" fill="#57534e">≥ {stair.clearArrivalDepthM.toFixed(2)} m</text>
           <text x={wallStairTextX} y={wallStairY - 14} textAnchor="middle" fontSize="10" fill="#57534e">TREPPE AN AUSSENWAND</text>
         </g>
       )}

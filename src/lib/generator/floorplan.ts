@@ -298,6 +298,22 @@ function stairIsReserved(plan: FloorPlan) {
   return plan.rooms.every((room) => !rectsOverlap(room, stairRect));
 }
 
+function stairConnectsToHall(plan: FloorPlan) {
+  const stairRect = stairRectForPlan(plan);
+  if (!stairRect) return true;
+  if (plan.layoutMode === "central-stair") return true;
+
+  const hall = { x: 306, y: 24, width: 88, height: 452 };
+  const horizontalGap = plan.wallStairSide === "left"
+    ? hall.x - (stairRect.x + stairRect.width)
+    : stairRect.x - (hall.x + hall.width);
+  const verticalOverlap = Math.min(stairRect.y + stairRect.height, hall.y + hall.height) - Math.max(stairRect.y, hall.y);
+
+  return horizontalGap >= 0
+    && horizontalGap <= 140
+    && verticalOverlap >= Math.min(stairRect.height, 120);
+}
+
 function hasUsableRoomWidths(plan: FloorPlan) {
   return plan.rooms.every((room) => room.width >= 140 || room.area <= 6);
 }
@@ -670,6 +686,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       return circulation / Math.max(planned, 1) <= REFERENCE_RANGES.hallShareMax;
     });
     const stairHasReservedFootprint = floors.every(stairIsReserved);
+    const stairHallConnected = floors.every(stairConnectsToHall);
     const roomWidthsUsable = floors.every(hasUsableRoomWidths);
     const doorsDrawable = floors.every(hasDoorDrawableWall);
     const exteriorWindowsOk = floors.every(hasExteriorWindowWall);
@@ -695,6 +712,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       { label: "OG folgt Familienhaus-Muster: Treppe, Flur, Bad, Eltern und Kinderzimmer", passed: brief.floors === 1 || upperRooms.some((room) => room.name === "Bad") },
       { label: "Flur-, Dielen- und Treppenflächen bleiben unter ca. 24 % der geplanten Fläche", passed: hallAreasOk },
       { label: "Interne Kollisionsprüfung: Treppe liegt nicht über Räumen oder Raumtexten", passed: stairHasReservedFootprint },
+      { label: "Treppe hat direkte nutzbare Verbindung zum Flur / zur Ankunftszone", passed: stairHallConnected },
       { label: "Raumspalten bleiben zeichnerisch nutzbar und werden nicht zu Reststreifen", passed: roomWidthsUsable },
       { label: "Türsymbole passen in die jeweilige Wandfläche", passed: doorsDrawable },
       { label: "Fenster liegen an echten Außenwänden, nicht an Innenfluren oder Treppenresten", passed: exteriorWindowsOk },
