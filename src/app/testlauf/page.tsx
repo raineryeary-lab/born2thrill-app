@@ -124,6 +124,12 @@ function feedbackLabel(rating: FeedbackRating) {
   return rating === "up" ? "Daumen hoch" : "Daumen runter";
 }
 
+function upsertEntry(entries: Array<[string, string]>, name: string, value: string) {
+  const next = entries.filter(([entryName]) => entryName !== name);
+  next.push([name, value]);
+  return next;
+}
+
 export default function TestlaufPage() {
   const [entries, setEntries] = useState<Array<[string, string]>>([]);
   const [selected, setSelected] = useState(0);
@@ -149,7 +155,7 @@ export default function TestlaufPage() {
   const saveFeedback = () => {
     if (!feedbackRating) {
       setFeedbackStatus("Bitte zuerst Daumen hoch oder runter auswählen.");
-      return;
+      return false;
     }
 
     const raw = window.localStorage.getItem("born2thrill-test-feedback");
@@ -171,11 +177,31 @@ export default function TestlaufPage() {
     setFeedbackCount(existing.length + 1);
     setFeedbackReason("");
     setFeedbackStatus(`${feedbackLabel(feedbackRating)} gespeichert. Das wird später unser Lernmaterial.`);
+    return true;
   };
 
   const saveFeedbackAndTryNext = () => {
-    saveFeedback();
-    setSelected((current) => (current + 1) % variants.length);
+    const rating = feedbackRating;
+    const reason = feedbackReason.trim();
+    const saved = saveFeedback();
+    if (!saved) return;
+
+    if (rating === "down" || reason) {
+      const nextAttempt = brief.generationAttempt + 1;
+      const critiqueNotes = [brief.critiqueNotes, reason].filter(Boolean).join(" · ");
+      const nextEntries = upsertEntry(
+        upsertEntry(entries, "generationAttempt", String(nextAttempt)),
+        "critiqueNotes",
+        critiqueNotes,
+      );
+      window.sessionStorage.setItem("born2thrill-test-brief", JSON.stringify(nextEntries));
+      setEntries(nextEntries);
+      setSelected(0);
+      setFeedbackStatus("Kritik gespeichert. Neue Variante wurde daraus generiert.");
+    } else {
+      setSelected((current) => (current + 1) % variants.length);
+    }
+
     setFeedbackRating(null);
   };
 
@@ -249,7 +275,7 @@ export default function TestlaufPage() {
                   Feedback speichern
                 </button>
                 <button type="button" onClick={saveFeedbackAndTryNext} className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold text-stone-700">
-                  Speichern & nächste Variante testen
+                  Kritik speichern & neu generieren
                 </button>
               </div>
             </div>
