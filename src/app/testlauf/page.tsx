@@ -66,6 +66,8 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
   const wallStairWidth = 132;
   const wallStairHeight = 184;
   const wallStairTextX = wallStairX + wallStairWidth / 2;
+  const internalDoorPx = 44;
+  const frontDoorPx = 50.5;
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
       <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
@@ -96,21 +98,21 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
       )}
       {plan.floor === 0 && (
         <g>
-          <line x1="330" y1="480" x2="370" y2="480" stroke="white" strokeWidth="10" />
-          <path d="M330 476 A40 40 0 0 1 370 436" fill="none" stroke="#0f766e" strokeWidth="2" />
+          <line x1="330" y1="480" x2={330 + frontDoorPx} y2="480" stroke="white" strokeWidth="10" />
+          <line x1="330" y1="480" x2="330" y2={480 - frontDoorPx} stroke="#0f766e" strokeWidth="2.5" />
+          <path d={`M${330 + frontDoorPx} 480 A${frontDoorPx} ${frontDoorPx} 0 0 0 330 ${480 - frontDoorPx}`} fill="none" stroke="#0f766e" strokeWidth="2" />
         </g>
       )}
       {plan.rooms.map((room) => {
         const doorX = room.side === "left" ? room.x + room.width : room.x;
         const windowX = room.side === "left" ? room.x : room.x + room.width;
         const cy = room.y + room.height / 2;
-        const doorRadius = 34;
-        const hingeY = cy + doorRadius;
-        const closedDoorY = cy - doorRadius;
-        const openDoorX = room.side === "left" ? doorX - doorRadius : doorX + doorRadius;
+        const hingeY = cy + internalDoorPx / 2;
+        const farSideY = hingeY - internalDoorPx;
+        const openDoorX = room.side === "left" ? doorX - internalDoorPx : doorX + internalDoorPx;
         const doorArc = room.side === "left"
-          ? `M${doorX} ${closedDoorY} A${doorRadius} ${doorRadius} 0 0 0 ${openDoorX} ${hingeY}`
-          : `M${doorX} ${closedDoorY} A${doorRadius} ${doorRadius} 0 0 1 ${openDoorX} ${hingeY}`;
+          ? `M${doorX} ${farSideY} A${internalDoorPx} ${internalDoorPx} 0 0 0 ${openDoorX} ${hingeY}`
+          : `M${doorX} ${farSideY} A${internalDoorPx} ${internalDoorPx} 0 0 1 ${openDoorX} ${hingeY}`;
         const fill = room.kind === "wet" ? "#dbeafe" : room.kind === "living" ? "#dcfce7" : room.kind === "service" ? "#fef3c7" : "#f5f5f4";
         return (
           <g key={room.id}>
@@ -119,7 +121,7 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
             <text x={room.x + room.width / 2} y={cy + 16} textAnchor="middle" fontSize="12" fill="#78716c">ca. {room.area} m²</text>
             <line x1={windowX} x2={windowX} y1={cy - 23} y2={cy + 23} stroke="white" strokeWidth="10" />
             <line x1={windowX} x2={windowX} y1={cy - 20} y2={cy + 20} stroke="#0ea5e9" strokeWidth="5" />
-            <line x1={doorX} x2={doorX} y1={closedDoorY} y2={hingeY} stroke="white" strokeWidth="9" />
+            <line x1={doorX} x2={doorX} y1={farSideY} y2={hingeY} stroke="white" strokeWidth="9" />
             <line x1={doorX} x2={openDoorX} y1={hingeY} y2={hingeY} stroke="#0f766e" strokeWidth="2.5" />
             <path d={doorArc} fill="none" stroke="#0f766e" strokeWidth="2" />
           </g>
