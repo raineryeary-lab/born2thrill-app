@@ -27,7 +27,7 @@ export type HouseBrief = {
 export type PlannedRoom = {
   id: string;
   name: string;
-  kind: "living" | "sleeping" | "wet" | "service" | "flex";
+  kind: "living" | "sleeping" | "wet" | "service" | "flex" | "circulation";
   x: number;
   y: number;
   width: number;
@@ -326,6 +326,7 @@ function hasExteriorWindowWall(plan: FloorPlan) {
   const exteriorLeft = 24;
   const exteriorRight = 670;
   return plan.rooms.every((room) => {
+    if (room.kind === "circulation") return true;
     if (room.side === "left") return room.x <= exteriorLeft + 1;
     return room.x + room.width >= exteriorRight - 1;
   });
@@ -382,6 +383,18 @@ function critiqueIncludes(brief: HouseBrief, words: string[]) {
   return words.some((word) => text.includes(word));
 }
 
+function wantsEntranceCirculation(brief: HouseBrief) {
+  const text = brief.critiqueNotes.toLowerCase();
+  return (text.includes("diele") || text.includes("eingang"))
+    && (
+      text.includes("kein eigenes zimmer")
+      || text.includes("kein raum")
+      || text.includes("eingangsbereich")
+      || text.includes("zirkulation")
+      || text.includes("circulation")
+    );
+}
+
 function wantsWallStair(brief: HouseBrief) {
   const text = brief.critiqueNotes.toLowerCase();
   if (!text.includes("treppe")) return false;
@@ -434,6 +447,7 @@ function finalSide(side: "left" | "right", archetype: VariantArchetype) {
 
 function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, archetype: VariantArchetype): RoomSeed[] {
   const wallStair = wantsWallStair(brief);
+  const entranceCirculation = wantsEntranceCirculation(brief);
   if (floor === 0) {
     const livingTarget = clamp(
       Math.round(floorArea * (wallStair ? 0.57 : 0.52)) + kitchenAreaAdjustment(brief) + gardenAreaAdjustment(brief),
@@ -452,11 +466,11 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
         flexible: true,
       },
       {
-        name: wallStair ? "Kompakte Diele" : "Diele",
-        kind: "flex",
-        targetArea: wallStair || critiqueIncludes(brief, ["flur zu groß", "flur zu gross", "diele zu groß", "zu viel flur"]) ? 5 : 8,
-        minArea: 5,
-        maxArea: wallStair ? 8 : 12,
+        name: entranceCirculation ? "Eingangsbereich" : wallStair ? "Kompakte Diele" : "Diele",
+        kind: entranceCirculation ? "circulation" : "flex",
+        targetArea: entranceCirculation || wallStair || critiqueIncludes(brief, ["flur zu groß", "flur zu gross", "diele zu groß", "zu viel flur"]) ? 5 : 8,
+        minArea: entranceCirculation ? 4 : 5,
+        maxArea: entranceCirculation || wallStair ? 8 : 12,
         preferredSide: preferredServiceSide(archetype),
         preferredZone: "street",
       },
@@ -481,7 +495,7 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
           : brief.stairPreference === "feature"
             ? "Offene Treppe / Garderobe"
             : "Treppe / Garderobe",
-        kind: "flex",
+        kind: entranceCirculation && !wallStair ? "circulation" : "flex",
         targetArea: wallStair
           ? 4
           : critiqueIncludes(brief, ["treppe", "stiege"])
@@ -542,6 +556,14 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
     rooms.push({ name: "Ankleide", kind: "flex", targetArea: 6, minArea: 4, maxArea: 8, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
   }
   rooms.push({ name: "Flur", kind: "flex", targetArea: 10, minArea: 7, maxArea: 13, preferredSide: preferredLivingSide(archetype), preferredZone: "core" });
+  if (wantsEntranceCirculation(brief)) {
+    const hall = rooms.find((room) => room.name === "Flur");
+    if (hall) {
+      hall.kind = "circulation";
+      hall.targetArea = 8;
+      hall.maxArea = 10;
+    }
+  }
   if (wallStair) {
     const hall = rooms.find((room) => room.name === "Flur");
     if (hall) {

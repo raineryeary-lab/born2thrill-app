@@ -8,6 +8,7 @@ import {
   type FloorPlan,
   type HouseBrief,
   type PlanVariant,
+  type PlannedRoom,
 } from "@/lib/generator/floorplan";
 
 type FeedbackRating = "up" | "down";
@@ -23,6 +24,35 @@ type TestlaufFeedback = {
   brief: HouseBrief;
   metrics: PlanVariant["metrics"];
   failedChecks: string[];
+};
+
+type SelectedRoom = {
+  floor: number;
+  floorName: string;
+  room: PlannedRoom;
+};
+
+type LearningCorrection = {
+  id: string;
+  createdAt: string;
+  variantId: string;
+  variantName: string;
+  floor: number;
+  floorName: string;
+  targetRoomId: string;
+  targetRoomName: string;
+  action: "room_to_circulation" | "increase_room_area" | "decrease_room_area" | "door_window_issue";
+  reason: string;
+  before: {
+    name: string;
+    kind: PlannedRoom["kind"];
+    area: number;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  structuredConstraints: Array<Record<string, string | number>>;
 };
 
 type SpeechRecognitionResultLike = {
@@ -56,7 +86,15 @@ declare global {
   }
 }
 
-function FloorSvg({ plan }: { plan: FloorPlan }) {
+function FloorSvg({
+  plan,
+  selectedRoomId,
+  onSelectRoom,
+}: {
+  plan: FloorPlan;
+  selectedRoomId?: string | null;
+  onSelectRoom?: (selection: SelectedRoom) => void;
+}) {
   const stair = plan.stair;
   const wallStair = plan.layoutMode === "wall-stair";
   const hallX = wallStair ? 306 : 220;
@@ -136,19 +174,27 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
         const doorLeafEndY = hingeY - internalDoorPx * Math.cos(Math.PI / 4);
         const farSideY = hingeY - internalDoorPx;
         const doorArc = doorSwingArc45(doorX, hingeY, internalDoorPx, doorDirection);
-        const fill = room.kind === "wet" ? "#dbeafe" : room.kind === "living" ? "#dcfce7" : room.kind === "service" ? "#fef3c7" : "#f5f5f4";
+        const selected = selectedRoomId === room.id;
+        const fill = room.kind === "circulation" ? "#f0eee8" : room.kind === "wet" ? "#dbeafe" : room.kind === "living" ? "#dcfce7" : room.kind === "service" ? "#fef3c7" : "#f5f5f4";
+        const drawDoorAndWindow = room.kind !== "circulation";
         return (
-          <g key={room.id}>
-            <rect x={room.x} y={room.y} width={room.width} height={room.height} fill={fill} stroke="#57534e" strokeWidth="2" />
+          <g key={room.id} role="button" tabIndex={0} className="cursor-pointer" onClick={() => onSelectRoom?.({ floor: plan.floor, floorName: plan.name, room })} onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") onSelectRoom?.({ floor: plan.floor, floorName: plan.name, room });
+          }}>
+            <rect x={room.x} y={room.y} width={room.width} height={room.height} fill={fill} stroke={selected ? "#f97316" : "#57534e"} strokeWidth={selected ? "4" : "2"} />
             <text x={room.x + room.width / 2} y={cy - 5} textAnchor="middle" fontSize="15" fontWeight="600" fill="#292524">{room.name}</text>
             <text x={room.x + room.width / 2} y={cy + 16} textAnchor="middle" fontSize="12" fill="#78716c">ca. {room.area} m²</text>
-            <line x1={windowX} x2={windowX} y1={cy - 23} y2={cy + 23} stroke="white" strokeWidth="10" />
-            <line x1={windowX} x2={windowX} y1={cy - 20} y2={cy + 20} stroke="#0ea5e9" strokeWidth="5" />
-            {doorFits && (
+            {drawDoorAndWindow && (
               <>
-                <line x1={doorX} x2={doorX} y1={farSideY} y2={hingeY} stroke="white" strokeWidth="9" />
-                <line x1={doorX} x2={doorLeafEndX} y1={hingeY} y2={doorLeafEndY} stroke="#0f766e" strokeWidth="2.5" />
-                <path d={doorArc} fill="none" stroke="#0f766e" strokeWidth="2" />
+                <line x1={windowX} x2={windowX} y1={cy - 23} y2={cy + 23} stroke="white" strokeWidth="10" />
+                <line x1={windowX} x2={windowX} y1={cy - 20} y2={cy + 20} stroke="#0ea5e9" strokeWidth="5" />
+                {doorFits && (
+                  <>
+                    <line x1={doorX} x2={doorX} y1={farSideY} y2={hingeY} stroke="white" strokeWidth="9" />
+                    <line x1={doorX} x2={doorLeafEndX} y1={hingeY} y2={doorLeafEndY} stroke="#0f766e" strokeWidth="2.5" />
+                    <path d={doorArc} fill="none" stroke="#0f766e" strokeWidth="2" />
+                  </>
+                )}
               </>
             )}
           </g>
@@ -246,6 +292,8 @@ export default function TestlaufPage() {
   const [feedbackReason, setFeedbackReason] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackCount, setFeedbackCount] = useState(0);
+  const [learningCount, setLearningCount] = useState(0);
+  const [selectedRoom, setSelectedRoom] = useState<SelectedRoom | null>(null);
   const [isListening, setIsListening] = useState(false);
 
   useEffect(() => {
@@ -254,6 +302,8 @@ export default function TestlaufPage() {
       if (raw) setEntries(JSON.parse(raw) as Array<[string, string]>);
       const feedbackRaw = window.localStorage.getItem("born2thrill-test-feedback");
       if (feedbackRaw) setFeedbackCount((JSON.parse(feedbackRaw) as TestlaufFeedback[]).length);
+      const learningRaw = window.localStorage.getItem("born2thrill-learning-corrections");
+      if (learningRaw) setLearningCount((JSON.parse(learningRaw) as LearningCorrection[]).length);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -319,6 +369,78 @@ export default function TestlaufPage() {
     setFeedbackRating(null);
   };
 
+  const correctionSentence = (action: LearningCorrection["action"], roomName: string) => {
+    if (action === "room_to_circulation") return `${roomName} ist kein eigenes Zimmer, sondern ein Eingangsbereich bzw. eine offene Zirkulationsfläche.`;
+    if (action === "increase_room_area") return `${roomName} ist zu klein und soll bei der nächsten Variante mehr Fläche bekommen.`;
+    if (action === "decrease_room_area") return `${roomName} ist zu groß und soll bei der nächsten Variante kompakter werden.`;
+    return `Tür oder Fenster bei ${roomName} ist falsch gesetzt und muss planerisch geprüft werden.`;
+  };
+
+  const structuredConstraintsFor = (action: LearningCorrection["action"], room: PlannedRoom) => {
+    if (action === "room_to_circulation") return [
+      { type: "room_to_circulation", target: room.name },
+      { type: "remove_room_cell_behavior", target: room.name },
+    ];
+    if (action === "increase_room_area") return [{ type: "increase_room_area", target: room.name, area_m2: room.area }];
+    if (action === "decrease_room_area") return [{ type: "decrease_room_area", target: room.name, area_m2: room.area }];
+    return [{ type: "door_window_issue", target: room.name }];
+  };
+
+  const saveLearningCorrection = (action: LearningCorrection["action"], regenerate: boolean) => {
+    if (!selectedRoom) {
+      setFeedbackStatus("Bitte zuerst einen Raum im Grundriss anklicken.");
+      return;
+    }
+
+    const reason = cleanFeedbackReason(feedbackReason);
+    const sentence = correctionSentence(action, selectedRoom.room.name);
+    const correction: LearningCorrection = {
+      id: `${Date.now()}-${selectedRoom.room.id}`,
+      createdAt: new Date().toISOString(),
+      variantId: variant.id,
+      variantName: variant.name,
+      floor: selectedRoom.floor,
+      floorName: selectedRoom.floorName,
+      targetRoomId: selectedRoom.room.id,
+      targetRoomName: selectedRoom.room.name,
+      action,
+      reason,
+      before: {
+        name: selectedRoom.room.name,
+        kind: selectedRoom.room.kind,
+        area: selectedRoom.room.area,
+        x: Math.round(selectedRoom.room.x),
+        y: Math.round(selectedRoom.room.y),
+        width: Math.round(selectedRoom.room.width),
+        height: Math.round(selectedRoom.room.height),
+      },
+      structuredConstraints: structuredConstraintsFor(action, selectedRoom.room),
+    };
+
+    const raw = window.localStorage.getItem("born2thrill-learning-corrections");
+    const existing = raw ? (JSON.parse(raw) as LearningCorrection[]) : [];
+    window.localStorage.setItem("born2thrill-learning-corrections", JSON.stringify([correction, ...existing].slice(0, 200)));
+    setLearningCount(existing.length + 1);
+
+    const critiqueNotes = cleanFeedbackReason([sentence, reason].filter(Boolean).join(" "));
+    setFeedbackReason("");
+    setFeedbackStatus(`Lernkorrektur gespeichert: ${sentence}`);
+
+    if (regenerate) {
+      const nextAttempt = brief.generationAttempt + 1;
+      const nextEntries = upsertEntry(
+        upsertEntry(entries, "generationAttempt", String(nextAttempt)),
+        "critiqueNotes",
+        critiqueNotes,
+      );
+      window.sessionStorage.setItem("born2thrill-test-brief", JSON.stringify(nextEntries));
+      setEntries(nextEntries);
+      setSelected(0);
+      setSelectedRoom(null);
+      window.setTimeout(() => planSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+    }
+  };
+
   const startDictation = () => {
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
     if (!Recognition) {
@@ -373,7 +495,55 @@ export default function TestlaufPage() {
         <section ref={planSectionRef} className="mt-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
           <div className="flex flex-wrap items-start justify-between gap-5"><div><h2 className="text-3xl font-medium">{variant.name}</h2><p className="mt-3 max-w-2xl leading-7 text-stone-600">{variant.description}</p><div className="mt-5 inline-flex rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900">Referenz: {variant.metrics.referenceProfile}</div></div><div className="text-right text-sm text-stone-500"><p>{variant.metrics.footprintWidthM} × {variant.metrics.footprintDepthM} m</p><p>{variant.metrics.plannedAreaM2} m² Wohnfläche</p>{variant.metrics.upperFloorAreaM2 > 0 && <p>EG ca. {variant.metrics.groundFloorAreaM2} m² · OG ca. {variant.metrics.upperFloorAreaM2} m²</p>}</div></div>
           {brief.generationAttempt > 0 && <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">Neuer Generierungslauf {brief.generationAttempt + 1}. Berücksichtigt: {compactCritique(brief.critiqueNotes)}</div>}
-          <div className="mt-8 grid gap-8 xl:grid-cols-2">{variant.floors.map((floor) => <article key={floor.floor}><h3 className="mb-3 text-sm font-semibold">{floor.name}</h3><FloorSvg plan={floor} /></article>)}</div>
+          <div className="mt-8 grid gap-8 xl:grid-cols-2">{variant.floors.map((floor) => <article key={floor.floor}><h3 className="mb-3 text-sm font-semibold">{floor.name}</h3><FloorSvg plan={floor} selectedRoomId={selectedRoom?.room.id} onSelectRoom={setSelectedRoom} /></article>)}</div>
+        </section>
+
+        <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
+          <div className="grid gap-8 lg:grid-cols-[.85fr_1.15fr]">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Korrektur erfassen</p>
+              <h2 className="mt-3 text-2xl font-medium">Click-to-teach</h2>
+              <p className="mt-3 leading-7 text-stone-600">
+                Klicke einen Raum im Grundriss an, wähle die Korrektur und diktiere kurz warum. Das speichern wir als strukturiertes Lernbeispiel.
+              </p>
+              <p className="mt-4 text-xs text-stone-500">Gespeicherte Lernkorrekturen in diesem Browser: {learningCount}</p>
+            </div>
+            <div className="rounded-3xl border border-stone-200 bg-stone-50 p-5">
+              {selectedRoom ? (
+                <>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold tracking-[0.18em] text-stone-500 uppercase">Ausgewählt</p>
+                      <h3 className="mt-1 text-xl font-semibold">{selectedRoom.room.name}</h3>
+                      <p className="mt-1 text-sm text-stone-500">{selectedRoom.floorName} · {selectedRoom.room.kind} · ca. {selectedRoom.room.area} m²</p>
+                    </div>
+                    <button type="button" onClick={() => setSelectedRoom(null)} className="rounded-full border border-stone-300 bg-white px-4 py-2 text-xs font-semibold text-stone-600">Auswahl löschen</button>
+                  </div>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <button type="button" onClick={() => saveLearningCorrection("room_to_circulation", true)} className="rounded-2xl bg-[#18392f] px-4 py-3 text-left text-sm font-semibold text-white">
+                      Als Eingangsbereich / Flur lernen & neu generieren
+                    </button>
+                    <button type="button" onClick={() => saveLearningCorrection("increase_room_area", true)} className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-left text-sm font-semibold text-stone-700">
+                      Raum größer lernen & neu generieren
+                    </button>
+                    <button type="button" onClick={() => saveLearningCorrection("decrease_room_area", true)} className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-left text-sm font-semibold text-stone-700">
+                      Raum kleiner lernen & neu generieren
+                    </button>
+                    <button type="button" onClick={() => saveLearningCorrection("door_window_issue", false)} className="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-left text-sm font-semibold text-stone-700">
+                      Tür/Fenster-Problem nur speichern
+                    </button>
+                  </div>
+                  <p className="mt-4 text-xs leading-5 text-stone-500">
+                    Tipp: Nutze unten das Diktatfeld für die Begründung, z. B. „Diele ist kein eigenes Zimmer, sondern ein offener Eingangsbereich.“
+                  </p>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-stone-300 bg-white p-6 text-sm leading-6 text-stone-500">
+                  Noch nichts ausgewählt. Klicke direkt im Grundriss auf einen Raum.
+                </div>
+              )}
+            </div>
+          </div>
         </section>
 
         <section className="mt-8 grid gap-8 lg:grid-cols-[1.35fr_.65fr]">
