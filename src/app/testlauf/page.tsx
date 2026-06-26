@@ -77,16 +77,6 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
     const controlY = startY;
     return `M${startX} ${startY} Q${controlX} ${controlY} ${endX} ${endY}`;
   };
-  const compactDoorArc = (hingeX: number, hingeY: number, radius: number, direction: -1 | 1) => {
-    const angle = Math.PI / 4;
-    const startX = hingeX;
-    const startY = hingeY - radius;
-    const endX = hingeX + direction * radius * Math.sin(angle);
-    const endY = hingeY - radius * Math.cos(angle);
-    const controlX = hingeX + direction * radius * 0.38;
-    const controlY = hingeY - radius;
-    return `M${startX} ${startY} Q${controlX} ${controlY} ${endX} ${endY}`;
-  };
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
       <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
@@ -127,18 +117,11 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
         const windowX = room.side === "left" ? room.x : room.x + room.width;
         const cy = room.y + room.height / 2;
         const doorDirection = room.side === "left" ? -1 : 1;
-        const compactSwing = room.height < 92 || room.area <= 6;
-        const doorLeafEndX = compactSwing
-          ? doorX + doorDirection * internalDoorPx * Math.sin(Math.PI / 4)
-          : doorX + doorDirection * internalDoorPx;
-        const doorLeafEndY = compactSwing
-          ? cy + internalDoorPx / 2 - internalDoorPx * Math.cos(Math.PI / 4)
-          : cy + internalDoorPx / 2;
+        const doorLeafEndX = doorX + doorDirection * internalDoorPx;
+        const doorLeafEndY = cy + internalDoorPx / 2;
         const hingeY = cy + internalDoorPx / 2;
         const farSideY = hingeY - internalDoorPx;
-        const doorArc = compactSwing
-          ? compactDoorArc(doorX, hingeY, internalDoorPx, doorDirection)
-          : quarterDoorArc(doorX, hingeY, internalDoorPx, doorDirection);
+        const doorArc = quarterDoorArc(doorX, hingeY, internalDoorPx, doorDirection);
         const fill = room.kind === "wet" ? "#dbeafe" : room.kind === "living" ? "#dcfce7" : room.kind === "service" ? "#fef3c7" : "#f5f5f4";
         return (
           <g key={room.id}>
