@@ -43,6 +43,8 @@ export type FloorPlan = {
   rooms: PlannedRoom[];
   hasStair: boolean;
   stair: StairGeometry | null;
+  layoutMode: "central-stair" | "wall-stair";
+  wallStairSide?: "left" | "right";
 };
 
 export type StairGeometry = {
@@ -310,6 +312,27 @@ function critiqueIncludes(brief: HouseBrief, words: string[]) {
   return words.some((word) => text.includes(word));
 }
 
+function wantsWallStair(brief: HouseBrief) {
+  const text = brief.critiqueNotes.toLowerCase();
+  if (!text.includes("treppe")) return false;
+
+  return [
+    "wand",
+    "links",
+    "rechts",
+    "seite",
+    "außenwand",
+    "aussenwand",
+    "hinter",
+    "rückseite",
+    "rueckseite",
+    "verschwend",
+    "platz",
+    "flur zu gross",
+    "flur zu groß",
+  ].some((word) => text.includes(word));
+}
+
 function kitchenAreaAdjustment(brief: HouseBrief) {
   if (brief.kitchen === "separate") return -5;
   if (brief.kitchen === "semi-open") return -2;
@@ -337,9 +360,10 @@ function finalSide(side: "left" | "right", archetype: VariantArchetype) {
 }
 
 function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, archetype: VariantArchetype): RoomSeed[] {
+  const wallStair = wantsWallStair(brief);
   if (floor === 0) {
     const livingTarget = clamp(
-      Math.round(floorArea * 0.52) + kitchenAreaAdjustment(brief) + gardenAreaAdjustment(brief),
+      Math.round(floorArea * (wallStair ? 0.57 : 0.52)) + kitchenAreaAdjustment(brief) + gardenAreaAdjustment(brief),
       REFERENCE_RANGES.livingKitchenMin,
       REFERENCE_RANGES.livingKitchenMax,
     );
@@ -355,11 +379,11 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
         flexible: true,
       },
       {
-        name: "Diele",
+        name: wallStair ? "Kompakte Diele" : "Diele",
         kind: "flex",
-        targetArea: critiqueIncludes(brief, ["flur zu groß", "diele zu groß", "zu viel flur"]) ? 6 : 8,
+        targetArea: wallStair || critiqueIncludes(brief, ["flur zu groß", "flur zu gross", "diele zu groß", "zu viel flur"]) ? 5 : 8,
         minArea: 5,
-        maxArea: 12,
+        maxArea: wallStair ? 8 : 12,
         preferredSide: preferredServiceSide(archetype),
         preferredZone: "street",
       },
@@ -377,21 +401,25 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
     }
     if (brief.floors > 1) {
       rooms.push({
-        name: archetype.id === "family-core"
+        name: wallStair
+          ? "Garderobe"
+          : archetype.id === "family-core"
           ? "Familienflur / Treppe"
           : brief.stairPreference === "feature"
             ? "Offene Treppe / Garderobe"
             : "Treppe / Garderobe",
         kind: "flex",
-        targetArea: critiqueIncludes(brief, ["treppe", "stiege"])
+        targetArea: wallStair
+          ? 4
+          : critiqueIncludes(brief, ["treppe", "stiege"])
           ? 10
           : archetype.id === "family-core"
             ? 9
             : brief.stairPreference === "feature"
               ? 9
               : 7,
-        minArea: 5,
-        maxArea: archetype.id === "family-core" || brief.stairPreference === "feature" ? 12 : 10,
+        minArea: wallStair ? 3 : 5,
+        maxArea: wallStair ? 6 : archetype.id === "family-core" || brief.stairPreference === "feature" ? 12 : 10,
         preferredSide: preferredServiceSide(archetype),
         preferredZone: "core",
       });
@@ -441,10 +469,19 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
     rooms.push({ name: "Ankleide", kind: "flex", targetArea: 6, minArea: 4, maxArea: 8, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
   }
   rooms.push({ name: "Flur", kind: "flex", targetArea: 10, minArea: 7, maxArea: 13, preferredSide: preferredLivingSide(archetype), preferredZone: "core" });
+  if (wallStair) {
+    const hall = rooms.find((room) => room.name === "Flur");
+    if (hall) {
+      hall.targetArea = 7;
+      hall.maxArea = 9;
+    }
+  }
   return rooms;
 }
 
 function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | null, floorArea: number, archetype: VariantArchetype): FloorPlan {
+  const wallStair = wantsWallStair(brief) && brief.floors > 1;
+  const wallStairSide = wallStair ? finalSide(archetype.serviceSide, archetype) : undefined;
   const seeds = seedsForFloor(brief, floor, floorArea, archetype);
   const areaByRoom = adjustedAreas(seeds, floorArea);
   const left: RoomSeed[] = [];
@@ -458,9 +495,9 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
   const margin = 24;
   const top = 24;
   const usableHeight = 452;
-  const hallX = 220;
-  const hallWidth = 260;
-  const columnWidth = 196;
+  const hallX = wallStair ? 306 : 220;
+  const hallWidth = wallStair ? 88 : 260;
+  const columnWidth = wallStair ? 276 : 196;
 
   const placeColumn = (column: RoomSeed[], side: "left" | "right") => {
     const totalArea = column.reduce((sum, room) => sum + (areaByRoom.get(room.name) ?? room.targetArea), 0);
@@ -493,6 +530,8 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
     rooms: [...placeColumn(left, "left"), ...placeColumn(right, "right")],
     hasStair: brief.floors > 1,
     stair: brief.floors > 1 ? stair : null,
+    layoutMode: wallStair ? "wall-stair" : "central-stair",
+    wallStairSide,
   };
 }
 
@@ -554,6 +593,9 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       brief.critiqueNotes
         ? { label: `Kritik aus vorherigem Lauf berücksichtigt: ${brief.critiqueNotes}`, passed: true }
         : { label: "Noch keine Kritik aus vorherigem Lauf", passed: true },
+      wantsWallStair(brief)
+        ? { label: "Treppenkritik umgesetzt: Treppe an die Außenwand gelegt und Flurfläche reduziert", passed: floors.every((plan) => plan.layoutMode === "wall-stair") }
+        : { label: "Treppenlage folgt dem gewählten Grundrissprofil", passed: true },
       { label: `Fragebogen ausgewertet: ${lifestyleChecks.join(" · ")}`, passed: true },
       { label: "EG folgt Bestseller-Sequenz: Eingang, Diele, Treppe, WC/HWR und Wohnen/Essen", passed: groundRooms.length >= 4 },
       { label: "OG folgt Familienhaus-Muster: Treppe, Flur, Bad, Eltern und Kinderzimmer", passed: brief.floors === 1 || upperRooms.some((room) => room.name === "Bad") },
@@ -576,7 +618,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     return {
       id: archetype.id,
       name: brief.generationAttempt > 0 ? `${archetype.name} · Lauf ${brief.generationAttempt + 1}` : archetype.name,
-      description: `${archetype.descriptionPrefix}: ${brief.kitchen === "separate" ? "separate Küche" : brief.kitchen === "semi-open" ? "halboffene Küche" : "offener Wohn-Ess-Kochbereich"}, ${brief.gardenConnection === "private" ? "gezieltere Ausblicke" : "kurzer Weg zur Terrasse"}, ${brief.stairPreference === "feature" ? "offenere Treppe" : "zentraler Treppenkern"} und gebündelte Haustechnik. ${profile.notes.join(" · ")}.`,
+      description: `${archetype.descriptionPrefix}: ${brief.kitchen === "separate" ? "separate Küche" : brief.kitchen === "semi-open" ? "halboffene Küche" : "offener Wohn-Ess-Kochbereich"}, ${brief.gardenConnection === "private" ? "gezieltere Ausblicke" : "kurzer Weg zur Terrasse"}, ${wantsWallStair(brief) ? "Treppe an der Außenwand statt verschwendetem Mittelraum" : brief.stairPreference === "feature" ? "offenere Treppe" : "zentraler Treppenkern"} und gebündelte Haustechnik. ${profile.notes.join(" · ")}.`,
       floors,
       score: Math.round((passedChecks / checks.length) * ([96, 93, 94][index] ?? 92)),
       checks,

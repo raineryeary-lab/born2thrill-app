@@ -58,12 +58,17 @@ declare global {
 
 function FloorSvg({ plan }: { plan: FloorPlan }) {
   const stair = plan.stair;
+  const wallStair = plan.layoutMode === "wall-stair";
+  const hallX = wallStair ? 306 : 220;
+  const hallWidth = wallStair ? 88 : 260;
+  const wallStairX = plan.wallStairSide === "left" ? 54 : 550;
+  const wallStairTextX = plan.wallStairSide === "left" ? 102 : 598;
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
       <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
-      <rect x="220" y="24" width="260" height="452" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
-      <text x="248" y="55" textAnchor="middle" fontSize="12" fill="#57534e">FLUR</text>
-      {plan.hasStair && stair && (
+      <rect x={hallX} y="24" width={hallWidth} height="452" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
+      <text x={hallX + hallWidth / 2} y="55" textAnchor="middle" fontSize="12" fill="#57534e">{wallStair ? "KURZER FLUR" : "FLUR"}</text>
+      {plan.hasStair && stair && !wallStair && (
         <g>
           <rect x="284" y="66" width="132" height="184" rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
           <rect x="284" y="66" width="132" height="58" fill="#d6d3d1" stroke="#292524" strokeWidth="1.5" />
@@ -112,6 +117,25 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
           </g>
         );
       })}
+      {plan.hasStair && stair && wallStair && (
+        <g>
+          <rect x={wallStairX} y="88" width="96" height="250" rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
+          <rect x={wallStairX} y="88" width="96" height="58" fill="#d6d3d1" stroke="#292524" strokeWidth="1.5" />
+          <line x1={wallStairX + 48} x2={wallStairX + 48} y1="146" y2="338" stroke="#292524" strokeWidth="2" />
+          {Array.from({ length: 9 }, (_, index) => (
+            <g key={index}>
+              <line x1={wallStairX} x2={wallStairX + 48} y1={164 + index * 18} y2={164 + index * 18} stroke="#78716c" />
+              <line x1={wallStairX + 48} x2={wallStairX + 96} y1={164 + index * 18} y2={164 + index * 18} stroke="#78716c" />
+            </g>
+          ))}
+          <path d={`M${wallStairX + 28} 320 L${wallStairX + 28} 176 M${wallStairX + 28} 176 L${wallStairX + 21} 189 M${wallStairX + 28} 176 L${wallStairX + 35} 189`} fill="none" stroke="#18392f" strokeWidth="3" />
+          <path d={`M${wallStairX + 68} 176 L${wallStairX + 68} 320 M${wallStairX + 68} 320 L${wallStairX + 61} 307 M${wallStairX + 68} 320 L${wallStairX + 75} 307`} fill="none" stroke="#18392f" strokeWidth="3" />
+          <rect x={plan.wallStairSide === "left" ? 154 : 446} y="258" width="96" height="62" fill="#fff" fillOpacity=".65" stroke="#0f766e" strokeDasharray="6 4" />
+          <text x={plan.wallStairSide === "left" ? 202 : 494} y="286" textAnchor="middle" fontSize="10" fill="#0f766e">ANKUNFT</text>
+          <text x={plan.wallStairSide === "left" ? 202 : 494} y="302" textAnchor="middle" fontSize="9" fill="#57534e">mind. {stair.clearArrivalDepthM.toFixed(2)} m</text>
+          <text x={wallStairTextX} y="74" textAnchor="middle" fontSize="10" fill="#57534e">TREPPE AN AUSSENWAND</text>
+        </g>
+      )}
       <text x="30" y="16" fontSize="11" fill="#78716c">N ↑</text>
     </svg>
   );
@@ -161,6 +185,22 @@ function upsertEntry(entries: Array<[string, string]>, name: string, value: stri
   return next;
 }
 
+function compactCritique(text: string) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= 260) return cleaned;
+  return `${cleaned.slice(0, 260).trim()} …`;
+}
+
+function cleanFeedbackReason(text: string) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  const chunks = cleaned
+    .split(/[.·\n]+/)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+  const uniqueChunks = chunks.filter((chunk, index) => chunks.findIndex((item) => item.toLowerCase() === chunk.toLowerCase()) === index);
+  return (uniqueChunks.length ? uniqueChunks.join(" · ") : cleaned).slice(0, 800);
+}
+
 export default function TestlaufPage() {
   const planSectionRef = useRef<HTMLElement>(null);
   const [entries, setEntries] = useState<Array<[string, string]>>([]);
@@ -186,7 +226,7 @@ export default function TestlaufPage() {
   const variant: PlanVariant = variants[selected];
 
   const saveFeedback = () => {
-    const reason = feedbackReason.trim();
+    const reason = cleanFeedbackReason(feedbackReason);
     const effectiveRating = feedbackRating ?? (reason ? "down" : null);
     if (!effectiveRating) {
       setFeedbackStatus("Bitte Daumen wählen oder Kritiktext eingeben.");
@@ -217,13 +257,13 @@ export default function TestlaufPage() {
 
   const saveFeedbackAndTryNext = () => {
     const rating = feedbackRating;
-    const reason = feedbackReason.trim();
+    const reason = cleanFeedbackReason(feedbackReason);
     const saved = saveFeedback();
     if (!saved) return;
 
     if (rating === "down" || reason) {
       const nextAttempt = brief.generationAttempt + 1;
-      const critiqueNotes = [brief.critiqueNotes, reason].filter(Boolean).join(" · ");
+      const critiqueNotes = reason || brief.critiqueNotes;
       const nextEntries = upsertEntry(
         upsertEntry(entries, "generationAttempt", String(nextAttempt)),
         "critiqueNotes",
@@ -251,7 +291,7 @@ export default function TestlaufPage() {
 
     const recognition = new Recognition();
     recognition.lang = "de-DE";
-    recognition.interimResults = true;
+    recognition.interimResults = false;
     recognition.continuous = false;
     setIsListening(true);
     setFeedbackStatus("Ich höre zu … sprechen Sie Ihre Kritikpunkte.");
@@ -295,7 +335,7 @@ export default function TestlaufPage() {
 
         <section ref={planSectionRef} className="mt-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
           <div className="flex flex-wrap items-start justify-between gap-5"><div><h2 className="text-3xl font-medium">{variant.name}</h2><p className="mt-3 max-w-2xl leading-7 text-stone-600">{variant.description}</p><div className="mt-5 inline-flex rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900">Referenz: {variant.metrics.referenceProfile}</div></div><div className="text-right text-sm text-stone-500"><p>{variant.metrics.footprintWidthM} × {variant.metrics.footprintDepthM} m</p><p>{variant.metrics.plannedAreaM2} m² Wohnfläche</p>{variant.metrics.upperFloorAreaM2 > 0 && <p>EG ca. {variant.metrics.groundFloorAreaM2} m² · OG ca. {variant.metrics.upperFloorAreaM2} m²</p>}</div></div>
-          {brief.generationAttempt > 0 && <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">Neuer Generierungslauf {brief.generationAttempt + 1}. Berücksichtigt: {brief.critiqueNotes}</div>}
+          {brief.generationAttempt > 0 && <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">Neuer Generierungslauf {brief.generationAttempt + 1}. Berücksichtigt: {compactCritique(brief.critiqueNotes)}</div>}
           <div className="mt-8 grid gap-8 xl:grid-cols-2">{variant.floors.map((floor) => <article key={floor.floor}><h3 className="mb-3 text-sm font-semibold">{floor.name}</h3><FloorSvg plan={floor} /></article>)}</div>
         </section>
 
