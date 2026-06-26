@@ -61,8 +61,11 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
   const wallStair = plan.layoutMode === "wall-stair";
   const hallX = wallStair ? 306 : 220;
   const hallWidth = wallStair ? 88 : 260;
-  const wallStairX = plan.wallStairSide === "left" ? 54 : 550;
-  const wallStairTextX = plan.wallStairSide === "left" ? 102 : 598;
+  const wallStairX = plan.wallStairSide === "left" ? 56 : 512;
+  const wallStairY = 100;
+  const wallStairWidth = 132;
+  const wallStairHeight = 184;
+  const wallStairTextX = wallStairX + wallStairWidth / 2;
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
       <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
@@ -124,21 +127,21 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
       })}
       {plan.hasStair && stair && wallStair && (
         <g>
-          <rect x={wallStairX} y="88" width="96" height="250" rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
-          <rect x={wallStairX} y="88" width="96" height="58" fill="#d6d3d1" stroke="#292524" strokeWidth="1.5" />
-          <line x1={wallStairX + 48} x2={wallStairX + 48} y1="146" y2="338" stroke="#292524" strokeWidth="2" />
-          {Array.from({ length: 9 }, (_, index) => (
+          <rect x={wallStairX} y={wallStairY} width={wallStairWidth} height={wallStairHeight} rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
+          <rect x={wallStairX} y={wallStairY} width={wallStairWidth} height="58" fill="#d6d3d1" stroke="#292524" strokeWidth="1.5" />
+          <line x1={wallStairX + 61} x2={wallStairX + 61} y1={wallStairY + 58} y2={wallStairY + wallStairHeight} stroke="#292524" strokeWidth="2" />
+          {Array.from({ length: 7 }, (_, index) => (
             <g key={index}>
-              <line x1={wallStairX} x2={wallStairX + 48} y1={164 + index * 18} y2={164 + index * 18} stroke="#78716c" />
-              <line x1={wallStairX + 48} x2={wallStairX + 96} y1={164 + index * 18} y2={164 + index * 18} stroke="#78716c" />
+              <line x1={wallStairX} x2={wallStairX + 61} y1={wallStairY + 76 + index * 16} y2={wallStairY + 76 + index * 16} stroke="#78716c" />
+              <line x1={wallStairX + 61} x2={wallStairX + wallStairWidth} y1={wallStairY + 76 + index * 16} y2={wallStairY + 76 + index * 16} stroke="#78716c" />
             </g>
           ))}
-          <path d={`M${wallStairX + 28} 320 L${wallStairX + 28} 176 M${wallStairX + 28} 176 L${wallStairX + 21} 189 M${wallStairX + 28} 176 L${wallStairX + 35} 189`} fill="none" stroke="#18392f" strokeWidth="3" />
-          <path d={`M${wallStairX + 68} 176 L${wallStairX + 68} 320 M${wallStairX + 68} 320 L${wallStairX + 61} 307 M${wallStairX + 68} 320 L${wallStairX + 75} 307`} fill="none" stroke="#18392f" strokeWidth="3" />
+          <path d={`M${wallStairX + 30} ${wallStairY + 170} L${wallStairX + 30} ${wallStairY + 72} M${wallStairX + 30} ${wallStairY + 72} L${wallStairX + 23} ${wallStairY + 85} M${wallStairX + 30} ${wallStairY + 72} L${wallStairX + 37} ${wallStairY + 85}`} fill="none" stroke="#18392f" strokeWidth="3" />
+          <path d={`M${wallStairX + 96} ${wallStairY + 72} L${wallStairX + 96} ${wallStairY + 170} M${wallStairX + 96} ${wallStairY + 170} L${wallStairX + 89} ${wallStairY + 157} M${wallStairX + 96} ${wallStairY + 170} L${wallStairX + 103} ${wallStairY + 157}`} fill="none" stroke="#18392f" strokeWidth="3" />
           <rect x={hallX + 8} y="258" width={hallWidth - 16} height="62" fill="#fff" fillOpacity=".65" stroke="#0f766e" strokeDasharray="6 4" />
           <text x={hallX + hallWidth / 2} y="286" textAnchor="middle" fontSize="9" fill="#0f766e">ANKUNFT</text>
           <text x={hallX + hallWidth / 2} y="302" textAnchor="middle" fontSize="8" fill="#57534e">≥ {stair.clearArrivalDepthM.toFixed(2)} m</text>
-          <text x={wallStairTextX} y="74" textAnchor="middle" fontSize="10" fill="#57534e">TREPPE AN AUSSENWAND</text>
+          <text x={wallStairTextX} y={wallStairY - 14} textAnchor="middle" fontSize="10" fill="#57534e">TREPPE AN AUSSENWAND</text>
         </g>
       )}
       <text x="30" y="16" fontSize="11" fill="#78716c">N ↑</text>
