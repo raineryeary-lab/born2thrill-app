@@ -302,6 +302,10 @@ function hasUsableRoomWidths(plan: FloorPlan) {
   return plan.rooms.every((room) => room.width >= 140 || room.area <= 6);
 }
 
+function hasDoorDrawableWall(plan: FloorPlan) {
+  return plan.rooms.every((room) => room.height >= 64);
+}
+
 function hasExteriorWindowWall(plan: FloorPlan) {
   const exteriorLeft = 24;
   const exteriorRight = 670;
@@ -573,11 +577,26 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
       ? (side === "left" ? margin : hallX + hallWidth)
       : (side === "left" ? margin : hallX + hallWidth);
     const width = fullColumnWidth;
+    const minimumHeights = column.map((room) => {
+      const roomArea = areaByRoom.get(room.name) ?? room.targetArea;
+      if (roomArea <= 5 || room.kind === "service") return 58;
+      if (room.kind === "wet") return 70;
+      return 78;
+    });
+    const minimumTotal = minimumHeights.reduce((sum, height) => sum + height, 0);
+    const extraHeight = Math.max(0, columnUsableHeight - minimumTotal);
+    const roomHeights = column.map((room, index) => {
+      const roomArea = areaByRoom.get(room.name) ?? room.targetArea;
+      if (minimumTotal > columnUsableHeight) {
+        return columnUsableHeight * (roomArea / Math.max(totalArea, 1));
+      }
+      return minimumHeights[index] + extraHeight * (roomArea / Math.max(totalArea, 1));
+    });
     return column.map((room, index) => {
       const roomArea = areaByRoom.get(room.name) ?? room.targetArea;
       const height = index === column.length - 1
         ? columnTop + columnUsableHeight - y
-        : columnUsableHeight * (roomArea / Math.max(totalArea, 1));
+        : roomHeights[index];
       const planned: PlannedRoom = {
         id: `${floor}-${side}-${index}`,
         name: room.name,
@@ -652,6 +671,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     });
     const stairHasReservedFootprint = floors.every(stairIsReserved);
     const roomWidthsUsable = floors.every(hasUsableRoomWidths);
+    const doorsDrawable = floors.every(hasDoorDrawableWall);
     const exteriorWindowsOk = floors.every(hasExteriorWindowWall);
     const bedroomSizesOk = upperRooms
       .filter((room) => room.kind === "sleeping")
@@ -676,6 +696,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       { label: "Flur-, Dielen- und Treppenflächen bleiben unter ca. 24 % der geplanten Fläche", passed: hallAreasOk },
       { label: "Interne Kollisionsprüfung: Treppe liegt nicht über Räumen oder Raumtexten", passed: stairHasReservedFootprint },
       { label: "Raumspalten bleiben zeichnerisch nutzbar und werden nicht zu Reststreifen", passed: roomWidthsUsable },
+      { label: "Türsymbole passen in die jeweilige Wandfläche", passed: doorsDrawable },
       { label: "Fenster liegen an echten Außenwänden, nicht an Innenfluren oder Treppenresten", passed: exteriorWindowsOk },
       {
         label: stair

@@ -119,6 +119,7 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
         const doorX = room.side === "left" ? room.x + room.width : room.x;
         const windowX = room.side === "left" ? room.x : room.x + room.width;
         const cy = room.y + room.height / 2;
+        const doorFits = room.height >= internalDoorPx + 20;
         const doorDirection = room.side === "left" ? -1 : 1;
         const hingeY = cy + internalDoorPx / 2;
         const doorLeafEndX = doorX + doorDirection * internalDoorPx * Math.sin(Math.PI / 4);
@@ -133,9 +134,13 @@ function FloorSvg({ plan }: { plan: FloorPlan }) {
             <text x={room.x + room.width / 2} y={cy + 16} textAnchor="middle" fontSize="12" fill="#78716c">ca. {room.area} m²</text>
             <line x1={windowX} x2={windowX} y1={cy - 23} y2={cy + 23} stroke="white" strokeWidth="10" />
             <line x1={windowX} x2={windowX} y1={cy - 20} y2={cy + 20} stroke="#0ea5e9" strokeWidth="5" />
-            <line x1={doorX} x2={doorX} y1={farSideY} y2={hingeY} stroke="white" strokeWidth="9" />
-            <line x1={doorX} x2={doorLeafEndX} y1={hingeY} y2={doorLeafEndY} stroke="#0f766e" strokeWidth="2.5" />
-            <path d={doorArc} fill="none" stroke="#0f766e" strokeWidth="2" />
+            {doorFits && (
+              <>
+                <line x1={doorX} x2={doorX} y1={farSideY} y2={hingeY} stroke="white" strokeWidth="9" />
+                <line x1={doorX} x2={doorLeafEndX} y1={hingeY} y2={doorLeafEndY} stroke="#0f766e" strokeWidth="2.5" />
+                <path d={doorArc} fill="none" stroke="#0f766e" strokeWidth="2" />
+              </>
+            )}
           </g>
         );
       })}
