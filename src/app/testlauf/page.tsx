@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   generateVariants,
   parseBrief,
@@ -24,6 +24,37 @@ type TestlaufFeedback = {
   metrics: PlanVariant["metrics"];
   failedChecks: string[];
 };
+
+type SpeechRecognitionResultLike = {
+  isFinal: boolean;
+  [index: number]: { transcript: string };
+};
+
+type SpeechRecognitionEventLike = {
+  resultIndex: number;
+  results: {
+    length: number;
+    [index: number]: SpeechRecognitionResultLike;
+  };
+};
+
+type SpeechRecognitionLike = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+declare global {
+  interface Window {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  }
+}
 
 function FloorSvg({ plan }: { plan: FloorPlan }) {
   const stair = plan.stair;
@@ -131,12 +162,14 @@ function upsertEntry(entries: Array<[string, string]>, name: string, value: stri
 }
 
 export default function TestlaufPage() {
+  const planSectionRef = useRef<HTMLElement>(null);
   const [entries, setEntries] = useState<Array<[string, string]>>([]);
   const [selected, setSelected] = useState(0);
   const [feedbackRating, setFeedbackRating] = useState<FeedbackRating | null>(null);
   const [feedbackReason, setFeedbackReason] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackCount, setFeedbackCount] = useState(0);
+  const [isListening, setIsListening] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -153,8 +186,10 @@ export default function TestlaufPage() {
   const variant: PlanVariant = variants[selected];
 
   const saveFeedback = () => {
-    if (!feedbackRating) {
-      setFeedbackStatus("Bitte zuerst Daumen hoch oder runter auswählen.");
+    const reason = feedbackReason.trim();
+    const effectiveRating = feedbackRating ?? (reason ? "down" : null);
+    if (!effectiveRating) {
+      setFeedbackStatus("Bitte Daumen wählen oder Kritiktext eingeben.");
       return false;
     }
 
@@ -163,8 +198,8 @@ export default function TestlaufPage() {
     const item: TestlaufFeedback = {
       id: `${Date.now()}-${variant.id}`,
       createdAt: new Date().toISOString(),
-      rating: feedbackRating,
-      reason: feedbackReason.trim(),
+      rating: effectiveRating,
+      reason,
       variantId: variant.id,
       variantName: variant.name,
       score: variant.score,
@@ -176,7 +211,7 @@ export default function TestlaufPage() {
     window.localStorage.setItem("born2thrill-test-feedback", JSON.stringify([item, ...existing].slice(0, 100)));
     setFeedbackCount(existing.length + 1);
     setFeedbackReason("");
-    setFeedbackStatus(`${feedbackLabel(feedbackRating)} gespeichert. Das wird später unser Lernmaterial.`);
+    setFeedbackStatus(`${feedbackLabel(effectiveRating)} gespeichert. Das wird später unser Lernmaterial.`);
     return true;
   };
 
@@ -197,12 +232,49 @@ export default function TestlaufPage() {
       window.sessionStorage.setItem("born2thrill-test-brief", JSON.stringify(nextEntries));
       setEntries(nextEntries);
       setSelected(0);
-      setFeedbackStatus("Kritik gespeichert. Neue Variante wurde daraus generiert.");
+      setFeedbackStatus(`Kritik gespeichert. Neuer Lauf ${nextAttempt + 1} wurde daraus generiert.`);
+      window.setTimeout(() => planSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     } else {
       setSelected((current) => (current + 1) % variants.length);
+      window.setTimeout(() => planSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
     }
 
     setFeedbackRating(null);
+  };
+
+  const startDictation = () => {
+    const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
+    if (!Recognition) {
+      setFeedbackStatus("Diktat wird von diesem Browser leider nicht unterstützt. Chrome oder Safari funktionieren meistens.");
+      return;
+    }
+
+    const recognition = new Recognition();
+    recognition.lang = "de-DE";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+    setIsListening(true);
+    setFeedbackStatus("Ich höre zu … sprechen Sie Ihre Kritikpunkte.");
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        transcript += event.results[index][0].transcript;
+      }
+      if (transcript.trim()) {
+        setFeedbackReason((current) => `${current}${current ? " " : ""}${transcript.trim()}`);
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+      setFeedbackStatus("Diktat konnte nicht gestartet werden. Bitte Mikrofonberechtigung prüfen.");
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+      setFeedbackStatus("Diktat beendet. Sie können jetzt neu generieren.");
+    };
+    recognition.start();
   };
 
   return (
@@ -221,8 +293,9 @@ export default function TestlaufPage() {
           </button>
         </div>
 
-        <section className="mt-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
+        <section ref={planSectionRef} className="mt-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
           <div className="flex flex-wrap items-start justify-between gap-5"><div><h2 className="text-3xl font-medium">{variant.name}</h2><p className="mt-3 max-w-2xl leading-7 text-stone-600">{variant.description}</p><div className="mt-5 inline-flex rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900">Referenz: {variant.metrics.referenceProfile}</div></div><div className="text-right text-sm text-stone-500"><p>{variant.metrics.footprintWidthM} × {variant.metrics.footprintDepthM} m</p><p>{variant.metrics.plannedAreaM2} m² Wohnfläche</p>{variant.metrics.upperFloorAreaM2 > 0 && <p>EG ca. {variant.metrics.groundFloorAreaM2} m² · OG ca. {variant.metrics.upperFloorAreaM2} m²</p>}</div></div>
+          {brief.generationAttempt > 0 && <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">Neuer Generierungslauf {brief.generationAttempt + 1}. Berücksichtigt: {brief.critiqueNotes}</div>}
           <div className="mt-8 grid gap-8 xl:grid-cols-2">{variant.floors.map((floor) => <article key={floor.floor}><h3 className="mb-3 text-sm font-semibold">{floor.name}</h3><FloorSvg plan={floor} /></article>)}</div>
         </section>
 
@@ -261,6 +334,9 @@ export default function TestlaufPage() {
               <label className="mt-5 block text-sm font-semibold text-stone-700" htmlFor="feedback-reason">
                 Warum? Was soll besser werden?
               </label>
+              <button type="button" onClick={startDictation} className={`mt-3 rounded-full px-5 py-3 text-sm font-bold ${isListening ? "bg-red-700 text-white" : "bg-stone-900 text-white"}`}>
+                {isListening ? "🎙️ Höre zu …" : "🎙️ Kritik diktieren"}
+              </button>
               <textarea
                 id="feedback-reason"
                 value={feedbackReason}
@@ -283,6 +359,24 @@ export default function TestlaufPage() {
         </section>
 
         <div className="mt-8 flex flex-wrap gap-3"><Link href="/questionnaire?test=1" className="rounded-full border border-stone-300 bg-white px-6 py-3 text-sm font-semibold">Angaben ändern</Link><button onClick={() => window.print()} className="rounded-full bg-[#18392f] px-6 py-3 text-sm font-semibold text-white">Konzept drucken</button></div>
+      </div>
+      <div className="fixed inset-x-3 bottom-3 z-40 rounded-3xl border border-stone-200 bg-white/95 p-3 shadow-[0_20px_70px_rgba(41,37,36,.22)] backdrop-blur md:left-auto md:right-5 md:w-[560px]">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <button type="button" onClick={startDictation} className={`shrink-0 rounded-full px-4 py-3 text-sm font-bold ${isListening ? "bg-red-700 text-white" : "bg-stone-900 text-white"}`}>
+            {isListening ? "🎙️ Höre zu …" : "🎙️ Diktieren"}
+          </button>
+          <textarea
+            aria-label="Kritikpunkte diktieren oder eingeben"
+            value={feedbackReason}
+            onChange={(event) => setFeedbackReason(event.target.value)}
+            rows={1}
+            placeholder="Kritik sprechen oder tippen …"
+            className="min-h-12 flex-1 resize-none rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm outline-none focus:border-emerald-700"
+          />
+          <button type="button" onClick={saveFeedbackAndTryNext} className="shrink-0 rounded-full bg-[#18392f] px-4 py-3 text-sm font-bold text-white">
+            Neu generieren
+          </button>
+        </div>
       </div>
     </main>
   );
