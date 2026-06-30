@@ -17,6 +17,9 @@ The browser application may access only:
 `DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are reserved for trusted
 server-side processes.
 
+For the interim Railway deployment plan, see
+[`docs/railway-migration.md`](docs/railway-migration.md).
+
 ## Database
 
 Versioned Supabase migrations live in `supabase/migrations`. Every public table
