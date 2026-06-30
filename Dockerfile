@@ -1,6 +1,7 @@
 FROM node:22-bookworm-slim AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
+RUN echo "Born2Thrill Railway Dockerfile marker: pnpm-workspace-yaml-enabled"
 
 FROM base AS deps
 RUN corepack enable
