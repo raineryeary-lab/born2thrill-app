@@ -1,4 +1,4 @@
-const { readFile } = require("fs/promises");
+const { readFileSync } = require("fs");
 const { resolve } = require("path");
 const pg = require("pg");
 
@@ -18,7 +18,7 @@ async function main() {
   }
 
   const resolvedMigrationPath = resolve(process.cwd(), migrationPath);
-  const sql = await readFile(resolvedMigrationPath, "utf8");
+  const sql = readFileSync(resolvedMigrationPath, "utf8");
 
   const client = new Client({
     connectionString: databaseUrl,
