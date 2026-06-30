@@ -22,6 +22,8 @@ have replacements.
 - `railway.json` pins Railway to:
   - build: `pnpm run build`
   - start: `pnpm run start:railway`
+- `.node-version` and `nixpacks.toml` pin Railway/Nixpacks to Node 22 because
+  Next.js 16 requires Node `>=20.9.0`.
 
 ## 2. Where Supabase is used
 
