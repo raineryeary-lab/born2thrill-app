@@ -11,7 +11,7 @@ have replacements.
 - Router: App Router under `src/app`
 - Language: TypeScript
 - UI: React `19.2.4`, Tailwind CSS `4`
-- Package manager: the repo contains `pnpm-lock.yaml`; prefer pnpm on Railway.
+- Package manager: the repo contains `pnpm-lock.yaml`; use pnpm.
 - Build command: `pnpm run build`
 - Start command: `pnpm run start:railway`
 - Node runtime: use Railway's detected Node runtime. If Railway needs an
@@ -19,9 +19,9 @@ have replacements.
   hardcoding secrets in the repo.
 - Next.js is configured with `output: "standalone"` in `next.config.ts` for
   Railway/Nixpacks-style deployment.
-- `railway.json` pins Railway to:
-  - build: `pnpm run build`
-  - start: `pnpm run start:railway`
+- `railway.json` now tells Railway to build from the repo `Dockerfile`.
+- The Dockerfile uses `node:22-bookworm-slim`, so Railway no longer guesses
+  Node 18 through Nixpacks.
 - `.node-version` and `nixpacks.toml` pin Railway/Nixpacks to Node 22 because
   Next.js 16 requires Node `>=20.9.0`.
 
