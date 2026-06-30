@@ -13,10 +13,12 @@ have replacements.
 - UI: React `19.2.4`, Tailwind CSS `4`
 - Package manager: the repo contains `pnpm-lock.yaml`; prefer pnpm on Railway.
 - Build command: `pnpm run build`
-- Start command: `pnpm run start`
+- Start command: `pnpm run start:railway`
 - Node runtime: use Railway's detected Node runtime. If Railway needs an
   explicit setting later, add it through Railway variables/settings instead of
   hardcoding secrets in the repo.
+- Next.js is configured with `output: "standalone"` in `next.config.ts` for
+  Railway/Nixpacks-style deployment.
 
 ## 2. Where Supabase is used
 
@@ -139,7 +141,7 @@ Railway build/start:
 ```bash
 pnpm install --frozen-lockfile
 pnpm run build
-pnpm run start
+pnpm run start:railway
 ```
 
 If Railway auto-detects pnpm, the build command can be simply:
@@ -151,7 +153,7 @@ pnpm run build
 and the start command:
 
 ```bash
-pnpm run start
+pnpm run start:railway
 ```
 
 ## 6. Supabase-to-Railway PostgreSQL migration/export plan
@@ -202,6 +204,16 @@ Create a new migration set for Railway that:
 - removes `storage.buckets` / `storage.objects` policies.
 - keeps `training_uploads.storage_path` as metadata only.
 
+A first Railway-compatible schema has been added at:
+
+```text
+railway/migrations/001_initial_schema.sql
+```
+
+This schema deliberately uses `public.app_users` instead of Supabase
+`auth.users`, and stores upload/output paths as metadata only. It does not
+create a file bucket by itself.
+
 ### C. Restore into Railway
 
 Use Railway's `DATABASE_URL`:
@@ -209,6 +221,12 @@ Use Railway's `DATABASE_URL`:
 ```bash
 psql "$RAILWAY_DATABASE_URL" --file=railway-schema.sql
 psql "$RAILWAY_DATABASE_URL" --file=supabase-public-data.sql
+```
+
+For the included initial schema:
+
+```bash
+psql "$RAILWAY_DATABASE_URL" --file=railway/migrations/001_initial_schema.sql
 ```
 
 ### D. Verify
