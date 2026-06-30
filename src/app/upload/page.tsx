@@ -84,8 +84,17 @@ export default function UploadPage() {
       .limit(20);
 
     if (loadError) {
+      const details = [
+        loadError.message,
+        loadError.code ? `Code: ${loadError.code}` : "",
+        loadError.details ? `Details: ${loadError.details}` : "",
+        loadError.hint ? `Hinweis: ${loadError.hint}` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+
       setError(
-        "Upload-Liste konnte noch nicht geladen werden. Wahrscheinlich muss die neue Supabase-Migration erst ausgeführt werden.",
+        `Upload-Liste konnte noch nicht geladen werden. Supabase meldet: ${details || "unbekannter Fehler"}`,
       );
       return;
     }
