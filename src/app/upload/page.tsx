@@ -77,29 +77,18 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
 
   async function loadUploads() {
-    const { data, error: loadError } = await supabase
-      .from("training_uploads")
-      .select("id, created_at, source_type, storage_path, original_filename, mime_type, size_bytes, notes, status")
-      .order("created_at", { ascending: false })
-      .limit(20);
+    const response = await fetch("/api/training-uploads", {
+      method: "GET",
+      cache: "no-store",
+    });
+    const result = (await response.json()) as { uploads?: TrainingUpload[]; error?: string };
 
-    if (loadError) {
-      const details = [
-        loadError.message,
-        loadError.code ? `Code: ${loadError.code}` : "",
-        loadError.details ? `Details: ${loadError.details}` : "",
-        loadError.hint ? `Hinweis: ${loadError.hint}` : "",
-      ]
-        .filter(Boolean)
-        .join(" · ");
-
-      setError(
-        `Upload-Liste konnte noch nicht geladen werden. Supabase meldet: ${details || "unbekannter Fehler"}`,
-      );
+    if (!response.ok) {
+      setError(`Upload-Liste konnte noch nicht geladen werden: ${result.error ?? "unbekannter Fehler"}`);
       return;
     }
 
-    setUploads((data ?? []) as TrainingUpload[]);
+    setUploads(result.uploads ?? []);
   }
 
   useEffect(() => {
@@ -138,26 +127,31 @@ export default function UploadPage() {
       return;
     }
 
-    const { error: insertError } = await supabase.from("training_uploads").insert({
-      id: uploadId,
-      source_type: sourceType,
-      storage_bucket: bucketName,
-      storage_path: storagePath,
-      original_filename: file.name,
-      mime_type: file.type || null,
-      size_bytes: file.size,
-      notes,
-      metadata: {
-        collected_for: "floorplan_generator_training",
-        app_route: "/upload",
-      },
+    const insertResponse = await fetch("/api/training-uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: uploadId,
+        source_type: sourceType,
+        storage_bucket: bucketName,
+        storage_path: storagePath,
+        original_filename: file.name,
+        mime_type: file.type || null,
+        size_bytes: file.size,
+        notes,
+        metadata: {
+          collected_for: "floorplan_generator_training",
+          app_route: "/upload",
+        },
+      }),
     });
+    const insertResult = (await insertResponse.json()) as { error?: string };
 
     setIsUploading(false);
 
-    if (insertError) {
+    if (!insertResponse.ok) {
       setError(
-        `Datei ist im Storage, aber der Datenbankeintrag fehlt: ${insertError.message}. Das ist reparierbar, aber die Migration/RLS-Regeln müssen geprüft werden.`,
+        `Datei ist im Storage, aber der Datenbankeintrag fehlt: ${insertResult.error ?? "unbekannter Fehler"}. Das ist reparierbar, aber die Datenbank/Variablen müssen geprüft werden.`,
       );
       return;
     }

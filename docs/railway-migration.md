@@ -19,6 +19,9 @@ have replacements.
   hardcoding secrets in the repo.
 - Next.js is configured with `output: "standalone"` in `next.config.ts` for
   Railway/Nixpacks-style deployment.
+- `railway.json` pins Railway to:
+  - build: `pnpm run build`
+  - start: `pnpm run start:railway`
 
 ## 2. Where Supabase is used
 
@@ -46,9 +49,12 @@ Supabase is currently used in code and SQL:
 ### Database through Supabase APIs
 
 - `src/app/questionnaire/actions.ts`
-  - inserts projects through `supabase.from("projects")`.
-- `src/app/upload/page.tsx`
-  - selects/inserts rows in `training_uploads` through `supabase.from(...)`.
+  - uses Railway/Postgres via `DATABASE_URL` when present.
+  - falls back to `supabase.from("projects")` when `DATABASE_URL` is missing.
+- `src/app/api/training-uploads/route.ts`
+  - uses Railway/Postgres via `DATABASE_URL` when present.
+  - falls back to `supabase.from("training_uploads")` when `DATABASE_URL` is
+    missing.
 
 ### Storage
 
@@ -247,9 +253,13 @@ select 'training_uploads', count(*) from public.training_uploads;
 
 Do this in small commits:
 
-1. Add a server-only PostgreSQL client using `DATABASE_URL`.
+1. Add a server-only PostgreSQL client using `DATABASE_URL`. Done in
+   `src/lib/db/postgres.ts`.
 2. Move questionnaire project inserts from Supabase REST to server-side SQL.
+   Done when `DATABASE_URL` is present; Supabase Auth still identifies the user.
 3. Move upload metadata inserts/selects from Supabase REST to server-side SQL.
+   Done through `/api/training-uploads` when `DATABASE_URL` is present;
+   Supabase Storage still stores the file bytes.
 4. Keep file upload storage on Supabase until a replacement bucket exists.
 5. Replace Supabase Auth or keep Supabase Auth temporarily.
 6. Remove `@supabase/*` dependencies only after Auth, REST, and Storage are all

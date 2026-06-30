@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { hasDatabaseUrl, query, upsertAppUser } from "@/lib/db/postgres";
 
 export type SaveState = {
   error?: string;
@@ -77,6 +78,41 @@ export async function saveQuestionnaire(
     },
     priorities: formData.getAll("priorities").map(String),
   };
+
+  if (hasDatabaseUrl()) {
+    const ownerId = await upsertAppUser({
+      email: user.email,
+      displayName:
+        typeof user.user_metadata?.display_name === "string"
+          ? user.user_metadata.display_name
+          : null,
+      externalAuthProvider: "supabase",
+      externalAuthId: user.id,
+    });
+
+    if (!ownerId) {
+      return { error: "Das Benutzerprofil konnte nicht gespeichert werden. Bitte versuchen Sie es erneut." };
+    }
+
+    const result = await query<{ id: string; name: string }>(
+      `
+        insert into public.projects (
+          owner_id,
+          name,
+          notes,
+          requirements,
+          status
+        )
+        values ($1, $2, $3, $4, 'draft')
+        returning id, name
+      `,
+      [ownerId, name || "Hausprofil", text(formData, "notes"), requirements],
+    );
+
+    const project = result.rows[0];
+    if (!project) return { error: "Das Hausprofil konnte nicht gespeichert werden. Bitte versuchen Sie es erneut." };
+    return { projectId: project.id, projectName: project.name };
+  }
 
   const { data, error } = await supabase
     .from("projects")
