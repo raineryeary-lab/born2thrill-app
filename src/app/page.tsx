@@ -5,7 +5,10 @@ export default function Home() {
     <main className="min-h-screen overflow-hidden bg-[#f3f1eb] text-stone-900">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-7 lg:px-10">
         <span className="text-sm font-bold tracking-[0.2em] uppercase">Born2Thrill</span>
-        <Link href="/login" className="rounded-full border border-stone-300 px-5 py-2.5 text-sm font-semibold hover:border-stone-900">Anmelden</Link>
+        <div className="flex items-center gap-3">
+          <Link href="/upload" className="rounded-full border border-stone-300 px-5 py-2.5 text-sm font-semibold hover:border-stone-900">Upload</Link>
+          <Link href="/login" className="rounded-full border border-stone-300 px-5 py-2.5 text-sm font-semibold hover:border-stone-900">Anmelden</Link>
+        </div>
       </nav>
       <section className="mx-auto grid min-h-[calc(100vh-96px)] max-w-7xl items-center gap-12 px-6 pb-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
         <div className="py-10">
@@ -14,6 +17,7 @@ export default function Home() {
           <p className="mt-8 max-w-xl text-lg leading-8 text-stone-600">Aus Grundstück, Raumbedarf, Ausrichtung und Alltag entsteht ein strukturiertes Raumprogramm – die Grundlage für praktische Grundrissideen und stilvolle Visualisierungen.</p>
           <div className="mt-10 flex flex-wrap gap-4">
             <Link href="/questionnaire?test=1" className="rounded-full bg-[#18392f] px-7 py-4 text-sm font-semibold text-white hover:bg-[#245446]">Hausprofil erstellen</Link>
+            <Link href="/upload" className="rounded-full border border-stone-300 px-7 py-4 text-sm font-semibold hover:border-stone-900">Trainingsmaterial hochladen</Link>
             <a href="#how" className="rounded-full border border-stone-300 px-7 py-4 text-sm font-semibold hover:border-stone-900">So funktioniert es</a>
           </div>
         </div>
