@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { FormEvent, useEffect, useState } from "react";
+import { createClient, hasSupabaseBrowserEnv } from "@/lib/supabase/client";
 
 const bucketName = "training-uploads";
 
@@ -67,7 +67,7 @@ function formatBytes(bytes: number | null) {
 }
 
 export default function UploadPage() {
-  const supabase = useMemo(() => createClient(), []);
+  const canUploadToStorage = hasSupabaseBrowserEnv();
   const [sourceType, setSourceType] = useState<SourceType>("bestseller");
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -105,12 +105,20 @@ export default function UploadPage() {
       return;
     }
 
+    if (!canUploadToStorage) {
+      setError(
+        "Upload ist noch nicht aktiv: In Railway fehlen NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_ANON_KEY. Die App kann trotzdem deployen, aber Datei-Storage muss noch konfiguriert werden.",
+      );
+      return;
+    }
+
     setIsUploading(true);
 
     const uploadId = crypto.randomUUID();
     const dateFolder = new Date().toISOString().slice(0, 10);
     const safeFilename = sanitizeFilename(file.name);
     const storagePath = `${sourceType}/${dateFolder}/${uploadId}-${safeFilename}`;
+    const supabase = createClient();
 
     const { error: uploadError } = await supabase.storage
       .from(bucketName)
@@ -242,12 +250,21 @@ export default function UploadPage() {
 
             <button
               type="submit"
-              disabled={isUploading}
+              disabled={isUploading || !canUploadToStorage}
               className="mt-6 w-full rounded-full bg-[#18392f] px-6 py-4 text-sm font-semibold text-white hover:bg-[#245446] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isUploading ? "Upload läuft…" : "Hochladen und vormerken"}
+              {isUploading
+                ? "Upload läuft…"
+                : canUploadToStorage
+                  ? "Hochladen und vormerken"
+                  : "Storage-Variablen fehlen"}
             </button>
 
+            {!canUploadToStorage && (
+              <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+                Railway ist noch ohne Supabase-Storage-Variablen konfiguriert. Für den Zwischenstand ist das okay: Die App soll deployen, danach tragen wir die Variablen ein oder ersetzen Storage vollständig.
+              </p>
+            )}
             {status && <p className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{status}</p>}
             {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-900">{error}</p>}
           </form>
