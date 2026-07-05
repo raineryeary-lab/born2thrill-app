@@ -1,4 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Born2Thrill
+
+Born2Thrill is a web application for collecting residential design requirements
+and, later, generating floor-plan concepts and architectural renderings.
+
+## Environment
+
+Copy `.env.example` to `.env.local` and provide the environment-specific
+values. Never commit `.env.local`, database passwords, connection strings, or
+Supabase elevated keys.
+
+The browser application may access only:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+`DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are reserved for trusted
+server-side processes.
+
+For the interim Railway deployment plan, see
+[`docs/railway-migration.md`](docs/railway-migration.md).
+
+## Database
+
+Versioned Supabase migrations live in `supabase/migrations`. Every public table
+must have Row Level Security enabled before it is exposed through Supabase APIs.
+
+## Floor-plan training data
+
+The local floor-plan generator uses a small internal training schema before any
+model training is introduced. Both our own manually annotated Floorplan
+Simplifier packages and selected CubiCasa5K samples are normalized into:
+
+- an image path
+- room labels with polygons
+- optional room area values or area ratios
+- door, window and stair elements
+
+Adapters live in `src/lib/training`:
+
+- `import_our_simplifier_package(projectPath)` reads local packages with
+  `original_preview.png`, `annotations.json`, `training-data.json` and
+  `room_concept.png/svg`.
+- `import_cubicasa_sample(samplePath)` reads CubiCasa-style folders with
+  `F1_scaled.png`, `F1_original.png` and `model.svg`.
+
+CubiCasa5K is currently only an additional reference dataset for floor-plan
+semantics. The project is not redesigned around CubiCasa, and no LMDB or
+PyTorch training pipeline is required at this stage.
 
 ## Getting Started
 

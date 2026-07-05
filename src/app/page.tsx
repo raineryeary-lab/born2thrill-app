@@ -1,65 +1,38 @@
-import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            Born2Thrill App
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main className="min-h-screen overflow-hidden bg-[#f3f1eb] text-stone-900">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-7 lg:px-10">
+        <span className="text-sm font-bold tracking-[0.2em] uppercase">Born2Thrill</span>
+        <div className="flex items-center gap-3">
+          <Link href="/upload" className="rounded-full border border-stone-300 px-5 py-2.5 text-sm font-semibold hover:border-stone-900">Upload</Link>
+          <Link href="/login" className="rounded-full border border-stone-300 px-5 py-2.5 text-sm font-semibold hover:border-stone-900">Anmelden</Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </nav>
+      <section className="mx-auto grid min-h-[calc(100vh-96px)] max-w-7xl items-center gap-12 px-6 pb-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-10">
+        <div className="py-10">
+          <p className="text-xs font-semibold tracking-[0.24em] text-emerald-800 uppercase">Konzeptplanung für deutsche Einfamilienhäuser</p>
+          <h1 className="mt-7 max-w-3xl text-5xl leading-[0.98] font-medium tracking-[-0.045em] sm:text-7xl">Ein Zuhause, geplant für Ihr echtes Leben.</h1>
+          <p className="mt-8 max-w-xl text-lg leading-8 text-stone-600">Aus Grundstück, Raumbedarf, Ausrichtung und Alltag entsteht ein strukturiertes Raumprogramm – die Grundlage für praktische Grundrissideen und stilvolle Visualisierungen.</p>
+          <div className="mt-10 flex flex-wrap gap-4">
+            <Link href="/questionnaire?test=1" className="rounded-full bg-[#18392f] px-7 py-4 text-sm font-semibold text-white hover:bg-[#245446]">Hausprofil erstellen</Link>
+            <Link href="/upload" className="rounded-full border border-stone-300 px-7 py-4 text-sm font-semibold hover:border-stone-900">Trainingsmaterial hochladen</Link>
+            <a href="#how" className="rounded-full border border-stone-300 px-7 py-4 text-sm font-semibold hover:border-stone-900">So funktioniert es</a>
+          </div>
         </div>
-      </main>
-    </div>
+        <div className="relative min-h-[480px] overflow-hidden rounded-[2.5rem] bg-[#18392f] p-8 text-white sm:p-12">
+          <div className="absolute -top-20 -right-20 size-80 rounded-full border border-emerald-200/20" />
+          <div className="absolute top-14 right-14 size-48 rounded-full border border-emerald-200/20" />
+          <p className="relative text-xs font-semibold tracking-[0.2em] text-emerald-200 uppercase">Die Planungslogik</p>
+          <div className="relative mt-16 grid grid-cols-2 gap-3 text-sm">
+            {["Räume & Fläche", "Sonne & Ausblicke", "Kurze Wege", "Gebündelte Leitungen", "Durchgängige Treppen", "Türen & Fenster"].map((item, index) => <div key={item} className={`rounded-2xl border border-white/15 p-5 ${index === 0 || index === 5 ? "bg-emerald-200 text-emerald-950" : "bg-white/5"}`}>{String(index + 1).padStart(2, "0")}<span className="mt-8 block font-semibold">{item}</span></div>)}
+          </div>
+        </div>
+      </section>
+      <section id="how" className="bg-white px-6 py-24 lg:px-10">
+        <div className="mx-auto max-w-7xl"><p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">Drei durchdachte Schritte</p><div className="mt-10 grid gap-10 md:grid-cols-3">{[["01", "Beschreiben", "Ein geführter Fragebogen übersetzt Wünsche und Rahmenbedingungen in ein strukturiertes Hausprofil."], ["02", "Entwerfen", "Planungsregeln prüfen Raumbeziehungen, Tageslicht, Erschließung, Treppen und Haustechnik."], ["03", "Erleben", "Überzeugende Konzepte werden zu klaren Grundrissen und einer stilvollen Darstellung des Hauses im Grundstück."]].map(([n,t,d]) => <article key={n} className="border-t border-stone-200 pt-6"><span className="text-sm text-stone-400">{n}</span><h2 className="mt-8 text-2xl font-medium">{t}</h2><p className="mt-3 leading-7 text-stone-600">{d}</p></article>)}</div></div>
+      </section>
+    </main>
   );
 }
