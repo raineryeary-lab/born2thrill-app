@@ -10,6 +10,7 @@ const sourceTypes = new Set(["bestseller", "cubicasa", "simplifier", "user_test"
 type TrainingUploadBody = {
   id?: string;
   source_type?: string;
+  storage_provider?: string;
   storage_bucket?: string;
   storage_path?: string;
   original_filename?: string;
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
             notes,
             metadata
           )
-          values ($1, $2, 'supabase', $3, $4, $5, $6, $7, $8, $9)
+          values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           returning
             id,
             created_at,
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
         [
           uploadId,
           body.source_type,
+          body.storage_provider ?? "s3",
           storageBucket,
           body.storage_path,
           body.original_filename,
@@ -132,6 +134,7 @@ export async function POST(request: Request) {
       .insert({
         id: uploadId,
         source_type: body.source_type,
+        storage_provider: body.storage_provider ?? "supabase",
         storage_bucket: storageBucket,
         storage_path: body.storage_path,
         original_filename: body.original_filename,
