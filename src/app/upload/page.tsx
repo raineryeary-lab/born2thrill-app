@@ -2,9 +2,6 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import { createClient, hasSupabaseBrowserEnv } from "@/lib/supabase/client";
-
-const bucketName = "training-uploads";
 
 const sourceTypes = [
   {
@@ -48,26 +45,22 @@ type TrainingUpload = {
   status: string;
 };
 
-function sanitizeFilename(filename: string) {
-  const extension = filename.includes(".") ? `.${filename.split(".").pop()}` : "";
-  const base = filename.replace(extension, "");
-
-  return `${base
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9-_]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80) || "upload"}${extension.toLowerCase()}`;
-}
-
 function formatBytes(bytes: number | null) {
   if (!bytes) return "unbekannt";
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
+type PresignResponse = {
+  upload_id?: string;
+  storage_provider?: string;
+  storage_bucket?: string;
+  storage_path?: string;
+  upload_url?: string;
+  error?: string;
+};
+
 export default function UploadPage() {
-  const canUploadToStorage = hasSupabaseBrowserEnv();
   const [sourceType, setSourceType] = useState<SourceType>("bestseller");
   const [notes, setNotes] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -105,32 +98,35 @@ export default function UploadPage() {
       return;
     }
 
-    if (!canUploadToStorage) {
+    setIsUploading(true);
+
+    const presignResponse = await fetch("/api/storage/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        source_type: sourceType,
+        filename: file.name,
+      }),
+    });
+    const presignResult = (await presignResponse.json()) as PresignResponse;
+
+    if (!presignResponse.ok || !presignResult.upload_url || !presignResult.storage_path) {
+      setIsUploading(false);
       setError(
-        "Upload ist noch nicht aktiv: In Railway fehlen NEXT_PUBLIC_SUPABASE_URL und NEXT_PUBLIC_SUPABASE_ANON_KEY. Die App kann trotzdem deployen, aber Datei-Storage muss noch konfiguriert werden.",
+        `Upload ist noch nicht aktiv: ${presignResult.error ?? "Object Storage ist noch nicht konfiguriert."}`,
       );
       return;
     }
 
-    setIsUploading(true);
+    const uploadResponse = await fetch(presignResult.upload_url, {
+      method: "PUT",
+      body: file,
+    });
 
-    const uploadId = crypto.randomUUID();
-    const dateFolder = new Date().toISOString().slice(0, 10);
-    const safeFilename = sanitizeFilename(file.name);
-    const storagePath = `${sourceType}/${dateFolder}/${uploadId}-${safeFilename}`;
-    const supabase = createClient();
-
-    const { error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(storagePath, file, {
-        contentType: file.type || undefined,
-        upsert: false,
-      });
-
-    if (uploadError) {
+    if (!uploadResponse.ok) {
       setIsUploading(false);
       setError(
-        `Datei konnte nicht hochgeladen werden: ${uploadError.message}. Bitte prüfen, ob der Bucket „training-uploads“ in Supabase angelegt wurde.`,
+        `Datei konnte nicht in den Object Storage hochgeladen werden (${uploadResponse.status}). Bitte prüfen: Bucket, CORS-Regeln und R2/S3-Zugangsdaten.`,
       );
       return;
     }
@@ -139,10 +135,11 @@ export default function UploadPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: uploadId,
+        id: presignResult.upload_id,
         source_type: sourceType,
-        storage_bucket: bucketName,
-        storage_path: storagePath,
+        storage_provider: presignResult.storage_provider ?? "s3",
+        storage_bucket: presignResult.storage_bucket,
+        storage_path: presignResult.storage_path,
         original_filename: file.name,
         mime_type: file.type || null,
         size_bytes: file.size,
@@ -250,21 +247,15 @@ export default function UploadPage() {
 
             <button
               type="submit"
-              disabled={isUploading || !canUploadToStorage}
+              disabled={isUploading}
               className="mt-6 w-full rounded-full bg-[#18392f] px-6 py-4 text-sm font-semibold text-white hover:bg-[#245446] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isUploading
-                ? "Upload läuft…"
-                : canUploadToStorage
-                  ? "Hochladen und vormerken"
-                  : "Storage-Variablen fehlen"}
+              {isUploading ? "Upload läuft…" : "Hochladen und vormerken"}
             </button>
 
-            {!canUploadToStorage && (
-              <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900">
-                Railway ist noch ohne Supabase-Storage-Variablen konfiguriert. Für den Zwischenstand ist das okay: Die App soll deployen, danach tragen wir die Variablen ein oder ersetzen Storage vollständig.
-              </p>
-            )}
+            <p className="mt-4 rounded-2xl bg-amber-50 p-4 text-sm font-semibold text-amber-900">
+              Uploads gehen jetzt über Object Storage, z. B. Cloudflare R2. Wenn noch keine R2/S3-Variablen in Railway gesetzt sind, meldet die App das beim Hochladen klar zurück.
+            </p>
             {status && <p className="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{status}</p>}
             {error && <p className="mt-4 rounded-2xl bg-red-50 p-4 text-sm font-semibold text-red-900">{error}</p>}
           </form>
