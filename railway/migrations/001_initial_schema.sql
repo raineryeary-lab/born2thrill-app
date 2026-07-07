@@ -95,8 +95,9 @@ create table if not exists public.training_uploads (
   mime_type text,
   size_bytes bigint check (size_bytes is null or size_bytes >= 0),
   notes text not null default '',
+  review_notes text not null default '',
   status text not null default 'uploaded'
-    check (status in ('uploaded', 'reviewing', 'normalized', 'rejected')),
+    check (status in ('uploaded', 'reviewed', 'usable', 'not_usable', 'normalize', 'normalized', 'rejected')),
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default timezone('utc', now()),
   unique (storage_provider, storage_bucket, storage_path)

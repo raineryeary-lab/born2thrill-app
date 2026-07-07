@@ -33,6 +33,17 @@ const sourceTypes = [
 
 type SourceType = (typeof sourceTypes)[number]["value"];
 
+const reviewStatuses = [
+  { value: "uploaded", label: "hochgeladen", tone: "bg-stone-100 text-stone-700" },
+  { value: "reviewed", label: "gesichtet", tone: "bg-sky-50 text-sky-900" },
+  { value: "usable", label: "brauchbar", tone: "bg-emerald-50 text-emerald-900" },
+  { value: "not_usable", label: "nicht brauchbar", tone: "bg-red-50 text-red-900" },
+  { value: "normalize", label: "normalisieren", tone: "bg-amber-50 text-amber-900" },
+  { value: "normalized", label: "normalisiert", tone: "bg-purple-50 text-purple-900" },
+] as const;
+
+type ReviewStatus = (typeof reviewStatuses)[number]["value"];
+
 type TrainingUpload = {
   id: string;
   created_at: string;
@@ -42,13 +53,22 @@ type TrainingUpload = {
   mime_type: string | null;
   size_bytes: number | null;
   notes: string;
-  status: string;
+  review_notes: string;
+  status: ReviewStatus | "rejected";
 };
 
 function formatBytes(bytes: number | null) {
   if (!bytes) return "unbekannt";
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function statusLabel(status: string) {
+  return reviewStatuses.find((item) => item.value === status)?.label ?? status;
+}
+
+function statusTone(status: string) {
+  return reviewStatuses.find((item) => item.value === status)?.tone ?? "bg-stone-100 text-stone-700";
 }
 
 type PresignResponse = {
@@ -68,6 +88,8 @@ export default function UploadPage() {
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [reviewDrafts, setReviewDrafts] = useState<Record<string, { status: ReviewStatus; review_notes: string }>>({});
+  const [savingReviewId, setSavingReviewId] = useState<string | null>(null);
 
   async function loadUploads() {
     const response = await fetch("/api/training-uploads", {
@@ -81,7 +103,20 @@ export default function UploadPage() {
       return;
     }
 
-    setUploads(result.uploads ?? []);
+    const nextUploads = result.uploads ?? [];
+    setUploads(nextUploads);
+    setReviewDrafts((current) => {
+      const next = { ...current };
+      for (const upload of nextUploads) {
+        if (!next[upload.id]) {
+          next[upload.id] = {
+            status: upload.status === "rejected" ? "not_usable" : upload.status,
+            review_notes: upload.review_notes ?? "",
+          };
+        }
+      }
+      return next;
+    });
   }
 
   useEffect(() => {
@@ -167,6 +202,36 @@ export default function UploadPage() {
     await loadUploads();
   }
 
+  async function saveReview(uploadId: string) {
+    const draft = reviewDrafts[uploadId];
+    if (!draft) return;
+
+    setError("");
+    setStatus("");
+    setSavingReviewId(uploadId);
+
+    const response = await fetch("/api/training-uploads", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: uploadId,
+        status: draft.status,
+        review_notes: draft.review_notes,
+      }),
+    });
+    const result = (await response.json()) as { upload?: TrainingUpload; error?: string };
+
+    setSavingReviewId(null);
+
+    if (!response.ok || !result.upload) {
+      setError(`Sichtung konnte nicht gespeichert werden: ${result.error ?? "unbekannter Fehler"}`);
+      return;
+    }
+
+    setUploads((current) => current.map((upload) => (upload.id === uploadId ? result.upload! : upload)));
+    setStatus("Sichtung gespeichert. Dieses Material ist jetzt besser für die spätere Normalisierung einsortiert.");
+  }
+
   return (
     <main className="min-h-screen bg-[#f3f1eb] px-6 py-8 text-stone-900 lg:px-10">
       <div className="mx-auto max-w-6xl">
@@ -181,6 +246,9 @@ export default function UploadPage() {
             <Link href="/questionnaire?test=1" className="rounded-full border border-stone-300 px-4 py-2 hover:border-stone-900">
               Fragebogen
             </Link>
+            <a href="#sichtung" className="rounded-full border border-stone-300 px-4 py-2 hover:border-stone-900">
+              Sichtung
+            </a>
           </div>
         </nav>
 
@@ -261,13 +329,16 @@ export default function UploadPage() {
           </form>
         </section>
 
-        <section className="mt-10 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-stone-200 sm:p-8">
+        <section id="sichtung" className="mt-10 rounded-[2rem] bg-white p-6 shadow-sm ring-1 ring-stone-200 sm:p-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold tracking-[0.2em] text-emerald-800 uppercase">
                 Letzte Uploads
               </p>
-              <h2 className="mt-2 text-2xl font-medium">Materialsammlung</h2>
+              <h2 className="mt-2 text-2xl font-medium">Materialsammlung & Sichtung</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-stone-600">
+                Hier sortieren wir hochgeladene Dateien für die 10 Goldstandard-Beispiele vor. Noch kein Training — aber ab hier entsteht der brauchbare Datenpool.
+              </p>
             </div>
             <button
               type="button"
@@ -281,28 +352,91 @@ export default function UploadPage() {
           <div className="mt-6 overflow-hidden rounded-3xl border border-stone-200">
             {uploads.length === 0 ? (
               <p className="p-6 text-stone-500">
-                Noch keine Uploads sichtbar. Falls du schon etwas hochgeladen hast, muss wahrscheinlich zuerst die Supabase-Migration ausgeführt werden.
+                Noch keine Uploads sichtbar. Lade zuerst ein Beispiel hoch oder prüfe die Datenbankverbindung.
               </p>
             ) : (
               <div className="divide-y divide-stone-200">
                 {uploads.map((upload) => (
-                  <article key={upload.id} className="grid gap-3 p-5 md:grid-cols-[180px_1fr_140px]">
+                  <article key={upload.id} className="grid gap-5 p-5 lg:grid-cols-[180px_1fr_320px]">
                     <div>
                       <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-900">
                         {sourceTypes.find((type) => type.value === upload.source_type)?.label ?? upload.source_type}
                       </span>
+                      <span className={`mt-3 inline-block rounded-full px-3 py-1 text-xs font-bold ${statusTone(upload.status)}`}>
+                        {statusLabel(upload.status)}
+                      </span>
                       <p className="mt-3 text-xs text-stone-500">
                         {new Date(upload.created_at).toLocaleString("de-DE")}
                       </p>
+                      <p className="mt-1 text-xs text-stone-500">{formatBytes(upload.size_bytes)}</p>
                     </div>
                     <div>
                       <h3 className="font-semibold">{upload.original_filename}</h3>
                       <p className="mt-1 break-all text-sm text-stone-500">{upload.storage_path}</p>
-                      {upload.notes && <p className="mt-3 text-sm leading-6 text-stone-700">{upload.notes}</p>}
+                      {upload.notes && (
+                        <p className="mt-3 rounded-2xl bg-stone-50 p-3 text-sm leading-6 text-stone-700">
+                          <span className="font-semibold">Upload-Notiz:</span> {upload.notes}
+                        </p>
+                      )}
+                      {upload.review_notes && (
+                        <p className="mt-3 rounded-2xl bg-emerald-50 p-3 text-sm leading-6 text-emerald-950">
+                          <span className="font-semibold">Sichtung:</span> {upload.review_notes}
+                        </p>
+                      )}
                     </div>
-                    <div className="text-sm text-stone-500 md:text-right">
-                      <p>{formatBytes(upload.size_bytes)}</p>
-                      <p className="mt-1">{upload.status}</p>
+                    <div className="rounded-3xl bg-[#faf9f6] p-4">
+                      <label className="block text-xs font-bold tracking-[0.16em] text-stone-500 uppercase" htmlFor={`review-status-${upload.id}`}>
+                        Status
+                      </label>
+                      <select
+                        id={`review-status-${upload.id}`}
+                        value={reviewDrafts[upload.id]?.status ?? (upload.status === "rejected" ? "not_usable" : upload.status)}
+                        onChange={(event) =>
+                          setReviewDrafts((current) => ({
+                            ...current,
+                            [upload.id]: {
+                              status: event.target.value as ReviewStatus,
+                              review_notes: current[upload.id]?.review_notes ?? upload.review_notes ?? "",
+                            },
+                          }))
+                        }
+                        className="mt-2 w-full rounded-2xl border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-800"
+                      >
+                        {reviewStatuses.map((item) => (
+                          <option key={item.value} value={item.value}>
+                            {item.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      <label className="mt-4 block text-xs font-bold tracking-[0.16em] text-stone-500 uppercase" htmlFor={`review-notes-${upload.id}`}>
+                        Bewertungsnotiz
+                      </label>
+                      <textarea
+                        id={`review-notes-${upload.id}`}
+                        value={reviewDrafts[upload.id]?.review_notes ?? upload.review_notes ?? ""}
+                        onChange={(event) =>
+                          setReviewDrafts((current) => ({
+                            ...current,
+                            [upload.id]: {
+                              status: current[upload.id]?.status ?? (upload.status === "rejected" ? "not_usable" : upload.status),
+                              review_notes: event.target.value,
+                            },
+                          }))
+                        }
+                        rows={4}
+                        placeholder="z. B. gute Treppenlage, kurzer Flur, Technik/Bad sinnvoll gebündelt…"
+                        className="mt-2 w-full rounded-2xl border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-emerald-800"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => void saveReview(upload.id)}
+                        disabled={savingReviewId === upload.id}
+                        className="mt-4 w-full rounded-full bg-[#18392f] px-4 py-3 text-sm font-semibold text-white hover:bg-[#245446] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {savingReviewId === upload.id ? "Speichert…" : "Sichtung speichern"}
+                      </button>
                     </div>
                   </article>
                 ))}
