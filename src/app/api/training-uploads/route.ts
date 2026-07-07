@@ -6,6 +6,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const sourceTypes = new Set(["bestseller", "cubicasa", "simplifier", "user_test", "other"]);
+const reviewStatuses = new Set(["uploaded", "reviewed", "usable", "not_usable", "normalize", "normalized", "rejected"]);
 
 type TrainingUploadBody = {
   id?: string;
@@ -17,7 +18,14 @@ type TrainingUploadBody = {
   mime_type?: string | null;
   size_bytes?: number | null;
   notes?: string;
+  review_notes?: string;
   metadata?: Record<string, unknown>;
+};
+
+type TrainingUploadPatchBody = {
+  id?: string;
+  status?: string;
+  review_notes?: string;
 };
 
 function errorResponse(message: string, status = 400) {
@@ -44,6 +52,7 @@ export async function GET() {
             mime_type,
             size_bytes,
             notes,
+            review_notes,
             status
           from public.training_uploads
           order by created_at desc
@@ -57,7 +66,7 @@ export async function GET() {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("training_uploads")
-      .select("id, created_at, source_type, storage_path, original_filename, mime_type, size_bytes, notes, status")
+      .select("id, created_at, source_type, storage_path, original_filename, mime_type, size_bytes, notes, review_notes, status")
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -109,6 +118,7 @@ export async function POST(request: Request) {
             mime_type,
             size_bytes,
             notes,
+            review_notes,
             status
         `,
         [
@@ -143,12 +153,78 @@ export async function POST(request: Request) {
         notes: body.notes ?? "",
         metadata: body.metadata ?? {},
       })
-      .select("id, created_at, source_type, storage_path, original_filename, mime_type, size_bytes, notes, status")
+      .select("id, created_at, source_type, storage_path, original_filename, mime_type, size_bytes, notes, review_notes, status")
       .single();
 
     if (error) return errorResponse(error.message, 500);
     return NextResponse.json({ upload: data, provider: "supabase" });
   } catch (error) {
     return errorResponse(`Upload konnte nicht gespeichert werden: ${safeErrorMessage(error)}`, 500);
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const body = (await request.json()) as TrainingUploadPatchBody;
+
+    if (!body.id) {
+      return errorResponse("Missing upload id.");
+    }
+
+    if (!body.status || !reviewStatuses.has(body.status)) {
+      return errorResponse("Invalid review status.");
+    }
+
+    const reviewNotes = body.review_notes ?? "";
+
+    if (hasDatabaseUrl()) {
+      const result = await query(
+        `
+          update public.training_uploads
+          set
+            status = $2,
+            review_notes = $3,
+            metadata = jsonb_set(
+              metadata,
+              '{last_reviewed_at}',
+              to_jsonb(timezone('utc', now())::text),
+              true
+            )
+          where id = $1
+          returning
+            id,
+            created_at,
+            source_type,
+            storage_bucket,
+            storage_path,
+            original_filename,
+            mime_type,
+            size_bytes,
+            notes,
+            review_notes,
+            status
+        `,
+        [body.id, body.status, reviewNotes],
+      );
+
+      if (!result.rows[0]) return errorResponse("Upload not found.", 404);
+      return NextResponse.json({ upload: result.rows[0], provider: "database" });
+    }
+
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("training_uploads")
+      .update({
+        status: body.status,
+        review_notes: reviewNotes,
+      })
+      .eq("id", body.id)
+      .select("id, created_at, source_type, storage_path, original_filename, mime_type, size_bytes, notes, review_notes, status")
+      .single();
+
+    if (error) return errorResponse(error.message, 500);
+    return NextResponse.json({ upload: data, provider: "supabase" });
+  } catch (error) {
+    return errorResponse(`Sichtung konnte nicht gespeichert werden: ${safeErrorMessage(error)}`, 500);
   }
 }
