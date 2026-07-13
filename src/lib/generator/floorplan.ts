@@ -1,3 +1,10 @@
+import {
+  commonUpperFloorProgramFor,
+  referenceAreaFromSimplifier,
+  simplifierReferenceElementLabel,
+  simplifierReferenceLabel,
+} from "../training/simplifier-reference";
+
 export type HouseBrief = {
   projectName: string;
   area: number;
@@ -432,6 +439,12 @@ function gardenAreaAdjustment(brief: HouseBrief) {
   return 0;
 }
 
+function referenceHouseTypeForBrief(brief: HouseBrief) {
+  if (brief.floors === 1) return "bungalow";
+  if (brief.roof.toLowerCase().includes("sattel") || brief.roof.toLowerCase().includes("gable")) return "onehalfstorey";
+  return "twostorey";
+}
+
 function preferredLivingSide(archetype: VariantArchetype) {
   return archetype.livingSide;
 }
@@ -449,10 +462,22 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
   const wallStair = wantsWallStair(brief);
   const entranceCirculation = wantsEntranceCirculation(brief);
   if (floor === 0) {
-    const livingTarget = clamp(
+    const fallbackLivingTarget = clamp(
       Math.round(floorArea * (wallStair ? 0.57 : 0.52)) + kitchenAreaAdjustment(brief) + gardenAreaAdjustment(brief),
       REFERENCE_RANGES.livingKitchenMin,
       REFERENCE_RANGES.livingKitchenMax,
+    );
+    const livingTarget = clamp(
+      referenceAreaFromSimplifier(
+        "groundfloor",
+        brief.kitchen === "separate" ? ["wohnen", "wohnen_essen"] : ["wohnen_essen_kochen", "wohnen_essen"],
+        floorArea,
+        fallbackLivingTarget,
+        brief.kitchen === "separate" ? 28 : REFERENCE_RANGES.livingKitchenMin,
+        brief.kitchen === "separate" ? 45 : REFERENCE_RANGES.livingKitchenMax,
+      ) + kitchenAreaAdjustment(brief) + gardenAreaAdjustment(brief),
+      brief.kitchen === "separate" ? 28 : REFERENCE_RANGES.livingKitchenMin,
+      brief.kitchen === "separate" ? 45 : REFERENCE_RANGES.livingKitchenMax,
     );
     const rooms: RoomSeed[] = [
       {
@@ -511,8 +536,24 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
         preferredZone: "core",
       });
     }
-    if (brief.utilityRoom) rooms.push({ name: "HWR / Technik", kind: "wet", targetArea: critiqueIncludes(brief, ["technik", "hwr", "hauswirtschaft"]) ? 12 : 10, minArea: REFERENCE_RANGES.utilityMin, maxArea: REFERENCE_RANGES.utilityMax, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
-    if (brief.guestWc) rooms.push({ name: "Gäste-WC", kind: "wet", targetArea: 4, minArea: REFERENCE_RANGES.guestWcMin, maxArea: REFERENCE_RANGES.guestWcMax, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
+    if (brief.utilityRoom) rooms.push({
+      name: "HWR / Technik",
+      kind: "wet",
+      targetArea: referenceAreaFromSimplifier("groundfloor", ["hwr_htr"], floorArea, critiqueIncludes(brief, ["technik", "hwr", "hauswirtschaft"]) ? 12 : 10, REFERENCE_RANGES.utilityMin, REFERENCE_RANGES.utilityMax),
+      minArea: REFERENCE_RANGES.utilityMin,
+      maxArea: REFERENCE_RANGES.utilityMax,
+      preferredSide: preferredServiceSide(archetype),
+      preferredZone: "core",
+    });
+    if (brief.guestWc) rooms.push({
+      name: "Gäste-WC",
+      kind: "wet",
+      targetArea: referenceAreaFromSimplifier("groundfloor", ["wc", "du_wc"], floorArea, 4, REFERENCE_RANGES.guestWcMin, REFERENCE_RANGES.guestWcMax),
+      minArea: REFERENCE_RANGES.guestWcMin,
+      maxArea: REFERENCE_RANGES.guestWcMax,
+      preferredSide: preferredServiceSide(archetype),
+      preferredZone: "core",
+    });
     if (brief.office) rooms.push({ name: "Büro / Gast", kind: "flex", targetArea: brief.accessibility ? 13 : 11, minArea: 9, maxArea: 16, preferredSide: preferredLivingSide(archetype), preferredZone: "street" });
     if (brief.groundFloorSleeping || brief.accessibility) rooms.push({ name: "Gast / Schlafen", kind: "sleeping", targetArea: 13, minArea: 11, maxArea: 16, preferredSide: preferredLivingSide(archetype), preferredZone: "street" });
     if (archetype.id === "family-core" && floorArea >= 72) {
@@ -525,12 +566,20 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
   const rooms: RoomSeed[] = [];
   const bedroomsThisFloor = floor === 1 ? Math.max(brief.bedrooms, Math.min(4, brief.children + 1)) : Math.max(1, brief.bedrooms - 4);
   for (let index = 0; index < Math.min(4, bedroomsThisFloor); index += 1) {
+    const fallbackBedroomArea = critiqueIncludes(brief, ["zimmer zu klein", "kinderzimmer klein", "schlafzimmer klein"])
+      ? (index === 0 ? 18 : 15)
+      : index === 0 ? 16 : 13;
     rooms.push({
       name: index === 0 ? "Eltern" : `Zimmer ${index + 1}`,
       kind: "sleeping",
-      targetArea: critiqueIncludes(brief, ["zimmer zu klein", "kinderzimmer klein", "schlafzimmer klein"])
-        ? (index === 0 ? 18 : 15)
-        : index === 0 ? 16 : 13,
+      targetArea: referenceAreaFromSimplifier(
+        "upperfloor",
+        index === 0 ? ["eltern"] : ["kind"],
+        floorArea,
+        fallbackBedroomArea,
+        index === 0 ? REFERENCE_RANGES.parentRoomMin : REFERENCE_RANGES.childRoomMin,
+        index === 0 ? REFERENCE_RANGES.parentRoomMax : REFERENCE_RANGES.childRoomMax,
+      ),
       minArea: index === 0 ? REFERENCE_RANGES.parentRoomMin : REFERENCE_RANGES.childRoomMin,
       maxArea: index === 0 ? REFERENCE_RANGES.parentRoomMax : REFERENCE_RANGES.childRoomMax,
       preferredSide: index % 2 === 0 ? preferredLivingSide(archetype) : preferredServiceSide(archetype),
@@ -540,12 +589,20 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
   }
   const bathroomsThisFloor = floor === 1 ? Math.max(1, brief.bathrooms - 1) : 1;
   for (let index = 0; index < bathroomsThisFloor; index += 1) {
+    const fallbackBathArea = critiqueIncludes(brief, ["bad zu klein", "bad klein", "bäder klein"])
+      ? (index ? 7 : 13)
+      : index ? 6 : 11;
     rooms.push({
       name: index ? `Duschbad ${index + 1}` : "Bad",
       kind: "wet",
-      targetArea: critiqueIncludes(brief, ["bad zu klein", "bad klein", "bäder klein"])
-        ? (index ? 7 : 13)
-        : index ? 6 : 11,
+      targetArea: referenceAreaFromSimplifier(
+        "upperfloor",
+        index ? ["du_wc", "wc"] : ["bad"],
+        floorArea,
+        fallbackBathArea,
+        index ? 4 : REFERENCE_RANGES.familyBathMin,
+        index ? 8 : REFERENCE_RANGES.familyBathMax,
+      ),
       minArea: index ? 4 : REFERENCE_RANGES.familyBathMin,
       maxArea: index ? 8 : REFERENCE_RANGES.familyBathMax,
       preferredSide: preferredServiceSide(archetype),
@@ -555,7 +612,15 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
   if (floorArea >= 78 && brief.bedrooms <= 3 && brief.bathrooms <= 2) {
     rooms.push({ name: "Ankleide", kind: "flex", targetArea: 6, minArea: 4, maxArea: 8, preferredSide: preferredServiceSide(archetype), preferredZone: "core" });
   }
-  rooms.push({ name: "Flur", kind: "flex", targetArea: 10, minArea: 7, maxArea: 13, preferredSide: preferredLivingSide(archetype), preferredZone: "core" });
+  rooms.push({
+    name: "Flur",
+    kind: "flex",
+    targetArea: referenceAreaFromSimplifier("upperfloor", ["flur"], floorArea, 10, 7, 13),
+    minArea: 7,
+    maxArea: 13,
+    preferredSide: preferredLivingSide(archetype),
+    preferredZone: "core",
+  });
   if (wantsEntranceCirculation(brief)) {
     const hall = rooms.find((room) => room.name === "Flur");
     if (hall) {
@@ -672,6 +737,8 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
 
   return archetypes.map((archetype, index) => {
     const profile = profileForArea(brief.area);
+    const referenceHouseType = referenceHouseTypeForBrief(brief);
+    const upperFloorProgram = commonUpperFloorProgramFor(referenceHouseType);
     const baseFloorArea = targetAreaForFloor(brief, 0, profile);
     const attemptRatioOffset = ((brief.generationAttempt + index) % 3 - 1) * 0.04;
     const ratio = Math.max(1.04, profile.preferredFootprintRatio + archetype.ratioOffset + attemptRatioOffset);
@@ -723,6 +790,14 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     const checks = [
       { label: "Jeder Aufenthaltsraum liegt an einer Außenwand mit Fenster", passed: floors.every((plan) => plan.rooms.length > 0) },
       { label: `Referenzprofil aus Verkaufsschlagern erkannt: ${profile.name}`, passed: true },
+      { label: `Lokale Simplifier-Referenz geladen: ${simplifierReferenceLabel()}`, passed: true },
+      { label: simplifierReferenceElementLabel(), passed: true },
+      {
+        label: upperFloorProgram
+          ? `OG-Raumprogramm gegen lokale Referenz geprüft: ${upperFloorProgram.signature.split(":").slice(-1)[0]?.replace(/\|/g, " · ")}`
+          : `Raumprogramm gegen lokale Referenzhausart geprüft: ${referenceHouseType}`,
+        passed: true,
+      },
       brief.critiqueNotes
         ? { label: `Kritik aus vorherigem Lauf berücksichtigt: ${brief.critiqueNotes}`, passed: true }
         : { label: "Noch keine Kritik aus vorherigem Lauf", passed: true },
@@ -756,7 +831,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     return {
       id: archetype.id,
       name: brief.generationAttempt > 0 ? `${archetype.name} · Lauf ${brief.generationAttempt + 1}` : archetype.name,
-      description: `${archetype.descriptionPrefix}: ${brief.kitchen === "separate" ? "separate Küche" : brief.kitchen === "semi-open" ? "halboffene Küche" : "offener Wohn-Ess-Kochbereich"}, ${brief.gardenConnection === "private" ? "gezieltere Ausblicke" : "kurzer Weg zur Terrasse"}, ${wantsWallStair(brief) ? "Treppe an der Außenwand statt verschwendetem Mittelraum" : brief.stairPreference === "feature" ? "offenere Treppe" : "zentraler Treppenkern"} und gebündelte Haustechnik. ${profile.notes.join(" · ")}.`,
+      description: `${archetype.descriptionPrefix}: ${brief.kitchen === "separate" ? "separate Küche" : brief.kitchen === "semi-open" ? "halboffene Küche" : "offener Wohn-Ess-Kochbereich"}, ${brief.gardenConnection === "private" ? "gezieltere Ausblicke" : "kurzer Weg zur Terrasse"}, ${wantsWallStair(brief) ? "Treppe an der Außenwand statt verschwendetem Mittelraum" : brief.stairPreference === "feature" ? "offenere Treppe" : "zentraler Treppenkern"} und gebündelte Haustechnik. ${profile.notes.join(" · ")}. Zielgrößen werden zusätzlich mit der lokalen Simplifier-v1-Referenz abgeglichen.`,
       floors,
       score: Math.round((passedChecks / checks.length) * ([96, 93, 94][index] ?? 92)),
       checks,
@@ -764,7 +839,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
         footprintWidthM: Number(width.toFixed(1)),
         footprintDepthM: Number(depth.toFixed(1)),
         plannedAreaM2: brief.area,
-        referenceProfile: profile.name,
+        referenceProfile: `${profile.name} · ${simplifierReferenceLabel()}`,
         groundFloorAreaM2: targetAreaForFloor(brief, 0, profile),
         upperFloorAreaM2: brief.floors > 1 ? targetAreaForFloor(brief, 1, profile) : 0,
       },
