@@ -17,7 +17,7 @@ type SimplifierKnowledge = {
     house_types: Record<string, number>;
     floor_levels: Record<string, number>;
   };
-  element_counts: Record<"door" | "window" | "stairs", number>;
+  element_counts: Record<string, number>;
   room_profiles: SimplifierRoomProfile[];
   common_floor_programs: Array<{ signature: string; occurrences: number }>;
   limitations: string[];
@@ -32,7 +32,8 @@ export function simplifierReferenceLabel() {
 
 export function simplifierReferenceElementLabel() {
   const counts = SIMPLIFIER_REFERENCE.element_counts;
-  return `Referenz enthält ${counts.door} Türen, ${counts.window} Fenster und ${counts.stairs} Treppen`;
+  const count = (key: string) => Number.isFinite(counts[key]) ? counts[key] : 0;
+  return `Referenz enthält ${count("door")} Türen, ${count("window")} Fenster und ${count("stairs")} Treppen`;
 }
 
 function profileFor(floorLevel: string, roomIds: string[]) {

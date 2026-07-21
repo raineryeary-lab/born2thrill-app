@@ -23,6 +23,8 @@
 # misc
 .DS_Store
 *.pem
+.codex/
+/reference-data/cubicasa5k-noncommercial/
 
 # debug
 npm-debug.log*

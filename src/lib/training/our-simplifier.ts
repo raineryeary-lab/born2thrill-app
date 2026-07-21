@@ -69,9 +69,19 @@ function roomIdsFor(room: RawTrainingRoom) {
   return singleRoomId ? [singleRoomId] : undefined;
 }
 
+function polygonArea(points: Array<[number, number]>) {
+  let total = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const next = (index + 1) % points.length;
+    total += points[index][0] * points[next][1] - points[next][0] * points[index][1];
+  }
+  return Math.abs(total) / 2;
+}
+
 function normalizeRoom(room: RawTrainingRoom, fallbackFloorLevel?: string) {
   const polygon = normalizePointList(room.polygon ?? room.points);
   if (polygon.length < 3) return null;
+  if (polygonArea(polygon) <= 0) return null;
 
   const room_id = optionalString(room.room_id ?? room.roomId);
 
@@ -237,15 +247,18 @@ export async function import_our_simplifier_dataset(datasetPath: string): Promis
       .filter((floorLevel): floorLevel is string => Boolean(floorLevel));
     const cellar = hasCellar(floorLevels);
 
-    return floors.map((floor) => {
+    return floors.flatMap((floor) => {
       const floorLevel = optionalString(floor.floor_level) ?? "unknown";
       const rooms = [
         ...asArray(floor.annotations),
         ...asArray(floor.rooms),
       ].map((room) => normalizeRoom(room, floorLevel));
       const elements = asArray(floor.elements).map((element) => normalizeElement(element, undefined, floorLevel));
+      const normalizedRooms = rooms.filter((room): room is NonNullable<typeof room> => room !== null);
 
-      return sampleForFloor({
+      if (!normalizedRooms.length) return [];
+
+      return [sampleForFloor({
         image: "privacy-safe:no-preview",
         projectPath: datasetPath,
         projectId,
@@ -255,9 +268,9 @@ export async function import_our_simplifier_dataset(datasetPath: string): Promis
         datasetVersion,
         floorLevel,
         hasCellar: cellar,
-        rooms,
+        rooms: normalizedRooms,
         elements,
-      });
+      })];
     });
   });
 }

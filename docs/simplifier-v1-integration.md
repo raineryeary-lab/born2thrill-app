@@ -21,14 +21,22 @@ The import writes:
 - `data/simplifier-v1/manifest.json`
 - `data/simplifier-v1/README.md`
 
-The command validates the current handoff counts:
+The command calculates the current handoff counts and requires exact agreement
+between `dataset.json`, `manifest.json`, and the `knowledge.json` basis. Counts
+are intentionally not hardcoded, so a larger valid v1 dataset can be imported
+without changing application code.
 
-- 15 projects
-- 29 floors
-- 162 room polygons
-- 367 elements
+Current local snapshot (2026-07-19):
 
-It also checks that `other_1_5_story_with_cellar` keeps `house_type: "other"` and only derives cellar presence from a `basement` floor level.
+- 110 projects
+- 194 floors
+- 1,149 room polygons
+- 2,593 elements
+
+The importer rejects unknown dataset/schema versions, missing or unsafe privacy
+flags, malformed element counts, and any manifest/knowledge count mismatch.
+Cellars are identified only by the typed `floor_level: "basement"` field; no
+specific project ID or localized room name is required.
 
 ## What is intentionally not imported
 
