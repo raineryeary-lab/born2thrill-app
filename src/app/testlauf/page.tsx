@@ -86,6 +86,36 @@ declare global {
   }
 }
 
+type StairPoint = { x: number; y: number };
+
+function stairStepLines(path: StairPoint[], width: number) {
+  const spacing = Math.max(7, width * (0.28 / 0.9));
+  return path.slice(0, -1).flatMap((start, segmentIndex) => {
+    const end = path[segmentIndex + 1];
+    const dx = end.x - start.x; const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy);
+    if (length < spacing) return [];
+    const ux = dx / length; const uy = dy / length;
+    const nx = -uy * width * 0.46; const ny = ux * width * 0.46;
+    return Array.from({ length: Math.max(1, Math.floor(length / spacing)) }, (_, index) => {
+      const distance = Math.min(length - 3, (index + 1) * spacing);
+      const x = start.x + ux * distance; const y = start.y + uy * distance;
+      return { key: `${segmentIndex}-${index}`, x1: x - nx, y1: y - ny, x2: x + nx, y2: y + ny };
+    });
+  });
+}
+
+function stairArrowHead(path: StairPoint[], size = 9) {
+  const end = path.at(-1); const previous = path.at(-2);
+  if (!end || !previous) return null;
+  const dx = end.x - previous.x; const dy = end.y - previous.y;
+  const length = Math.hypot(dx, dy);
+  if (!length) return null;
+  const ux = dx / length; const uy = dy / length;
+  const nx = -uy; const ny = ux;
+  const baseX = end.x - ux * size; const baseY = end.y - uy * size;
+  return `${end.x},${end.y} ${baseX + nx * size * 0.55},${baseY + ny * size * 0.55} ${baseX - nx * size * 0.55},${baseY - ny * size * 0.55}`;
+}
 function FloorSvg({
   plan,
   selectedRoomId,
@@ -96,7 +126,124 @@ function FloorSvg({
   onSelectRoom?: (selection: SelectedRoom) => void;
 }) {
   const stair = plan.stair;
-  const wallStair = plan.layoutMode === "wall-stair";
+  const referenceBased = Boolean(plan.referenceLayoutId);
+  const referenceGeometry = useMemo(() => {
+    if (!referenceBased) return null;
+    const boxes = plan.rooms.map((room) => {
+      const points = room.polygon ?? [];
+      const xs = points.map((point) => point.x);
+      const ys = points.map((point) => point.y);
+      return { id: room.id, x1: xs.length ? Math.min(...xs) : room.x, y1: ys.length ? Math.min(...ys) : room.y, x2: xs.length ? Math.max(...xs) : room.x + room.width, y2: ys.length ? Math.max(...ys) : room.y + room.height, area: room.area };
+    });
+    const snapAxis = (values: number[], tolerance = 10) => {
+      const groups: number[][] = [];
+      [...values].sort((a, b) => a - b).forEach((value) => {
+        const group = groups.find((candidate) => Math.abs(candidate.reduce((sum, item) => sum + item, 0) / candidate.length - value) <= tolerance);
+        if (group) group.push(value); else groups.push([value]);
+      });
+      const centers = groups.map((group) => group.reduce((sum, value) => sum + value, 0) / group.length);
+      return (value: number) => centers.reduce((best, center) => Math.abs(center - value) < Math.abs(best - value) ? center : best, centers[0] ?? value);
+    };
+    const snapX = snapAxis(boxes.flatMap((box) => [box.x1, box.x2]));
+    const snapY = snapAxis(boxes.flatMap((box) => [box.y1, box.y2]));
+    const rooms = new Map(boxes.map((box) => {
+      const x1 = snapX(box.x1); const x2 = snapX(box.x2); const y1 = snapY(box.y1); const y2 = snapY(box.y2);
+      return [box.id, { x: x1, y: y1, width: Math.max(1, x2 - x1), height: Math.max(1, y2 - y1) }];
+    }));
+    const rects = [...rooms.values()];
+    const minX = Math.min(...rects.map((rect) => rect.x)); const minY = Math.min(...rects.map((rect) => rect.y));
+    const footprint = plan.referenceFootprint ?? { x: minX, y: minY, width: Math.max(...rects.map((rect) => rect.x + rect.width)) - minX, height: Math.max(...rects.map((rect) => rect.y + rect.height)) - minY };
+    const pixelArea = rects.reduce((sum, rect) => sum + rect.width * rect.height, 0);
+    const floorArea = boxes.reduce((sum, box) => sum + box.area, 0);
+    const pixelsPerMeter = Math.sqrt(pixelArea / Math.max(floorArea, 1));    const squarePixelsPerMeter = pixelsPerMeter * pixelsPerMeter;
+    const htrRoom = plan.rooms.find((room) => /\bHTR\b|\bHWR\b/i.test(room.name));
+    const htrRect = htrRoom ? rooms.get(htrRoom.id) : undefined;
+    if (htrRect) {
+      const desiredWidth = Math.min(footprint.width * 0.34, Math.max(htrRect.width, (10 * squarePixelsPerMeter) / Math.max(htrRect.height, 1)));
+      const oldX = htrRect.x; const oldRight = htrRect.x + htrRect.width;
+      if (htrRect.x + htrRect.width / 2 > footprint.x + footprint.width / 2) {
+        htrRect.x = oldRight - desiredWidth; htrRect.width = desiredWidth;
+        plan.rooms.filter((room) => room.kind === "circulation").forEach((room) => {
+          const rect = rooms.get(room.id);
+          if (rect && rect.x < oldX && rect.y < htrRect.y + htrRect.height && rect.y + rect.height > htrRect.y) rect.width = Math.max(1, htrRect.x - rect.x);
+        });
+      } else {
+        htrRect.width = desiredWidth;
+        plan.rooms.filter((room) => room.kind === "circulation").forEach((room) => {
+          const rect = rooms.get(room.id);
+          if (rect && rect.x > oldX && rect.y < htrRect.y + htrRect.height && rect.y + rect.height > htrRect.y) {
+            const right = rect.x + rect.width; rect.x = htrRect.x + htrRect.width; rect.width = Math.max(1, right - rect.x);
+          }
+        });
+      }
+    }
+    if (htrRect && plan.stairRect && htrRect.x > plan.stairRect.x) {
+      const right = htrRect.x + htrRect.width;
+      htrRect.x = plan.stairRect.x + plan.stairRect.width;
+      htrRect.width = Math.max(1, right - htrRect.x);
+    }    if (plan.floor > 0 && plan.stairRect) {
+      const stairLeft = plan.stairRect.x; const stairRight = plan.stairRect.x + plan.stairRect.width;
+      plan.rooms.filter((room) => /bad/i.test(room.name)).forEach((room) => {
+        const rect = rooms.get(room.id); if (!rect) return;
+        const leftGap = rect.x - stairRight; const rightGap = stairLeft - (rect.x + rect.width);
+        if (leftGap > 0 && leftGap <= 60) { rect.x = stairRight; rect.width += leftGap; }
+        else if (rightGap > 0 && rightGap <= 60) rect.width += rightGap;
+      });
+    }
+    return { rooms, footprint, innerWallPx: Math.max(2, Math.min(5, pixelsPerMeter * 0.1)), outerWallPx: Math.max(7, Math.min(14, pixelsPerMeter * 0.35)) };
+  }, [plan, referenceBased]);
+  const projectOpeningToWall = (points: Array<{ x: number; y: number }>) => {
+    const first = points[0]; const second = points[1];
+    if (!first || !second || !referenceGeometry) return null;
+    const horizontal = Math.abs(second.x - first.x) >= Math.abs(second.y - first.y);
+    const midpoint = { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 };
+    const rects = [...referenceGeometry.rooms.values(), referenceGeometry.footprint];
+    const candidates = rects.flatMap((rect) => horizontal
+      ? [{ axis: rect.y, start: rect.x, end: rect.x + rect.width }, { axis: rect.y + rect.height, start: rect.x, end: rect.x + rect.width }]
+      : [{ axis: rect.x, start: rect.y, end: rect.y + rect.height }, { axis: rect.x + rect.width, start: rect.y, end: rect.y + rect.height }]);
+    const along = horizontal ? midpoint.x : midpoint.y; const across = horizontal ? midpoint.y : midpoint.x;
+    const best = candidates.reduce((winner, candidate) => {
+      const outside = along < candidate.start ? candidate.start - along : along > candidate.end ? along - candidate.end : 0;
+      const score = Math.abs(candidate.axis - across) + outside * 3;
+      return !winner || score < winner.score ? { ...candidate, score } : winner;
+    }, null as null | { axis: number; start: number; end: number; score: number });
+    if (!best) return null;
+    const originalLength = Math.hypot(second.x - first.x, second.y - first.y);
+    const length = Math.max(18, Math.min(52, originalLength, Math.max(18, best.end - best.start - 12)));
+    const center = Math.max(best.start + length / 2 + 4, Math.min(best.end - length / 2 - 4, along));
+    return horizontal
+      ? [{ x: center - length / 2, y: best.axis }, { x: center + length / 2, y: best.axis }]
+      : [{ x: best.axis, y: center - length / 2 }, { x: best.axis, y: center + length / 2 }];
+  };  const wcHallDoor = (() => {
+    if (!referenceGeometry) return null;
+    const wc = plan.rooms.find((room) => /\bWC\b/i.test(room.name));
+    const wcRect = wc ? referenceGeometry.rooms.get(wc.id) : undefined;
+    if (!wcRect) return null;
+    const halls = plan.rooms.filter((room) => room.kind === "circulation").map((room) => referenceGeometry.rooms.get(room.id)).filter(Boolean) as Array<{ x: number; y: number; width: number; height: number }>;
+    let best: null | { gap: number; x: number; y1: number; y2: number } = null;
+    halls.forEach((hall) => {
+      const y1 = Math.max(wcRect.y, hall.y); const y2 = Math.min(wcRect.y + wcRect.height, hall.y + hall.height);
+      if (y2 - y1 < 22) return;
+      const leftGap = Math.abs(wcRect.x - (hall.x + hall.width));
+      const rightGap = Math.abs(wcRect.x + wcRect.width - hall.x);
+      const candidate = leftGap <= rightGap ? { gap: leftGap, x: wcRect.x, y1, y2 } : { gap: rightGap, x: wcRect.x + wcRect.width, y1, y2 };
+      if (!best || candidate.gap < best.gap) best = candidate;
+    });
+    const selectedDoor = best as null | { gap: number; x: number; y1: number; y2: number };
+    if (!selectedDoor || selectedDoor.gap > 18) return null;
+    const center = (selectedDoor.y1 + selectedDoor.y2) / 2; return [{ x: selectedDoor.x, y: center - 11 }, { x: selectedDoor.x, y: center + 11 }];
+  })();  const entryDoor = (() => {
+    if (!referenceGeometry || plan.floor !== 0) return null;
+    const hall = plan.rooms.filter((room) => room.kind === "circulation").map((room) => referenceGeometry.rooms.get(room.id)).find((rect) => rect && rect.y + rect.height >= referenceGeometry.footprint.y + referenceGeometry.footprint.height - 12);
+    if (!hall) return null;
+    const wallY = referenceGeometry.footprint.y + referenceGeometry.footprint.height;
+    const availableStart = Math.max(hall.x + 6, referenceGeometry.footprint.x + 12);
+    const availableEnd = Math.min(hall.x + hall.width - 6, (plan.stairRect?.x ?? hall.x + hall.width) - 7);
+    if (availableEnd - availableStart < 20) return null;
+    const length = Math.min(30, availableEnd - availableStart);
+    const center = (availableStart + availableEnd) / 2;
+    return [{ x: center - length / 2, y: wallY }, { x: center + length / 2, y: wallY }];
+  })();  const wallStair = plan.layoutMode === "wall-stair";
   const hallX = wallStair ? 306 : 220;
   const hallWidth = wallStair ? 88 : 260;
   const wallStairX = plan.wallStairSide === "left" ? 56 : 512;
@@ -124,16 +271,18 @@ function FloorSvg({
   const frontDoorLeafEndY = 480 - frontDoorPx * Math.sin(Math.PI / 4);
   return (
     <svg viewBox="0 0 700 500" className="w-full rounded-xl bg-[#faf9f6]" aria-label={`Grundriss ${plan.name}`}>
-      <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />
-      {wallStair && (
+      {referenceGeometry ? <rect x={referenceGeometry.footprint.x} y={referenceGeometry.footprint.y} width={referenceGeometry.footprint.width} height={referenceGeometry.footprint.height} fill="white" /> : <rect x="20" y="20" width="660" height="460" fill="white" stroke="#1c1917" strokeWidth="8" />}
+      {wallStair && !referenceBased && (
         <g>
           <rect x={Math.min(wallStairX, hallX)} y="86" width={Math.max(wallStairX + wallStairWidth, hallX + hallWidth) - Math.min(wallStairX, hallX)} height="216" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
           <text x={wallStairConnectorX + wallStairConnectorWidth / 2} y="246" textAnchor="middle" fontSize="10" fill="#57534e">TREPPENFLUR</text>
         </g>
       )}
-      <rect x={hallX} y="24" width={hallWidth} height="452" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
-      <text x={hallX + hallWidth / 2} y="55" textAnchor="middle" fontSize="12" fill="#57534e">{wallStair ? "KURZER FLUR" : "FLUR"}</text>
-      {plan.hasStair && stair && !wallStair && (
+      {!referenceBased && (<>
+        <rect x={hallX} y="24" width={hallWidth} height="452" fill="#f0eee8" stroke="#78716c" strokeWidth="2" />
+        <text x={hallX + hallWidth / 2} y="55" textAnchor="middle" fontSize="12" fill="#57534e">{wallStair ? "KURZER FLUR" : "FLUR"}</text>
+      </>)}
+      {plan.hasStair && stair && !wallStair && !referenceBased && (
         <g>
           <rect x="284" y="66" width="132" height="184" rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
           <rect x="284" y="66" width="132" height="58" fill="#d6d3d1" stroke="#292524" strokeWidth="1.5" />
@@ -156,7 +305,7 @@ function FloorSvg({
           <text x="350" y="45" textAnchor="middle" fontSize="10" fill="#57534e">U-TREPPE {stair.footprintWidthM.toFixed(2)} × {stair.footprintLengthM.toFixed(2)} m</text>
         </g>
       )}
-      {plan.floor === 0 && (
+      {plan.floor === 0 && !referenceBased && (
         <g>
           <line x1="330" y1="480" x2={330 + frontDoorPx} y2="480" stroke="white" strokeWidth="10" />
           <line x1="330" y1="480" x2={frontDoorLeafEndX} y2={frontDoorLeafEndY} stroke="#0f766e" strokeWidth="2.5" />
@@ -176,15 +325,22 @@ function FloorSvg({
         const doorArc = doorSwingArc45(doorX, hingeY, internalDoorPx, doorDirection);
         const selected = selectedRoomId === room.id;
         const fill = room.kind === "circulation" ? "#f0eee8" : room.kind === "wet" ? "#dbeafe" : room.kind === "living" ? "#dcfce7" : room.kind === "service" ? "#fef3c7" : "#f5f5f4";
-        const drawDoorAndWindow = room.kind !== "circulation";
+        const drawDoorAndWindow = !referenceBased && room.kind !== "circulation";
+        const polygonPoints = room.polygon?.map((point) => `${point.x},${point.y}`).join(" ");        const displayRoom = referenceGeometry?.rooms.get(room.id);
+        const labelX = displayRoom ? displayRoom.x + displayRoom.width / 2 : room.x + room.width / 2;
+        const stairCoversRoom = Boolean(displayRoom && plan.stairRect && displayRoom.x < plan.stairRect.x + plan.stairRect.width && displayRoom.x + displayRoom.width > plan.stairRect.x && displayRoom.y < plan.stairRect.y + plan.stairRect.height && displayRoom.y + displayRoom.height > plan.stairRect.y);
+        const labelY = displayRoom ? stairCoversRoom ? displayRoom.y + 25 : displayRoom.y + displayRoom.height / 2 : cy;
+        const compactLabel = Boolean(displayRoom && displayRoom.width < 78);
         return (
           <g key={room.id} role="button" tabIndex={0} className="cursor-pointer" onClick={() => onSelectRoom?.({ floor: plan.floor, floorName: plan.name, room })} onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") onSelectRoom?.({ floor: plan.floor, floorName: plan.name, room });
-          }}>
-            <rect x={room.x} y={room.y} width={room.width} height={room.height} fill={fill} stroke={selected ? "#f97316" : "#57534e"} strokeWidth={selected ? "4" : "2"} />
-            <text x={room.x + room.width / 2} y={cy - 5} textAnchor="middle" fontSize="15" fontWeight="600" fill="#292524">{room.name}</text>
-            <text x={room.x + room.width / 2} y={cy + 16} textAnchor="middle" fontSize="12" fill="#78716c">ca. {room.area} m²</text>
-            {drawDoorAndWindow && (
+          }}>            {displayRoom
+              ? <rect x={displayRoom.x} y={displayRoom.y} width={displayRoom.width} height={displayRoom.height} fill={fill} stroke={selected ? "#f97316" : "#57534e"} strokeWidth={selected ? 4 : referenceGeometry?.innerWallPx ?? 2} />
+              : polygonPoints
+                ? <polygon points={polygonPoints} fill={fill} stroke={selected ? "#f97316" : "#57534e"} strokeWidth={selected ? "4" : "2"} />
+                : <rect x={room.x} y={room.y} width={room.width} height={room.height} fill={fill} stroke={selected ? "#f97316" : "#57534e"} strokeWidth={selected ? "4" : "2"} />}
+            <text x={labelX} y={labelY - 5} textAnchor="middle" fontSize={compactLabel ? 12 : 15} fontWeight="600" fill="#292524">{room.name}</text>
+            <text x={labelX} y={labelY + 16} textAnchor="middle" fontSize="12" fill="#78716c">ca. {room.area} m²</text>            {drawDoorAndWindow && (
               <>
                 <line x1={windowX} x2={windowX} y1={cy - 23} y2={cy + 23} stroke="white" strokeWidth="10" />
                 <line x1={windowX} x2={windowX} y1={cy - 20} y2={cy + 20} stroke="#0ea5e9" strokeWidth="5" />
@@ -200,7 +356,24 @@ function FloorSvg({
           </g>
         );
       })}
-      {plan.hasStair && stair && wallStair && (
+      {wcHallDoor && <g><line x1={wcHallDoor[0].x} y1={wcHallDoor[0].y} x2={wcHallDoor[1].x} y2={wcHallDoor[1].y} stroke="white" strokeWidth={(referenceGeometry?.innerWallPx ?? 2) + 5} /><line x1={wcHallDoor[0].x} y1={wcHallDoor[0].y} x2={wcHallDoor[1].x} y2={wcHallDoor[1].y} stroke="#0f766e" strokeWidth="2" /></g>}      {referenceGeometry && <rect x={referenceGeometry.footprint.x} y={referenceGeometry.footprint.y} width={referenceGeometry.footprint.width} height={referenceGeometry.footprint.height} fill="none" stroke="#1c1917" strokeWidth={referenceGeometry.outerWallPx} />}      {entryDoor && <g><line x1={entryDoor[0].x} y1={entryDoor[0].y} x2={entryDoor[1].x} y2={entryDoor[1].y} stroke="white" strokeWidth={(referenceGeometry?.outerWallPx ?? 8) + 3} /><line x1={entryDoor[0].x} y1={entryDoor[0].y} x2={entryDoor[1].x} y2={entryDoor[1].y} stroke="#0f766e" strokeWidth="2.5" /></g>}
+      {referenceBased && plan.stairPath && plan.stairPath.length >= 2 && plan.stairWidthPx && stair && (
+        <g>
+          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#292524" strokeWidth={plan.stairWidthPx + 4} strokeLinejoin="round" strokeLinecap="butt" />
+          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#e7e5e4" strokeWidth={plan.stairWidthPx} strokeLinejoin="round" strokeLinecap="butt" />
+          {stairStepLines(plan.stairPath, plan.stairWidthPx).map((step) => (
+            <line key={step.key} x1={step.x1} y1={step.y1} x2={step.x2} y2={step.y2} stroke="#78716c" strokeWidth="1" />
+          ))}
+          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#18392f" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+          {stairArrowHead(plan.stairPath) && <polygon points={stairArrowHead(plan.stairPath)!} fill="#18392f" />}
+        </g>
+      )}
+      {plan.referenceElements?.filter((element) => element.type === "door" || element.type === "window").map((element) => {
+        const opening = projectOpeningToWall(element.points);
+        const first = opening?.[0]; const second = opening?.[1];
+        if (!first || !second) return null;
+        return <g key={element.id}><line x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke="white" strokeWidth={(referenceGeometry?.outerWallPx ?? 8) + 3} strokeLinecap="butt" /><line x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke={element.type === "window" ? "#0ea5e9" : "#0f766e"} strokeWidth={element.type === "window" ? "3" : "2"} strokeLinecap="round" /></g>;
+      })}      {plan.hasStair && stair && wallStair && !referenceBased && (
         <g>
           <rect x={wallStairX} y={wallStairY} width={wallStairWidth} height={wallStairHeight} rx="3" fill="#e7e5e4" stroke="#292524" strokeWidth="2" />
           <rect x={wallStairX} y={wallStairY} width={wallStairWidth} height="58" fill="#d6d3d1" stroke="#292524" strokeWidth="1.5" />
@@ -284,6 +457,15 @@ function cleanFeedbackReason(text: string) {
   return (uniqueChunks.length ? uniqueChunks.join(" · ") : cleaned).slice(0, 800);
 }
 
+function storedArray<T>(storage: Storage, key: string): T[] {
+  try {
+    const parsed: unknown = JSON.parse(storage.getItem(key) ?? "[]");
+    return Array.isArray(parsed) ? parsed as T[] : [];
+  } catch {
+    storage.removeItem(key);
+    return [];
+  }
+}
 export default function TestlaufPage() {
   const planSectionRef = useRef<HTMLElement>(null);
   const [entries, setEntries] = useState<Array<[string, string]>>([]);
@@ -299,11 +481,11 @@ export default function TestlaufPage() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       const raw = window.sessionStorage.getItem("born2thrill-test-brief");
-      if (raw) setEntries(JSON.parse(raw) as Array<[string, string]>);
+      if (raw) setEntries(storedArray<[string, string]>(window.sessionStorage, "born2thrill-test-brief"));
       const feedbackRaw = window.localStorage.getItem("born2thrill-test-feedback");
-      if (feedbackRaw) setFeedbackCount((JSON.parse(feedbackRaw) as TestlaufFeedback[]).length);
+      if (feedbackRaw) setFeedbackCount(storedArray<TestlaufFeedback>(window.localStorage, "born2thrill-test-feedback").length);
       const learningRaw = window.localStorage.getItem("born2thrill-learning-corrections");
-      if (learningRaw) setLearningCount((JSON.parse(learningRaw) as LearningCorrection[]).length);
+      if (learningRaw) setLearningCount(storedArray<LearningCorrection>(window.localStorage, "born2thrill-learning-corrections").length);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
@@ -321,7 +503,7 @@ export default function TestlaufPage() {
     }
 
     const raw = window.localStorage.getItem("born2thrill-test-feedback");
-    const existing = raw ? (JSON.parse(raw) as TestlaufFeedback[]) : [];
+    const existing = raw ? storedArray<TestlaufFeedback>(window.localStorage, "born2thrill-test-feedback") : [];
     const item: TestlaufFeedback = {
       id: `${Date.now()}-${variant.id}`,
       createdAt: new Date().toISOString(),
@@ -418,7 +600,7 @@ export default function TestlaufPage() {
     };
 
     const raw = window.localStorage.getItem("born2thrill-learning-corrections");
-    const existing = raw ? (JSON.parse(raw) as LearningCorrection[]) : [];
+    const existing = raw ? storedArray<LearningCorrection>(window.localStorage, "born2thrill-learning-corrections") : [];
     window.localStorage.setItem("born2thrill-learning-corrections", JSON.stringify([correction, ...existing].slice(0, 200)));
     setLearningCount(existing.length + 1);
 

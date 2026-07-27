@@ -26,12 +26,12 @@ between `dataset.json`, `manifest.json`, and the `knowledge.json` basis. Counts
 are intentionally not hardcoded, so a larger valid v1 dataset can be imported
 without changing application code.
 
-Current local snapshot (2026-07-19):
+Current local snapshot (2026-07-27):
 
-- 110 projects
-- 194 floors
-- 1,149 room polygons
-- 2,593 elements
+- 157 projects
+- 242 floors
+- 1,527 room polygons
+- 3,451 elements
 
 The importer rejects unknown dataset/schema versions, missing or unsafe privacy
 flags, malformed element counts, and any manifest/knowledge count mismatch.
@@ -54,7 +54,17 @@ The current rule-based generator consumes `knowledge.json` as a local reference 
 - common upper-floor room-program hints by derived reference house type
 - element-count reference for doors, windows, and stairs
 
-The full `dataset.json` is available for adapter tests and later normalization/training work, but it is not uploaded to cloud storage and not used as a trained model.
+The full `dataset.json` is available to the server-side reference selector and
+for adapter tests. It contains only normalized geometry and typed elements; it
+does not contain source documents or contact data and is not a trained model.
+
+## ZuhauseFinder webhook
+
+`POST /api/zuhausefinder/floorplan` accepts the versioned
+`dmh-floorplan-brief-v1` contract. It rejects incomplete or personality-only
+requests, selects a real annotated reference, applies only controlled
+variations, and returns a self-contained SVG as base64 JSON. See
+`docs/zuhausefinder-webhook.md`.
 
 ## Adapter contract
 

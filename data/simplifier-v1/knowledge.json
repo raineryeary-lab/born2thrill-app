@@ -1,34 +1,34 @@
 {
   "knowledge_version": "simplifier-knowledge-v1",
-  "generated_at": "2026-07-21T19:14:47.841782+00:00",
+  "generated_at": "2026-07-25T06:13:16.748576+00:00",
   "basis": {
-    "project_count": 110,
-    "floor_count": 194,
-    "room_count": 1149,
-    "element_count": 2593,
+    "project_count": 157,
+    "floor_count": 242,
+    "room_count": 1527,
+    "element_count": 3451,
     "house_types": {
-      "bungalow": 29,
+      "bungalow": 75,
       "onehalfstorey": 40,
       "other": 1,
-      "twostorey": 40
+      "twostorey": 41
     },
     "floor_levels": {
       "basement": 2,
-      "groundfloor": 110,
-      "upperfloor": 82
+      "groundfloor": 157,
+      "upperfloor": 83
     }
   },
   "element_counts": {
     "balcony": 4,
-    "door": 956,
-    "opening": 67,
-    "stairs": 164,
-    "window": 1402
+    "door": 1297,
+    "opening": 101,
+    "stairs": 166,
+    "window": 1883
   },
   "element_context_counts": {
     "door:under_stairs": 1,
     "window:quergiebel_facade": 6,
-    "window:standard_facade": 1005
+    "window:standard_facade": 1486
   },
   "architectural_feature_counts": {
     "gable:quergiebel": 12,
@@ -92,144 +92,156 @@
     }
   ],
   "room_label_counts": {
-    "Kind": 179,
-    "HWR / HTR": 113,
-    "Diele": 112,
-    "Bad": 110,
-    "Eltern / Schlafen": 107,
-    "Flur": 100,
-    "Wohnen / Essen / Kochen": 75,
-    "WC": 72,
-    "Büro": 60,
-    "Ankleide": 44,
-    "DU-WC": 40,
-    "Kochen": 31,
-    "Wohnen / Essen": 29,
-    "Speisekammer": 24,
-    "Abstellraum": 9,
+    "Kind": 223,
+    "HWR / HTR": 160,
+    "Diele": 159,
+    "Bad": 158,
+    "Eltern / Schlafen": 154,
+    "Wohnen / Essen / Kochen": 107,
+    "Flur": 102,
+    "WC": 92,
+    "Büro": 75,
+    "Ankleide": 53,
+    "DU-WC": 50,
+    "Kochen": 46,
+    "Wohnen / Essen": 42,
+    "Gast": 27,
+    "Speisekammer": 25,
+    "Abstellraum": 15,
     "Garage": 8,
     "Luftraum": 8,
-    "Gast": 7,
-    "Wohnen": 6,
+    "Wohnen": 7,
     "Garage / Carport": 3,
     "Essen": 3,
     "Zimmer": 2,
+    "Essen / Kochen": 2,
     "Wohnen / Essen / Küche": 1,
     "Keller": 1,
     "Treppe": 1,
     "Küche / Essen": 1,
     "Balkon": 1,
-    "Essen / Kochen": 1,
     "Küche": 1
   },
   "room_profiles": [
     {
       "floor_level": "upperfloor",
       "room_id": "kind",
-      "occurrences": 160,
-      "median_share_of_marked_room_area": 0.1908
+      "occurrences": 162,
+      "median_share_of_marked_room_area": 0.1911
     },
     {
       "floor_level": "groundfloor",
       "room_id": "diele",
-      "occurrences": 112,
-      "median_share_of_marked_room_area": 0.1644
+      "occurrences": 159,
+      "median_share_of_marked_room_area": 0.1527
     },
     {
       "floor_level": "groundfloor",
       "room_id": "hwr_htr",
-      "occurrences": 111,
-      "median_share_of_marked_room_area": 0.1098
-    },
-    {
-      "floor_level": "upperfloor",
-      "room_id": "bad",
-      "occurrences": 83,
-      "median_share_of_marked_room_area": 0.1658
-    },
-    {
-      "floor_level": "upperfloor",
-      "room_id": "flur",
-      "occurrences": 80,
-      "median_share_of_marked_room_area": 0.1576
-    },
-    {
-      "floor_level": "upperfloor",
-      "room_id": "eltern",
-      "occurrences": 79,
-      "median_share_of_marked_room_area": 0.2085
+      "occurrences": 158,
+      "median_share_of_marked_room_area": 0.1032
     },
     {
       "floor_level": "groundfloor",
       "room_id": "wohnen_essen_kochen",
-      "occurrences": 74,
-      "median_share_of_marked_room_area": 0.4942
+      "occurrences": 106,
+      "median_share_of_marked_room_area": 0.4169
     },
     {
       "floor_level": "groundfloor",
       "room_id": "wc",
-      "occurrences": 72,
-      "median_share_of_marked_room_area": 0.0369
-    },
-    {
-      "floor_level": "groundfloor",
-      "room_id": "buero",
-      "occurrences": 46,
-      "median_share_of_marked_room_area": 0.116
+      "occurrences": 92,
+      "median_share_of_marked_room_area": 0.0346
     },
     {
       "floor_level": "upperfloor",
-      "room_id": "ankleide",
-      "occurrences": 35,
-      "median_share_of_marked_room_area": 0.0922
+      "room_id": "bad",
+      "occurrences": 84,
+      "median_share_of_marked_room_area": 0.1657
     },
     {
-      "floor_level": "groundfloor",
-      "room_id": "du_wc",
-      "occurrences": 32,
-      "median_share_of_marked_room_area": 0.0576
+      "floor_level": "upperfloor",
+      "room_id": "flur",
+      "occurrences": 81,
+      "median_share_of_marked_room_area": 0.1575
     },
     {
-      "floor_level": "groundfloor",
-      "room_id": "kochen",
-      "occurrences": 31,
-      "median_share_of_marked_room_area": 0.134
-    },
-    {
-      "floor_level": "groundfloor",
-      "room_id": "wohnen_essen",
-      "occurrences": 29,
-      "median_share_of_marked_room_area": 0.4455
+      "floor_level": "upperfloor",
+      "room_id": "eltern",
+      "occurrences": 80,
+      "median_share_of_marked_room_area": 0.208
     },
     {
       "floor_level": "groundfloor",
       "room_id": "eltern",
-      "occurrences": 28,
-      "median_share_of_marked_room_area": 0.1383
+      "occurrences": 74,
+      "median_share_of_marked_room_area": 0.1252
     },
     {
       "floor_level": "groundfloor",
       "room_id": "bad",
-      "occurrences": 26,
-      "median_share_of_marked_room_area": 0.0798
-    },
-    {
-      "floor_level": "groundfloor",
-      "room_id": "speisekammer",
-      "occurrences": 24,
-      "median_share_of_marked_room_area": 0.044
+      "occurrences": 73,
+      "median_share_of_marked_room_area": 0.0813
     },
     {
       "floor_level": "groundfloor",
       "room_id": "kind",
-      "occurrences": 19,
-      "median_share_of_marked_room_area": 0.1099
+      "occurrences": 61,
+      "median_share_of_marked_room_area": 0.0991
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "buero",
+      "occurrences": 61,
+      "median_share_of_marked_room_area": 0.1035
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "kochen",
+      "occurrences": 46,
+      "median_share_of_marked_room_area": 0.1246
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "du_wc",
+      "occurrences": 42,
+      "median_share_of_marked_room_area": 0.0507
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "wohnen_essen",
+      "occurrences": 42,
+      "median_share_of_marked_room_area": 0.4104
+    },
+    {
+      "floor_level": "upperfloor",
+      "room_id": "ankleide",
+      "occurrences": 36,
+      "median_share_of_marked_room_area": 0.0929
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "gast",
+      "occurrences": 27,
+      "median_share_of_marked_room_area": 0.1082
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "speisekammer",
+      "occurrences": 25,
+      "median_share_of_marked_room_area": 0.0418
     },
     {
       "floor_level": "groundfloor",
       "room_id": "flur",
-      "occurrences": 18,
-      "median_share_of_marked_room_area": 0.0542
+      "occurrences": 19,
+      "median_share_of_marked_room_area": 0.0521
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "ankleide",
+      "occurrences": 17,
+      "median_share_of_marked_room_area": 0.0603
     },
     {
       "floor_level": "upperfloor",
@@ -239,9 +251,9 @@
     },
     {
       "floor_level": "groundfloor",
-      "room_id": "ankleide",
-      "occurrences": 9,
-      "median_share_of_marked_room_area": 0.0644
+      "room_id": "abstell",
+      "occurrences": 13,
+      "median_share_of_marked_room_area": 0.0407
     },
     {
       "floor_level": "groundfloor",
@@ -256,18 +268,6 @@
       "median_share_of_marked_room_area": 0.1199
     },
     {
-      "floor_level": "groundfloor",
-      "room_id": "gast",
-      "occurrences": 7,
-      "median_share_of_marked_room_area": 0.1411
-    },
-    {
-      "floor_level": "groundfloor",
-      "room_id": "abstell",
-      "occurrences": 7,
-      "median_share_of_marked_room_area": 0.0407
-    },
-    {
       "floor_level": "upperfloor",
       "room_id": "du_wc",
       "occurrences": 7,
@@ -276,8 +276,8 @@
     {
       "floor_level": "groundfloor",
       "room_id": "wohnen",
-      "occurrences": 5,
-      "median_share_of_marked_room_area": 0.2133
+      "occurrences": 6,
+      "median_share_of_marked_room_area": 0.2113
     },
     {
       "floor_level": "groundfloor",
@@ -302,6 +302,12 @@
       "room_id": "hwr_htr",
       "occurrences": 2,
       "median_share_of_marked_room_area": 0.1166
+    },
+    {
+      "floor_level": "groundfloor",
+      "room_id": "essen_kochen",
+      "occurrences": 2,
+      "median_share_of_marked_room_area": 0.2717
     },
     {
       "floor_level": "upperfloor",
@@ -371,22 +377,16 @@
     },
     {
       "floor_level": "groundfloor",
-      "room_id": "essen_kochen",
-      "occurrences": 1,
-      "median_share_of_marked_room_area": 0.2701
-    },
-    {
-      "floor_level": "groundfloor",
       "room_id": "kueche",
       "occurrences": 1,
       "median_share_of_marked_room_area": 0.1659
     }
   ],
   "average_rooms_per_house_type": {
-    "bungalow": 8.9,
+    "bungalow": 8.32,
     "onehalfstorey": 10.7,
     "other": 16,
-    "twostorey": 11.18
+    "twostorey": 11.2
   },
   "common_floor_programs": [
     {
@@ -398,6 +398,10 @@
       "occurrences": 14
     },
     {
+      "signature": "twostorey:upperfloor:ankleide|bad|eltern|flur|kind|kind",
+      "occurrences": 9
+    },
+    {
       "signature": "twostorey:groundfloor:diele|hwr_htr|wc|wohnen_essen_kochen",
       "occurrences": 9
     },
@@ -407,10 +411,6 @@
     },
     {
       "signature": "onehalfstorey:upperfloor:ankleide|bad|eltern|flur|kind|kind",
-      "occurrences": 8
-    },
-    {
-      "signature": "twostorey:upperfloor:ankleide|bad|eltern|flur|kind|kind",
       "occurrences": 8
     },
     {
@@ -430,6 +430,14 @@
       "occurrences": 3
     },
     {
+      "signature": "bungalow:groundfloor:bad|diele|eltern|gast|hwr_htr|kochen|wohnen_essen",
+      "occurrences": 3
+    },
+    {
+      "signature": "bungalow:groundfloor:bad|diele|eltern|hwr_htr|kind|kind|wc|wohnen_essen_kochen",
+      "occurrences": 3
+    },
+    {
       "signature": "onehalfstorey:upperfloor:bad|buero|eltern|flur|kind",
       "occurrences": 3
     },
@@ -446,27 +454,19 @@
       "occurrences": 2
     },
     {
-      "signature": "onehalfstorey:groundfloor:diele|du_wc|gast|hwr_htr|wohnen_essen_kochen",
+      "signature": "bungalow:groundfloor:bad|diele|eltern|gast|hwr_htr|wohnen_essen_kochen",
       "occurrences": 2
     },
     {
-      "signature": "onehalfstorey:groundfloor:diele|du_wc|hwr_htr|hwr_htr|speisekammer|wohnen_essen_kochen",
+      "signature": "bungalow:groundfloor:bad|buero|diele|eltern|gast|hwr_htr|kochen|wc|wohnen_essen",
       "occurrences": 2
     },
     {
-      "signature": "onehalfstorey:upperfloor:ankleide|bad|buero|eltern|flur|kind|kind",
+      "signature": "bungalow:groundfloor:bad|diele|du_wc|eltern|hwr_htr|kind|wohnen_essen_kochen",
       "occurrences": 2
     },
     {
-      "signature": "onehalfstorey:groundfloor:diele|hwr_htr|kochen|speisekammer|wc|wohnen_essen",
-      "occurrences": 2
-    },
-    {
-      "signature": "onehalfstorey:groundfloor:buero|diele|hwr_htr|kochen|wc|wohnen_essen",
-      "occurrences": 2
-    },
-    {
-      "signature": "onehalfstorey:groundfloor:buero|diele|du_wc|hwr_htr|kochen|speisekammer|wohnen_essen",
+      "signature": "bungalow:groundfloor:bad|buero|diele|eltern|hwr_htr|kind|wohnen_essen_kochen",
       "occurrences": 2
     }
   ],

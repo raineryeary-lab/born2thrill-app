@@ -1,7 +1,8 @@
 import {
-  commonUpperFloorProgramFor,
   referenceAreaFromSimplifier,
-  simplifierReferenceElementLabel,
+  selectReferenceLayout,
+  type ReferenceFloor,
+  type ReferenceLayoutMatch,
   simplifierReferenceLabel,
 } from "../training/simplifier-reference";
 
@@ -42,6 +43,7 @@ export type PlannedRoom = {
   area: number;
   side: "left" | "right";
   zone: "garden" | "street" | "core";
+  polygon?: Array<{ x: number; y: number }>;
 };
 
 export type FloorPlan = {
@@ -52,6 +54,13 @@ export type FloorPlan = {
   stair: StairGeometry | null;
   layoutMode: "central-stair" | "wall-stair";
   wallStairSide?: "left" | "right";
+  stairRect?: { x: number; y: number; width: number; height: number };
+  stairPath?: Array<{ x: number; y: number }>;
+  stairWidthPx?: number;
+  stairType?: "straight" | "quarter_turn" | "half_or_multi_turn";
+  referenceFootprint?: { x: number; y: number; width: number; height: number };
+  referenceLayoutId?: string;
+  referenceElements?: Array<{ id: string; type: string; points: Array<{ x: number; y: number }> }>;
 };
 
 export type StairGeometry = {
@@ -81,6 +90,7 @@ export type PlanVariant = {
     referenceProfile: string;
     groundFloorAreaM2: number;
     upperFloorAreaM2: number;
+    referenceLayoutId: string;
   };
 };
 
@@ -173,7 +183,7 @@ const REFERENCE_RANGES = {
 const STAIR_TARGETS = {
   maxRiserHeightCm: 18,
   minTreadDepthCm: 27,
-  minUsableFlightWidthM: 1,
+  minUsableFlightWidthM: 0.9,
   minArrivalDepthM: 1,
 } as const;
 
@@ -219,8 +229,8 @@ function createStairGeometry(): StairGeometry {
   const risers = Math.ceil((floorToFloorHeightM * 100) / STAIR_TARGETS.maxRiserHeightCm);
   const risersPerFlight = Math.ceil(risers / 2);
   const treadDepthCm = 28;
-  const usableFlightWidthM = 1;
-  const landingDepthM = 1;
+  const usableFlightWidthM = 0.9;
+  const landingDepthM = 0.9;
   const flightGapM = 0.15;
   const treadsPerFlight = risersPerFlight - 1;
 
@@ -291,6 +301,8 @@ function rectsOverlap(a: SvgRect, b: SvgRect) {
 
 function stairRectForPlan(plan: FloorPlan): SvgRect | null {
   if (!plan.hasStair || !plan.stair) return null;
+  if (plan.stairRect) return plan.stairRect;
+  if (plan.referenceLayoutId) return null;
   if (plan.layoutMode === "wall-stair") {
     return plan.wallStairSide === "right"
       ? FLOORPLAN_SVG.wallStairRight
@@ -302,41 +314,32 @@ function stairRectForPlan(plan: FloorPlan): SvgRect | null {
 function stairIsReserved(plan: FloorPlan) {
   const stairRect = stairRectForPlan(plan);
   if (!stairRect) return true;
-  return plan.rooms.every((room) => !rectsOverlap(room, stairRect));
+  return plan.rooms.filter((room) => room.kind !== "circulation").every((room) => !rectsOverlap(room, stairRect));
+}
+
+function rectGap(a: SvgRect, b: SvgRect) {
+  const horizontal = Math.max(0, Math.max(a.x, b.x) - Math.min(a.x + a.width, b.x + b.width));
+  const vertical = Math.max(0, Math.max(a.y, b.y) - Math.min(a.y + a.height, b.y + b.height));
+  return Math.hypot(horizontal, vertical);
 }
 
 function stairConnectsToHall(plan: FloorPlan) {
   const stairRect = stairRectForPlan(plan);
-  if (!stairRect) return true;
-  if (plan.layoutMode === "central-stair") return true;
-
-  const hall = { x: 306, y: 24, width: 88, height: 452 };
-  const horizontalGap = plan.wallStairSide === "left"
-    ? hall.x - (stairRect.x + stairRect.width)
-    : stairRect.x - (hall.x + hall.width);
-  const verticalOverlap = Math.min(stairRect.y + stairRect.height, hall.y + hall.height) - Math.max(stairRect.y, hall.y);
-
-  return horizontalGap >= 0
-    && horizontalGap <= 140
-    && verticalOverlap >= Math.min(stairRect.height, 120);
+  if (!stairRect) return !plan.hasStair;
+  const circulation = plan.rooms.filter((room) => room.kind === "circulation" || /flur|diele|eingang/i.test(room.name));
+  return circulation.some((room) => rectGap(room, stairRect) <= 36);
 }
 
 function hasUsableRoomWidths(plan: FloorPlan) {
-  return plan.rooms.every((room) => room.width >= 140 || room.area <= 6);
+  return plan.rooms.every((room) => room.width >= 38 && room.height >= 38);
 }
 
 function hasDoorDrawableWall(plan: FloorPlan) {
-  return plan.rooms.every((room) => room.height >= 64);
+  return Boolean(plan.referenceElements?.some((element) => element.type === "door"));
 }
 
 function hasExteriorWindowWall(plan: FloorPlan) {
-  const exteriorLeft = 24;
-  const exteriorRight = 670;
-  return plan.rooms.every((room) => {
-    if (room.kind === "circulation") return true;
-    if (room.side === "left") return room.x <= exteriorLeft + 1;
-    return room.x + room.width >= exteriorRight - 1;
-  });
+  return Boolean(plan.referenceElements?.some((element) => element.type === "window"));
 }
 
 export function parseBrief(entries: Array<[string, string]>): HouseBrief {
@@ -404,9 +407,12 @@ function wantsEntranceCirculation(brief: HouseBrief) {
 
 function wantsWallStair(brief: HouseBrief) {
   const text = brief.critiqueNotes.toLowerCase();
-  if (!text.includes("treppe")) return false;
+  const explicitlyRequestsCentral = text.includes("treppe")
+    && ["mittig", "zentral", "mittelzone"].some((word) => text.includes(word));
+  if (explicitlyRequestsCentral || brief.stairPreference === "central") return false;
+  if (brief.floors > 1) return true;
 
-  return [
+  return text.includes("treppe") && [
     "wand",
     "links",
     "rechts",
@@ -492,7 +498,7 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
       },
       {
         name: entranceCirculation ? "Eingangsbereich" : wallStair ? "Kompakte Diele" : "Diele",
-        kind: entranceCirculation ? "circulation" : "flex",
+        kind: "circulation",
         targetArea: entranceCirculation || wallStair || critiqueIncludes(brief, ["flur zu groß", "flur zu gross", "diele zu groß", "zu viel flur"]) ? 5 : 8,
         minArea: entranceCirculation ? 4 : 5,
         maxArea: entranceCirculation || wallStair ? 8 : 12,
@@ -513,13 +519,7 @@ function seedsForFloor(brief: HouseBrief, floor: number, floorArea: number, arch
     }
     if (brief.floors > 1) {
       rooms.push({
-        name: wallStair
-          ? "Garderobe"
-          : archetype.id === "family-core"
-          ? "Familienflur / Treppe"
-          : brief.stairPreference === "feature"
-            ? "Offene Treppe / Garderobe"
-            : "Treppe / Garderobe",
+        name: "Garderobe",
         kind: entranceCirculation && !wallStair ? "circulation" : "flex",
         targetArea: wallStair
           ? 4
@@ -728,6 +728,96 @@ function layoutFloor(brief: HouseBrief, floor: number, stair: StairGeometry | nu
   };
 }
 
+function roomKind(roomIds: string[]): PlannedRoom["kind"] {
+  const ids = new Set(roomIds);
+  if (["flur", "diele", "eingang", "treppenoeffnung"].some((id) => ids.has(id))) return "circulation";
+  if (["bad", "wc", "du_wc", "elternbad", "kinderbad"].some((id) => ids.has(id))) return "wet";
+  if (["hwr_htr", "technik", "abstell", "speisekammer", "keller"].some((id) => ids.has(id))) return "service";
+  if (["wohnen", "essen", "kueche", "wohnen_essen", "wohnen_essen_kochen"].some((id) => ids.has(id))) return "living";
+  if (["eltern", "kind", "zimmer", "gast"].some((id) => ids.has(id))) return "sleeping";
+  return "flex";
+}
+
+function referenceFloorFor(reference: ReferenceLayoutMatch, floor: number): ReferenceFloor | undefined {
+  const level = floor === 0 ? "groundfloor" : floor === 1 ? "upperfloor" : "attic";
+  return reference.floors.find((candidate) => candidate.floorLevel === level);
+}
+
+function layoutFloorFromReference(
+  brief: HouseBrief, floor: number, stair: StairGeometry | null, floorArea: number,
+  archetype: VariantArchetype, reference: ReferenceLayoutMatch, footprintWidthM: number,
+): FloorPlan | null {
+  const source = referenceFloorFor(reference, floor);
+  if (!source?.rooms.length) return null;
+  const sourcePoints = [...source.rooms.flatMap((room) => room.polygon), ...source.elements.flatMap((element) => element.points)];
+  if (!sourcePoints.length) return null;
+  const anchorFloor = referenceFloorFor(reference, 0) ?? source;
+  const anchorPoints = [...anchorFloor.rooms.flatMap((room) => room.polygon), ...anchorFloor.elements.flatMap((element) => element.points)];
+  const anchorXs = anchorPoints.map(([x]) => x); const anchorYs = anchorPoints.map(([, y]) => y);
+  const anchorMinX = Math.min(...anchorXs); const anchorMaxX = Math.max(...anchorXs);
+  const anchorMinY = Math.min(...anchorYs); const anchorMaxY = Math.max(...anchorYs);
+  const anchorWidth = Math.max(0.01, anchorMaxX - anchorMinX); const anchorHeight = Math.max(0.01, anchorMaxY - anchorMinY);
+  const anchorScale = Math.min(620 / anchorWidth, 420 / anchorHeight);
+  const footprintWidth = anchorWidth * anchorScale; const footprintHeight = anchorHeight * anchorScale;
+  const offsetX = 40 + (620 - footprintWidth) / 2; const offsetY = 40 + (420 - footprintHeight) / 2;
+  const sourceXs = sourcePoints.map(([x]) => x); const sourceYs = sourcePoints.map(([, y]) => y);
+  const sourceMinX = Math.min(...sourceXs); const sourceMaxX = Math.max(...sourceXs);
+  const sourceMinY = Math.min(...sourceYs); const sourceMaxY = Math.max(...sourceYs);
+  const sourceWidth = Math.max(0.01, sourceMaxX - sourceMinX); const sourceHeight = Math.max(0.01, sourceMaxY - sourceMinY);
+  const transform = ([x, y]: [number, number]) => ({
+    x: archetype.mirrored ? 700 - (offsetX + ((x - sourceMinX) / sourceWidth) * footprintWidth) : offsetX + ((x - sourceMinX) / sourceWidth) * footprintWidth,
+    y: offsetY + ((y - sourceMinY) / sourceHeight) * footprintHeight,
+  });
+  const anchorTransform = ([x, y]: [number, number]) => ({
+    x: archetype.mirrored ? 700 - (offsetX + (x - anchorMinX) * anchorScale) : offsetX + (x - anchorMinX) * anchorScale,
+    y: offsetY + (y - anchorMinY) * anchorScale,
+  });  const roomSources = source.rooms.filter((room) => {
+    const ids = new Set(room.roomIds);
+    return !ids.has("treppe") && !ids.has("stairs") && !/treppe|stair/i.test(room.label);
+  });
+  const totalRatio = roomSources.reduce((sum, room) => sum + room.areaRatio, 0);
+  const rooms: PlannedRoom[] = roomSources.map((room, index) => {
+    const polygon = room.polygon.map(transform);
+    const px = polygon.map((point) => point.x); const py = polygon.map((point) => point.y);
+    const x = Math.min(...px); const y = Math.min(...py); const width = Math.max(...px) - x; const height = Math.max(...py) - y;
+    const centerX = x + width / 2; const centerY = y + height / 2; const kind = roomKind(room.roomIds);
+    const proportionalArea = Math.max(1, Math.round((room.areaRatio / Math.max(totalRatio, 0.001)) * floorArea));
+    const isHtr = room.roomIds.some((id) => id === "hwr_htr" || id === "technik") || /\bHTR\b|\bHWR\b/i.test(room.label);
+    const isWc = room.roomIds.some((id) => id === "wc" || id === "du_wc") || /\bWC\b/i.test(room.label);
+    const area = isHtr ? 10 : isWc ? Math.max(2, proportionalArea) : proportionalArea;
+    return {
+      id: "ref-" + floor + "-" + (room.id || index), name: room.label, kind, x, y, width, height,
+      area,
+      side: centerX < 350 ? "left" : "right",
+      zone: kind === "circulation" || kind === "wet" || kind === "service" ? "core" : centerY < 250 ? "street" : "garden",
+      polygon,
+    };
+  });
+  const referenceElements = source.elements.map((element) => ({ id: element.id, type: element.type, points: element.points.map(transform) }));
+  const stairSource = anchorFloor.elements.find((element) => element.type === "stairs");
+  const stairPath = stairSource?.points.map(anchorTransform) ?? [];
+  const stairWidthPx = stairPath.length
+    ? Math.max(28, Math.min(64, (0.9 * footprintWidth) / Math.max(footprintWidthM, 0.1)))
+    : undefined;
+  let stairRect: SvgRect | undefined;
+  if (stairPath.length && stairWidthPx) {
+    const sx = stairPath.map((point) => point.x); const sy = stairPath.map((point) => point.y);
+    const halfWidth = stairWidthPx / 2;
+    const minX = Math.min(...sx) - halfWidth; const maxX = Math.max(...sx) + halfWidth;
+    const minY = Math.min(...sy) - halfWidth; const maxY = Math.max(...sy) + halfWidth;
+    stairRect = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+  }
+  const stairType = stairPath.length === 2 ? "straight" : stairPath.length === 3 ? "quarter_turn" : stairPath.length >= 4 ? "half_or_multi_turn" : undefined;
+  const wallStairSide = stairRect ? stairRect.x + stairRect.width / 2 < 350 ? "left" : "right" : undefined;  const wallStair = Boolean(stairRect && (stairRect.x < 170 || stairRect.x + stairRect.width > 530));
+  return {
+    floor, name: floor === 0 ? "Erdgeschoss" : floor === 1 ? "Obergeschoss" : (floor + 1) + ". Geschoss",
+    rooms, hasStair: brief.floors > 1, stair: brief.floors > 1 ? stair : null,
+    layoutMode: wallStair ? "wall-stair" : "central-stair", wallStairSide, stairRect, stairPath, stairWidthPx, stairType,
+    referenceFootprint: { x: offsetX, y: offsetY, width: footprintWidth, height: footprintHeight },
+    referenceLayoutId: reference.projectId, referenceElements,
+  };
+}
+
 export function generateVariants(brief: HouseBrief): PlanVariant[] {
   const rotation = brief.generationAttempt % VARIANT_ARCHETYPES.length;
   const archetypes = [
@@ -738,7 +828,12 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
   return archetypes.map((archetype, index) => {
     const profile = profileForArea(brief.area);
     const referenceHouseType = referenceHouseTypeForBrief(brief);
-    const upperFloorProgram = commonUpperFloorProgramFor(referenceHouseType);
+    const referenceLayout = selectReferenceLayout({
+      houseType: referenceHouseType, floors: brief.floors, bedrooms: brief.bedrooms, bathrooms: brief.bathrooms,
+      office: brief.office, guestWc: brief.guestWc, utilityRoom: brief.utilityRoom,
+      basement: brief.basement !== "none", stairPreference: brief.stairPreference,
+      variantOffset: brief.generationAttempt + index,
+    });
     const baseFloorArea = targetAreaForFloor(brief, 0, profile);
     const attemptRatioOffset = ((brief.generationAttempt + index) % 3 - 1) * 0.04;
     const ratio = Math.max(1.04, profile.preferredFootprintRatio + archetype.ratioOffset + attemptRatioOffset);
@@ -746,8 +841,13 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     const depth = Math.sqrt(floorArea / ratio);
     const width = depth * ratio;
     const stair = brief.floors > 1 ? createStairGeometry() : null;
-    const floors = Array.from({ length: brief.floors }, (_, floor) =>
-      layoutFloor(brief, floor, stair, targetAreaForFloor(brief, floor, profile), archetype));
+    const floors = Array.from({ length: brief.floors }, (_, floor) => {
+      const floorAreaTarget = targetAreaForFloor(brief, floor, profile);
+      return referenceLayout
+        ? layoutFloorFromReference(brief, floor, stair, floorAreaTarget, archetype, referenceLayout, width)
+          ?? layoutFloor(brief, floor, stair, floorAreaTarget, archetype)
+        : layoutFloor(brief, floor, stair, floorAreaTarget, archetype);
+    });
     const stairFits = !stair || (
       stair.footprintWidthM + stair.clearArrivalDepthM <= width
       && stair.footprintLengthM + stair.clearArrivalDepthM <= depth
@@ -762,14 +862,13 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     );
     const groundRooms = floors[0]?.rooms ?? [];
     const upperRooms = floors[1]?.rooms ?? [];
-    const livingKitchen = groundRooms.find((room) => room.name === "Wohnen / Essen / Kochen");
-    const wetAndServiceClustered = floors.every((plan) =>
-      plan.rooms
-        .filter((room) => room.kind === "wet" || room.kind === "service")
-        .every((room) => room.side === finalSide(archetype.serviceSide, archetype)));
+    const livingKitchen = groundRooms.find((room) => /wohn|essen|koch|küche/i.test(room.name));
+    const bedroomSizesOk = upperRooms
+      .filter((room) => room.kind === "sleeping")
+      .every((room) => room.area >= REFERENCE_RANGES.childRoomMin && room.area <= REFERENCE_RANGES.parentRoomMax);
     const hallAreasOk = floors.every((plan) => {
       const circulation = plan.rooms
-        .filter((room) => room.name.includes("Flur") || room.name.includes("Diele") || room.name.includes("Treppe"))
+        .filter((room) => room.kind === "circulation")
         .reduce((sum, room) => sum + room.area, 0);
       const planned = plan.rooms.reduce((sum, room) => sum + room.area, 0);
       return circulation / Math.max(planned, 1) <= REFERENCE_RANGES.hallShareMax;
@@ -779,67 +878,51 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
     const roomWidthsUsable = floors.every(hasUsableRoomWidths);
     const doorsDrawable = floors.every(hasDoorDrawableWall);
     const exteriorWindowsOk = floors.every(hasExteriorWindowWall);
-    const bedroomSizesOk = upperRooms
-      .filter((room) => room.kind === "sleeping")
-      .every((room) => room.area >= REFERENCE_RANGES.childRoomMin && room.area <= REFERENCE_RANGES.parentRoomMax);
-    const lifestyleChecks = [
-      brief.kitchen === "separate" ? "separate Küche eingeplant" : brief.kitchen === "semi-open" ? "halboffene Wohnküche berücksichtigt" : "offene Wohnküche berücksichtigt",
-      brief.gardenConnection === "generous" ? "großer Gartenbezug priorisiert" : brief.gardenConnection === "private" ? "privatere Gartenorientierung priorisiert" : "ausgewogener Gartenbezug priorisiert",
-      brief.accessibility ? "EG-Schlaf-/Flexraum für barrierearme Nutzung ergänzt" : "klassische Familienhaus-Nutzung",
-    ];
+    const allFloorsUseReference = Boolean(referenceLayout)
+      && floors.every((plan) => plan.referenceLayoutId === referenceLayout?.projectId);
+    const stairRoomsAbsent = floors.every((plan) =>
+      plan.rooms.every((room) => !/treppe|stairs/i.test(room.name)),
+    );    const stairGeometryPresent = brief.floors === 1
+      || floors.every((plan) => Boolean(plan.stairRect));
     const checks = [
-      { label: "Jeder Aufenthaltsraum liegt an einer Außenwand mit Fenster", passed: floors.every((plan) => plan.rooms.length > 0) },
-      { label: `Referenzprofil aus Verkaufsschlagern erkannt: ${profile.name}`, passed: true },
-      { label: `Lokale Simplifier-Referenz geladen: ${simplifierReferenceLabel()}`, passed: true },
-      { label: simplifierReferenceElementLabel(), passed: true },
-      {
-        label: upperFloorProgram
-          ? `OG-Raumprogramm gegen lokale Referenz geprüft: ${upperFloorProgram.signature.split(":").slice(-1)[0]?.replace(/\|/g, " · ")}`
-          : `Raumprogramm gegen lokale Referenzhausart geprüft: ${referenceHouseType}`,
-        passed: true,
-      },
-      brief.critiqueNotes
-        ? { label: `Kritik aus vorherigem Lauf berücksichtigt: ${brief.critiqueNotes}`, passed: true }
-        : { label: "Noch keine Kritik aus vorherigem Lauf", passed: true },
-      wantsWallStair(brief)
-        ? { label: "Treppenkritik umgesetzt: Treppe an die Außenwand gelegt und Flurfläche reduziert", passed: floors.every((plan) => plan.layoutMode === "wall-stair") }
-        : { label: "Treppenlage folgt dem gewählten Grundrissprofil", passed: true },
-      { label: `Fragebogen ausgewertet: ${lifestyleChecks.join(" · ")}`, passed: true },
-      { label: "EG folgt Bestseller-Sequenz: Eingang, Diele, Treppe, WC/HWR und Wohnen/Essen", passed: groundRooms.length >= 4 },
-      { label: "OG folgt Familienhaus-Muster: Treppe, Flur, Bad, Eltern und Kinderzimmer", passed: brief.floors === 1 || upperRooms.some((room) => room.name === "Bad") },
-      { label: "Flur-, Dielen- und Treppenflächen bleiben unter ca. 24 % der geplanten Fläche", passed: hallAreasOk },
+      { label: "Reale, annotierte Raum-Polygone werden auf allen Etagen verwendet", passed: allFloorsUseReference },
+      { label: referenceLayout
+        ? `Reales Simplifier-Referenzlayout ausgewählt: ${referenceLayout.projectId} (${referenceLayout.houseType}, Trefferwert ${referenceLayout.score})`
+        : "Kein passendes reales Simplifier-Referenzlayout gefunden", passed: Boolean(referenceLayout) },
+      { label: `Lokale Simplifier-Referenz geladen: ${simplifierReferenceLabel()}`, passed: Boolean(referenceLayout) },
+      { label: "Treppe bleibt feste Geometrie; kein erfundener Treppen-Raum", passed: stairRoomsAbsent },
+      { label: "Annotierte Treppengeometrie ist für mehrgeschossige Häuser vorhanden", passed: stairGeometryPresent },
+      { label: "Flur- und Dielenflächen bleiben unter ca. 24 % der geplanten Fläche", passed: hallAreasOk },
       { label: "Interne Kollisionsprüfung: Treppe liegt nicht über Räumen oder Raumtexten", passed: stairHasReservedFootprint },
       { label: "Treppe hat direkte nutzbare Verbindung zum Flur / zur Ankunftszone", passed: stairHallConnected },
-      { label: "Raumspalten bleiben zeichnerisch nutzbar und werden nicht zu Reststreifen", passed: roomWidthsUsable },
-      { label: "Türsymbole passen in die jeweilige Wandfläche", passed: doorsDrawable },
-      { label: "Fenster liegen an echten Außenwänden, nicht an Innenfluren oder Treppenresten", passed: exteriorWindowsOk },
+      { label: "Raumgeometrien bleiben zeichnerisch nutzbar und werden nicht zu Reststreifen", passed: roomWidthsUsable },
+      { label: "Annotierte Türen aus der Referenz werden übernommen", passed: doorsDrawable },
+      { label: "Annotierte Fenster aus der Referenz werden übernommen", passed: exteriorWindowsOk },
       {
         label: stair
           ? `Treppenlauf bemessen: ${stair.risers} Steigungen à ${stair.riserHeightCm} cm, ${stair.treadDepthCm} cm Auftritt, ${stair.usableFlightWidthM.toFixed(2)} m Laufbreite und freie Ankunft`
           : "Keine Geschosstreppe erforderlich",
         passed: stairDimensioned,
       },
-      { label: "Bäder, WC, HWR und Abstellräume liegen am gemeinsamen Installationskern", passed: wetAndServiceClustered },
       {
-        label: `Wohnen / Essen / Kochen liegt im Bestseller-Korridor ${REFERENCE_RANGES.livingKitchenMin}-${REFERENCE_RANGES.livingKitchenMax} m²`,
+        label: `Wohn-/Ess-/Kochbereich liegt im Referenzkorridor ${REFERENCE_RANGES.livingKitchenMin}-${REFERENCE_RANGES.livingKitchenMax} m²`,
         passed: !livingKitchen || (livingKitchen.area >= REFERENCE_RANGES.livingKitchenMin && livingKitchen.area <= REFERENCE_RANGES.livingKitchenMax),
       },
       { label: "Schlaf- und Kinderzimmer liegen in marktüblichen Größenkorridoren", passed: brief.floors === 1 || bedroomSizesOk },
-      { label: `Wohnbereich und Gartenorientierung sind zusammengeführt · Garten ${brief.gardenDirection}`, passed: true },
-    ];
-    const passedChecks = checks.filter((check) => check.passed).length;
+    ];    const passedChecks = checks.filter((check) => check.passed).length;
     return {
       id: archetype.id,
       name: brief.generationAttempt > 0 ? `${archetype.name} · Lauf ${brief.generationAttempt + 1}` : archetype.name,
-      description: `${archetype.descriptionPrefix}: ${brief.kitchen === "separate" ? "separate Küche" : brief.kitchen === "semi-open" ? "halboffene Küche" : "offener Wohn-Ess-Kochbereich"}, ${brief.gardenConnection === "private" ? "gezieltere Ausblicke" : "kurzer Weg zur Terrasse"}, ${wantsWallStair(brief) ? "Treppe an der Außenwand statt verschwendetem Mittelraum" : brief.stairPreference === "feature" ? "offenere Treppe" : "zentraler Treppenkern"} und gebündelte Haustechnik. ${profile.notes.join(" · ")}. Zielgrößen werden zusätzlich mit der lokalen Simplifier-v1-Referenz abgeglichen.`,
+      description: `Geometrie, Türen, Fenster und Treppe stammen aus der real annotierten Referenz ${referenceLayout?.projectId ?? "ohne Treffer"}. Die Proportionen bleiben erhalten und werden auf die gewünschte Wohnfläche skaliert; es werden keine künstlichen Flure oder Öffnungen ergänzt.`,
       floors,
-      score: Math.round((passedChecks / checks.length) * ([96, 93, 94][index] ?? 92)),
+      score: Math.round((passedChecks / checks.length) * 100),
       checks,
       metrics: {
         footprintWidthM: Number(width.toFixed(1)),
         footprintDepthM: Number(depth.toFixed(1)),
         plannedAreaM2: brief.area,
-        referenceProfile: `${profile.name} · ${simplifierReferenceLabel()}`,
+        referenceProfile: `${profile.name} / ${simplifierReferenceLabel()} / ${referenceLayout?.projectId ?? "kein Layouttreffer"}`,
+        referenceLayoutId: referenceLayout?.projectId ?? "",
         groundFloorAreaM2: targetAreaForFloor(brief, 0, profile),
         upperFloorAreaM2: brief.floors > 1 ? targetAreaForFloor(brief, 1, profile) : 0,
       },
