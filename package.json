@@ -13,6 +13,7 @@
     "start:railway": "node .next/standalone/server.js",
     "import:simplifier": "node scripts/import-simplifier-handoff.mjs",
     "test:zuhausefinder-generator": "node --test --test-isolation=none scripts/zuhausefinder-generator.test.mjs",
+    "test:storey-model": "node --test --test-isolation=none scripts/storey-model.test.mjs",
     "lint": "eslint"
   },
   "dependencies": {

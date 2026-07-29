@@ -5,11 +5,13 @@ import {
   type ReferenceLayoutMatch,
   simplifierReferenceLabel,
 } from "../training/simplifier-reference";
+import { solveStairGeometry } from "./storey-model.mjs";
 
 export type HouseBrief = {
   projectName: string;
   area: number;
   floors: number;
+  storeyType: "1_storey" | "1_5_storey" | "2_storey";
   adults: number;
   children: number;
   bedrooms: number;
@@ -74,6 +76,10 @@ export type StairGeometry = {
   footprintWidthM: number;
   footprintLengthM: number;
   clearArrivalDepthM: number;
+  riseMm: number;
+  goingMm: number;
+  stepMeasureMm: number;
+  minimumHeadroomMm: number;
 };
 
 export type PlanVariant = {
@@ -81,6 +87,13 @@ export type PlanVariant = {
   name: string;
   description: string;
   floors: FloorPlan[];
+  storeyType: HouseBrief["storeyType"];
+  stairCore: {
+    id: string;
+    footprint: { x: number; y: number; width: number; height: number };
+    path: Array<{ x: number; y: number }>;
+    geometry: StairGeometry;
+  } | null;
   score: number;
   checks: Array<{ label: string; passed: boolean }>;
   metrics: {
@@ -91,6 +104,7 @@ export type PlanVariant = {
     groundFloorAreaM2: number;
     upperFloorAreaM2: number;
     referenceLayoutId: string;
+    storeyType: HouseBrief["storeyType"];
   };
 };
 
@@ -225,26 +239,40 @@ const VARIANT_ARCHETYPES: VariantArchetype[] = [
 ];
 
 function createStairGeometry(): StairGeometry {
-  const floorToFloorHeightM = 2.8;
-  const risers = Math.ceil((floorToFloorHeightM * 100) / STAIR_TARGETS.maxRiserHeightCm);
-  const risersPerFlight = Math.ceil(risers / 2);
-  const treadDepthCm = 28;
-  const usableFlightWidthM = 0.9;
-  const landingDepthM = 0.9;
-  const flightGapM = 0.15;
-  const treadsPerFlight = risersPerFlight - 1;
+  const solved = solveStairGeometry(2800, {
+    type: "half_turn",
+    clearWidthMm: 900,
+  });
+  if (!solved.ok) {
+    throw new Error(`No compliant stair geometry: ${solved.reason}`);
+  }
+  const compliant = solved as {
+    floorToFloorMm: number;
+    riserCount: number;
+    riseMm: number;
+    goingMm: number;
+    stepMeasureMm: number;
+    clearWidthMm: number;
+    landingDepthMm: number;
+    minimumHeadroomMm: number;
+    footprint: { widthMm: number; lengthMm: number };
+  };
 
   return {
     type: "two-flight-u",
-    floorToFloorHeightM,
-    risers,
-    riserHeightCm: Number(((floorToFloorHeightM * 100) / risers).toFixed(1)),
-    treadDepthCm,
-    usableFlightWidthM,
-    landingDepthM,
-    footprintWidthM: Number((usableFlightWidthM * 2 + flightGapM).toFixed(2)),
-    footprintLengthM: Number((treadsPerFlight * treadDepthCm / 100 + landingDepthM).toFixed(2)),
+    floorToFloorHeightM: compliant.floorToFloorMm / 1000,
+    risers: compliant.riserCount,
+    riserHeightCm: compliant.riseMm / 10,
+    treadDepthCm: compliant.goingMm / 10,
+    usableFlightWidthM: compliant.clearWidthMm / 1000,
+    landingDepthM: compliant.landingDepthMm / 1000,
+    footprintWidthM: compliant.footprint.widthMm / 1000,
+    footprintLengthM: compliant.footprint.lengthMm / 1000,
     clearArrivalDepthM: 1,
+    riseMm: compliant.riseMm,
+    goingMm: compliant.goingMm,
+    stepMeasureMm: compliant.stepMeasureMm,
+    minimumHeadroomMm: compliant.minimumHeadroomMm,
   };
 }
 
@@ -358,11 +386,25 @@ export function parseBrief(entries: Array<[string, string]>): HouseBrief {
     const value = get(name);
     return allowed.includes(value as T) ? value as T : fallback;
   };
+  const floors = Math.min(3, number("floors", 2));
+  const roof = get("roofPreference", "gable");
+  const rawStoreyType = get("storeyType");
+  const explicitStoreyType = (
+    ["1_storey", "1_5_storey", "2_storey"] as const
+  ).find((value) => value === rawStoreyType);
+  const storeyType: HouseBrief["storeyType"] = explicitStoreyType ?? (
+    floors === 1
+      ? "1_storey"
+      : roof.toLowerCase().includes("sattel") || roof.toLowerCase().includes("gable")
+        ? "1_5_storey"
+        : "2_storey"
+  );
 
   return {
     projectName: get("projectName", "Testhaus"),
     area: number("targetArea", 145),
-    floors: Math.min(3, number("floors", 2)),
+    floors,
+    storeyType,
     adults: Math.min(8, number("adults", 2)),
     children: Math.min(8, number("children", 2)),
     bedrooms: Math.min(8, number("bedrooms", 3)),
@@ -376,7 +418,7 @@ export function parseBrief(entries: Array<[string, string]>): HouseBrief {
     gardenConnection: choice("gardenConnection", "generous", ["generous", "balanced", "private"] as const),
     stairPreference: choice("stairPreference", "central", ["central", "feature", "separable", "undecided"] as const),
     basement: get("basement", "none"),
-    roof: get("roofPreference", "gable"),
+    roof,
     style: get("constructionStyle", "timeless-modern"),
     streetDirection: get("streetDirection", "Nord"),
     gardenDirection: get("gardenDirection", "Süd"),
@@ -446,8 +488,8 @@ function gardenAreaAdjustment(brief: HouseBrief) {
 }
 
 function referenceHouseTypeForBrief(brief: HouseBrief) {
-  if (brief.floors === 1) return "bungalow";
-  if (brief.roof.toLowerCase().includes("sattel") || brief.roof.toLowerCase().includes("gable")) return "onehalfstorey";
+  if (brief.storeyType === "1_storey") return "bungalow";
+  if (brief.storeyType === "1_5_storey") return "onehalfstorey";
   return "twostorey";
 }
 
@@ -818,6 +860,41 @@ function layoutFloorFromReference(
   };
 }
 
+function sameRect(
+  left: { x: number; y: number; width: number; height: number } | null,
+  right: { x: number; y: number; width: number; height: number } | null,
+) {
+  if (!left || !right) return left === right;
+  return left.x === right.x
+    && left.y === right.y
+    && left.width === right.width
+    && left.height === right.height;
+}
+
+function samePath(
+  left: Array<{ x: number; y: number }>,
+  right: Array<{ x: number; y: number }>,
+) {
+  return left.length === right.length && left.every((point, index) =>
+    point.x === right[index].x && point.y === right[index].y
+  );
+}
+
+function sharedStairCoreForFloors(
+  floors: FloorPlan[],
+  stair: StairGeometry | null,
+): PlanVariant["stairCore"] {
+  if (!stair || floors.length < 2) return null;
+  const footprint = stairRectForPlan(floors[0]);
+  if (!footprint) return null;
+  return {
+    id: "shared-stair-core",
+    footprint,
+    path: floors[0].stairPath ?? [],
+    geometry: stair,
+  };
+}
+
 export function generateVariants(brief: HouseBrief): PlanVariant[] {
   const rotation = brief.generationAttempt % VARIANT_ARCHETYPES.length;
   const archetypes = [
@@ -848,6 +925,18 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
           ?? layoutFloor(brief, floor, stair, floorAreaTarget, archetype)
         : layoutFloor(brief, floor, stair, floorAreaTarget, archetype);
     });
+    const stairCore = sharedStairCoreForFloors(floors, stair);
+    const stairCoreAligned = !stair || (stairCore !== null && floors.every((plan) => {
+      const footprint = stairRectForPlan(plan);
+      const path = plan.stairPath ?? [];
+      return sameRect(footprint, stairCore.footprint)
+        && (
+          stairCore.path.length === 0 ||
+          samePath(path, stairCore.path)
+        );
+    }));
+    const sourceStairCoreConfirmed = brief.floors === 1
+      || (Boolean(referenceLayout) && referenceLayout?.sourceStairCoreAligned === true);
     const stairFits = !stair || (
       stair.footprintWidthM + stair.clearArrivalDepthM <= width
       && stair.footprintLengthM + stair.clearArrivalDepthM <= depth
@@ -891,6 +980,13 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
         : "Kein passendes reales Simplifier-Referenzlayout gefunden", passed: Boolean(referenceLayout) },
       { label: `Lokale Simplifier-Referenz geladen: ${simplifierReferenceLabel()}`, passed: Boolean(referenceLayout) },
       { label: "Treppe bleibt feste Geometrie; kein erfundener Treppen-Raum", passed: stairRoomsAbsent },
+      { label: "Gemeinsamer Treppenkern ist auf allen Etagen punktgleich", passed: stairCoreAligned },
+      {
+        label: referenceLayout?.sourceStairReviewRequired
+          ? `Quellreferenz ${referenceLayout.projectId}: EG-/OG-Treppenkern muss vor Kundennutzung gemeinsam bestätigt werden`
+          : "Quellreferenz besitzt einen bestätigten gemeinsamen Treppenkern",
+        passed: sourceStairCoreConfirmed,
+      },
       { label: "Annotierte Treppengeometrie ist für mehrgeschossige Häuser vorhanden", passed: stairGeometryPresent },
       { label: "Flur- und Dielenflächen bleiben unter ca. 24 % der geplanten Fläche", passed: hallAreasOk },
       { label: "Interne Kollisionsprüfung: Treppe liegt nicht über Räumen oder Raumtexten", passed: stairHasReservedFootprint },
@@ -915,6 +1011,8 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       name: brief.generationAttempt > 0 ? `${archetype.name} · Lauf ${brief.generationAttempt + 1}` : archetype.name,
       description: `Geometrie, Türen, Fenster und Treppe stammen aus der real annotierten Referenz ${referenceLayout?.projectId ?? "ohne Treffer"}. Die Proportionen bleiben erhalten und werden auf die gewünschte Wohnfläche skaliert; es werden keine künstlichen Flure oder Öffnungen ergänzt.`,
       floors,
+      storeyType: brief.storeyType,
+      stairCore,
       score: Math.round((passedChecks / checks.length) * 100),
       checks,
       metrics: {
@@ -925,6 +1023,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
         referenceLayoutId: referenceLayout?.projectId ?? "",
         groundFloorAreaM2: targetAreaForFloor(brief, 0, profile),
         upperFloorAreaM2: brief.floors > 1 ? targetAreaForFloor(brief, 1, profile) : 0,
+        storeyType: brief.storeyType,
       },
     };
   });

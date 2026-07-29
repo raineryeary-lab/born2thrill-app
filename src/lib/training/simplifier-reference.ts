@@ -41,6 +41,8 @@ export type ReferenceLayoutMatch = {
   roomIds: string[];
   hasBasement: boolean;
   hasStairs: boolean;
+  sourceStairCoreAligned: boolean;
+  sourceStairReviewRequired: boolean;
   floors: ReferenceFloor[];
 };
 
@@ -49,6 +51,13 @@ const SIMPLIFIER_DATASET = dataset as SimplifierDataset;
 
 function validPoint(point: number[]): point is ReferencePoint {
   return point.length >= 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]);
+}
+
+function sameReferencePath(left: ReferencePoint[], right: ReferencePoint[]) {
+  return left.length === right.length
+    && left.every((point, index) =>
+      point[0] === right[index][0] && point[1] === right[index][1]
+    );
 }
 
 function normalizeProject(project: RawProject) {
@@ -73,6 +82,16 @@ function normalizeProject(project: RawProject) {
     for (const roomId of new Set(room.roomIds)) roomCounts.set(roomId, (roomCounts.get(roomId) ?? 0) + 1);
   }
   const hasStairs = floors.some((floor) => floor.elements.some((element) => element.type === "stairs"));
+  const habitableFloors = floors.filter((floor) => floor.floorLevel !== "basement");
+  const habitableStairs = habitableFloors.map((floor) =>
+    floor.elements.filter((element) => element.type === "stairs")
+  );
+  const sourceStairCoreAligned = habitableFloors.length <= 1 || (
+    habitableStairs.every((stairs) => stairs.length === 1)
+    && habitableStairs.slice(1).every((stairs) =>
+      sameReferencePath(stairs[0].points, habitableStairs[0][0].points)
+    )
+  );
   const stairNearWall = floors.some((floor) => floor.elements.some((element) =>
     element.type === "stairs" && element.points.some(([x, y]) => Math.min(x, y, 1 - x, 1 - y) <= 0.2)));
   return {
@@ -82,8 +101,10 @@ function normalizeProject(project: RawProject) {
     roomCounts,
     roomIds: [...roomCounts.keys()],
     hasBasement: floors.some((floor) => floor.floorLevel === "basement"),
-    habitableFloors: floors.filter((floor) => floor.floorLevel !== "basement").length,
+    habitableFloors: habitableFloors.length,
     hasStairs,
+    sourceStairCoreAligned,
+    sourceStairReviewRequired: habitableFloors.length > 1 && !sourceStairCoreAligned,
     stairNearWall,
   };
 }
@@ -141,6 +162,8 @@ export function selectReferenceLayout(input: {
     roomIds: selected.project.roomIds,
     hasBasement: selected.project.hasBasement,
     hasStairs: selected.project.hasStairs,
+    sourceStairCoreAligned: selected.project.sourceStairCoreAligned,
+    sourceStairReviewRequired: selected.project.sourceStairReviewRequired,
     floors: selected.project.floors,
   };
 }

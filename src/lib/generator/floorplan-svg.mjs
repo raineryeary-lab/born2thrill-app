@@ -287,6 +287,11 @@ export function floorplanQuality(variant) {
   };
 }
 
+export function customerFacingQualityPassed(quality) {
+  return Array.isArray(quality?.criticalFailures)
+    && quality.criticalFailures.length === 0;
+}
+
 export function selectQualityVariant(variants) {
   return [...variants].sort((left, right) => {
     const leftQuality = floorplanQuality(left);

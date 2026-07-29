@@ -58,6 +58,19 @@ The full `dataset.json` is available to the server-side reference selector and
 for adapter tests. It contains only normalized geometry and typed elements; it
 does not contain source documents or contact data and is not a trained model.
 
+## Storey migration status
+
+The current snapshot is a normalized reference corpus, not yet a fully
+dimensioned canonical template library. `storey-model-v1` preserves the source
+geometry, groups floors into explicit storey types, and reports stair-core and
+roof-data gaps without repairing or approving them automatically. See
+`docs/storey-model-v1.md`.
+
+Because the export has normalized coordinates but no reliable millimetre scale,
+it cannot prove DIN stair dimensions or roof-storey headroom on its own. Those
+fields require explicit source scale and human confirmation before a migrated
+template can become customer-facing.
+
 ## ZuhauseFinder webhook
 
 `POST /api/zuhausefinder/floorplan` accepts the versioned

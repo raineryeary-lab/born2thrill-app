@@ -51,6 +51,45 @@ function requiredRecord(value, name) {
   return value;
 }
 
+const REFERENCE_TAG_VALUES = {
+  house_type: new Set(["bungalow", "onehalfstorey", "twostorey"]),
+  floors: new Set(["1", "1.5", "2"]),
+  kitchen: new Set(["open", "semi-open"]),
+  garden: new Set(["generous", "private"]),
+  stair: new Set(["undecided", "feature", "separable"]),
+  office: new Set(["separate", "integrated-flexible"]),
+  zoning: new Set([
+    "day_down_private_up",
+    "day_private_wings",
+    "day_down_flexible_up",
+  ]),
+  service_core: new Set(["compact", "balanced"]),
+  flexible_rooms: new Set(["yes", "optional"]),
+};
+
+function referenceSearchFor(value) {
+  if (!isRecord(value)) {
+    return {
+      search_tags: [],
+      tags: new Map(),
+    };
+  }
+  const searchTags = [];
+  const tags = new Map();
+  for (const entry of Array.isArray(value.search_tags) ? value.search_tags : []) {
+    const candidate = text(entry).toLowerCase();
+    const match = candidate.match(/^([a-z_]+):([a-z0-9._-]+)$/);
+    if (!match || !REFERENCE_TAG_VALUES[match[1]]?.has(match[2])) continue;
+    searchTags.push(`${match[1]}:${match[2]}`);
+    tags.set(match[1], match[2]);
+  }
+  return {
+    ...value,
+    search_tags: [...new Set(searchTags)],
+    tags,
+  };
+}
+
 export function validateZuhausefinderBrief(input) {
   const brief = requiredRecord(input, "Planungsbriefing");
   if (brief.schema !== "dmh-floorplan-brief-v1") {
@@ -58,6 +97,18 @@ export function validateZuhausefinderBrief(input) {
   }
   if (!/^[A-Z0-9-]{6,64}$/i.test(text(brief.request_id))) {
     throw new Error("Die Anfragekennung ist ungültig.");
+  }
+  const designFingerprint = text(brief.design_fingerprint).toLowerCase();
+  if (!/^[a-f0-9]{64}$/.test(designFingerprint)) {
+    throw new Error("Der Plan-Fingerprint ist ungültig.");
+  }
+  const generationAttempt = Number(brief.generation_attempt ?? 0);
+  if (
+    !Number.isInteger(generationAttempt) ||
+    generationAttempt < 0 ||
+    generationAttempt > 20
+  ) {
+    throw new Error("Der Generierungsversuch ist ungültig.");
   }
 
   const household = requiredRecord(brief.household, "Haushalt");
@@ -94,11 +145,14 @@ export function validateZuhausefinderBrief(input) {
   return {
     ...brief,
     request_id: text(brief.request_id),
+    design_fingerprint: designFingerprint,
+    generation_attempt: generationAttempt,
     household,
     area: { ...area, target_living_area_m2: targetArea },
     room_program: roomProgram,
     zoning_strategy: zoning,
     generation_policy: policy,
+    reference_search: referenceSearchFor(brief.reference_search),
     selected_storey: storey,
   };
 }
@@ -116,16 +170,32 @@ export function mapZuhausefinderBrief(input) {
   const exterior = isRecord(source.exterior_preferences)
     ? text(source.exterior_preferences.description)
     : "";
+  const roofAnswer = isRecord(source.exterior_preferences)
+    ? text(source.exterior_preferences.roof_answer)
+    : "";
   const scores = isRecord(source.normalized_preference_scores)
     ? source.normalized_preference_scores
     : {};
+  const referenceTags = source.reference_search.tags;
   const storeyType = text(source.selected_storey.type);
   const floors = storeyType === "bungalow" ? 1 : 2;
-  const roof = storeyType === "one_and_half_storeys"
-    ? "Satteldach"
-    : includesAny(exterior, ["flachdach", "walmdach", "pultdach"])
-      ? exterior
-      : "zeitgemäßes, ruhig proportioniertes Dach";
+  const canonicalStoreyType = storeyType === "bungalow"
+    ? "1_storey"
+    : storeyType === "one_and_half_storeys"
+      ? "1_5_storey"
+      : "2_storey";
+  const roof = includesAny(roofAnswer, [
+    "satteldach",
+    "walmdach",
+    "flachdach",
+    "pultdach",
+  ])
+    ? roofAnswer
+    : storeyType === "one_and_half_storeys"
+      ? "Satteldach"
+      : includesAny(exterior, ["flachdach", "walmdach", "pultdach"])
+        ? exterior
+        : "zeitgemäßes, ruhig proportioniertes Dach";
   const adults = Math.min(8, countBeforeTerm(household, ["erwachsene", "personen"], 2));
   const children = Math.min(8, countBeforeTerm(household, ["kinder", "kind"], 0));
   const bedroomFallback = Math.max(1, children + 1);
@@ -144,21 +214,30 @@ export function mapZuhausefinderBrief(input) {
   const openness = Number(scores.openness);
   const gardenConnection = Number(scores.garden_connection);
   const accessibility = Number(scores.accessibility);
-  const kitchen = includesAny(living, ["getrennt", "separate küche"])
+  const kitchen = referenceTags.get("kitchen") === "open"
+    ? "open"
+    : referenceTags.get("kitchen") === "semi-open"
+      ? "semi-open"
+      : includesAny(living, ["getrennt", "separate küche"])
     ? "separate"
     : includesAny(living, ["offen", "verbunden", "gemeinsam"]) || openness >= 0.7
       ? "open"
       : "semi-open";
+  const gardenPreference = referenceTags.get("garden");
+  const stairPreference = referenceTags.get("stair");
+  const officePreference = referenceTags.get("office");
 
   return {
     projectName: source.request_id,
     area: source.area.target_living_area_m2,
     floors,
+    storeyType: canonicalStoreyType,
     adults,
     children,
     bedrooms,
     bathrooms,
-    office: includesAny(roomProgram, ["büro", "arbeitszimmer", "homeoffice"]),
+    office: Boolean(officePreference) ||
+      includesAny(roomProgram, ["büro", "arbeitszimmer", "homeoffice"]),
     guestWc: includesAny(roomProgram, ["gäste-wc", "gaste-wc", "wc"]),
     utilityRoom: includesAny(roomProgram, ["hwr", "htr", "technik", "hauswirtschaft"]),
     groundFloorSleeping: includesAny(roomProgram + " " + future, [
@@ -173,19 +252,32 @@ export function mapZuhausefinderBrief(input) {
       "rollstuhl",
     ]),
     kitchen,
-    gardenConnection: gardenConnection >= 0.7
+    gardenConnection: gardenPreference === "generous" || gardenPreference === "private"
+      ? gardenPreference
+      : gardenConnection >= 0.7
       ? "generous"
       : gardenConnection <= 0.35
         ? "private"
         : "balanced",
-    stairPreference: floors > 1 ? "undecided" : "central",
+    stairPreference: floors > 1 &&
+      ["undecided", "feature", "separable"].includes(stairPreference)
+      ? stairPreference
+      : floors > 1
+        ? "undecided"
+        : "central",
     basement: includesAny(roomProgram + " " + site, ["keller", "unterkellert"]) ? "full" : "none",
     roof,
     style: exterior || "zeitlos-modern",
-    streetDirection: "Nord",
-    gardenDirection: includesAny(site, ["süden", "süd", "sued"]) ? "Süd" : "unbekannt",
-    priorities: [living, privateZone, text(source.zoning_strategy.service_zone), future].filter(Boolean),
-    generationAttempt: 0,
+    streetDirection: "unbekannt",
+    gardenDirection: "unbekannt",
+    priorities: [
+      living,
+      privateZone,
+      text(source.zoning_strategy.service_zone),
+      future,
+      ...source.reference_search.search_tags,
+    ].filter(Boolean),
+    generationAttempt: source.generation_attempt,
     critiqueNotes: [
       "Referenzgrundriss nur in kleinen kontrollierten Schritten verändern.",
       "Treppenlauf 90 cm breit, an einer Wand und auf beiden Etagen deckungsgleich.",
@@ -226,6 +318,7 @@ export function classifyZuhausefinderFloorplan(input, brief, variant, quality) {
     bedroom_count: brief.bedrooms,
     bathroom_count: brief.bathrooms,
     room_program_tags: roomProgramTags,
+    reference_search_tags: source.reference_search.search_tags,
     reference_layout_id: variant?.metrics?.referenceLayoutId || null,
     reference_source: text(source.generation_policy.reference_source)
       || "annotated_floorplan_corpus",
@@ -235,6 +328,10 @@ export function classifyZuhausefinderFloorplan(input, brief, variant, quality) {
         ? "check_recommended"
         : "passed",
     data_origin: "structured_brief",
+    storey_model: {
+      type: brief.storeyType,
+      shared_stair_core: brief.floors === 1 || Boolean(variant?.stairCore),
+    },
     training_status: "reference_generated",
     training_eligible: false,
   };

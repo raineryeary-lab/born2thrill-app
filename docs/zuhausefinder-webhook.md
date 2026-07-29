@@ -35,14 +35,23 @@ The generator:
 1. maps the explicit brief to the internal house constraints,
 2. selects from the privacy-safe Simplifier reference corpus,
 3. keeps annotated room, door, window, and stair geometry,
-4. applies only small controlled variations,
-5. renders a self-contained SVG with scaled wall widths and wall openings,
-6. rejects scripts, event handlers, external URLs, foreign objects, and other
+4. maps the selected house type to the shared `1_storey`, `1_5_storey`, or
+   `2_storey` model,
+5. derives one shared stair core for every multi-storey result,
+6. applies only small controlled variations,
+7. renders a self-contained SVG with scaled wall widths and wall openings,
+8. rejects scripts, event handlers, external URLs, foreign objects, and other
    active SVG content.
 
-The best available reference is always returned. Geometry findings do not
-block generation: `quality_status` is `passed`, `check_recommended`, or
-`review_required`, and the exact checks remain visible for the administrator.
+The best available reference is checked before rendering. A candidate with a
+critical geometry failure is never returned as a customer-facing result; the
+authenticated caller receives HTTP 422 with the failed checks. Non-critical
+findings remain visible as `check_recommended`.
+
+Optional `reference_search.search_tags` from HausSpiegel are accepted only from
+the versioned allow-list. They can refine kitchen openness, garden connection,
+stair role, office need, zoning, compact service core, and flexible rooms.
+Explicit area, storey, and room-program answers remain authoritative.
 
 ## Response
 
