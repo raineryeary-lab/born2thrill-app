@@ -1,6 +1,6 @@
 {
   "dataset_version": "floorplan-generator-simplifier-v1",
-  "generated_at": "2026-07-25T06:13:16.748576+00:00",
+  "generated_at": "2026-07-30T06:18:17.055082+00:00",
   "source_schema": "simplifier-annotations-v1",
   "privacy": {
     "local_only": true,
@@ -12,6 +12,11 @@
       "project_id": "bungalow_001",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "b64ba879069ac1d1a9a0026013edabfb8ddbdcda25ae19e4eebf867b39f33ce9",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -472,6 +477,11 @@
       "project_id": "bungalow_003",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "d158737f3b03e6b6ef527804c3065079363c63a583aa863f41ecba046276b2dd",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -889,6 +899,11 @@
       "project_id": "bungalow_007",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "7e5a730518daead12ae66c9bcd750ebad18a01be53f02a7ef7441b6c9988ab83",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -1508,6 +1523,11 @@
       "project_id": "bungalow_008",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "eb2d277e8cadbf6f4d02fb19800c686b4ac3d92d0e7e2e7155329d664849ff23",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -1929,6 +1949,11 @@
       "project_id": "bungalow_009",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "616967d5b21ccc62816d8a7b3d6a3ae41e2df8a1a182caadf7a6bdff7bdcd1e4",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -2313,6 +2338,11 @@
       "project_id": "bungalow_010",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "0fd924caadb8e50f579eb18bd40a60887a71cb26373c0756ff184c03b529b31b",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -2771,6 +2801,11 @@
       "project_id": "bungalow_011",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "e10a3a9b5821e7b986f08a55a8a344121756ee5ab60752c25577f87c096fc3ca",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -3354,6 +3389,11 @@
       "project_id": "bungalow_012",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "41a5f52a7dd209df780607b1a5a5095a2ad4d8cc7e8fe289526e2c882b6ac061",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -3969,6 +4009,11 @@
       "project_id": "bungalow_013",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "b9ab356fb2d71a87ce53a584153f79e4e8e8db218a6425c90e1a02bf1e40f0d1",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -4400,6 +4445,11 @@
       "project_id": "bungalow_014",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "e6626b1719a30cce6e9f6060272a0db45e4239a47f787c0b86a42863ef8b54d6",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -4872,6 +4922,11 @@
       "project_id": "bungalow_015",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "de559734b7609ef1a6ca354996c0929e5b84fde4538548c0660637febf8b983d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -5427,6 +5482,11 @@
       "project_id": "bungalow_016",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "4d926ca9eae0ff69ab815ce957ceea1da334bee1c5be5796c7c81626bd70d61a",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -6060,6 +6120,11 @@
       "project_id": "bungalow_017",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "652ec06d3758e02deee03d70bfd7b57a9f659f90cd02ff98e03b26172d4c5a47",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -6666,6 +6731,11 @@
       "project_id": "bungalow_018",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "d80fd3494062ba8ef4528e86ed30e0a378451e6dcca897bac42975d858632cc0",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -7246,6 +7316,11 @@
       "project_id": "bungalow_019",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "81e4e2f7d5f34681c1f3accbf95e6bdbe5490505bc5fdd4d4d108ba22d6c3d24",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -7704,6 +7779,11 @@
       "project_id": "bungalow_021",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "7b7fbc2244e77810046179bd5684bede2da647add2dec26662d197f2c97eabdb",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -8128,6 +8208,11 @@
       "project_id": "bungalow_022",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "f1ae9d0b8f62abfbe1ab256ca61ac7e61e976239ddb5541b40feb3d27b323b70",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -8594,6 +8679,11 @@
       "project_id": "bungalow_023",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "270265eaa982a8d0694ad1be95362064b50588820463a91f19c500d112e0b13f",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -9174,6 +9264,11 @@
       "project_id": "bungalow_024",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "18824e3c0b22b803bf6b610b39fd59d0f3da6f6beef1c2b697c9ab2e25ded8b4",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -9776,6 +9871,11 @@
       "project_id": "bungalow_025",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "b458c838292c7952c96a7db26e9aa2bdc4c1867380cef15bcc31bae4d2b0e020",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -10318,6 +10418,11 @@
       "project_id": "bungalow_027",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "282f6145f46fc2096c6b5a1572c8c60fb03dadba0da87e74dc89b101506e20d0",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -10876,6 +10981,11 @@
       "project_id": "bungalow_028",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "1bd03ef5adaaee77b712e27dcb138352f4453b1fc792c1948e8ba5f4b8c6d808",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -11513,6 +11623,11 @@
       "project_id": "bungalow_029",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "266f4f24949dc9b99245f088b0ea06d9fe029bdd52bd07954c97ea37a5844cec",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -12107,6 +12222,11 @@
       "project_id": "bungalow_030",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "bbce165592e06e3d702c42f429f866aa9d498d1963768ae0a2ab704cb5d65c45",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -12725,6 +12845,11 @@
       "project_id": "bungalow_031",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "5d02bb047cd4a231648dcc0b067d4c1d00b50a50b340946876e33b77cb63e669",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -13376,6 +13501,11 @@
       "project_id": "bungalow_032",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "f348b956eda8687e8d8fb6fa75de4b102d1eb7a152518b4e908e32ca8d32fab8",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -13997,6 +14127,11 @@
       "project_id": "bungalow_033",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "bf0d61d01c408ac220706d54f107b010208cb0e3622e5a900027b6d2dc50a114",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -14797,6 +14932,11 @@
       "project_id": "bungalow_034",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "c4fc4d04b60a96477f21ca8e6a957df904f53f9c6f7999277bbb5c5ee46f66fa",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -15664,6 +15804,11 @@
       "project_id": "bungalow_035",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "c1613205418f2189ea5628ca925932ec9ee398c67cb9b29739b47076399ff555",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -16287,9 +16432,930 @@
       ]
     },
     {
+      "project_id": "bungalow_038",
+      "house_type": "bungalow",
+      "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "5b915b9391af63c77162c8486f4957de29439c402d6b8f6df0ab50536b2ce108",
+      "schema_version": "simplifier-annotations-v1",
+      "floors": [
+        {
+          "floor_level": "groundfloor",
+          "rooms": [
+            {
+              "id": "1785391921299_d2a02cc51429e",
+              "room_id": "eltern",
+              "room_ids": [
+                "eltern"
+              ],
+              "label": "Eltern / Schlafen",
+              "polygon": [
+                [
+                  0.128759,
+                  0.130988
+                ],
+                [
+                  0.446431,
+                  0.130988
+                ],
+                [
+                  0.446431,
+                  0.45842
+                ],
+                [
+                  0.128759,
+                  0.45842
+                ]
+              ],
+              "area_ratio": 0.104016
+            },
+            {
+              "id": "1785391928116_7301def1260ec8",
+              "room_id": "bad",
+              "room_ids": [
+                "bad"
+              ],
+              "label": "Bad",
+              "polygon": [
+                [
+                  0.127495,
+                  0.462421
+                ],
+                [
+                  0.353592,
+                  0.462421
+                ],
+                [
+                  0.353592,
+                  0.640475
+                ],
+                [
+                  0.127495,
+                  0.640475
+                ]
+              ],
+              "area_ratio": 0.040257
+            },
+            {
+              "id": "1785391938699_ffd37ee8d0d62",
+              "room_id": "hwr_htr",
+              "room_ids": [
+                "hwr_htr"
+              ],
+              "label": "HWR / HTR",
+              "polygon": [
+                [
+                  0.125316,
+                  0.64821
+                ],
+                [
+                  0.11177,
+                  0.840669
+                ],
+                [
+                  0.412264,
+                  0.839368
+                ],
+                [
+                  0.412264,
+                  0.77825
+                ],
+                [
+                  0.411032,
+                  0.695025
+                ],
+                [
+                  0.35315,
+                  0.695025
+                ],
+                [
+                  0.350687,
+                  0.640408
+                ]
+              ],
+              "area_ratio": 0.054346
+            },
+            {
+              "id": "1785391944084_1426bef987b23",
+              "room_id": "buero",
+              "room_ids": [
+                "buero"
+              ],
+              "label": "Büro",
+              "polygon": [
+                [
+                  0.564532,
+                  0.457086
+                ],
+                [
+                  0.800734,
+                  0.457086
+                ],
+                [
+                  0.800734,
+                  0.632472
+                ],
+                [
+                  0.564532,
+                  0.632472
+                ]
+              ],
+              "area_ratio": 0.041427
+            },
+            {
+              "id": "1785391952935_86bafef6337ba8",
+              "room_id": "wohnen_essen",
+              "room_ids": [
+                "wohnen_essen"
+              ],
+              "label": "Wohnen / Essen",
+              "polygon": [
+                [
+                  0.455905,
+                  0.132988
+                ],
+                [
+                  0.798208,
+                  0.132988
+                ],
+                [
+                  0.798208,
+                  0.46042
+                ],
+                [
+                  0.455905,
+                  0.46042
+                ]
+              ],
+              "area_ratio": 0.112081
+            },
+            {
+              "id": "1785391958560_0757d6d22ad868",
+              "room_id": "kochen",
+              "room_ids": [
+                "kochen"
+              ],
+              "label": "Kochen",
+              "polygon": [
+                [
+                  0.517166,
+                  0.639808
+                ],
+                [
+                  0.800734,
+                  0.639808
+                ],
+                [
+                  0.800734,
+                  0.839868
+                ],
+                [
+                  0.517166,
+                  0.839868
+                ]
+              ],
+              "area_ratio": 0.056731
+            },
+            {
+              "id": "1785391967073_15b2b18c134778",
+              "room_id": "diele",
+              "room_ids": [
+                "diele"
+              ],
+              "label": "Diele",
+              "polygon": [
+                [
+                  0.355613,
+                  0.459653
+                ],
+                [
+                  0.560048,
+                  0.458353
+                ],
+                [
+                  0.563743,
+                  0.633906
+                ],
+                [
+                  0.516944,
+                  0.640408
+                ],
+                [
+                  0.525565,
+                  0.839368
+                ],
+                [
+                  0.407338,
+                  0.841969
+                ],
+                [
+                  0.413496,
+                  0.693724
+                ],
+                [
+                  0.346993,
+                  0.688523
+                ]
+              ],
+              "area_ratio": 0.06326
+            }
+          ],
+          "elements": [
+            {
+              "id": "1785391971288_74af56904f6f48",
+              "type": "door",
+              "points": [
+                [
+                  0.36916,
+                  0.463555
+                ],
+                [
+                  0.425811,
+                  0.460954
+                ]
+              ]
+            },
+            {
+              "id": "1785391974131_a454087cec176",
+              "type": "door",
+              "points": [
+                [
+                  0.491082,
+                  0.459653
+                ],
+                [
+                  0.555122,
+                  0.457053
+                ]
+              ]
+            },
+            {
+              "id": "1785391975578_f7d510e3fbccf8",
+              "type": "door",
+              "points": [
+                [
+                  0.566206,
+                  0.484361
+                ],
+                [
+                  0.562511,
+                  0.536377
+                ]
+              ]
+            },
+            {
+              "id": "1785391977047_94fece8f66592",
+              "type": "door",
+              "points": [
+                [
+                  0.515713,
+                  0.654712
+                ],
+                [
+                  0.508324,
+                  0.71193
+                ]
+              ]
+            },
+            {
+              "id": "1785391978707_232bd9338e80a",
+              "type": "door",
+              "points": [
+                [
+                  0.409801,
+                  0.71323
+                ],
+                [
+                  0.413496,
+                  0.776949
+                ]
+              ]
+            },
+            {
+              "id": "1785391980333_05d9924bbafaa8",
+              "type": "door",
+              "points": [
+                [
+                  0.348224,
+                  0.490863
+                ],
+                [
+                  0.348224,
+                  0.535076
+                ]
+              ]
+            },
+            {
+              "id": "1785391984496_3cf2dd09dac5d8",
+              "type": "door",
+              "points": [
+                [
+                  0.429505,
+                  0.836767
+                ],
+                [
+                  0.502166,
+                  0.839368
+                ]
+              ]
+            },
+            {
+              "id": "1785391987541_0d65e35c116498",
+              "type": "window",
+              "points": [
+                [
+                  0.259554,
+                  0.135856
+                ],
+                [
+                  0.372855,
+                  0.131954
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785391988719_654dc76ad0aad",
+              "type": "window",
+              "points": [
+                [
+                  0.520639,
+                  0.134555
+                ],
+                [
+                  0.64995,
+                  0.143658
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785391991021_65ee7142cca7c8",
+              "type": "window",
+              "points": [
+                [
+                  0.806355,
+                  0.503867
+                ],
+                [
+                  0.806355,
+                  0.583191
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785391992806_13791d22b6503",
+              "type": "window",
+              "points": [
+                [
+                  0.636403,
+                  0.835467
+                ],
+                [
+                  0.739852,
+                  0.84717
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785391994404_4d2f46311d7f5",
+              "type": "window",
+              "points": [
+                [
+                  0.204135,
+                  0.84587
+                ],
+                [
+                  0.285416,
+                  0.84587
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785391997531_49d9469975f988",
+              "type": "window",
+              "points": [
+                [
+                  0.12778,
+                  0.538977
+                ],
+                [
+                  0.12778,
+                  0.590993
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785391999391_943aaa33150e2",
+              "type": "window",
+              "points": [
+                [
+                  0.124085,
+                  0.727534
+                ],
+                [
+                  0.121622,
+                  0.802957
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            }
+          ],
+          "architectural_features": []
+        }
+      ]
+    },
+    {
+      "project_id": "bungalow_039",
+      "house_type": "bungalow",
+      "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "37eef2d1b5f2dd165d4e24ff066c82799e851efc854c19e8f7f5bbea111b5342",
+      "schema_version": "simplifier-annotations-v1",
+      "floors": [
+        {
+          "floor_level": "groundfloor",
+          "rooms": [
+            {
+              "id": "1784961012877_607d85d5b4466",
+              "room_id": "bad",
+              "room_ids": [
+                "bad"
+              ],
+              "label": "Bad",
+              "polygon": [
+                [
+                  0.111686,
+                  0.463788
+                ],
+                [
+                  0.363044,
+                  0.463788
+                ],
+                [
+                  0.363044,
+                  0.65918
+                ],
+                [
+                  0.111686,
+                  0.65918
+                ]
+              ],
+              "area_ratio": 0.049113
+            },
+            {
+              "id": "1784961022822_036ae956c224e8",
+              "room_id": "hwr_htr",
+              "room_ids": [
+                "hwr_htr"
+              ],
+              "label": "HWR / HTR",
+              "polygon": [
+                [
+                  0.361662,
+                  0.671617
+                ],
+                [
+                  0.111989,
+                  0.671617
+                ],
+                [
+                  0.111989,
+                  0.865376
+                ],
+                [
+                  0.42868,
+                  0.867977
+                ],
+                [
+                  0.426052,
+                  0.71193
+                ],
+                [
+                  0.362976,
+                  0.710629
+                ],
+                [
+                  0.360348,
+                  0.682021
+                ]
+              ],
+              "area_ratio": 0.058903
+            },
+            {
+              "id": "1784961030300_91b901a412c9c8",
+              "room_id": "kochen",
+              "room_ids": [
+                "kochen"
+              ],
+              "label": "Kochen",
+              "polygon": [
+                [
+                  0.5551,
+                  0.653845
+                ],
+                [
+                  0.869804,
+                  0.653845
+                ],
+                [
+                  0.869804,
+                  0.861908
+                ],
+                [
+                  0.5551,
+                  0.861908
+                ]
+              ],
+              "area_ratio": 0.065478
+            },
+            {
+              "id": "1784961036848_22e86e3922e0c",
+              "room_id": "gast",
+              "room_ids": [
+                "gast"
+              ],
+              "label": "Gast",
+              "polygon": [
+                [
+                  0.621141,
+                  0.463121
+                ],
+                [
+                  0.867108,
+                  0.463121
+                ],
+                [
+                  0.867108,
+                  0.647844
+                ],
+                [
+                  0.621141,
+                  0.647844
+                ]
+              ],
+              "area_ratio": 0.045436
+            },
+            {
+              "id": "1784961049495_4334df983fb98",
+              "room_id": "wohnen_essen",
+              "room_ids": [
+                "wohnen_essen"
+              ],
+              "label": "Wohnen / Essen",
+              "polygon": [
+                [
+                  0.477604,
+                  0.113015
+                ],
+                [
+                  0.870478,
+                  0.113015
+                ],
+                [
+                  0.870478,
+                  0.459787
+                ],
+                [
+                  0.477604,
+                  0.459787
+                ]
+              ],
+              "area_ratio": 0.136238
+            },
+            {
+              "id": "1784961054421_03c2bfb7871cb",
+              "room_id": "eltern",
+              "room_ids": [
+                "eltern"
+              ],
+              "label": "Eltern / Schlafen",
+              "polygon": [
+                [
+                  0.113033,
+                  0.114349
+                ],
+                [
+                  0.467496,
+                  0.114349
+                ],
+                [
+                  0.467496,
+                  0.453785
+                ],
+                [
+                  0.113033,
+                  0.453785
+                ]
+              ],
+              "area_ratio": 0.120318
+            },
+            {
+              "id": "1784961066602_ecedc238f5278",
+              "room_id": "diele",
+              "room_ids": [
+                "diele"
+              ],
+              "label": "Diele",
+              "polygon": [
+                [
+                  0.61265,
+                  0.466155
+                ],
+                [
+                  0.372175,
+                  0.463555
+                ],
+                [
+                  0.370861,
+                  0.706728
+                ],
+                [
+                  0.431308,
+                  0.704127
+                ],
+                [
+                  0.433936,
+                  0.860174
+                ],
+                [
+                  0.545632,
+                  0.861475
+                ],
+                [
+                  0.543004,
+                  0.64561
+                ],
+                [
+                  0.616592,
+                  0.64691
+                ],
+                [
+                  0.608708,
+                  0.472657
+                ]
+              ],
+              "area_ratio": 0.071306
+            }
+          ],
+          "elements": [
+            {
+              "id": "1784961071236_4d0f8455b7d2a8",
+              "type": "window",
+              "points": [
+                [
+                  0.255223,
+                  0.113749
+                ],
+                [
+                  0.389258,
+                  0.11635
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961072692_43a8248a0eca2",
+              "type": "window",
+              "points": [
+                [
+                  0.543004,
+                  0.11635
+                ],
+                [
+                  0.707263,
+                  0.111148
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961074717_4c7c8a92f741f",
+              "type": "window",
+              "points": [
+                [
+                  0.868894,
+                  0.243788
+                ],
+                [
+                  0.870208,
+                  0.340017
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961076884_49bc0b60ff5e48",
+              "type": "window",
+              "points": [
+                [
+                  0.864952,
+                  0.505167
+                ],
+                [
+                  0.866266,
+                  0.600096
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961078714_46bbe04f73e38",
+              "type": "window",
+              "points": [
+                [
+                  0.793992,
+                  0.865376
+                ],
+                [
+                  0.68361,
+                  0.861475
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961080432_cd803e245566a",
+              "type": "window",
+              "points": [
+                [
+                  0.292017,
+                  0.864076
+                ],
+                [
+                  0.190833,
+                  0.864076
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961082292_bf0a8b8541ecc",
+              "type": "window",
+              "points": [
+                [
+                  0.111989,
+                  0.749641
+                ],
+                [
+                  0.114617,
+                  0.828965
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961084032_635f6ac4550838",
+              "type": "window",
+              "points": [
+                [
+                  0.114617,
+                  0.524673
+                ],
+                [
+                  0.114617,
+                  0.615701
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1784961087430_66f5c3d39265e",
+              "type": "door",
+              "points": [
+                [
+                  0.382687,
+                  0.454452
+                ],
+                [
+                  0.448391,
+                  0.455752
+                ]
+              ]
+            },
+            {
+              "id": "1784961089237_6750d3a40c789",
+              "type": "door",
+              "points": [
+                [
+                  0.360348,
+                  0.484361
+                ],
+                [
+                  0.361662,
+                  0.549381
+                ]
+              ]
+            },
+            {
+              "id": "1784961091075_dab3a22f1af94",
+              "type": "door",
+              "points": [
+                [
+                  0.416853,
+                  0.723633
+                ],
+                [
+                  0.42868,
+                  0.793854
+                ]
+              ]
+            },
+            {
+              "id": "1784961092605_252c581369138",
+              "type": "door",
+              "points": [
+                [
+                  0.553517,
+                  0.676819
+                ],
+                [
+                  0.554831,
+                  0.743139
+                ]
+              ]
+            },
+            {
+              "id": "1784961094142_a2c9e9465d6a18",
+              "type": "door",
+              "points": [
+                [
+                  0.620534,
+                  0.484361
+                ],
+                [
+                  0.620534,
+                  0.550681
+                ]
+              ]
+            },
+            {
+              "id": "1784961095673_cbc8bec8ece0b",
+              "type": "door",
+              "points": [
+                [
+                  0.527235,
+                  0.455752
+                ],
+                [
+                  0.588997,
+                  0.455752
+                ]
+              ]
+            },
+            {
+              "id": "1784961097915_bda41f41a64838",
+              "type": "door",
+              "points": [
+                [
+                  0.456275,
+                  0.860174
+                ],
+                [
+                  0.533806,
+                  0.858874
+                ]
+              ]
+            }
+          ],
+          "architectural_features": []
+        }
+      ]
+    },
+    {
       "project_id": "bungalow_040_10",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "7c9e830ff1a1bb524bc76fe46c2b16cbd57a2b8c647e121e811ad0679ad74b3d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -16790,6 +17856,11 @@
       "project_id": "bungalow_040_11",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "8c91776dfb67f3b71ab8a20c23fdfd4d05a4b715861df267453651d60884403c",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -17298,6 +18369,11 @@
       "project_id": "bungalow_040_12",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "35ce5300f6cfc2ccc7abd08f9ad46f79938ca8432f68c913240c0bdc2baca806",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -17760,6 +18836,11 @@
       "project_id": "bungalow_040_13",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "b97a1724fc0191890d45c6eadf3ac915ec0906b9397d8c224543393a05740b80",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -18243,6 +19324,11 @@
       "project_id": "bungalow_040_14",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "67177a72e5edce5dee42654a52caa4967e248803b86856d73c444fd2f964e43f",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -18747,6 +19833,11 @@
       "project_id": "bungalow_040_15",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "a388a6c2cd6c7601812a8613ccba7d7530ae3d03781030b318d3f118f652abd7",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -19291,6 +20382,11 @@
       "project_id": "bungalow_040_16",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "24347db7c3b865547c990bc536b3625842080e618af2f32881b43a603158c71b",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -19827,6 +20923,11 @@
       "project_id": "bungalow_040_17",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "3f0288c3331d4f3c37af80afefb5b4b678b28766eb4ef9f2aea365ec045f50fe",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -20432,6 +21533,11 @@
       "project_id": "bungalow_040_18",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "104361dae3091d1139c0839a179bf2e1ece75f53acebafa89d50478d7eaba265",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -20911,6 +22017,11 @@
       "project_id": "bungalow_040_19",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "f8421dfb21a973f2a60497d40b320d471930bf5633292df72f98b7ec839ec838",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -21437,6 +22548,11 @@
       "project_id": "bungalow_040_20",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "7415b4e2e624805dc10c980fc58a5aec3c27ea1dda06b3b4be44ccb91ed95be6",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -21916,6 +23032,11 @@
       "project_id": "bungalow_040_21",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "fc71a81a7e11225690cc25faa8815e4934ae25a3898c48444618f684b327f994",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -22387,6 +23508,11 @@
       "project_id": "bungalow_040_22",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "44e9647217148bc1bc768f2ecc1145afe4ba42e31b49cc5c53d72469edd2d1a7",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -22862,6 +23988,11 @@
       "project_id": "bungalow_040_23",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "3680a688c061d962c2523eb1f40de4d815c5ad5b051eff153a7cb131ddaf7a3a",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -23481,6 +24612,11 @@
       "project_id": "bungalow_040_24",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "5a2e1e3c35d491596b7d7ac2f0c86b05c0f242799867c35ef258b44092c5a7c5",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -24094,6 +25230,11 @@
       "project_id": "bungalow_040_25",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "d73220d7c4f1de21e3dd4c8aa681b4e3ef16c5c0edae03d2d119cab56566b5fc",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -24801,6 +25942,11 @@
       "project_id": "bungalow_040_26",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "563a4a33e13940a79c7a76a40ad1c64102c939d0b47230178f5a753953b002fc",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -25471,6 +26617,11 @@
       "project_id": "bungalow_040_27",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "7ef0053cafae5cecde27ca1684a7bb9b116403d1395dec1e2d7572a67027778a",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -26036,6 +27187,11 @@
       "project_id": "bungalow_040_28",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "acdd7c4bd980794ba61cbc62241497c6ea1b9cb086b94a8708f496a2e59249d1",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -26753,6 +27909,11 @@
       "project_id": "bungalow_040_29",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "419bccc20449596fd13b2c21d555f17f927814d2eb493bd0fc5857bf25d77e13",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -27387,6 +28548,11 @@
       "project_id": "bungalow_040_3",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "4448541cc33ca3ba5a5212f2e120948347d3bd50c8d3f67a1f4869123ca6ab8d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -27877,6 +29043,11 @@
       "project_id": "bungalow_040_30",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "054c67d0768f45e4ae1a21457034ff43178e08d8b26a2718021bbe8645e0bffb",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -28478,6 +29649,11 @@
       "project_id": "bungalow_040_31",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "2d3f8f383d3773b7326eefd59f53bbd382ce842c2a45a7b0337980e2d70cf783",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -28957,6 +30133,11 @@
       "project_id": "bungalow_040_32",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "ec823bc35c69fed0aa084ce5181e637da92ceccf68f251e59c34ad3c2cb59ee1",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -29466,6 +30647,11 @@
       "project_id": "bungalow_040_33",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "befcad8477f80da555455c925a98e391718b7e4f808f80607fa88906d1f3935e",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -30026,6 +31212,11 @@
       "project_id": "bungalow_040_34",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "3102ec00f4e3b9d774db4698f13c5e5486581846670848870cbf84f96399f4d9",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -30545,6 +31736,11 @@
       "project_id": "bungalow_040_35",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "8f12df5addf733ad2829c2d018cfe651c78de2bef2e9173fb631ba2ce4e32d96",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -31130,6 +32326,11 @@
       "project_id": "bungalow_040_36",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "922d38667b8515d4fd00d9e58c3f1a7c38be9a8909379bd6eca1e5684f4f7a0d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -31710,6 +32911,11 @@
       "project_id": "bungalow_040_37",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "adb6c9b3f123fc9c505f6df324ff3e7203ff2f9e0788f2fcc20bcb8bfc5509b6",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -32311,6 +33517,11 @@
       "project_id": "bungalow_040_38",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "cecd507ff674e8b1c82c0e04c7f56216cdf267f2f3628c8c79566483e1d14369",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -32877,6 +34088,11 @@
       "project_id": "bungalow_040_39",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "238db4878b14ef6a8b6dda82ce8fcaec617dfa3f53809d38ca145e470cba606d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -33465,6 +34681,11 @@
       "project_id": "bungalow_040_4",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "b3d038ffd76bcce726a03fcd4b38526f998de427a1e0976c4ac72561f372d979",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -33907,6 +35128,11 @@
       "project_id": "bungalow_040_40",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "bed990ecca22bf05b0414ae5daa5ef9c047bea3186f6932b0e41263a1933d763",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -34576,6 +35802,11 @@
       "project_id": "bungalow_040_41",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "f41e562abd50e403a12ab2e420a4b5435a907fdac131a52147ff5287242c2f08",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -35023,6 +36254,11 @@
       "project_id": "bungalow_040_42",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "944336cf913dd98f647547ec515e5f1b18961bd27e16ebf4f98ba07a0bbffb85",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -35531,6 +36767,11 @@
       "project_id": "bungalow_040_43",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "48cb58692ae3f9a756437db49b18d583506d5321265ab931570f9b6a5178f2bd",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -36139,6 +37380,11 @@
       "project_id": "bungalow_040_44",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "73895f34030a5878bd23bb7e103113badc2b8ec11c3713405f2995254001f162",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -36731,6 +37977,11 @@
       "project_id": "bungalow_040_45",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "43f9713db3ba9c7fdfa61ea165acca85724cfdafa9fdcb0ccde793b746fed772",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -37373,6 +38624,11 @@
       "project_id": "bungalow_040_46",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "0721bfb134587106bc88843ad710f8b1c4c32da071673a9b57bff993420c7b37",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -37892,6 +39148,11 @@
       "project_id": "bungalow_040_47",
       "house_type": "bungalow",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "467769f8bbd10ad1e9de3c4fa88998e101c1b991bf93908548178338e52f7de7",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -38572,6 +39833,11 @@
       "project_id": "bungalow_040_48",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "f0fd829fea3848a0d21575e6f572917c79d01b6840d7b5f1650638dfe08c5527",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -39217,6 +40483,11 @@
       "project_id": "bungalow_040_5",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "886349584573e7105ffce0e37be840cb92f86d5388a2e22430f9bb2df09daeee",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -39708,6 +40979,11 @@
       "project_id": "bungalow_040_6",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "df74dde78ef993099a151d83226c1f703e8a22140d2e3f0ab278bd2803e87eb1",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -40110,6 +41386,11 @@
       "project_id": "bungalow_040_7",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "2d39bbb3554034520bf25400bdfc00d6f672bba91ede6d3346aa38b8287645f9",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -40593,6 +41874,11 @@
       "project_id": "bungalow_040_8",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "64f5753d674af78a986aa6894ec1b85b0884bc90c32db8148bc4975119e29906",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -41052,6 +42338,11 @@
       "project_id": "bungalow_040_9",
       "house_type": "bungalow",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "61aa104e451314391b2c883a54032fd9e7d529963700621b4a9eec9f3ad882d3",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -41523,6 +42814,11 @@
       "project_id": "onehalfstorey_002",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "5ab76fa5dc397a5e65afee069851faa04d76baaf25687b63391d6a569ea25d43",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -41834,6 +43130,11 @@
       "project_id": "onehalfstorey_003",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "93fbae3fb786f0172480701ea1c53e8cde1a047afbcbf88f847161a8ad6b3355",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -42410,6 +43711,11 @@
       "project_id": "onehalfstorey_005",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "a0dd3e3117a60e3bfeca01d0eca7547d8eebb3ee3234d2b20216553346836987",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -43141,6 +44447,11 @@
       "project_id": "onehalfstorey_006",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "e9822f63dfe74e1aabc5749315472e8623ef9bd77f77f8b29e454bf9720a001d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -43799,6 +45110,11 @@
       "project_id": "onehalfstorey_007",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "58080a9bfb3f7da7e1751aeee92a466f5e7bae5125dd932c3e5a9ee6a8a7ec60",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -44419,6 +45735,11 @@
       "project_id": "onehalfstorey_008",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "3a82ba084edba6455dcd75a254cfe254a91def04c42c477c742f648614271f35",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -45176,6 +46497,11 @@
       "project_id": "onehalfstorey_009",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "ba86454fdbc83206e95549e12e8691cf5e8da7f6efc9e4f83527e7b0c7612bf3",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -45780,6 +47106,11 @@
       "project_id": "onehalfstorey_010",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "7d994986349b753f15cbed915e06b4357eef861b4b750bf205804994892338b9",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -46554,6 +47885,11 @@
       "project_id": "onehalfstorey_011",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "9c19ad2c5bd8f9878ef8d04b131b810e367bef569290f0fed420f13a827befe4",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -47142,6 +48478,11 @@
       "project_id": "onehalfstorey_012",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "07d32127fea7fb9ed4e53e7a1b4d2e6cb6c276ee58c37b4f7f98ae13e1735b91",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -47650,6 +48991,11 @@
       "project_id": "onehalfstorey_013",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "2c45c0bf016e818b66a342a702c76baca4f6ac44c967ee6e56a14012fc77adf4",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -48210,6 +49556,11 @@
       "project_id": "onehalfstorey_014",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "a804872480de2ed88de28fdac54ba2f887daddc94814efc399f980d6488ebcf4",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -48993,6 +50344,11 @@
       "project_id": "onehalfstorey_015",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "77bc059bc8a34486dadbd16e93acec3b293c18bd511b8cba8827bb0153ccc069",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -49777,6 +51133,11 @@
       "project_id": "onehalfstorey_016",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "32e1dd124ea34162e1c00baad3411ae6c079816858e973638fc958ffdfc25a96",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -50505,6 +51866,11 @@
       "project_id": "onehalfstorey_017",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "0807a83918c9a41a22ad15d2dfdd938567eddc0cc5860139ac5b69aa900900a9",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -51343,6 +52709,11 @@
       "project_id": "onehalfstorey_018",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "37dd00c5400cfafab974451426e437eda3bf59a941c9c7dc823b49d81290bef6",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -52177,6 +53548,11 @@
       "project_id": "onehalfstorey_019",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "ef2f835127d672ba65b2363ff2802c5bb8bbfd95a125dc14921a926c1b95b4b2",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -52820,6 +54196,11 @@
       "project_id": "onehalfstorey_020",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "32e284cbc74a6c9d622b409f775c0981afe306f52d87191f9fdb3312a1252d84",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -53493,6 +54874,11 @@
       "project_id": "onehalfstorey_021",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "2b688c2ffa4a576486ff8151bfc08ff41f39a8801b8c04422403ffae7a037926",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -54156,6 +55542,11 @@
       "project_id": "onehalfstorey_022",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "06625bbf7e2e0439627530a21282d6fc9e4a941dad5c9fb936bc14829943bb37",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -54837,6 +56228,11 @@
       "project_id": "onehalfstorey_023",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "f3c4dd0e7313c6afd89e8b8bd1ddc4994289499d6752b9731a69f2b5297d862d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -55580,6 +56976,11 @@
       "project_id": "onehalfstorey_024",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "3804b096af2d0e5a3d89fd5d86d8e4a5b3397b552ea900b119dd0abaad0eb850",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -56245,6 +57646,11 @@
       "project_id": "onehalfstorey_025",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "2354d755585d92d3db03b5414aaf81761c43d7ded9b955ab16f5901b17eed01a",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -57002,6 +58408,11 @@
       "project_id": "onehalfstorey_026",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "0772b60a28f4833327bd1db60f7a293e0b7d4bcc4afc68391682e15ea09cccfb",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -57841,6 +59252,11 @@
       "project_id": "onehalfstorey_027",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "516ddba2707af837d9f355e4dc35793bff35a5357c1e8132e472722d2d765b67",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -58581,6 +59997,11 @@
       "project_id": "onehalfstorey_028",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "615c1c6483f0989ba2999c0ce5ddd8b786be98e3a564d0a219e5cbd627f5ce5b",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -59372,6 +60793,11 @@
       "project_id": "onehalfstorey_029",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "f26a5839dd88e80e93d61f4f87167bff1cc42c88dd7f0c006dcd59301ac5c17c",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -60205,6 +61631,11 @@
       "project_id": "onehalfstorey_030",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "4c05f4b9b20190fe3acb031a468b01b71c3e7f98b1eb9c133ff62620866049b5",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -60906,6 +62337,11 @@
       "project_id": "onehalfstorey_031",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "e6645371a04d73087b3c5156d372a319bd6124583c06eb26165e223abf3f0104",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -61587,6 +63023,11 @@
       "project_id": "onehalfstorey_032",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "fae05d11697a009c2b13efab8e07dd75368a49275e8b6d32b8e3ed23de6b1567",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -62274,6 +63715,11 @@
       "project_id": "onehalfstorey_033",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "3112fd0409566d0dd7143aa9d1235de3a629f10b8e5862ce1cd7e5f5e4b3247c",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -63150,6 +64596,11 @@
       "project_id": "onehalfstorey_034",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "eada284a0f07869538a4551fb0fed482281ef19d2981d8f271f2786b577b98f0",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -63888,6 +65339,11 @@
       "project_id": "onehalfstorey_035",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "11806d35603a0f0129479f723c1d9601ca7144430f179cc9694c40e10e10d20e",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -64583,6 +66039,11 @@
       "project_id": "onehalfstorey_036",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "faae1f3e45401ff4909f924bfa66d925e6db7d72f2c507c65b8bf1ca3f0db95e",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -65351,6 +66812,11 @@
       "project_id": "onehalfstorey_037",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "83ebe8641609a4d483c919d4f2d0177299fb1f0dbb00059306d80500a5e993c4",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -66142,6 +67608,11 @@
       "project_id": "onehalfstorey_038",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "2b6467ef3928690b37734afa034ec72c7cf9f0b8a78d1b70b63cf20fcb355f86",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -66904,6 +68375,11 @@
       "project_id": "onehalfstorey_039",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "4ee91c4b5f62a5190906b73c3aa14d71bc494775faa5fc0f1868ab1bc427b95b",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -67703,6 +69179,11 @@
       "project_id": "onehalfstorey_040",
       "house_type": "onehalfstorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "702a8b663b35bd9d75b8215733c33b14d6ac7d623c69330a82e1bd35147a744c",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -68519,6 +70000,11 @@
       "project_id": "onehalfstorey_041",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "6af5fd203247fdb37055cf28ae3b8da83908c243f58a1d89e3ff3d448849687c",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -69307,6 +70793,11 @@
       "project_id": "onehalfstorey_043",
       "house_type": "onehalfstorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "9742003a23f4ac405470c0e53b75b55354590b3772179337b433673bc0b96886",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -70173,6 +71664,11 @@
       "project_id": "other_1_5_story_with_cellar",
       "house_type": "other",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "c5f723aa2576b50df067af8d7f02fde3c0b5b2a52a9efb3b18dd7a9c858ffc97",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -71199,6 +72695,11 @@
       "project_id": "twostorey_003",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "f30e79c0b79fcd8a6d05a3b0060e45b1a85ee0b45c5159e63a1f85ed3448eb0b",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -71920,6 +73421,11 @@
       "project_id": "twostorey_004",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "df795c45cdb10aaba0ede7a0e04d6b61c3161b9927bd56f238db042b415086f7",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -72695,6 +74201,11 @@
       "project_id": "twostorey_005",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "241719b01229638ee582f9b62fcd05c76f6408ca1e334f3042aa5fb590b1f4aa",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -73479,6 +74990,11 @@
       "project_id": "twostorey_007",
       "house_type": "twostorey",
       "package_status": "reviewed",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "c2e5e9df8f7aecc26ebc2f29977f23e8a532c451a201a6b25aa79b5b27a30ea6",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -74331,6 +75847,11 @@
       "project_id": "twostorey_008",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "e77be8058e455ef7906d16e965a315d6f82a2b68d232ac7590d0de19495b6d08",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -75177,6 +76698,11 @@
       "project_id": "twostorey_009",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "379d7eff5f023ee97085b9d810beba84a36a043ba36d403a8634e6144a56b883",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -75872,6 +77398,11 @@
       "project_id": "twostorey_010",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "92f253356db1571a2fc2e01e1f1226c24f78b8956b310c05279e0500349aadd7",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -76716,6 +78247,11 @@
       "project_id": "twostorey_011",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "bcd0f8a80df50dca439846991153d6be5193f0e9852091a1914ab986dcb3d7bb",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -77497,6 +79033,11 @@
       "project_id": "twostorey_012",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "3e8fde6bb5b23565be939bb49729f8eb3196661c4d770e35d837ea85063bcd50",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -78247,6 +79788,11 @@
       "project_id": "twostorey_013",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "5f3981b32c84274f3db13d68bba06dda84fdd8ac1e3d1bec3baa08f42f1fd3ec",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -78882,6 +80428,11 @@
       "project_id": "twostorey_014",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "69f64035c98353b67b258436afab9fc224a4d3926b59578f1fd3d95d2e31c0ce",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -79565,6 +81116,11 @@
       "project_id": "twostorey_015",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "a9754ab401b4be917a28cc656a3d4d99f1cd45cba65b4c84b039880378b92845",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -80228,6 +81784,11 @@
       "project_id": "twostorey_016",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "8fe4730917c4f18e7971d4876f62c37299d936e5c677a9f72b02a5bc520b43b5",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -81002,6 +82563,11 @@
       "project_id": "twostorey_017",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "b1e414868e9c0484bccab1a2a392e062ff58932acdeefb27f1a56e63cac44a9b",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -81616,6 +83182,11 @@
       "project_id": "twostorey_018",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "1d6fe7bbfe20fd355e4eeac174b90986cbac6eae32b71a8689e4f951d47b6d83",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -82317,6 +83888,11 @@
       "project_id": "twostorey_019",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "11fc39626ecbac1577981c8698694dd4bb158b2d5f64717db627424440321a66",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -82956,6 +84532,11 @@
       "project_id": "twostorey_020",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "5ddcb34e817c7121cfbe375515a60aa9bd5998e457c0778df39bf1dc8ee0293e",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -83600,6 +85181,11 @@
       "project_id": "twostorey_021",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "b25079300db0bb37e7259cf0dbc39c3fd3be7ce88b137c80819f6a0ffc1bc2a8",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -84247,6 +85833,11 @@
       "project_id": "twostorey_022",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "0bd5b1f6aaba48f7f65615cfeaf8c42442202db58aefc043571c08d42f051975",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -84995,6 +86586,11 @@
       "project_id": "twostorey_023",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "96de3e2965b2976284d480c9383ca26d8d0efacd27fc1bbb21582e0ff955eb79",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -85888,6 +87484,11 @@
       "project_id": "twostorey_024",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "098d4280f8d24464a5321df9eba198a4e71956f4f94bdae64d10346b83e68d9c",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -86714,6 +88315,11 @@
       "project_id": "twostorey_025",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "35b143c791df0bd608cda91129bb76a0cc1db2f8b54c298d48df0374a195bf2b",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -87441,6 +89047,11 @@
       "project_id": "twostorey_026",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "84c785f0baecabfd022a2a72165f93f7ca1e6b695a937028b42630cd0b959e71",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -88170,6 +89781,11 @@
       "project_id": "twostorey_027",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "77fb2941d6e5a41e6e126e6480738d31166cf67886dd9d88e3786a88c97ac774",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -88867,6 +90483,11 @@
       "project_id": "twostorey_028",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "1f68e1c53a561c240bb35af4d103e2dbfd0ac4cfab0b9958f1973bd6507edd55",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -89524,6 +91145,11 @@
       "project_id": "twostorey_029",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "228a7aaea8d4fa9581b710c11a57d5be68dfe0804efb64bdeb748041098e76ae",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -90116,6 +91742,11 @@
       "project_id": "twostorey_030",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "a19e44a276ca7113a46bf88025025e2043a6cefd3c5e497eb7d6640ef589ba9a",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -90809,6 +92440,11 @@
       "project_id": "twostorey_031",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "45152387f0f0019dce75412d62127b9aea91c2c56aac9d22266c8349f39f6178",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -91656,6 +93292,11 @@
       "project_id": "twostorey_032",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "231635176f44fb77d82b494efea574dc0c58185eb7a713825b09da62e58eae99",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -92419,6 +94060,11 @@
       "project_id": "twostorey_033",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "e9ef3dc7e627b0c7896b3ba7535c31a4baf90f5f7be59dce8486cf0427f2c592",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -93100,6 +94746,11 @@
       "project_id": "twostorey_034",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "e84c72efade5eeaa3ebee0bf75c06ee689a02f16040f09a5a03577b2b8c0bcce",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -93718,6 +95369,11 @@
       "project_id": "twostorey_035",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "27865668caac0328b6534e3e10d586e27a94a1fe47af383381c08dfbc2ff41e8",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -94383,6 +96039,11 @@
       "project_id": "twostorey_036",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "04715f53b0cc94f62b34edf92bf1a40fcf8b7f323e0621da53028c9fa25261e8",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -95293,6 +96954,11 @@
       "project_id": "twostorey_037",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "f9068fd06e3eef915b2d7fe922545334d784d2d5e19b5b695f0ec922bebd4149",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -96171,6 +97837,11 @@
       "project_id": "twostorey_038",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "dd8d6591f50d39abf9e562e4957296c390aceb7e663c61b4eb92c024e9fdcf44",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -97134,6 +98805,11 @@
       "project_id": "twostorey_039",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "dce6aabe07ff7ef2f97cdf0cdbac42e166f48a6506127f2e094f75cc83a3bf3e",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -98137,6 +99813,11 @@
       "project_id": "twostorey_040",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "29ada59d62ce6e3bbf7a7391861a482e51dd628cea4649fa05d723b2fb241de3",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -99166,6 +100847,11 @@
       "project_id": "twostorey_041",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "df63caa052a3e7e57c1f7b23467785edce2bfcaabc05c4b2b00ea9b1d5399b86",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -100085,6 +101771,11 @@
       "project_id": "twostorey_042",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "dc01aae73d81210756cf5f2bb1862c54f391f0f221782226586b12efaa076d47",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -101054,6 +102745,11 @@
       "project_id": "twostorey_043",
       "house_type": "twostorey",
       "package_status": "annotated",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "review_required",
+      "annotation_sha256": "e9406bda6cbddce0316cec21ec3e5ac612616f3eb2ebf9807b4c0637788fac6d",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {
@@ -101753,6 +103449,11 @@
       "project_id": "twostorey_044",
       "house_type": "twostorey",
       "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "21481a744ca235017cc3b87cf3b5783125ac1079ad597851a5890b852da987aa",
       "schema_version": "simplifier-annotations-v1",
       "floors": [
         {

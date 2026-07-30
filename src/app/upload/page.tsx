@@ -120,7 +120,10 @@ export default function UploadPage() {
   }
 
   useEffect(() => {
-    void loadUploads();
+    const timer = window.setTimeout(() => {
+      void loadUploads();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

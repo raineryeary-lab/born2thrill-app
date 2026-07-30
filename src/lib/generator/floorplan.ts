@@ -32,6 +32,7 @@ export type HouseBrief = {
   priorities: string[];
   generationAttempt: number;
   critiqueNotes: string;
+  referenceUsageScope?: "internal_reference_only" | "commercial_generator";
 };
 
 export type PlannedRoom = {
@@ -107,6 +108,62 @@ export type PlanVariant = {
     storeyType: HouseBrief["storeyType"];
   };
 };
+
+type RoomPlacement = Pick<
+  PlannedRoom,
+  "x" | "y" | "width" | "height" | "area" | "side" | "zone" | "polygon"
+>;
+
+function copyRoomPlacement(room: PlannedRoom): RoomPlacement {
+  return {
+    x: room.x,
+    y: room.y,
+    width: room.width,
+    height: room.height,
+    area: room.area,
+    side: room.side,
+    zone: room.zone,
+    polygon: room.polygon?.map((point) => ({ ...point })),
+  };
+}
+
+function applyRoomPlacement(room: PlannedRoom, placement: RoomPlacement) {
+  room.x = placement.x;
+  room.y = placement.y;
+  room.width = placement.width;
+  room.height = placement.height;
+  room.area = placement.area;
+  room.side = placement.side;
+  room.zone = placement.zone;
+  room.polygon = placement.polygon?.map((point) => ({ ...point }));
+}
+
+export function swapRoomPlacements(
+  source: PlanVariant,
+  floorNumber: number,
+  firstRoomId: string,
+  secondRoomId: string,
+): PlanVariant {
+  if (firstRoomId === secondRoomId) {
+    throw new Error("Bitte zwei unterschiedliche Räume auswählen.");
+  }
+
+  const variant = structuredClone(source);
+  const floor = variant.floors.find((candidate) => candidate.floor === floorNumber);
+  if (!floor) throw new Error("Das ausgewählte Geschoss wurde nicht gefunden.");
+
+  const first = floor.rooms.find((room) => room.id === firstRoomId);
+  const second = floor.rooms.find((room) => room.id === secondRoomId);
+  if (!first || !second) {
+    throw new Error("Mindestens einer der ausgewählten Räume wurde nicht gefunden.");
+  }
+
+  const firstPlacement = copyRoomPlacement(first);
+  const secondPlacement = copyRoomPlacement(second);
+  applyRoomPlacement(first, secondPlacement);
+  applyRoomPlacement(second, firstPlacement);
+  return variant;
+}
 
 type RoomSeed = Omit<PlannedRoom, "id" | "x" | "y" | "width" | "height" | "area" | "side" | "zone"> & {
   targetArea: number;
@@ -909,6 +966,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       houseType: referenceHouseType, floors: brief.floors, bedrooms: brief.bedrooms, bathrooms: brief.bathrooms,
       office: brief.office, guestWc: brief.guestWc, utilityRoom: brief.utilityRoom,
       basement: brief.basement !== "none", stairPreference: brief.stairPreference,
+      usageScope: brief.referenceUsageScope,
       variantOffset: brief.generationAttempt + index,
     });
     const baseFloorArea = targetAreaForFloor(brief, 0, profile);
@@ -971,7 +1029,25 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       && floors.every((plan) => plan.referenceLayoutId === referenceLayout?.projectId);
     const stairRoomsAbsent = floors.every((plan) =>
       plan.rooms.every((room) => !/treppe|stairs/i.test(room.name)),
-    );    const stairGeometryPresent = brief.floors === 1
+    );
+    const referenceProgramCounts = new Map<string, number>();
+    for (const room of referenceLayout?.floors.flatMap((floor) => floor.rooms) ?? []) {
+      for (const roomId of new Set(room.roomIds)) {
+        referenceProgramCounts.set(
+          roomId,
+          (referenceProgramCounts.get(roomId) ?? 0) + 1,
+        );
+      }
+    }
+    const referenceCount = (roomId: string) => referenceProgramCounts.get(roomId) ?? 0;
+    const requestedProgramPresent = Boolean(referenceLayout)
+      && referenceCount("eltern") + referenceCount("kind") >= brief.bedrooms
+      && referenceCount("bad") >= brief.bathrooms
+      && (!brief.office || referenceCount("buero") + referenceCount("gast") >= 1)
+      && (!brief.guestWc || referenceCount("wc") >= 1)
+      && (!brief.utilityRoom || referenceCount("hwr_htr") + referenceCount("technik") >= 1)
+      && ["wohnen", "essen", "kueche"].every((roomId) => referenceCount(roomId) >= 1);
+    const stairGeometryPresent = brief.floors === 1
       || floors.every((plan) => Boolean(plan.stairRect));
     const checks = [
       { label: "Reale, annotierte Raum-Polygone werden auf allen Etagen verwendet", passed: allFloorsUseReference },
@@ -979,6 +1055,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
         ? `Reales Simplifier-Referenzlayout ausgewählt: ${referenceLayout.projectId} (${referenceLayout.houseType}, Trefferwert ${referenceLayout.score})`
         : "Kein passendes reales Simplifier-Referenzlayout gefunden", passed: Boolean(referenceLayout) },
       { label: `Lokale Simplifier-Referenz geladen: ${simplifierReferenceLabel()}`, passed: Boolean(referenceLayout) },
+      { label: "Angefordertes Raumprogramm ist in der Referenz vollständig vorhanden", passed: requestedProgramPresent },
       { label: "Treppe bleibt feste Geometrie; kein erfundener Treppen-Raum", passed: stairRoomsAbsent },
       { label: "Gemeinsamer Treppenkern ist auf allen Etagen punktgleich", passed: stairCoreAligned },
       {

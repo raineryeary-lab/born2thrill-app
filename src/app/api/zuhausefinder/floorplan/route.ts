@@ -7,6 +7,7 @@ import {
 } from "@/lib/generator/zuhausefinder-brief.mjs";
 import {
   assertSafeGeneratedSvg,
+  candidateMayEnterManualReview,
   customerFacingQualityPassed,
   floorplanQuality,
   renderFloorplanSvg,
@@ -69,14 +70,19 @@ export async function POST(request: Request) {
 
   try {
     const source = JSON.parse(body) as unknown;
-    const brief = mapZuhausefinderBrief(source) as HouseBrief;
+    const brief = {
+      ...(mapZuhausefinderBrief(source) as HouseBrief),
+      referenceUsageScope: "commercial_generator" as const,
+    };
     const variants = generateVariants(brief);
     const variant = selectQualityVariant(variants);
     if (!variant) {
       return json({ error: "Es konnte keine passende Referenz ausgewählt werden." }, 422);
     }
     const quality = floorplanQuality(variant);
-    if (!customerFacingQualityPassed(quality)) {
+    const customerReady = customerFacingQualityPassed(quality);
+    const manualReviewAllowed = candidateMayEnterManualReview(quality);
+    if (!customerReady && !manualReviewAllowed) {
       return json({
         error: "Der ausgewählte Grundriss hat die harten Geometrieprüfungen nicht bestanden.",
         reference_layout_id: variant.metrics.referenceLayoutId,
@@ -127,6 +133,8 @@ export async function POST(request: Request) {
         failed_checks: quality.failedChecks,
         critical_failures: quality.criticalFailures,
         quality_status: classification.geometry_quality,
+        customer_ready: customerReady,
+        manual_review_required: !customerReady,
       },
       classification,
       visualization_context: visualizationContext,

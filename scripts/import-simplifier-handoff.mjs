@@ -65,6 +65,21 @@ function validateStructure(dataset) {
   const projects = Array.isArray(dataset.projects) ? dataset.projects : [];
   for (const [projectIndex, project] of projects.entries()) {
     const projectName = project.project_id || `projects[${projectIndex}]`;
+    if (project.source_kind !== "real_annotated") {
+      throw new Error(`${projectName} must be a real annotated reference.`);
+    }
+    if (!["annotated_reference", "approved_real"].includes(project.approval_status)) {
+      throw new Error(`${projectName}.approval_status is not allowed in the reference corpus.`);
+    }
+    const expectedScope = project.approval_status === "approved_real"
+      ? "commercial_generator"
+      : "internal_reference_only";
+    if (project.usage_scope !== expectedScope) {
+      throw new Error(`${projectName}.usage_scope must be ${expectedScope}.`);
+    }
+    if (!/^[a-f0-9]{64}$/.test(String(project.annotation_sha256 || ""))) {
+      throw new Error(`${projectName}.annotation_sha256 must be a SHA-256 hash.`);
+    }
     if (!Array.isArray(project.floors) || project.floors.length < 1) {
       throw new Error(`${projectName} must contain at least one floor.`);
     }
@@ -81,8 +96,7 @@ function validateStructure(dataset) {
       ];
       const roomIds = new Set();
       let validRoomCount = 0;
-      for (const [roomIndex, room] of rooms.entries()) {
-        const roomName = `${floorName}.rooms[${roomIndex}]`;
+      for (const room of rooms) {
         const polygon = Array.isArray(room.polygon) ? room.polygon.map(normalizedPoint).filter(Boolean) : [];
         if (polygon.length < 3 || polygonArea(polygon) <= 0) continue;
         validRoomCount += 1;
@@ -181,6 +195,57 @@ export function validateDataset(dataset, manifest, knowledge) {
   return counts;
 }
 
+export function validateCorpusLedger(ledger, counts, dataset) {
+  if (ledger?.schema_version !== "floorplan-corpus-ledger-v1") {
+    throw new Error("corpus-ledger.json must use floorplan-corpus-ledger-v1.");
+  }
+  if (ledger.policy?.unchanged_annotations_are_not_reprocessed_until_hash_changes !== true) {
+    throw new Error("Corpus ledger must preserve unchanged annotated plans.");
+  }
+  if (ledger.policy?.commercial_approval_requires_explicit_rights_and_quality !== true) {
+    throw new Error("Corpus ledger must require explicit rights and quality for commercial approval.");
+  }
+  if (ledger.policy?.generated_candidates_require_human_approval !== true) {
+    throw new Error("Corpus ledger must require human approval for generated candidates.");
+  }
+
+  const referenceCount = (ledger.counts?.annotated_reference ?? 0)
+    + (ledger.counts?.approved_real ?? 0);
+  if (referenceCount !== counts.project_count) {
+    throw new Error(`Corpus ledger reference count mismatch: expected ${counts.project_count}, got ${referenceCount}.`);
+  }
+
+  const entries = Array.isArray(ledger.projects) ? ledger.projects : [];
+  const byId = new Map();
+  for (const entry of entries) {
+    if (!entry?.project_id) continue;
+    if (byId.has(entry.project_id)) {
+      throw new Error(`Corpus ledger contains duplicate project ${entry.project_id}.`);
+    }
+    byId.set(entry.project_id, entry);
+  }
+
+  for (const project of dataset.projects) {
+    const entry = byId.get(project.project_id);
+    if (!entry) {
+      throw new Error(`Corpus ledger is missing project ${project.project_id}.`);
+    }
+    if (entry.annotation_sha256 !== project.annotation_sha256) {
+      throw new Error(`Corpus ledger hash mismatch for ${project.project_id}.`);
+    }
+    if (entry.corpus_status !== project.approval_status) {
+      throw new Error(`Corpus ledger status mismatch for ${project.project_id}.`);
+    }
+    if (entry.internal_reference_eligible !== true) {
+      throw new Error(`Corpus ledger does not allow ${project.project_id} as an internal reference.`);
+    }
+    const expectedCommercial = project.approval_status === "approved_real";
+    if (entry.commercial_generator_eligible !== expectedCommercial) {
+      throw new Error(`Corpus ledger commercial eligibility mismatch for ${project.project_id}.`);
+    }
+  }
+}
+
 async function readJson(filePath) {
   return JSON.parse(await readFile(filePath, "utf8"));
 }
@@ -191,16 +256,20 @@ export async function importSimplifierHandoff(sourcePath = DEFAULT_SOURCE, targe
   const datasetPath = path.join(source, "dataset.json");
   const knowledgePath = path.join(source, "knowledge.json");
   const manifestPath = path.join(source, "manifest.json");
+  const ledgerPath = path.join(source, "corpus-ledger.json");
 
   const dataset = await readJson(datasetPath);
   const knowledge = await readJson(knowledgePath);
   const manifest = await readJson(manifestPath);
+  const ledger = await readJson(ledgerPath);
   const counts = validateDataset(dataset, manifest, knowledge);
+  validateCorpusLedger(ledger, counts, dataset);
 
   await mkdir(target, { recursive: true });
   await copyFile(datasetPath, path.join(target, "dataset.json"));
   await copyFile(knowledgePath, path.join(target, "knowledge.json"));
   await copyFile(manifestPath, path.join(target, "manifest.json"));
+  await copyFile(ledgerPath, path.join(target, "corpus-ledger.json"));
 
   const sourceReadme = path.resolve(source, "..", "README.md");
   try {

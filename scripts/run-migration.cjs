@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { readFileSync } = require("fs");
 const { resolve } = require("path");
 const pg = require("pg");

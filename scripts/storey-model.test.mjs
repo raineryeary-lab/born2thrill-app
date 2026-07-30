@@ -128,7 +128,10 @@ test("legacy migration preserves every current reference geometry byte-for-byte"
   const dataset = JSON.parse(
     await readFile(new URL("../data/simplifier-v1/dataset.json", import.meta.url), "utf8"),
   );
-  assert.equal(dataset.projects.length, 157);
+  const manifest = JSON.parse(
+    await readFile(new URL("../data/simplifier-v1/manifest.json", import.meta.url), "utf8"),
+  );
+  assert.equal(dataset.projects.length, manifest.project_count);
   for (const project of dataset.projects) {
     const before = referenceGeometryFingerprint(project);
     const migrated = migrateReferenceProjectToStoreyTemplate(project);

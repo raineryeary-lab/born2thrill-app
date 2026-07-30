@@ -7,6 +7,7 @@ import {
 } from "../src/lib/generator/zuhausefinder-brief.mjs";
 import {
   assertSafeGeneratedSvg,
+  candidateMayEnterManualReview,
   customerFacingQualityPassed,
   floorplanQuality,
   renderFloorplanSvg,
@@ -307,6 +308,29 @@ test("prefers variants without critical geometry failures", () => {
   assert.equal(floorplanQuality(safe).criticalFailures.length, 0);
   assert.equal(customerFacingQualityPassed(floorplanQuality(weak)), false);
   assert.equal(customerFacingQualityPassed(floorplanQuality(safe)), true);
+});
+
+test("allows only the explicit source stair warning into manual review", () => {
+  const reviewable = {
+    criticalFailures: [
+      "Quellreferenz onehalfstorey_029: EG-/OG-Treppenkern muss vor Kundennutzung gemeinsam bestätigt werden",
+    ],
+  };
+  const blocking = {
+    criticalFailures: [
+      "Interne Kollisionsprüfung: Treppe liegt nicht über Räumen",
+    ],
+  };
+  assert.equal(candidateMayEnterManualReview(reviewable), true);
+  assert.equal(candidateMayEnterManualReview({
+    criticalFailures: [
+      "Angefordertes Raumprogramm ist in der Referenz vollständig vorhanden",
+    ],
+  }), true);
+  assert.equal(candidateMayEnterManualReview(blocking), false);
+  assert.equal(candidateMayEnterManualReview({
+    criticalFailures: [...reviewable.criticalFailures, ...blocking.criticalFailures],
+  }), false);
 });
 
 test("classifies output without making it automatically training eligible", () => {

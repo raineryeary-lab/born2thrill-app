@@ -7,7 +7,12 @@ const COLORS = {
   circulation: "#ece9e2",
 };
 
-const CRITICAL_CHECK_PATTERN = /reale, annotierte|referenzlayout|trepp|kollision|raumgeometr|türen|fenster/i;
+const CRITICAL_CHECK_PATTERN = /reale, annotierte|referenzlayout|raumprogramm|trepp|kollision|raumgeometr|türen|fenster/i;
+
+const SOURCE_STAIR_REVIEW_CHECK_PATTERN =
+  /^Quellreferenz [A-Za-z0-9._-]+: EG-\/OG-Treppenkern muss vor Kundennutzung gemeinsam bestätigt werden$/u;
+const ROOM_PROGRAM_REVIEW_CHECK =
+  "Angefordertes Raumprogramm ist in der Referenz vollständig vorhanden";
 
 function number(value) {
   return Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
@@ -290,6 +295,14 @@ export function floorplanQuality(variant) {
 export function customerFacingQualityPassed(quality) {
   return Array.isArray(quality?.criticalFailures)
     && quality.criticalFailures.length === 0;
+}
+
+export function candidateMayEnterManualReview(quality) {
+  return Array.isArray(quality?.criticalFailures)
+    && quality.criticalFailures.every((label) =>
+      String(label) === ROOM_PROGRAM_REVIEW_CHECK
+      || SOURCE_STAIR_REVIEW_CHECK_PATTERN.test(String(label))
+    );
 }
 
 export function selectQualityVariant(variants) {

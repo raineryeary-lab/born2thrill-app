@@ -31,7 +31,14 @@ export type ReferenceFloor = { floorLevel: string; rooms: ReferenceRoom[]; eleme
 
 type RawRoom = { id: string; room_id: string; room_ids?: string[]; label: string; polygon: number[][]; area_ratio: number };
 type RawFloor = { floor_level: string; rooms: RawRoom[]; elements: Array<{ id: string; type: string; points: number[][] }> };
-type RawProject = { project_id: string; house_type: string; package_status: string; floors: RawFloor[] };
+type RawProject = {
+  project_id: string;
+  house_type: string;
+  package_status: string;
+  approval_status?: string;
+  usage_scope?: string;
+  floors: RawFloor[];
+};
 type SimplifierDataset = { projects: RawProject[] };
 
 export type ReferenceLayoutMatch = {
@@ -60,13 +67,23 @@ function sameReferencePath(left: ReferencePoint[], right: ReferencePoint[]) {
     );
 }
 
+function expandedRoomIds(room: RawRoom) {
+  const ids = new Set(room.room_ids?.length ? room.room_ids : [room.room_id]);
+  const source = [...ids].join("_").toLowerCase();
+  if (source.includes("wohnen")) ids.add("wohnen");
+  if (source.includes("essen")) ids.add("essen");
+  if (source.includes("koch") || source.includes("kueche")) ids.add("kueche");
+  if (source.includes("du_wc")) ids.add("wc");
+  return [...ids];
+}
+
 function normalizeProject(project: RawProject) {
   const floors: ReferenceFloor[] = project.floors.map((floor) => ({
     floorLevel: floor.floor_level,
     rooms: floor.rooms.map((room) => ({
       id: room.id,
       roomId: room.room_id,
-      roomIds: room.room_ids?.length ? room.room_ids : [room.room_id],
+      roomIds: expandedRoomIds(room),
       label: room.label,
       polygon: room.polygon.filter(validPoint),
       areaRatio: Number.isFinite(room.area_ratio) ? room.area_ratio : 0,
@@ -97,6 +114,8 @@ function normalizeProject(project: RawProject) {
   return {
     projectId: project.project_id,
     houseType: project.house_type,
+    approvalStatus: project.approval_status ?? "",
+    usageScope: project.usage_scope ?? "",
     floors,
     roomCounts,
     roomIds: [...roomCounts.keys()],
@@ -123,6 +142,7 @@ export function selectReferenceLayout(input: {
   houseType: string; floors: number; bedrooms: number; bathrooms: number;
   office: boolean; guestWc: boolean; utilityRoom: boolean; basement: boolean;
   stairPreference: "central" | "feature" | "separable" | "undecided";
+  usageScope?: "internal_reference_only" | "commercial_generator";
   variantOffset?: number;
 }): ReferenceLayoutMatch | null {
   const desired = new Map<string, number>([
@@ -132,7 +152,13 @@ export function selectReferenceLayout(input: {
   ]);
   if (input.office) desired.set("buero", 1);
 
-  const candidates = REFERENCE_PROJECTS.map((project) => {
+  const eligibleProjects = input.usageScope === "commercial_generator"
+    ? REFERENCE_PROJECTS.filter((project) =>
+        project.approvalStatus === "approved_real"
+        && project.usageScope === "commercial_generator"
+      )
+    : REFERENCE_PROJECTS;
+  const candidates = eligibleProjects.map((project) => {
     let programMatches = 0;
     let programMissing = 0;
     for (const [roomId, wanted] of desired) {

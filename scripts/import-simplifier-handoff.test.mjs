@@ -1,12 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { countDataset, validateDataset } from "./import-simplifier-handoff.mjs";
+import {
+  countDataset,
+  validateCorpusLedger,
+  validateDataset,
+} from "./import-simplifier-handoff.mjs";
 
 function project(index, floorLevel = "groundfloor") {
   return {
     project_id: `project_${index}`,
     house_type: index % 2 ? "twostorey" : "bungalow",
+    source_kind: "real_annotated",
+    approval_status: "annotated_reference",
+    usage_scope: "internal_reference_only",
+    quality_status: "review_required",
+    annotation_sha256: String(index).padStart(64, "0"),
     floors: [{
       floor_level: floorLevel,
       rooms: [{ id: `room_${index}`, polygon: [[0, 0], [1, 0], [1, 1]] }],
@@ -14,6 +23,39 @@ function project(index, floorLevel = "groundfloor") {
     }],
   };
 }
+
+function ledgerFor(projects) {
+  return {
+    schema_version: "floorplan-corpus-ledger-v1",
+    policy: {
+      unchanged_annotations_are_not_reprocessed_until_hash_changes: true,
+      commercial_approval_requires_explicit_rights_and_quality: true,
+      generated_candidates_require_human_approval: true,
+    },
+    counts: {
+      annotated_reference: projects.filter((item) => item.approval_status === "annotated_reference").length,
+      approved_real: projects.filter((item) => item.approval_status === "approved_real").length,
+    },
+    projects: projects.map((item) => ({
+      project_id: item.project_id,
+      corpus_status: item.approval_status,
+      annotation_sha256: item.annotation_sha256,
+      internal_reference_eligible: true,
+      commercial_generator_eligible: item.approval_status === "approved_real",
+    })),
+  };
+}
+
+test("requires a ledger bound to every dataset project and annotation hash", () => {
+  const value = fixture(Array.from({ length: 2 }, (_, index) => project(index)));
+  const ledger = ledgerFor(value.dataset.projects);
+  assert.doesNotThrow(() => validateCorpusLedger(ledger, value.counts, value.dataset));
+  ledger.projects[0].annotation_sha256 = "f".repeat(64);
+  assert.throws(
+    () => validateCorpusLedger(ledger, value.counts, value.dataset),
+    /hash mismatch/,
+  );
+});
 
 function fixture(projects = [project(1)]) {
   const dataset = {

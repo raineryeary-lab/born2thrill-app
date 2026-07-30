@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  generateVariants,
-  parseBrief,
-  type FloorPlan,
-  type HouseBrief,
-  type PlanVariant,
-  type PlannedRoom,
+import type {
+  FloorPlan,
+  HouseBrief,
+  PlanVariant,
+  PlannedRoom,
 } from "@/lib/generator/floorplan";
+import { swapRoomPlacements } from "@/lib/generator/workbench";
 
 type FeedbackRating = "up" | "down";
 
@@ -53,6 +52,20 @@ type LearningCorrection = {
     height: number;
   };
   structuredConstraints: Array<Record<string, string | number>>;
+};
+
+type SavedWorkbenchPlan = {
+  id: string;
+  savedAt: string;
+  reviewStatus: "generated_candidate";
+  trainingEligible: false;
+  brief: HouseBrief;
+  variant: PlanVariant;
+};
+
+type WorkbenchGeneration = {
+  brief: HouseBrief;
+  variants: PlanVariant[];
 };
 
 type SpeechRecognitionResultLike = {
@@ -476,7 +489,12 @@ export default function TestlaufPage() {
   const [feedbackCount, setFeedbackCount] = useState(0);
   const [learningCount, setLearningCount] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<SelectedRoom | null>(null);
+  const [swapSource, setSwapSource] = useState<SelectedRoom | null>(null);
+  const [editedVariants, setEditedVariants] = useState<Record<string, PlanVariant>>({});
+  const [savedPlanCount, setSavedPlanCount] = useState(0);
   const [isListening, setIsListening] = useState(false);
+  const [generation, setGeneration] = useState<WorkbenchGeneration | null>(null);
+  const [generationError, setGenerationError] = useState("");
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -486,13 +504,149 @@ export default function TestlaufPage() {
       if (feedbackRaw) setFeedbackCount(storedArray<TestlaufFeedback>(window.localStorage, "born2thrill-test-feedback").length);
       const learningRaw = window.localStorage.getItem("born2thrill-learning-corrections");
       if (learningRaw) setLearningCount(storedArray<LearningCorrection>(window.localStorage, "born2thrill-learning-corrections").length);
+      const savedPlansRaw = window.localStorage.getItem("born2thrill-floorplan-workbench");
+      if (savedPlansRaw) setSavedPlanCount(storedArray<SavedWorkbenchPlan>(window.localStorage, "born2thrill-floorplan-workbench").length);
     }, 0);
     return () => window.clearTimeout(timer);
   }, []);
 
-  const brief = useMemo(() => parseBrief(entries), [entries]);
-  const variants = useMemo(() => generateVariants(brief), [brief]);
-  const variant: PlanVariant = variants[selected];
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/floorplan-workbench/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entries }),
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json() as WorkbenchGeneration & { error?: string };
+        if (!response.ok) throw new Error(payload.error || "Der lokale Grundriss-Generator ist nicht erreichbar.");
+        return payload;
+      })
+      .then((payload) => {
+        setGenerationError("");
+        setGeneration({ brief: payload.brief, variants: payload.variants });
+        setSelected(0);
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setGenerationError(error instanceof Error ? error.message : "Der lokale Grundriss-Generator ist nicht erreichbar.");
+      });
+    return () => controller.abort();
+  }, [entries]);
+
+  const brief = generation?.brief;
+  const variants = generation?.variants ?? [];
+  const baseVariant = variants[Math.min(selected, Math.max(0, variants.length - 1))];
+
+  if (!brief || !baseVariant) {
+    return (
+      <main className="min-h-screen bg-stone-100 px-6 py-16 text-stone-900">
+        <section className="mx-auto max-w-3xl rounded-3xl bg-white p-8 shadow-sm">
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-800">Lokaler Grundriss-Arbeitsplatz</p>
+          <h1 className="mt-3 text-3xl font-semibold">
+            {generationError ? "Arbeitsplatz nicht aktiviert" : "Grundrisse werden geladen …"}
+          </h1>
+          <p className="mt-4 leading-7 text-stone-600">
+            {generationError || "Die annotierten Referenzen werden ausschließlich serverseitig geladen."}
+          </p>
+          <Link href="/" className="mt-8 inline-flex rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold">
+            Zur Startseite
+          </Link>
+        </section>
+      </main>
+    );
+  }
+
+  const variantKey = `${brief.generationAttempt}:${selected}:${baseVariant.id}:${baseVariant.metrics.referenceLayoutId}`;
+  const variant: PlanVariant = editedVariants[variantKey] ?? baseVariant;
+  const hasLocalEdits = Boolean(editedVariants[variantKey]);
+
+  const selectRoom = (selection: SelectedRoom) => {
+    setSelectedRoom(selection);
+    if (swapSource && swapSource.floor !== selection.floor) {
+      setFeedbackStatus("Räume können nur innerhalb desselben Geschosses getauscht werden.");
+    }
+  };
+
+  const startRoomSwap = () => {
+    if (!selectedRoom) {
+      setFeedbackStatus("Bitte zuerst den Raum anklicken, der getauscht werden soll.");
+      return;
+    }
+    setSwapSource(selectedRoom);
+    setFeedbackStatus(`${selectedRoom.room.name} ist vorgemerkt. Jetzt den zweiten Raum im selben Geschoss anklicken.`);
+  };
+
+  const completeRoomSwap = () => {
+    if (!swapSource || !selectedRoom) {
+      setFeedbackStatus("Bitte zuerst zwei Räume für den Tausch auswählen.");
+      return;
+    }
+    if (swapSource.floor !== selectedRoom.floor) {
+      setFeedbackStatus("Räume können nur innerhalb desselben Geschosses getauscht werden.");
+      return;
+    }
+    try {
+      const edited = swapRoomPlacements(
+        variant,
+        selectedRoom.floor,
+        swapSource.room.id,
+        selectedRoom.room.id,
+      );
+      setEditedVariants((current) => ({ ...current, [variantKey]: edited }));
+      setFeedbackStatus(`${swapSource.room.name} und ${selectedRoom.room.name} wurden im Arbeitsgrundriss getauscht.`);
+      setSwapSource(null);
+      setSelectedRoom(null);
+    } catch (error) {
+      setFeedbackStatus(error instanceof Error ? error.message : "Der Raumtausch ist fehlgeschlagen.");
+    }
+  };
+
+  const resetWorkbenchVariant = () => {
+    setEditedVariants((current) => {
+      const next = { ...current };
+      delete next[variantKey];
+      return next;
+    });
+    setSwapSource(null);
+    setSelectedRoom(null);
+    setFeedbackStatus("Die Arbeitskopie wurde auf die annotierte Referenz zurückgesetzt.");
+  };
+
+  const saveWorkbenchVariant = () => {
+    const stored = storedArray<SavedWorkbenchPlan>(window.localStorage, "born2thrill-floorplan-workbench");
+    const saved: SavedWorkbenchPlan = {
+      id: `${Date.now()}-${variant.id}`,
+      savedAt: new Date().toISOString(),
+      reviewStatus: "generated_candidate",
+      trainingEligible: false,
+      brief,
+      variant,
+    };
+    const next = [saved, ...stored].slice(0, 200);
+    window.localStorage.setItem("born2thrill-floorplan-workbench", JSON.stringify(next));
+    setSavedPlanCount(next.length);
+    setFeedbackStatus(`Arbeitsgrundriss gespeichert. Referenz: ${variant.metrics.referenceLayoutId}.`);
+  };
+
+  const downloadWorkbenchVariant = () => {
+    const payload = JSON.stringify({
+      schema: "born2thrill-floorplan-workbench-v1",
+      saved_at: new Date().toISOString(),
+      review_status: "generated_candidate",
+      training_eligible: false,
+      brief,
+      variant,
+    }, null, 2);
+    const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }));
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${brief.projectName || "grundriss"}-${variant.metrics.referenceLayoutId || variant.id}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setFeedbackStatus("Arbeitsgrundriss als JSON heruntergeladen.");
+  };
 
   const saveFeedback = () => {
     const reason = cleanFeedbackReason(feedbackReason);
@@ -668,8 +822,8 @@ export default function TestlaufPage() {
         </div>
 
         <div className="mt-8 flex gap-3 overflow-x-auto pb-2">
-          {variants.map((item, index) => <button key={item.id} onClick={() => setSelected(index)} className={`whitespace-nowrap rounded-full px-5 py-3 text-sm font-semibold ${selected === index ? "bg-[#18392f] text-white" : "bg-white text-stone-600"}`}>{item.name}</button>)}
-          <button type="button" onClick={() => setSelected((current) => (current + 1) % variants.length)} className="whitespace-nowrap rounded-full border border-stone-300 bg-white px-5 py-3 text-sm font-semibold text-stone-700">
+          {variants.map((item, index) => <button key={item.id} onClick={() => { setSelected(index); setSelectedRoom(null); setSwapSource(null); }} className={`whitespace-nowrap rounded-full px-5 py-3 text-sm font-semibold ${selected === index ? "bg-[#18392f] text-white" : "bg-white text-stone-600"}`}>{item.name}</button>)}
+          <button type="button" onClick={() => { setSelected((current) => (current + 1) % variants.length); setSelectedRoom(null); setSwapSource(null); }} className="whitespace-nowrap rounded-full border border-stone-300 bg-white px-5 py-3 text-sm font-semibold text-stone-700">
             Andere Variante anzeigen
           </button>
         </div>
@@ -677,7 +831,61 @@ export default function TestlaufPage() {
         <section ref={planSectionRef} className="mt-6 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
           <div className="flex flex-wrap items-start justify-between gap-5"><div><h2 className="text-3xl font-medium">{variant.name}</h2><p className="mt-3 max-w-2xl leading-7 text-stone-600">{variant.description}</p><div className="mt-5 inline-flex rounded-full bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-900">Referenz: {variant.metrics.referenceProfile}</div></div><div className="text-right text-sm text-stone-500"><p>{variant.metrics.footprintWidthM} × {variant.metrics.footprintDepthM} m</p><p>{variant.metrics.plannedAreaM2} m² Wohnfläche</p>{variant.metrics.upperFloorAreaM2 > 0 && <p>EG ca. {variant.metrics.groundFloorAreaM2} m² · OG ca. {variant.metrics.upperFloorAreaM2} m²</p>}</div></div>
           {brief.generationAttempt > 0 && <div className="mt-5 rounded-2xl bg-amber-50 p-4 text-sm leading-6 text-amber-900">Neuer Generierungslauf {brief.generationAttempt + 1}. Berücksichtigt: {compactCritique(brief.critiqueNotes)}</div>}
-          <div className="mt-8 grid gap-8 xl:grid-cols-2">{variant.floors.map((floor) => <article key={floor.floor}><h3 className="mb-3 text-sm font-semibold">{floor.name}</h3><FloorSvg plan={floor} selectedRoomId={selectedRoom?.room.id} onSelectRoom={setSelectedRoom} /></article>)}</div>
+          {hasLocalEdits && <div className="mt-5 rounded-2xl bg-blue-50 p-4 text-sm leading-6 text-blue-900">Arbeitskopie aktiv: Die annotierte Referenz bleibt unverändert. Speichern oder herunterladen sichert diese Variante separat.</div>}
+          {hasLocalEdits && <div className="mt-3 rounded-2xl bg-amber-100 p-4 text-sm font-semibold leading-6 text-amber-950">Ungeprüfter Kandidat: Türen, Fenster, Erschließung und Flächen müssen nach dem Raumtausch fachlich geprüft werden. Dieser Entwurf ist nicht trainingsfähig.</div>}
+          <div className="mt-8 grid gap-8 xl:grid-cols-2">{variant.floors.map((floor) => <article key={floor.floor}><h3 className="mb-3 text-sm font-semibold">{floor.name}</h3><FloorSvg plan={floor} selectedRoomId={selectedRoom?.room.id} onSelectRoom={selectRoom} /></article>)}</div>
+        </section>
+
+        <section className="mt-8 rounded-[2rem] bg-[#18392f] p-6 text-white shadow-[0_20px_60px_rgba(41,37,36,.12)] sm:p-10">
+          <div className="grid gap-8 lg:grid-cols-[.8fr_1.2fr]">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.2em] text-emerald-200 uppercase">Montags-Demo</p>
+              <h2 className="mt-3 text-2xl font-medium">Grundriss-Arbeitsplatz</h2>
+              <p className="mt-3 leading-7 text-emerald-50/80">
+                Tausche zwei Raumpositionen direkt, ohne die annotierte Originalreferenz zu verändern. Das Ergebnis kann im Browser gespeichert oder als JSON für die nächste Bearbeitung heruntergeladen werden.
+              </p>
+              <p className="mt-4 text-xs text-emerald-100/60">Gespeicherte Arbeitsgrundrisse in diesem Browser: {savedPlanCount}</p>
+            </div>
+            <div className="rounded-3xl bg-white/10 p-5">
+              <p className="text-sm font-semibold">
+                {swapSource
+                  ? `Tauschquelle: ${swapSource.room.name} · ${swapSource.floorName}`
+                  : selectedRoom
+                    ? `Ausgewählt: ${selectedRoom.room.name} · ${selectedRoom.floorName}`
+                    : "1. Einen Raum im Grundriss anklicken"}
+              </p>
+              <p className="mt-2 text-sm leading-6 text-emerald-50/70">
+                {swapSource
+                  ? "2. Den Zielraum im selben Geschoss anklicken und den Tausch bestätigen."
+                  : "Danach als Tauschquelle merken, den zweiten Raum anklicken und bestätigen."}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                {!swapSource ? (
+                  <button type="button" onClick={startRoomSwap} className="rounded-full bg-emerald-200 px-5 py-3 text-sm font-bold text-emerald-950">
+                    Ausgewählten Raum merken
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" onClick={completeRoomSwap} className="rounded-full bg-emerald-200 px-5 py-3 text-sm font-bold text-emerald-950">
+                      Räume jetzt tauschen
+                    </button>
+                    <button type="button" onClick={() => setSwapSource(null)} className="rounded-full border border-white/30 px-5 py-3 text-sm font-semibold">
+                      Tausch abbrechen
+                    </button>
+                  </>
+                )}
+                <button type="button" onClick={saveWorkbenchVariant} className="rounded-full border border-white/30 px-5 py-3 text-sm font-semibold">
+                  Arbeitsgrundriss speichern
+                </button>
+                <button type="button" onClick={downloadWorkbenchVariant} className="rounded-full border border-white/30 px-5 py-3 text-sm font-semibold">
+                  JSON herunterladen
+                </button>
+                {hasLocalEdits && <button type="button" onClick={resetWorkbenchVariant} className="rounded-full border border-red-200/50 px-5 py-3 text-sm font-semibold text-red-100">
+                  Änderungen zurücksetzen
+                </button>}
+              </div>
+            </div>
+          </div>
         </section>
 
         <section className="mt-8 rounded-[2rem] bg-white p-6 shadow-[0_20px_60px_rgba(41,37,36,.08)] sm:p-10">
