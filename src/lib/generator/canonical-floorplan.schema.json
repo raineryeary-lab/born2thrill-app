@@ -1,0 +1,426 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://born2thrill.de/schemas/dmh-canonical-floorplan-v1.json",
+  "title": "DMH canonical floorplan v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "plan_id",
+    "units",
+    "coordinate_system",
+    "building",
+    "footprint",
+    "storeys",
+    "entrance",
+    "stairs",
+    "provenance",
+    "geometry_hash",
+    "approval"
+  ],
+  "properties": {
+    "schema_version": { "const": "dmh-canonical-floorplan-v1" },
+    "plan_id": { "$ref": "#/$defs/id" },
+    "units": { "const": "mm" },
+    "coordinate_system": { "$ref": "#/$defs/coordinateSystem" },
+    "building": { "$ref": "#/$defs/building" },
+    "footprint": { "$ref": "#/$defs/footprint" },
+    "storeys": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/storey" }
+    },
+    "entrance": { "$ref": "#/$defs/entrance" },
+    "stairs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/stair" }
+    },
+    "provenance": { "$ref": "#/$defs/provenance" },
+    "geometry_hash": { "$ref": "#/$defs/geometryHash" },
+    "approval": { "$ref": "#/$defs/approval" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "nullableString": {
+      "type": ["string", "null"]
+    },
+    "pointMm": {
+      "type": "array",
+      "prefixItems": [{ "type": "integer" }, { "type": "integer" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "polygonMm": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/$defs/pointMm" }
+    },
+    "coordinateSystem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "origin",
+        "x_positive",
+        "y_positive",
+        "integer_precision_mm",
+        "north_rotation_degrees",
+        "wall_reference"
+      ],
+      "properties": {
+        "origin": { "const": "northwest" },
+        "x_positive": { "const": "east" },
+        "y_positive": { "const": "south" },
+        "integer_precision_mm": { "const": 1 },
+        "north_rotation_degrees": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "exclusiveMaximum": 360
+        },
+        "wall_reference": { "const": "centerline" }
+      }
+    },
+    "building": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storey_type"],
+      "properties": {
+        "storey_type": {
+          "enum": ["1_storey", "1_5_storey", "2_storey"]
+        }
+      }
+    },
+    "footprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["boundary_reference", "boundary_polygon_mm"],
+      "properties": {
+        "boundary_reference": { "const": "exterior_wall_centerline" },
+        "boundary_polygon_mm": { "$ref": "#/$defs/polygonMm" }
+      }
+    },
+    "room": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "room_type",
+        "access_required",
+        "habitable",
+        "polygon_mm"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "name": { "type": "string", "minLength": 1 },
+        "room_type": {
+          "enum": [
+            "living",
+            "dining",
+            "kitchen",
+            "living_dining_kitchen",
+            "bedroom",
+            "bathroom",
+            "wc",
+            "office",
+            "utility",
+            "storage",
+            "circulation",
+            "garage",
+            "flex",
+            "other"
+          ]
+        },
+        "access_required": { "type": "boolean" },
+        "habitable": { "type": "boolean" },
+        "polygon_mm": { "$ref": "#/$defs/polygonMm" }
+      }
+    },
+    "wall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "wall_type",
+        "start_mm",
+        "end_mm",
+        "thickness_mm",
+        "separates"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "wall_type": { "enum": ["exterior", "loadbearing", "partition"] },
+        "start_mm": { "$ref": "#/$defs/pointMm" },
+        "end_mm": { "$ref": "#/$defs/pointMm" },
+        "thickness_mm": { "type": "integer", "minimum": 1 },
+        "separates": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "opening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "opening_type",
+        "wall_id",
+        "offset_mm",
+        "width_mm",
+        "connects",
+        "traversable"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "opening_type": { "enum": ["door", "window", "open_passage"] },
+        "wall_id": { "$ref": "#/$defs/id" },
+        "offset_mm": { "type": "integer", "minimum": 0 },
+        "width_mm": { "type": "integer", "minimum": 1 },
+        "connects": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "traversable": { "type": "boolean" },
+        "sill_height_mm": { "type": "integer", "minimum": 0 },
+        "height_mm": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "slabOpening": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "opening_type", "polygon_mm"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "opening_type": { "enum": ["stairs", "shaft", "void"] },
+        "polygon_mm": { "$ref": "#/$defs/polygonMm" }
+      }
+    },
+    "storey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "level_index",
+        "elevation_mm",
+        "planning_boundary_mm",
+        "rooms",
+        "walls",
+        "openings",
+        "slab_openings"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "level_index": { "type": "integer", "minimum": 0 },
+        "elevation_mm": { "type": "integer" },
+        "planning_boundary_mm": { "$ref": "#/$defs/polygonMm" },
+        "rooms": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/room" }
+        },
+        "walls": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/wall" }
+        },
+        "openings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/opening" }
+        },
+        "slab_openings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/slabOpening" }
+        }
+      }
+    },
+    "entrance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["storey_id", "opening_id", "enters_room_id"],
+      "properties": {
+        "storey_id": { "$ref": "#/$defs/id" },
+        "opening_id": { "$ref": "#/$defs/id" },
+        "enters_room_id": { "$ref": "#/$defs/id" }
+      }
+    },
+    "stairInterface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "storey_id",
+        "footprint_polygon_mm",
+        "arrival_room_id",
+        "slab_opening_id"
+      ],
+      "properties": {
+        "storey_id": { "$ref": "#/$defs/id" },
+        "footprint_polygon_mm": { "$ref": "#/$defs/polygonMm" },
+        "arrival_room_id": { "$ref": "#/$defs/id" },
+        "slab_opening_id": {
+          "oneOf": [{ "$ref": "#/$defs/id" }, { "type": "null" }]
+        }
+      }
+    },
+    "stair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "stair_type",
+        "from_storey_id",
+        "to_storey_id",
+        "clear_width_mm",
+        "direction",
+        "path_mm",
+        "interfaces"
+      ],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "stair_type": {
+          "enum": ["straight", "quarter_turn", "half_turn", "multi_turn"]
+        },
+        "from_storey_id": { "$ref": "#/$defs/id" },
+        "to_storey_id": { "$ref": "#/$defs/id" },
+        "clear_width_mm": { "type": "integer", "minimum": 1 },
+        "direction": { "const": "up" },
+        "path_mm": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/pointMm" }
+        },
+        "interfaces": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "$ref": "#/$defs/stairInterface" }
+        }
+      }
+    },
+    "scaleAnchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "kind",
+        "source_segment_normalized",
+        "length_mm"
+      ],
+      "properties": {
+        "status": { "enum": ["verified", "not_applicable_synthetic"] },
+        "kind": {
+          "enum": [
+            "overall_width",
+            "overall_depth",
+            "dimension_line",
+            "survey",
+            null
+          ]
+        },
+        "source_segment_normalized": {
+          "type": ["array", "null"],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "type": "array",
+            "prefixItems": [
+              { "type": "number", "minimum": 0, "maximum": 1 },
+              { "type": "number", "minimum": 0, "maximum": 1 }
+            ],
+            "items": false,
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "length_mm": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_kind",
+        "source_project_id",
+        "source_schema_version",
+        "source_annotation_sha256",
+        "conversion_method",
+        "scale_anchor"
+      ],
+      "properties": {
+        "source_kind": { "enum": ["real_annotated", "synthetic_test"] },
+        "source_project_id": { "type": "string", "minLength": 1 },
+        "source_schema_version": { "type": "string", "minLength": 1 },
+        "source_annotation_sha256": {
+          "type": ["string", "null"],
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "conversion_method": { "type": "string", "minLength": 1 },
+        "scale_anchor": { "$ref": "#/$defs/scaleAnchor" }
+      }
+    },
+    "geometryHash": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "canonicalization", "value"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "canonicalization": { "const": "dmh-canonical-geometry-v1" },
+        "value": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "quality_status",
+        "rights_status",
+        "usage_scope",
+        "approved_by",
+        "approved_at",
+        "rights_evidence_reference"
+      ],
+      "properties": {
+        "state": {
+          "enum": ["internal_reference", "commercial_approved", "rejected"]
+        },
+        "quality_status": {
+          "enum": ["passed", "review_required", "rejected"]
+        },
+        "rights_status": {
+          "enum": [
+            "not_explicitly_recorded",
+            "confirmed_owned",
+            "licensed",
+            "restricted"
+          ]
+        },
+        "usage_scope": {
+          "enum": ["internal_reference_only", "commercial_generator"]
+        },
+        "approved_by": { "$ref": "#/$defs/nullableString" },
+        "approved_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "rights_evidence_reference": {
+          "$ref": "#/$defs/nullableString"
+        }
+      }
+    }
+  }
+}
