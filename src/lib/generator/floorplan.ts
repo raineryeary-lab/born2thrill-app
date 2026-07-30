@@ -62,6 +62,7 @@ export type FloorPlan = {
   stairWidthPx?: number;
   stairType?: "straight" | "quarter_turn" | "half_or_multi_turn";
   referenceFootprint?: { x: number; y: number; width: number; height: number };
+  referenceFootprintPolygon?: Array<{ x: number; y: number }>;
   referenceLayoutId?: string;
   referenceElements?: Array<{ id: string; type: string; points: Array<{ x: number; y: number }> }>;
 };
@@ -95,6 +96,7 @@ export type PlanVariant = {
     path: Array<{ x: number; y: number }>;
     geometry: StairGeometry;
   } | null;
+  canonicalGeometrySha256?: string;
   score: number;
   checks: Array<{ label: string; passed: boolean }>;
   metrics: {

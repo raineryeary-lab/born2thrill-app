@@ -318,7 +318,13 @@
         "length_mm"
       ],
       "properties": {
-        "status": { "enum": ["verified", "not_applicable_synthetic"] },
+        "status": {
+          "enum": [
+            "verified",
+            "user_confirmed_inferred",
+            "not_applicable_synthetic"
+          ]
+        },
         "kind": {
           "enum": [
             "overall_width",

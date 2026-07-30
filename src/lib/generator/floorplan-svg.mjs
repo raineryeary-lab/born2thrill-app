@@ -81,6 +81,15 @@ function normalizedFloor(plan) {
   }));
   const allPoints = rooms.flatMap((entry) => entry.points);
   const footprint = plan.referenceFootprint ?? bounds(allPoints);
+  const footprintPolygon = Array.isArray(plan.referenceFootprintPolygon)
+    && plan.referenceFootprintPolygon.length >= 3
+    ? plan.referenceFootprintPolygon
+    : [
+        { x: footprint.x, y: footprint.y },
+        { x: footprint.x + footprint.width, y: footprint.y },
+        { x: footprint.x + footprint.width, y: footprint.y + footprint.height },
+        { x: footprint.x, y: footprint.y + footprint.height },
+      ];
   const floorArea = plan.rooms.reduce((sum, room) => sum + Number(room.area || 0), 0);
   const pixelArea = rooms.reduce((sum, entry) => {
     const box = bounds(entry.points);
@@ -90,6 +99,7 @@ function normalizedFloor(plan) {
   return {
     rooms,
     footprint,
+    footprintPolygon,
     innerWallPx: Math.max(2.5, Math.min(5, pixelsPerMeter * 0.1)),
     outerWallPx: Math.max(8, Math.min(15, pixelsPerMeter * 0.35)),
   };
@@ -199,7 +209,7 @@ function floorMarkup(plan, originX, originY, targetWidth, targetHeight) {
     <g transform="${transform}">
       ${roomFills}
       ${innerWalls}
-      <rect x="${number(source.x)}" y="${number(source.y)}" width="${number(source.width)}" height="${number(source.height)}"
+      <polygon points="${pointsAttribute(geometry.footprintPolygon)}"
         fill="none" stroke="#1c1917" stroke-width="${number(geometry.outerWallPx)}" stroke-linejoin="miter"/>
       ${openings}
       ${stairMarkup(plan)}

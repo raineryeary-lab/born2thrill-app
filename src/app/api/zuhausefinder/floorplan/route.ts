@@ -1,6 +1,10 @@
 import { timingSafeEqual } from "node:crypto";
 import type { HouseBrief } from "@/lib/generator/floorplan";
-import { generateVariants } from "@/lib/generator/floorplan";
+import {
+  CANONICAL_BUNGALOW_GENERATOR_VERSION,
+  canonicalBungalow033Plan,
+  canonicalBungalow033Variant,
+} from "@/lib/generator/canonical-floorplan-adapter";
 import {
   classifyZuhausefinderFloorplan,
   mapZuhausefinderBrief,
@@ -16,7 +20,6 @@ import {
 import { renderPlanGeometryGuidePng } from "@/lib/generator/floorplan-guide";
 import {
   buildZuhausefinderVisualizationContext,
-  REFERENCE_GENERATOR_VERSION,
   sha256Hex,
 } from "@/lib/generator/zuhausefinder-visualization.mjs";
 
@@ -74,7 +77,14 @@ export async function POST(request: Request) {
       ...(mapZuhausefinderBrief(source) as HouseBrief),
       referenceUsageScope: "commercial_generator" as const,
     };
-    const variants = generateVariants(brief);
+    if (brief.storeyType !== "1_storey") {
+      return json({
+        error: "Der interne Prüfstand ist momentan auf Bungalows begrenzt.",
+        supported_storey_type: "1_storey",
+      }, 422);
+    }
+    const canonicalPlan = canonicalBungalow033Plan();
+    const variants = [canonicalBungalow033Variant()];
     const variant = selectQualityVariant(variants);
     if (!variant) {
       return json({ error: "Es konnte keine passende Referenz ausgewählt werden." }, 422);
@@ -123,7 +133,7 @@ export async function POST(request: Request) {
       file_base64: svgBytes.toString("base64"),
       artifact_sha256: sha256Hex(svgBytes),
       generator: {
-        version: REFERENCE_GENERATOR_VERSION,
+        version: CANONICAL_BUNGALOW_GENERATOR_VERSION,
         reference_layout_id: variant.metrics.referenceLayoutId,
         score: variant.score,
         floor_count: variant.floors.length,
@@ -135,6 +145,7 @@ export async function POST(request: Request) {
         quality_status: classification.geometry_quality,
         customer_ready: customerReady,
         manual_review_required: !customerReady,
+        fixture_approval: canonicalPlan.approval,
       },
       classification,
       visualization_context: visualizationContext,

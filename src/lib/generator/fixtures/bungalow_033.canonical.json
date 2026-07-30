@@ -1,0 +1,1502 @@
+{
+  "schema_version": "dmh-canonical-floorplan-v1",
+  "plan_id": "bungalow_033_inferred_v1",
+  "units": "mm",
+  "coordinate_system": {
+    "origin": "northwest",
+    "x_positive": "east",
+    "y_positive": "south",
+    "integer_precision_mm": 1,
+    "north_rotation_degrees": null,
+    "wall_reference": "centerline"
+  },
+  "building": {
+    "storey_type": "1_storey"
+  },
+  "footprint": {
+    "boundary_reference": "exterior_wall_centerline",
+    "boundary_polygon_mm": [
+      [
+        0,
+        0
+      ],
+      [
+        11900,
+        0
+      ],
+      [
+        11900,
+        5400
+      ],
+      [
+        16900,
+        5400
+      ],
+      [
+        16900,
+        11900
+      ],
+      [
+        0,
+        11900
+      ]
+    ]
+  },
+  "storeys": [
+    {
+      "id": "groundfloor",
+      "level_index": 0,
+      "elevation_mm": 0,
+      "planning_boundary_mm": [
+        [
+          0,
+          0
+        ],
+        [
+          11900,
+          0
+        ],
+        [
+          11900,
+          5400
+        ],
+        [
+          16900,
+          5400
+        ],
+        [
+          16900,
+          11900
+        ],
+        [
+          0,
+          11900
+        ]
+      ],
+      "rooms": [
+        {
+          "id": "ankleide",
+          "name": "Ankleide",
+          "room_type": "storage",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              0,
+              0
+            ],
+            [
+              2200,
+              0
+            ],
+            [
+              2200,
+              3600
+            ],
+            [
+              0,
+              3600
+            ]
+          ]
+        },
+        {
+          "id": "eltern",
+          "name": "Eltern / Schlafen",
+          "room_type": "bedroom",
+          "access_required": true,
+          "habitable": true,
+          "polygon_mm": [
+            [
+              2200,
+              0
+            ],
+            [
+              5530,
+              0
+            ],
+            [
+              5530,
+              3600
+            ],
+            [
+              2200,
+              3600
+            ]
+          ]
+        },
+        {
+          "id": "wohnen",
+          "name": "Wohnen / Essen / Kochen",
+          "room_type": "living_dining_kitchen",
+          "access_required": true,
+          "habitable": true,
+          "polygon_mm": [
+            [
+              5530,
+              0
+            ],
+            [
+              11900,
+              0
+            ],
+            [
+              11900,
+              7000
+            ],
+            [
+              9400,
+              7000
+            ],
+            [
+              9400,
+              8000
+            ],
+            [
+              11900,
+              8000
+            ],
+            [
+              11900,
+              9400
+            ],
+            [
+              9400,
+              9400
+            ],
+            [
+              9400,
+              8100
+            ],
+            [
+              5530,
+              8100
+            ]
+          ]
+        },
+        {
+          "id": "bad",
+          "name": "Bad",
+          "room_type": "bathroom",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              0,
+              3600
+            ],
+            [
+              2800,
+              3600
+            ],
+            [
+              2800,
+              6100
+            ],
+            [
+              0,
+              6100
+            ]
+          ]
+        },
+        {
+          "id": "flur",
+          "name": "Flur",
+          "room_type": "circulation",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              2800,
+              3600
+            ],
+            [
+              5530,
+              3600
+            ],
+            [
+              5530,
+              8100
+            ],
+            [
+              4000,
+              8100
+            ],
+            [
+              4000,
+              6100
+            ],
+            [
+              2800,
+              6100
+            ]
+          ]
+        },
+        {
+          "id": "kind_1",
+          "name": "Kind",
+          "room_type": "bedroom",
+          "access_required": true,
+          "habitable": true,
+          "polygon_mm": [
+            [
+              0,
+              6100
+            ],
+            [
+              4000,
+              6100
+            ],
+            [
+              4000,
+              8600
+            ],
+            [
+              0,
+              8600
+            ]
+          ]
+        },
+        {
+          "id": "kind_2",
+          "name": "Kind",
+          "room_type": "bedroom",
+          "access_required": true,
+          "habitable": true,
+          "polygon_mm": [
+            [
+              0,
+              8600
+            ],
+            [
+              4000,
+              8600
+            ],
+            [
+              4000,
+              11100
+            ],
+            [
+              0,
+              11100
+            ]
+          ]
+        },
+        {
+          "id": "hwr_htr",
+          "name": "HWR / HTR",
+          "room_type": "utility",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              4000,
+              9400
+            ],
+            [
+              6500,
+              9400
+            ],
+            [
+              6500,
+              11900
+            ],
+            [
+              0,
+              11900
+            ],
+            [
+              0,
+              11100
+            ],
+            [
+              4000,
+              11100
+            ]
+          ]
+        },
+        {
+          "id": "du_bad",
+          "name": "Duschbad",
+          "room_type": "bathroom",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              6500,
+              9400
+            ],
+            [
+              7900,
+              9400
+            ],
+            [
+              7900,
+              11900
+            ],
+            [
+              6500,
+              11900
+            ]
+          ]
+        },
+        {
+          "id": "diele",
+          "name": "Diele",
+          "room_type": "circulation",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              4000,
+              8100
+            ],
+            [
+              9400,
+              8100
+            ],
+            [
+              9400,
+              9400
+            ],
+            [
+              11900,
+              9400
+            ],
+            [
+              11900,
+              11900
+            ],
+            [
+              7900,
+              11900
+            ],
+            [
+              7900,
+              9400
+            ],
+            [
+              4000,
+              9400
+            ]
+          ]
+        },
+        {
+          "id": "speisekammer",
+          "name": "Speisekammer",
+          "room_type": "storage",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              9400,
+              7000
+            ],
+            [
+              11900,
+              7000
+            ],
+            [
+              11900,
+              8000
+            ],
+            [
+              9400,
+              8000
+            ]
+          ]
+        },
+        {
+          "id": "garage",
+          "name": "Garage",
+          "room_type": "garage",
+          "access_required": true,
+          "habitable": false,
+          "polygon_mm": [
+            [
+              11900,
+              5400
+            ],
+            [
+              16900,
+              5400
+            ],
+            [
+              16900,
+              11900
+            ],
+            [
+              11900,
+              11900
+            ]
+          ]
+        }
+      ],
+      "walls": [
+        {
+          "id": "wall_001",
+          "wall_type": "exterior",
+          "start_mm": [
+            0,
+            0
+          ],
+          "end_mm": [
+            2200,
+            0
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "ankleide",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_002",
+          "wall_type": "exterior",
+          "start_mm": [
+            2200,
+            0
+          ],
+          "end_mm": [
+            5530,
+            0
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "eltern",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_003",
+          "wall_type": "exterior",
+          "start_mm": [
+            5530,
+            0
+          ],
+          "end_mm": [
+            11900,
+            0
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "wohnen",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_004",
+          "wall_type": "partition",
+          "start_mm": [
+            0,
+            3600
+          ],
+          "end_mm": [
+            2200,
+            3600
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "ankleide",
+            "bad"
+          ]
+        },
+        {
+          "id": "wall_005",
+          "wall_type": "partition",
+          "start_mm": [
+            2200,
+            3600
+          ],
+          "end_mm": [
+            2800,
+            3600
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "bad",
+            "eltern"
+          ]
+        },
+        {
+          "id": "wall_006",
+          "wall_type": "partition",
+          "start_mm": [
+            2800,
+            3600
+          ],
+          "end_mm": [
+            5530,
+            3600
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "eltern",
+            "flur"
+          ]
+        },
+        {
+          "id": "wall_007",
+          "wall_type": "exterior",
+          "start_mm": [
+            11900,
+            5400
+          ],
+          "end_mm": [
+            16900,
+            5400
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "garage",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_008",
+          "wall_type": "partition",
+          "start_mm": [
+            0,
+            6100
+          ],
+          "end_mm": [
+            2800,
+            6100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "bad",
+            "kind_1"
+          ]
+        },
+        {
+          "id": "wall_009",
+          "wall_type": "partition",
+          "start_mm": [
+            2800,
+            6100
+          ],
+          "end_mm": [
+            4000,
+            6100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "flur",
+            "kind_1"
+          ]
+        },
+        {
+          "id": "wall_010",
+          "wall_type": "partition",
+          "start_mm": [
+            9400,
+            7000
+          ],
+          "end_mm": [
+            11900,
+            7000
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "speisekammer",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_011",
+          "wall_type": "partition",
+          "start_mm": [
+            9400,
+            8000
+          ],
+          "end_mm": [
+            11900,
+            8000
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "speisekammer",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_012",
+          "wall_type": "partition",
+          "start_mm": [
+            4000,
+            8100
+          ],
+          "end_mm": [
+            5530,
+            8100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "flur"
+          ]
+        },
+        {
+          "id": "wall_013",
+          "wall_type": "partition",
+          "start_mm": [
+            5530,
+            8100
+          ],
+          "end_mm": [
+            9400,
+            8100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_014",
+          "wall_type": "partition",
+          "start_mm": [
+            0,
+            8600
+          ],
+          "end_mm": [
+            4000,
+            8600
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "kind_1",
+            "kind_2"
+          ]
+        },
+        {
+          "id": "wall_015",
+          "wall_type": "partition",
+          "start_mm": [
+            4000,
+            9400
+          ],
+          "end_mm": [
+            6500,
+            9400
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "hwr_htr"
+          ]
+        },
+        {
+          "id": "wall_016",
+          "wall_type": "partition",
+          "start_mm": [
+            6500,
+            9400
+          ],
+          "end_mm": [
+            7900,
+            9400
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "du_bad"
+          ]
+        },
+        {
+          "id": "wall_017",
+          "wall_type": "partition",
+          "start_mm": [
+            9400,
+            9400
+          ],
+          "end_mm": [
+            11900,
+            9400
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_018",
+          "wall_type": "partition",
+          "start_mm": [
+            0,
+            11100
+          ],
+          "end_mm": [
+            4000,
+            11100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "hwr_htr",
+            "kind_2"
+          ]
+        },
+        {
+          "id": "wall_019",
+          "wall_type": "exterior",
+          "start_mm": [
+            0,
+            11900
+          ],
+          "end_mm": [
+            6500,
+            11900
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "hwr_htr",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_020",
+          "wall_type": "exterior",
+          "start_mm": [
+            6500,
+            11900
+          ],
+          "end_mm": [
+            7900,
+            11900
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "du_bad",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_021",
+          "wall_type": "exterior",
+          "start_mm": [
+            7900,
+            11900
+          ],
+          "end_mm": [
+            11900,
+            11900
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "diele",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_022",
+          "wall_type": "exterior",
+          "start_mm": [
+            11900,
+            11900
+          ],
+          "end_mm": [
+            16900,
+            11900
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "garage",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_023",
+          "wall_type": "exterior",
+          "start_mm": [
+            0,
+            0
+          ],
+          "end_mm": [
+            0,
+            3600
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "ankleide",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_024",
+          "wall_type": "exterior",
+          "start_mm": [
+            0,
+            3600
+          ],
+          "end_mm": [
+            0,
+            6100
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "bad",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_025",
+          "wall_type": "exterior",
+          "start_mm": [
+            0,
+            6100
+          ],
+          "end_mm": [
+            0,
+            8600
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "kind_1",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_026",
+          "wall_type": "exterior",
+          "start_mm": [
+            0,
+            8600
+          ],
+          "end_mm": [
+            0,
+            11100
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "kind_2",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_027",
+          "wall_type": "exterior",
+          "start_mm": [
+            0,
+            11100
+          ],
+          "end_mm": [
+            0,
+            11900
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "hwr_htr",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_028",
+          "wall_type": "partition",
+          "start_mm": [
+            2200,
+            0
+          ],
+          "end_mm": [
+            2200,
+            3600
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "ankleide",
+            "eltern"
+          ]
+        },
+        {
+          "id": "wall_029",
+          "wall_type": "partition",
+          "start_mm": [
+            2800,
+            3600
+          ],
+          "end_mm": [
+            2800,
+            6100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "bad",
+            "flur"
+          ]
+        },
+        {
+          "id": "wall_030",
+          "wall_type": "partition",
+          "start_mm": [
+            4000,
+            6100
+          ],
+          "end_mm": [
+            4000,
+            8100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "flur",
+            "kind_1"
+          ]
+        },
+        {
+          "id": "wall_031",
+          "wall_type": "partition",
+          "start_mm": [
+            4000,
+            8100
+          ],
+          "end_mm": [
+            4000,
+            8600
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "kind_1"
+          ]
+        },
+        {
+          "id": "wall_032",
+          "wall_type": "partition",
+          "start_mm": [
+            4000,
+            8600
+          ],
+          "end_mm": [
+            4000,
+            9400
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "kind_2"
+          ]
+        },
+        {
+          "id": "wall_033",
+          "wall_type": "partition",
+          "start_mm": [
+            4000,
+            9400
+          ],
+          "end_mm": [
+            4000,
+            11100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "hwr_htr",
+            "kind_2"
+          ]
+        },
+        {
+          "id": "wall_034",
+          "wall_type": "partition",
+          "start_mm": [
+            5530,
+            0
+          ],
+          "end_mm": [
+            5530,
+            3600
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "eltern",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_035",
+          "wall_type": "partition",
+          "start_mm": [
+            5530,
+            3600
+          ],
+          "end_mm": [
+            5530,
+            8100
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "flur",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_036",
+          "wall_type": "partition",
+          "start_mm": [
+            6500,
+            9400
+          ],
+          "end_mm": [
+            6500,
+            11900
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "du_bad",
+            "hwr_htr"
+          ]
+        },
+        {
+          "id": "wall_037",
+          "wall_type": "partition",
+          "start_mm": [
+            7900,
+            9400
+          ],
+          "end_mm": [
+            7900,
+            11900
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "du_bad"
+          ]
+        },
+        {
+          "id": "wall_038",
+          "wall_type": "partition",
+          "start_mm": [
+            9400,
+            7000
+          ],
+          "end_mm": [
+            9400,
+            8000
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "speisekammer",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_039",
+          "wall_type": "partition",
+          "start_mm": [
+            9400,
+            8100
+          ],
+          "end_mm": [
+            9400,
+            9400
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_040",
+          "wall_type": "exterior",
+          "start_mm": [
+            11900,
+            0
+          ],
+          "end_mm": [
+            11900,
+            5400
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "wohnen",
+            "outside"
+          ]
+        },
+        {
+          "id": "wall_041",
+          "wall_type": "partition",
+          "start_mm": [
+            11900,
+            5400
+          ],
+          "end_mm": [
+            11900,
+            7000
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "garage",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_042",
+          "wall_type": "partition",
+          "start_mm": [
+            11900,
+            7000
+          ],
+          "end_mm": [
+            11900,
+            8000
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "garage",
+            "speisekammer"
+          ]
+        },
+        {
+          "id": "wall_043",
+          "wall_type": "partition",
+          "start_mm": [
+            11900,
+            8000
+          ],
+          "end_mm": [
+            11900,
+            9400
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "garage",
+            "wohnen"
+          ]
+        },
+        {
+          "id": "wall_044",
+          "wall_type": "partition",
+          "start_mm": [
+            11900,
+            9400
+          ],
+          "end_mm": [
+            11900,
+            11900
+          ],
+          "thickness_mm": 100,
+          "separates": [
+            "diele",
+            "garage"
+          ]
+        },
+        {
+          "id": "wall_045",
+          "wall_type": "exterior",
+          "start_mm": [
+            16900,
+            5400
+          ],
+          "end_mm": [
+            16900,
+            11900
+          ],
+          "thickness_mm": 350,
+          "separates": [
+            "garage",
+            "outside"
+          ]
+        }
+      ],
+      "openings": [
+        {
+          "id": "door_entrance",
+          "opening_type": "door",
+          "wall_id": "wall_021",
+          "offset_mm": 1500,
+          "width_mm": 1000,
+          "connects": [
+            "diele",
+            "outside"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_diele_living",
+          "opening_type": "open_passage",
+          "wall_id": "wall_013",
+          "offset_mm": 1235,
+          "width_mm": 1400,
+          "connects": [
+            "diele",
+            "wohnen"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_diele_flur",
+          "opening_type": "open_passage",
+          "wall_id": "wall_012",
+          "offset_mm": 165,
+          "width_mm": 1200,
+          "connects": [
+            "diele",
+            "flur"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_diele_hwr",
+          "opening_type": "door",
+          "wall_id": "wall_015",
+          "offset_mm": 800,
+          "width_mm": 900,
+          "connects": [
+            "diele",
+            "hwr_htr"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_diele_du",
+          "opening_type": "door",
+          "wall_id": "wall_037",
+          "offset_mm": 800,
+          "width_mm": 900,
+          "connects": [
+            "diele",
+            "du_bad"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_diele_kind_2",
+          "opening_type": "door",
+          "wall_id": "wall_032",
+          "offset_mm": 0,
+          "width_mm": 800,
+          "connects": [
+            "diele",
+            "kind_2"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_flur_bad",
+          "opening_type": "door",
+          "wall_id": "wall_029",
+          "offset_mm": 800,
+          "width_mm": 900,
+          "connects": [
+            "flur",
+            "bad"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_flur_kind_1",
+          "opening_type": "door",
+          "wall_id": "wall_030",
+          "offset_mm": 550,
+          "width_mm": 900,
+          "connects": [
+            "flur",
+            "kind_1"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_flur_eltern",
+          "opening_type": "door",
+          "wall_id": "wall_006",
+          "offset_mm": 915,
+          "width_mm": 900,
+          "connects": [
+            "flur",
+            "eltern"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_eltern_ankleide",
+          "opening_type": "door",
+          "wall_id": "wall_028",
+          "offset_mm": 1350,
+          "width_mm": 900,
+          "connects": [
+            "eltern",
+            "ankleide"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_living_pantry",
+          "opening_type": "door",
+          "wall_id": "wall_010",
+          "offset_mm": 850,
+          "width_mm": 800,
+          "connects": [
+            "wohnen",
+            "speisekammer"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_diele_garage",
+          "opening_type": "door",
+          "wall_id": "wall_044",
+          "offset_mm": 800,
+          "width_mm": 900,
+          "connects": [
+            "diele",
+            "garage"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "door_garage_vehicle",
+          "opening_type": "door",
+          "wall_id": "wall_045",
+          "offset_mm": 1750,
+          "width_mm": 3000,
+          "connects": [
+            "garage",
+            "outside"
+          ],
+          "traversable": true
+        },
+        {
+          "id": "window_eltern",
+          "opening_type": "window",
+          "wall_id": "wall_002",
+          "offset_mm": 765,
+          "width_mm": 1800,
+          "connects": [
+            "eltern",
+            "outside"
+          ],
+          "traversable": false,
+          "sill_height_mm": 900,
+          "height_mm": 1300
+        },
+        {
+          "id": "window_bad",
+          "opening_type": "window",
+          "wall_id": "wall_024",
+          "offset_mm": 650,
+          "width_mm": 1200,
+          "connects": [
+            "bad",
+            "outside"
+          ],
+          "traversable": false,
+          "sill_height_mm": 1200,
+          "height_mm": 900
+        },
+        {
+          "id": "window_kind_1",
+          "opening_type": "window",
+          "wall_id": "wall_025",
+          "offset_mm": 450,
+          "width_mm": 1600,
+          "connects": [
+            "kind_1",
+            "outside"
+          ],
+          "traversable": false,
+          "sill_height_mm": 900,
+          "height_mm": 1300
+        },
+        {
+          "id": "window_kind_2",
+          "opening_type": "window",
+          "wall_id": "wall_026",
+          "offset_mm": 450,
+          "width_mm": 1600,
+          "connects": [
+            "kind_2",
+            "outside"
+          ],
+          "traversable": false,
+          "sill_height_mm": 900,
+          "height_mm": 1300
+        },
+        {
+          "id": "window_living",
+          "opening_type": "window",
+          "wall_id": "wall_003",
+          "offset_mm": 1985,
+          "width_mm": 2400,
+          "connects": [
+            "wohnen",
+            "outside"
+          ],
+          "traversable": false,
+          "sill_height_mm": 300,
+          "height_mm": 2100
+        },
+        {
+          "id": "window_hwr",
+          "opening_type": "window",
+          "wall_id": "wall_019",
+          "offset_mm": 2650,
+          "width_mm": 1200,
+          "connects": [
+            "hwr_htr",
+            "outside"
+          ],
+          "traversable": false,
+          "sill_height_mm": 1100,
+          "height_mm": 900
+        },
+        {
+          "id": "window_du",
+          "opening_type": "window",
+          "wall_id": "wall_020",
+          "offset_mm": 200,
+          "width_mm": 1000,
+          "connects": [
+            "du_bad",
+            "outside"
+          ],
+          "traversable": false,
+          "sill_height_mm": 1200,
+          "height_mm": 900
+        }
+      ],
+      "slab_openings": []
+    }
+  ],
+  "entrance": {
+    "storey_id": "groundfloor",
+    "opening_id": "door_entrance",
+    "enters_room_id": "diele"
+  },
+  "stairs": [],
+  "provenance": {
+    "source_kind": "real_annotated",
+    "source_project_id": "bungalow_033",
+    "source_schema_version": "simplifier-annotations-v1",
+    "source_annotation_sha256": "bf0d61d01c408ac220706d54f107b010208cb0e3622e5a900027b6d2dc50a114",
+    "conversion_method": "user-confirmed inferred 11900 mm main-house width; room polygons redrawn to the confirmed target areas",
+    "scale_anchor": {
+      "status": "user_confirmed_inferred",
+      "kind": "overall_width",
+      "source_segment_normalized": [
+        [
+          0.072749,
+          0.053857
+        ],
+        [
+          0.696824,
+          0.053857
+        ]
+      ],
+      "length_mm": 11900
+    }
+  },
+  "geometry_hash": {
+    "algorithm": "sha256",
+    "canonicalization": "dmh-canonical-geometry-v1",
+    "value": "6365c437308decf88fe150f5fc2366aa3078d77b5535e00de90bdda40fcf7f3a"
+  },
+  "approval": {
+    "state": "internal_reference",
+    "quality_status": "review_required",
+    "rights_status": "not_explicitly_recorded",
+    "usage_scope": "internal_reference_only",
+    "approved_by": null,
+    "approved_at": null,
+    "rights_evidence_reference": null
+  }
+}

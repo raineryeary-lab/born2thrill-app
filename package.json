@@ -11,6 +11,7 @@
     "build": "next build",
     "start": "next start",
     "start:railway": "node .next/standalone/server.js",
+    "build:fixture:bungalow-033": "node scripts/build-bungalow-033-fixture.mjs",
     "import:simplifier": "node scripts/import-simplifier-handoff.mjs",
     "test:canonical-floorplan": "node --test --test-isolation=none scripts/canonical-floorplan.test.mjs",
     "test:zuhausefinder-generator": "node --test --test-isolation=none scripts/zuhausefinder-generator.test.mjs",

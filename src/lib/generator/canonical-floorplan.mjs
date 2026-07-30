@@ -397,7 +397,7 @@ function validateApproval(approval, errors) {
   }
 }
 
-function validateProvenance(provenance, errors) {
+function validateProvenance(provenance, errors, warnings) {
   const path = "provenance";
   if (!isRecord(provenance)) {
     addError(errors, "required_object", path);
@@ -434,16 +434,19 @@ function validateProvenance(provenance, errors) {
     "source_segment_normalized",
     "length_mm",
   ]), `${path}.scale_anchor`, errors);
-  if (!["verified", "not_applicable_synthetic"].includes(anchor.status)) {
+  if (!["verified", "user_confirmed_inferred", "not_applicable_synthetic"].includes(anchor.status)) {
     addError(errors, "invalid_scale_anchor_status", `${path}.scale_anchor.status`);
   }
-  if (provenance.source_kind === "real_annotated" && anchor.status !== "verified") {
+  if (
+    provenance.source_kind === "real_annotated"
+    && !["verified", "user_confirmed_inferred"].includes(anchor.status)
+  ) {
     addError(errors, "real_source_requires_verified_scale", `${path}.scale_anchor.status`);
   }
   if (provenance.source_kind === "synthetic_test" && anchor.status !== "not_applicable_synthetic") {
     addError(errors, "synthetic_source_scale_status_mismatch", `${path}.scale_anchor.status`);
   }
-  if (anchor.status === "verified") {
+  if (anchor.status === "verified" || anchor.status === "user_confirmed_inferred") {
     if (!["overall_width", "overall_depth", "dimension_line", "survey"].includes(anchor.kind)) {
       addError(errors, "invalid_scale_anchor_kind", `${path}.scale_anchor.kind`);
     }
@@ -468,6 +471,9 @@ function validateProvenance(provenance, errors) {
       ) {
         addError(errors, "normalized_scale_segment_zero_length", `${path}.scale_anchor.source_segment_normalized`);
       }
+    }
+    if (anchor.status === "user_confirmed_inferred") {
+      warnings.push("user_confirmed_inferred_scale_requires_review:provenance.scale_anchor");
     }
   } else if (
     anchor.kind !== null
@@ -1006,8 +1012,14 @@ export function validateCanonicalFloorplan(plan) {
     }
   }
 
-  validateProvenance(plan.provenance, errors);
+  validateProvenance(plan.provenance, errors, warnings);
   validateApproval(plan.approval, errors);
+  if (
+    plan.approval?.usage_scope === "commercial_generator"
+    && plan.provenance?.scale_anchor?.status !== "verified"
+  ) {
+    addError(errors, "commercial_use_requires_verified_scale", "provenance.scale_anchor.status");
+  }
   if (
     plan.provenance?.source_kind === "synthetic_test"
     && plan.approval?.usage_scope === "commercial_generator"

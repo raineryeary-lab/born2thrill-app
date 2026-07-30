@@ -85,7 +85,7 @@ export type CanonicalFloorplan = {
     source_annotation_sha256: string | null;
     conversion_method: string;
     scale_anchor: {
-      status: "verified" | "not_applicable_synthetic";
+      status: "verified" | "user_confirmed_inferred" | "not_applicable_synthetic";
       kind: "overall_width" | "overall_depth" | "dimension_line" | "survey" | null;
       source_segment_normalized: [[number, number], [number, number]] | null;
       length_mm: number | null;

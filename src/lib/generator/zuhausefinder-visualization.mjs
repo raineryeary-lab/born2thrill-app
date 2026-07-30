@@ -90,6 +90,9 @@ export function floorplanGeometryPayload(variant) {
             height: rounded(floor.referenceFootprint.height),
           }
         : null,
+      reference_footprint_polygon: Array.isArray(floor.referenceFootprintPolygon)
+        ? floor.referenceFootprintPolygon.map(normalizedPoint)
+        : null,
       rooms: [...(Array.isArray(floor.rooms) ? floor.rooms : [])]
         .sort((left, right) => text(left.id).localeCompare(text(right.id)))
         .map((room) => ({
@@ -116,6 +119,9 @@ export function floorplanGeometryPayload(variant) {
 }
 
 export function geometrySha256(variant) {
+  if (/^[a-f0-9]{64}$/.test(text(variant?.canonicalGeometrySha256))) {
+    return text(variant.canonicalGeometrySha256);
+  }
   return sha256Hex(canonicalJson(floorplanGeometryPayload(variant)));
 }
 
