@@ -68,6 +68,11 @@ type WorkbenchGeneration = {
   variants: PlanVariant[];
 };
 
+type ReviewQueueResponse = {
+  count: number;
+  error?: string;
+};
+
 type SpeechRecognitionResultLike = {
   isFinal: boolean;
   [index: number]: { transcript: string };
@@ -100,23 +105,6 @@ declare global {
 }
 
 type StairPoint = { x: number; y: number };
-
-function stairStepLines(path: StairPoint[], width: number) {
-  const spacing = Math.max(7, width * (0.28 / 0.9));
-  return path.slice(0, -1).flatMap((start, segmentIndex) => {
-    const end = path[segmentIndex + 1];
-    const dx = end.x - start.x; const dy = end.y - start.y;
-    const length = Math.hypot(dx, dy);
-    if (length < spacing) return [];
-    const ux = dx / length; const uy = dy / length;
-    const nx = -uy * width * 0.46; const ny = ux * width * 0.46;
-    return Array.from({ length: Math.max(1, Math.floor(length / spacing)) }, (_, index) => {
-      const distance = Math.min(length - 3, (index + 1) * spacing);
-      const x = start.x + ux * distance; const y = start.y + uy * distance;
-      return { key: `${segmentIndex}-${index}`, x1: x - nx, y1: y - ny, x2: x + nx, y2: y + ny };
-    });
-  });
-}
 
 function stairArrowHead(path: StairPoint[], size = 9) {
   const end = path.at(-1); const previous = path.at(-2);
@@ -203,9 +191,18 @@ function FloorSvg({
         else if (rightGap > 0 && rightGap <= 60) rect.width += rightGap;
       });
     }
-    return { rooms, footprint, innerWallPx: Math.max(2, Math.min(5, pixelsPerMeter * 0.1)), outerWallPx: Math.max(7, Math.min(14, pixelsPerMeter * 0.35)) };
+    return {
+      rooms,
+      footprint,
+      pixelsPerMeter,
+      innerWallPx: Math.max(2, Math.min(5, pixelsPerMeter * 0.1)),
+      outerWallPx: Math.max(7, Math.min(14, pixelsPerMeter * 0.35)),
+    };
   }, [plan, referenceBased]);
-  const projectOpeningToWall = (points: Array<{ x: number; y: number }>) => {
+  const projectOpeningToWall = (
+    points: Array<{ x: number; y: number }>,
+    openingType = "window",
+  ) => {
     const first = points[0]; const second = points[1];
     if (!first || !second || !referenceGeometry) return null;
     const horizontal = Math.abs(second.x - first.x) >= Math.abs(second.y - first.y);
@@ -221,8 +218,40 @@ function FloorSvg({
       return !winner || score < winner.score ? { ...candidate, score } : winner;
     }, null as null | { axis: number; start: number; end: number; score: number });
     if (!best) return null;
+    const adjacentRooms = plan.rooms.filter((room) => {
+      const rect = referenceGeometry.rooms.get(room.id);
+      if (!rect) return false;
+      if (horizontal) {
+        const sharesAxis = Math.min(
+          Math.abs(rect.y - best.axis),
+          Math.abs(rect.y + rect.height - best.axis),
+        ) <= 4;
+        return sharesAxis && along >= rect.x - 4 && along <= rect.x + rect.width + 4;
+      }
+      const sharesAxis = Math.min(
+        Math.abs(rect.x - best.axis),
+        Math.abs(rect.x + rect.width - best.axis),
+      ) <= 4;
+      return sharesAxis && along >= rect.y - 4 && along <= rect.y + rect.height + 4;
+    });
+    const footprint = referenceGeometry.footprint;
+    const exterior = horizontal
+      ? Math.min(Math.abs(best.axis - footprint.y), Math.abs(best.axis - (footprint.y + footprint.height))) <= 4
+      : Math.min(Math.abs(best.axis - footprint.x), Math.abs(best.axis - (footprint.x + footprint.width))) <= 4;
+    const smallWc = adjacentRooms.some((room) => /\bWC\b/i.test(room.name) && room.area <= 4);
+    const entrance = plan.floor === 0
+      && exterior
+      && adjacentRooms.some((room) => room.kind === "circulation");
     const originalLength = Math.hypot(second.x - first.x, second.y - first.y);
-    const length = Math.max(18, Math.min(52, originalLength, Math.max(18, best.end - best.start - 12)));
+    const targetDoorWidthM = entrance ? 1.1 : smallWc ? 0.76 : 0.88;
+    const desiredLength = openingType === "door"
+      ? targetDoorWidthM * referenceGeometry.pixelsPerMeter
+      : originalLength;
+    const minimumLength = openingType === "door" ? 12 : 18;
+    const length = Math.max(
+      minimumLength,
+      Math.min(70, desiredLength, Math.max(minimumLength, best.end - best.start - 12)),
+    );
     const center = Math.max(best.start + length / 2 + 4, Math.min(best.end - length / 2 - 4, along));
     return horizontal
       ? [{ x: center - length / 2, y: best.axis }, { x: center + length / 2, y: best.axis }]
@@ -244,7 +273,15 @@ function FloorSvg({
     });
     const selectedDoor = best as null | { gap: number; x: number; y1: number; y2: number };
     if (!selectedDoor || selectedDoor.gap > 18) return null;
-    const center = (selectedDoor.y1 + selectedDoor.y2) / 2; return [{ x: selectedDoor.x, y: center - 11 }, { x: selectedDoor.x, y: center + 11 }];
+    const center = (selectedDoor.y1 + selectedDoor.y2) / 2;
+    const length = Math.min(
+      selectedDoor.y2 - selectedDoor.y1 - 8,
+      0.76 * referenceGeometry.pixelsPerMeter,
+    );
+    return [
+      { x: selectedDoor.x, y: center - length / 2 },
+      { x: selectedDoor.x, y: center + length / 2 },
+    ];
   })();  const entryDoor = (() => {
     if (!referenceGeometry || plan.floor !== 0) return null;
     const hall = plan.rooms.filter((room) => room.kind === "circulation").map((room) => referenceGeometry.rooms.get(room.id)).find((rect) => rect && rect.y + rect.height >= referenceGeometry.footprint.y + referenceGeometry.footprint.height - 12);
@@ -253,7 +290,7 @@ function FloorSvg({
     const availableStart = Math.max(hall.x + 6, referenceGeometry.footprint.x + 12);
     const availableEnd = Math.min(hall.x + hall.width - 6, (plan.stairRect?.x ?? hall.x + hall.width) - 7);
     if (availableEnd - availableStart < 20) return null;
-    const length = Math.min(30, availableEnd - availableStart);
+    const length = Math.min(1.1 * referenceGeometry.pixelsPerMeter, availableEnd - availableStart);
     const center = (availableStart + availableEnd) / 2;
     return [{ x: center - length / 2, y: wallY }, { x: center + length / 2, y: wallY }];
   })();  const wallStair = plan.layoutMode === "wall-stair";
@@ -269,7 +306,8 @@ function FloorSvg({
   const wallStairLandingX = wallStairConnectorX + 8;
   const wallStairLandingWidth = Math.max(44, wallStairConnectorWidth - 16);
   const internalDoorPx = 44;
-  const frontDoorPx = 50.5;
+  const smallWcDoorPx = 38;
+  const frontDoorPx = 55;
   const doorSwingArc45 = (hingeX: number, hingeY: number, radius: number, direction: -1 | 1) => {
     const angle = Math.PI / 4;
     const startX = hingeX;
@@ -329,13 +367,16 @@ function FloorSvg({
         const doorX = room.side === "left" ? room.x + room.width : room.x;
         const windowX = room.side === "left" ? room.x : room.x + room.width;
         const cy = room.y + room.height / 2;
-        const doorFits = room.height >= internalDoorPx + 20;
+        const roomDoorPx = /\bWC\b/i.test(room.name) && room.area <= 4
+          ? smallWcDoorPx
+          : internalDoorPx;
+        const doorFits = room.height >= roomDoorPx + 20;
         const doorDirection = room.side === "left" ? -1 : 1;
-        const hingeY = cy + internalDoorPx / 2;
-        const doorLeafEndX = doorX + doorDirection * internalDoorPx * Math.sin(Math.PI / 4);
-        const doorLeafEndY = hingeY - internalDoorPx * Math.cos(Math.PI / 4);
-        const farSideY = hingeY - internalDoorPx;
-        const doorArc = doorSwingArc45(doorX, hingeY, internalDoorPx, doorDirection);
+        const hingeY = cy + roomDoorPx / 2;
+        const doorLeafEndX = doorX + doorDirection * roomDoorPx * Math.sin(Math.PI / 4);
+        const doorLeafEndY = hingeY - roomDoorPx * Math.cos(Math.PI / 4);
+        const farSideY = hingeY - roomDoorPx;
+        const doorArc = doorSwingArc45(doorX, hingeY, roomDoorPx, doorDirection);
         const selected = selectedRoomId === room.id;
         const fill = room.kind === "circulation" ? "#f0eee8" : room.kind === "wet" ? "#dbeafe" : room.kind === "living" ? "#dcfce7" : room.kind === "service" ? "#fef3c7" : "#f5f5f4";
         const drawDoorAndWindow = !referenceBased && room.kind !== "circulation";
@@ -372,17 +413,14 @@ function FloorSvg({
       {wcHallDoor && <g><line x1={wcHallDoor[0].x} y1={wcHallDoor[0].y} x2={wcHallDoor[1].x} y2={wcHallDoor[1].y} stroke="white" strokeWidth={(referenceGeometry?.innerWallPx ?? 2) + 5} /><line x1={wcHallDoor[0].x} y1={wcHallDoor[0].y} x2={wcHallDoor[1].x} y2={wcHallDoor[1].y} stroke="#0f766e" strokeWidth="2" /></g>}      {referenceGeometry && <rect x={referenceGeometry.footprint.x} y={referenceGeometry.footprint.y} width={referenceGeometry.footprint.width} height={referenceGeometry.footprint.height} fill="none" stroke="#1c1917" strokeWidth={referenceGeometry.outerWallPx} />}      {entryDoor && <g><line x1={entryDoor[0].x} y1={entryDoor[0].y} x2={entryDoor[1].x} y2={entryDoor[1].y} stroke="white" strokeWidth={(referenceGeometry?.outerWallPx ?? 8) + 3} /><line x1={entryDoor[0].x} y1={entryDoor[0].y} x2={entryDoor[1].x} y2={entryDoor[1].y} stroke="#0f766e" strokeWidth="2.5" /></g>}
       {referenceBased && plan.stairPath && plan.stairPath.length >= 2 && plan.stairWidthPx && stair && (
         <g>
-          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#292524" strokeWidth={plan.stairWidthPx + 4} strokeLinejoin="round" strokeLinecap="butt" />
-          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#e7e5e4" strokeWidth={plan.stairWidthPx} strokeLinejoin="round" strokeLinecap="butt" />
-          {stairStepLines(plan.stairPath, plan.stairWidthPx).map((step) => (
-            <line key={step.key} x1={step.x1} y1={step.y1} x2={step.x2} y2={step.y2} stroke="#78716c" strokeWidth="1" />
-          ))}
-          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#18392f" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#292524" strokeWidth={plan.stairWidthPx + 4} strokeLinejoin="miter" strokeLinecap="butt" />
+          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#e7e5e4" strokeWidth={plan.stairWidthPx} strokeLinejoin="miter" strokeLinecap="butt" />
+          <polyline points={plan.stairPath.map((point) => `${point.x},${point.y}`).join(" ")} fill="none" stroke="#18392f" strokeWidth="2.5" strokeLinejoin="miter" strokeLinecap="butt" />
           {stairArrowHead(plan.stairPath) && <polygon points={stairArrowHead(plan.stairPath)!} fill="#18392f" />}
         </g>
       )}
       {plan.referenceElements?.filter((element) => element.type === "door" || element.type === "window").map((element) => {
-        const opening = projectOpeningToWall(element.points);
+        const opening = projectOpeningToWall(element.points, element.type);
         const first = opening?.[0]; const second = opening?.[1];
         if (!first || !second) return null;
         return <g key={element.id}><line x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke="white" strokeWidth={(referenceGeometry?.outerWallPx ?? 8) + 3} strokeLinecap="butt" /><line x1={first.x} y1={first.y} x2={second.x} y2={second.y} stroke={element.type === "window" ? "#0ea5e9" : "#0f766e"} strokeWidth={element.type === "window" ? "3" : "2"} strokeLinecap="round" /></g>;
@@ -487,6 +525,7 @@ export default function TestlaufPage() {
   const [feedbackReason, setFeedbackReason] = useState("");
   const [feedbackStatus, setFeedbackStatus] = useState("");
   const [feedbackCount, setFeedbackCount] = useState(0);
+  const [reviewQueueCount, setReviewQueueCount] = useState(0);
   const [learningCount, setLearningCount] = useState(0);
   const [selectedRoom, setSelectedRoom] = useState<SelectedRoom | null>(null);
   const [swapSource, setSwapSource] = useState<SelectedRoom | null>(null);
@@ -508,6 +547,24 @@ export default function TestlaufPage() {
       if (savedPlansRaw) setSavedPlanCount(storedArray<SavedWorkbenchPlan>(window.localStorage, "born2thrill-floorplan-workbench").length);
     }, 0);
     return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/floorplan-workbench/reviews", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const payload = await response.json() as ReviewQueueResponse;
+        if (!response.ok) throw new Error(payload.error || "Freigabe-Queue nicht erreichbar.");
+        return payload;
+      })
+      .then((payload) => setReviewQueueCount(payload.count))
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      });
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -648,7 +705,7 @@ export default function TestlaufPage() {
     setFeedbackStatus("Arbeitsgrundriss als JSON heruntergeladen.");
   };
 
-  const saveFeedback = () => {
+  const saveFeedback = async () => {
     const reason = cleanFeedbackReason(feedbackReason);
     const effectiveRating = feedbackRating ?? (reason ? "down" : null);
     if (!effectiveRating) {
@@ -672,16 +729,38 @@ export default function TestlaufPage() {
     };
 
     window.localStorage.setItem("born2thrill-test-feedback", JSON.stringify([item, ...existing].slice(0, 100)));
+    let queuedDurably = false;
+    try {
+      const response = await fetch("/api/floorplan-workbench/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schema: "born2thrill-floorplan-review-v1",
+          review_status: effectiveRating === "up" ? "approved_for_next_stage" : "rejected",
+          reason,
+          brief,
+          variant,
+        }),
+      });
+      const payload = await response.json() as ReviewQueueResponse;
+      if (!response.ok) throw new Error(payload.error || "Freigabe konnte nicht dauerhaft gespeichert werden.");
+      setReviewQueueCount(payload.count);
+      queuedDurably = true;
+    } catch {
+      // Browser storage remains the local fallback if the file queue is unavailable.
+    }
     setFeedbackCount(existing.length + 1);
     setFeedbackReason("");
-    setFeedbackStatus(`${feedbackLabel(effectiveRating)} gespeichert. Das wird später unser Lernmaterial.`);
+    setFeedbackStatus(queuedDurably
+      ? `${feedbackLabel(effectiveRating)} dauerhaft in der lokalen Freigabe-Queue gespeichert.`
+      : `${feedbackLabel(effectiveRating)} im Browser gespeichert; die Datei-Queue ist nicht erreichbar.`);
     return true;
   };
 
-  const saveFeedbackAndTryNext = () => {
+  const saveFeedbackAndTryNext = async () => {
     const rating = feedbackRating;
     const reason = cleanFeedbackReason(feedbackReason);
-    const saved = saveFeedback();
+    const saved = await saveFeedback();
     if (!saved) return;
 
     if (rating === "down" || reason) {
@@ -950,6 +1029,7 @@ export default function TestlaufPage() {
                 Bewerte jede Variante kurz. Gute Varianten werden später verstärkt, schlechte Varianten geben uns konkrete Regeln, was der Generator vermeiden soll.
               </p>
               <p className="mt-4 text-xs text-stone-500">Gespeicherte Testbewertungen in diesem Browser: {feedbackCount}</p>
+              <p className="mt-2 text-xs font-semibold text-emerald-800">Dauerhafte lokale Freigaben: {reviewQueueCount}</p>
             </div>
             <div>
               <div className="flex flex-wrap gap-3">

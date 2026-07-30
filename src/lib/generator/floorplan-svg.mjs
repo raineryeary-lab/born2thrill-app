@@ -109,24 +109,6 @@ function stairMarkup(plan) {
   const path = Array.isArray(plan.stairPath) ? plan.stairPath : [];
   if (path.length < 2) return "";
   const width = Math.max(28, Number(plan.stairWidthPx) || 42);
-  const spacing = Math.max(7, width * (0.28 / 0.9));
-  const steps = path.slice(0, -1).flatMap((start, segmentIndex) => {
-    const end = path[segmentIndex + 1];
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const length = Math.hypot(dx, dy);
-    if (length < spacing) return [];
-    const ux = dx / length;
-    const uy = dy / length;
-    const nx = -uy * width * 0.46;
-    const ny = ux * width * 0.46;
-    return Array.from({ length: Math.max(1, Math.floor(length / spacing)) }, (_, index) => {
-      const distance = Math.min(length - 3, (index + 1) * spacing);
-      const x = start.x + ux * distance;
-      const y = start.y + uy * distance;
-      return `<line x1="${number(x - nx)}" y1="${number(y - ny)}" x2="${number(x + nx)}" y2="${number(y + ny)}"/>`;
-    });
-  }).join("");
   const end = path.at(-1);
   const previous = path.at(-2);
   const dx = end.x - previous.x;
@@ -146,10 +128,9 @@ function stairMarkup(plan) {
   ];
   return `
     <g class="stairs">
-      <polyline points="${pointsAttribute(path)}" fill="none" stroke="#57534e" stroke-width="${number(width + 4)}" stroke-linejoin="round"/>
-      <polyline points="${pointsAttribute(path)}" fill="none" stroke="#fafaf9" stroke-width="${number(width)}" stroke-linejoin="round"/>
-      <g stroke="#78716c" stroke-width="1.4">${steps}</g>
-      <polyline points="${pointsAttribute(path)}" fill="none" stroke="#1d5b4a" stroke-width="3" stroke-linecap="round"/>
+      <polyline points="${pointsAttribute(path)}" fill="none" stroke="#57534e" stroke-width="${number(width + 4)}" stroke-linejoin="miter" stroke-linecap="butt"/>
+      <polyline points="${pointsAttribute(path)}" fill="none" stroke="#fafaf9" stroke-width="${number(width)}" stroke-linejoin="miter" stroke-linecap="butt"/>
+      <polyline points="${pointsAttribute(path)}" fill="none" stroke="#1d5b4a" stroke-width="3" stroke-linejoin="miter" stroke-linecap="butt"/>
       <polygon points="${pointsAttribute(arrow)}" fill="#1d5b4a"/>
     </g>`;
 }
