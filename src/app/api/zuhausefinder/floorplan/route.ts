@@ -1,20 +1,21 @@
 import { timingSafeEqual } from "node:crypto";
-import type { HouseBrief } from "@/lib/generator/floorplan";
 import {
-  CANONICAL_BUNGALOW_GENERATOR_VERSION,
-  canonicalBungalow033Plan,
-  canonicalBungalow033Variant,
-} from "@/lib/generator/canonical-floorplan-adapter";
+  generateVariants,
+  type HouseBrief,
+  type PlanVariant,
+} from "@/lib/generator/floorplan";
+import {
+  FLOORPLAN_JPEG_GENERATOR_VERSION,
+  renderFloorplanJpeg,
+} from "@/lib/generator/floorplan-jpeg";
 import {
   classifyZuhausefinderFloorplan,
   mapZuhausefinderBrief,
 } from "@/lib/generator/zuhausefinder-brief.mjs";
 import {
-  assertSafeGeneratedSvg,
   candidateMayEnterManualReview,
   customerFacingQualityPassed,
   floorplanQuality,
-  renderFloorplanSvg,
   selectQualityVariant,
 } from "@/lib/generator/floorplan-svg.mjs";
 import { renderPlanGeometryGuidePng } from "@/lib/generator/floorplan-guide";
@@ -49,13 +50,26 @@ function authorized(request: Request) {
     && timingSafeEqual(expectedBytes, suppliedBytes);
 }
 
+function isCompleteReferenceVariant(variant: PlanVariant) {
+  const referenceId = variant.metrics.referenceLayoutId;
+  return Boolean(referenceId)
+    && variant.floors.length > 0
+    && variant.floors.every((floor) => floor.referenceLayoutId === referenceId);
+}
+
+function configuredReferenceUsageScope(): NonNullable<HouseBrief["referenceUsageScope"]> {
+  return process.env.ZUHAUSEFINDER_REFERENCE_SCOPE === "internal_reference_only"
+    ? "internal_reference_only"
+    : "commercial_generator";
+}
+
 export function GET() {
   return json({
     status: "ok",
     service: "zuhausefinder-floorplan",
     input_schema: "dmh-floorplan-brief-v1",
     output_schema: "dmh-floorplan-result-v2",
-    output: "base64-svg-and-png-guide",
+    output: "base64-jpeg-and-png-guide",
   });
 }
 
@@ -73,22 +87,20 @@ export async function POST(request: Request) {
 
   try {
     const source = JSON.parse(body) as unknown;
+    const referenceUsageScope = configuredReferenceUsageScope();
     const brief = {
       ...(mapZuhausefinderBrief(source) as HouseBrief),
-      referenceUsageScope: "commercial_generator" as const,
+      referenceUsageScope,
     };
-    if (brief.storeyType !== "1_storey") {
-      return json({
-        error: "Der interne Prüfstand ist momentan auf Bungalows begrenzt.",
-        supported_storey_type: "1_storey",
-      }, 422);
-    }
-    const canonicalPlan = canonicalBungalow033Plan();
-    const variants = [canonicalBungalow033Variant()];
+    const variants = generateVariants(brief).filter(isCompleteReferenceVariant);
     const variant = selectQualityVariant(variants);
     if (!variant) {
-      return json({ error: "Es konnte keine passende Referenz ausgewählt werden." }, 422);
+      return json({
+        error: "Es wurde keine vollständige annotierte Referenz für diese Geschossigkeit gefunden.",
+        requested_storey_type: brief.storeyType,
+      }, 422);
     }
+
     const quality = floorplanQuality(variant);
     const customerReady = customerFacingQualityPassed(quality);
     const manualReviewAllowed = candidateMayEnterManualReview(quality);
@@ -100,21 +112,24 @@ export async function POST(request: Request) {
         critical_failures: quality.criticalFailures,
       }, 422);
     }
-    const classification = classifyZuhausefinderFloorplan(source, brief, variant, quality);
+
+    const classification = classifyZuhausefinderFloorplan(
+      source,
+      brief,
+      variant,
+      quality,
+    );
     const sourceRequest = source as {
       request_id?: string;
       design_fingerprint?: string;
       output_requirements?: { mandatory_label?: string };
     };
-    const svg = assertSafeGeneratedSvg(renderFloorplanSvg(variant, {
-      requestId: sourceRequest.request_id,
-      mandatoryLabel: sourceRequest.output_requirements?.mandatory_label,
-    }));
     const visualizationContext = buildZuhausefinderVisualizationContext(
       source,
       brief,
       variant,
     );
+
     let guidePng: Buffer;
     try {
       guidePng = await renderPlanGeometryGuidePng(variant);
@@ -123,18 +138,34 @@ export async function POST(request: Request) {
         error: "Der Grundriss wurde erstellt, aber der sichere Geometrieleitfaden konnte nicht gerendert werden.",
       }, 500);
     }
-    const svgBytes = Buffer.from(svg, "utf8");
+
+    let floorplanJpeg: Buffer;
+    try {
+      floorplanJpeg = await renderFloorplanJpeg(variant, {
+        requestId: sourceRequest.request_id,
+        mandatoryLabel: sourceRequest.output_requirements?.mandatory_label,
+      });
+    } catch {
+      return json({
+        error: "Der Grundriss wurde erstellt, aber nicht als sicheres JPEG gerendert.",
+      }, 500);
+    }
+
     return json({
       schema: "dmh-floorplan-result-v2",
       request_id: sourceRequest.request_id,
       design_fingerprint: sourceRequest.design_fingerprint,
-      mime_type: "image/svg+xml",
-      filename: `zuhausefinder-${sourceRequest.request_id}.svg`,
-      file_base64: svgBytes.toString("base64"),
-      artifact_sha256: sha256Hex(svgBytes),
+      mime_type: "image/jpeg",
+      filename: `zuhausefinder-${sourceRequest.request_id}.jpg`,
+      file_base64: floorplanJpeg.toString("base64"),
+      artifact_sha256: sha256Hex(floorplanJpeg),
       generator: {
-        version: CANONICAL_BUNGALOW_GENERATOR_VERSION,
+        version: FLOORPLAN_JPEG_GENERATOR_VERSION,
         reference_layout_id: variant.metrics.referenceLayoutId,
+        reference_usage_scope: brief.referenceUsageScope,
+        distribution_scope: referenceUsageScope === "commercial_generator"
+          ? "customer_delivery"
+          : "internal_review_only",
         score: variant.score,
         floor_count: variant.floors.length,
         storey_type: variant.storeyType,
@@ -145,7 +176,6 @@ export async function POST(request: Request) {
         quality_status: classification.geometry_quality,
         customer_ready: customerReady,
         manual_review_required: !customerReady,
-        fixture_approval: canonicalPlan.approval,
       },
       classification,
       visualization_context: visualizationContext,
@@ -161,7 +191,9 @@ export async function POST(request: Request) {
       ],
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Ungültiges Grundriss-Briefing.";
+    const message = error instanceof Error
+      ? error.message
+      : "Ungültiges Grundriss-Briefing.";
     return json({ error: message }, 400);
   }
 }
