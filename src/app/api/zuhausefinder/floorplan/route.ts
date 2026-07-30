@@ -57,12 +57,6 @@ function isCompleteReferenceVariant(variant: PlanVariant) {
     && variant.floors.every((floor) => floor.referenceLayoutId === referenceId);
 }
 
-function configuredReferenceUsageScope(): NonNullable<HouseBrief["referenceUsageScope"]> {
-  return process.env.ZUHAUSEFINDER_REFERENCE_SCOPE === "commercial_generator"
-    ? "commercial_generator"
-    : "internal_reference_only";
-}
-
 export function GET() {
   return json({
     status: "ok",
@@ -87,7 +81,8 @@ export async function POST(request: Request) {
 
   try {
     const source = JSON.parse(body) as unknown;
-    const referenceUsageScope = configuredReferenceUsageScope();
+    const referenceUsageScope: NonNullable<HouseBrief["referenceUsageScope"]> =
+      "internal_reference_only";
     const brief = {
       ...(mapZuhausefinderBrief(source) as HouseBrief),
       referenceUsageScope,
@@ -163,9 +158,7 @@ export async function POST(request: Request) {
         version: FLOORPLAN_JPEG_GENERATOR_VERSION,
         reference_layout_id: variant.metrics.referenceLayoutId,
         reference_usage_scope: brief.referenceUsageScope,
-        distribution_scope: referenceUsageScope === "commercial_generator"
-          ? "customer_delivery"
-          : "internal_review_only",
+        distribution_scope: "internal_review_only",
         score: variant.score,
         floor_count: variant.floors.length,
         storey_type: variant.storeyType,
