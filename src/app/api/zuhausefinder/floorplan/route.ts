@@ -58,9 +58,9 @@ function isCompleteReferenceVariant(variant: PlanVariant) {
 }
 
 function configuredReferenceUsageScope(): NonNullable<HouseBrief["referenceUsageScope"]> {
-  return process.env.ZUHAUSEFINDER_REFERENCE_SCOPE === "internal_reference_only"
-    ? "internal_reference_only"
-    : "commercial_generator";
+  return process.env.ZUHAUSEFINDER_REFERENCE_SCOPE === "commercial_generator"
+    ? "commercial_generator"
+    : "internal_reference_only";
 }
 
 export function GET() {
