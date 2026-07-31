@@ -9,6 +9,11 @@ import {
   renderFloorplanJpeg,
 } from "@/lib/generator/floorplan-jpeg";
 import {
+  CORRECTED_FLOORPLAN_GENERATOR_VERSION,
+  correctedFloorplanForBrief,
+  renderCorrectedFloorplanArtifacts,
+} from "@/lib/generator/corrected-floorplan";
+import {
   classifyZuhausefinderFloorplan,
   mapZuhausefinderBrief,
 } from "@/lib/generator/zuhausefinder-brief.mjs";
@@ -87,8 +92,11 @@ export async function POST(request: Request) {
       ...(mapZuhausefinderBrief(source) as HouseBrief),
       referenceUsageScope,
     };
-    const variants = generateVariants(brief).filter(isCompleteReferenceVariant);
-    const variant = selectQualityVariant(variants);
+    const corrected = correctedFloorplanForBrief(brief);
+    const variants = corrected
+      ? [corrected.variant]
+      : generateVariants(brief).filter(isCompleteReferenceVariant);
+    const variant = corrected?.variant ?? selectQualityVariant(variants);
     if (!variant) {
       return json({
         error: "Es wurde keine vollständige annotierte Referenz für diese Geschossigkeit gefunden.",
@@ -97,8 +105,12 @@ export async function POST(request: Request) {
     }
 
     const quality = floorplanQuality(variant);
-    const customerReady = customerFacingQualityPassed(quality);
-    const manualReviewAllowed = candidateMayEnterManualReview(quality);
+    const customerReady = corrected
+      ? corrected.document.validation.valid
+      : customerFacingQualityPassed(quality);
+    const manualReviewAllowed = corrected
+      ? corrected.document.validation.valid
+      : candidateMayEnterManualReview(quality);
     if (!customerReady && !manualReviewAllowed) {
       return json({
         error: "Der ausgewählte Grundriss hat die harten Geometrieprüfungen nicht bestanden.",
@@ -126,23 +138,28 @@ export async function POST(request: Request) {
     );
 
     let guidePng: Buffer;
-    try {
-      guidePng = await renderPlanGeometryGuidePng(variant);
-    } catch {
-      return json({
-        error: "Der Grundriss wurde erstellt, aber der sichere Geometrieleitfaden konnte nicht gerendert werden.",
-      }, 500);
-    }
-
     let floorplanJpeg: Buffer;
     try {
-      floorplanJpeg = await renderFloorplanJpeg(variant, {
-        requestId: sourceRequest.request_id,
-        mandatoryLabel: sourceRequest.output_requirements?.mandatory_label,
-      });
+      if (corrected) {
+        const artifacts = await renderCorrectedFloorplanArtifacts(
+          corrected.document,
+          {
+            requestId: sourceRequest.request_id,
+            mandatoryLabel: sourceRequest.output_requirements?.mandatory_label,
+          },
+        );
+        floorplanJpeg = artifacts.jpeg;
+        guidePng = artifacts.guide;
+      } else {
+        guidePng = await renderPlanGeometryGuidePng(variant);
+        floorplanJpeg = await renderFloorplanJpeg(variant, {
+          requestId: sourceRequest.request_id,
+          mandatoryLabel: sourceRequest.output_requirements?.mandatory_label,
+        });
+      }
     } catch {
       return json({
-        error: "Der Grundriss wurde erstellt, aber nicht als sicheres JPEG gerendert.",
+        error: "Der Grundriss wurde erstellt, aber die sicheren Bildartefakte konnten nicht gerendert werden.",
       }, 500);
     }
 
@@ -155,10 +172,20 @@ export async function POST(request: Request) {
       file_base64: floorplanJpeg.toString("base64"),
       artifact_sha256: sha256Hex(floorplanJpeg),
       generator: {
-        version: FLOORPLAN_JPEG_GENERATOR_VERSION,
+        version: corrected
+          ? CORRECTED_FLOORPLAN_GENERATOR_VERSION
+          : FLOORPLAN_JPEG_GENERATOR_VERSION,
         reference_layout_id: variant.metrics.referenceLayoutId,
         reference_usage_scope: brief.referenceUsageScope,
-        distribution_scope: "internal_review_only",
+        distribution_scope: corrected?.distributionScope
+          ?? "internal_review_only",
+        rights_eligible_for_customer_delivery:
+          corrected?.wordpressEligible ?? false,
+        geometry_revision: corrected?.document.revision ?? null,
+        canonical_geometry_sha256:
+          corrected?.document.geometry_hash
+          ?? variant.canonicalGeometrySha256
+          ?? null,
         score: variant.score,
         floor_count: variant.floors.length,
         storey_type: variant.storeyType,
@@ -168,7 +195,8 @@ export async function POST(request: Request) {
         critical_failures: quality.criticalFailures,
         quality_status: classification.geometry_quality,
         customer_ready: customerReady,
-        manual_review_required: !customerReady,
+        manual_review_required:
+          !customerReady || !(corrected?.wordpressEligible ?? false),
       },
       classification,
       visualization_context: visualizationContext,

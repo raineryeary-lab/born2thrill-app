@@ -1,0 +1,61 @@
+{
+  "schema": "dmh-floorplan-brief-v1",
+  "request_id": "ZF-LOCAL-1H-TEST",
+  "design_fingerprint": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "generation_attempt": 0,
+  "household": {
+    "description": "Zwei Erwachsene und zwei Kinder"
+  },
+  "site": {
+    "description": "Garten und Sonnenseite sind wichtig"
+  },
+  "area": {
+    "target_living_area_m2": 140
+  },
+  "ranked_storey_candidates": [
+    {
+      "type": "one_and_half_storeys",
+      "score": 1
+    }
+  ],
+  "room_program": {
+    "description": "Drei Schlafzimmer plus Büro, Gäste-WC, Bad und HWR"
+  },
+  "zoning_strategy": {
+    "public_zone": "Offen, aber klar zoniert und mit Bezug zum Garten",
+    "private_zone": "Ruhige Schlafräume im Dachgeschoss",
+    "service_zone": "HWR, Stauraum und kurze praktische Wege"
+  },
+  "access_and_future": {
+    "description": "Flexible Zimmer für Kinder, Arbeit oder Gäste"
+  },
+  "exterior_preferences": {
+    "description": "Modern, klar und ruhig proportioniert",
+    "roof_answer": "Satteldach – vertraut und flexibel"
+  },
+  "normalized_preference_scores": {
+    "openness": 0.8,
+    "garden_connection": 0.9,
+    "accessibility": 0.4
+  },
+  "reference_search": {
+    "search_tags": [
+      "house_type:onehalfstorey",
+      "floors:1.5",
+      "kitchen:semi-open",
+      "garden:generous",
+      "stair:separable",
+      "office:separate",
+      "zoning:day_down_private_up",
+      "service_core:compact",
+      "flexible_rooms:yes"
+    ]
+  },
+  "generation_policy": {
+    "reference_first": true,
+    "invent_from_personality": false
+  },
+  "output_requirements": {
+    "mandatory_label": "Geprüfter Grundrissvorschlag – keine genehmigungsfähige Architekturplanung."
+  }
+}

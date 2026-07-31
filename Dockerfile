@@ -2,6 +2,9 @@ FROM node:22-bookworm-slim AS base
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN echo "Born2Thrill Railway Dockerfile marker: pnpm-workspace-yaml-enabled"
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends fontconfig fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/*
 
 FROM base AS deps
 RUN corepack enable
