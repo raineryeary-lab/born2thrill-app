@@ -1,13 +1,5 @@
 import { timingSafeEqual } from "node:crypto";
-import {
-  generateVariants,
-  type HouseBrief,
-  type PlanVariant,
-} from "@/lib/generator/floorplan";
-import {
-  FLOORPLAN_JPEG_GENERATOR_VERSION,
-  renderFloorplanJpeg,
-} from "@/lib/generator/floorplan-jpeg";
+import { type HouseBrief } from "@/lib/generator/floorplan";
 import {
   CORRECTED_FLOORPLAN_GENERATOR_VERSION,
   correctedFloorplanForBrief,
@@ -17,13 +9,7 @@ import {
   classifyZuhausefinderFloorplan,
   mapZuhausefinderBrief,
 } from "@/lib/generator/zuhausefinder-brief.mjs";
-import {
-  candidateMayEnterManualReview,
-  customerFacingQualityPassed,
-  floorplanQuality,
-  selectQualityVariant,
-} from "@/lib/generator/floorplan-svg.mjs";
-import { renderPlanGeometryGuidePng } from "@/lib/generator/floorplan-guide";
+import { floorplanQuality } from "@/lib/generator/floorplan-svg.mjs";
 import {
   buildZuhausefinderVisualizationContext,
   sha256Hex,
@@ -55,12 +41,6 @@ function authorized(request: Request) {
     && timingSafeEqual(expectedBytes, suppliedBytes);
 }
 
-function isCompleteReferenceVariant(variant: PlanVariant) {
-  const referenceId = variant.metrics.referenceLayoutId;
-  return Boolean(referenceId)
-    && variant.floors.length > 0
-    && variant.floors.every((floor) => floor.referenceLayoutId === referenceId);
-}
 
 export function GET() {
   return json({
@@ -93,32 +73,17 @@ export async function POST(request: Request) {
       referenceUsageScope,
     };
     const corrected = correctedFloorplanForBrief(brief);
-    const variants = corrected
-      ? [corrected.variant]
-      : generateVariants(brief).filter(isCompleteReferenceVariant);
-    const variant = corrected?.variant ?? selectQualityVariant(variants);
-    if (!variant) {
+    if (!corrected || !corrected.wordpressEligible) {
       return json({
-        error: "Es wurde keine vollständige annotierte Referenz für diese Geschossigkeit gefunden.",
+        error: "F\u00fcr diese Geschossigkeit und dieses Raumprogramm ist noch kein freigegebener korrigierter Grundriss verf\u00fcgbar.",
         requested_storey_type: brief.storeyType,
+        approved_catalog_required: true,
       }, 422);
     }
 
+    const variant = corrected.variant;
     const quality = floorplanQuality(variant);
-    const customerReady = corrected
-      ? true
-      : customerFacingQualityPassed(quality);
-    const manualReviewAllowed = corrected
-      ? true
-      : candidateMayEnterManualReview(quality);
-    if (!customerReady && !manualReviewAllowed) {
-      return json({
-        error: "Der ausgewählte Grundriss hat die harten Geometrieprüfungen nicht bestanden.",
-        reference_layout_id: variant.metrics.referenceLayoutId,
-        failed_checks: quality.failedChecks,
-        critical_failures: quality.criticalFailures,
-      }, 422);
-    }
+    const customerReady = true;
 
     const classification = classifyZuhausefinderFloorplan(
       source,
@@ -140,23 +105,15 @@ export async function POST(request: Request) {
     let guidePng: Buffer;
     let floorplanJpeg: Buffer;
     try {
-      if (corrected) {
-        const artifacts = await renderCorrectedFloorplanArtifacts(
-          corrected.document,
-          {
-            requestId: sourceRequest.request_id,
-            mandatoryLabel: sourceRequest.output_requirements?.mandatory_label,
-          },
-        );
-        floorplanJpeg = artifacts.jpeg;
-        guidePng = artifacts.guide;
-      } else {
-        guidePng = await renderPlanGeometryGuidePng(variant);
-        floorplanJpeg = await renderFloorplanJpeg(variant, {
+      const artifacts = await renderCorrectedFloorplanArtifacts(
+        corrected.document,
+        {
           requestId: sourceRequest.request_id,
           mandatoryLabel: sourceRequest.output_requirements?.mandatory_label,
-        });
-      }
+        },
+      );
+      floorplanJpeg = artifacts.jpeg;
+      guidePng = artifacts.guide;
     } catch {
       return json({
         error: "Der Grundriss wurde erstellt, aber die sicheren Bildartefakte konnten nicht gerendert werden.",
@@ -172,20 +129,14 @@ export async function POST(request: Request) {
       file_base64: floorplanJpeg.toString("base64"),
       artifact_sha256: sha256Hex(floorplanJpeg),
       generator: {
-        version: corrected
-          ? CORRECTED_FLOORPLAN_GENERATOR_VERSION
-          : FLOORPLAN_JPEG_GENERATOR_VERSION,
+        version: CORRECTED_FLOORPLAN_GENERATOR_VERSION,
         reference_layout_id: variant.metrics.referenceLayoutId,
-        reference_usage_scope: corrected?.wordpressEligible
-          ? "commercial_generator"
-          : brief.referenceUsageScope,
-        distribution_scope: corrected?.distributionScope
-          ?? "internal_review_only",
-        rights_eligible_for_customer_delivery:
-          corrected?.wordpressEligible ?? false,
-        geometry_revision: corrected?.document.revision ?? null,
+        reference_usage_scope: "commercial_generator",
+        distribution_scope: corrected.distributionScope,
+        rights_eligible_for_customer_delivery: true,
+        geometry_revision: corrected.document.revision,
         canonical_geometry_sha256:
-          corrected?.document.geometry_hash
+          corrected.document.geometry_hash
           ?? variant.canonicalGeometrySha256
           ?? null,
         score: variant.score,
@@ -197,8 +148,7 @@ export async function POST(request: Request) {
         critical_failures: quality.criticalFailures,
         quality_status: classification.geometry_quality,
         customer_ready: customerReady,
-        manual_review_required:
-          !customerReady || !(corrected?.wordpressEligible ?? false),
+        manual_review_required: false,
       },
       classification,
       visualization_context: visualizationContext,

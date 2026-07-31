@@ -136,3 +136,13 @@ test("catalogue selection never crosses storey types and respects rooms", () => 
   assert.equal(selectApprovedFloorplan(brief("1_5_storey", { bedrooms: 5 }), records), null);
   assert.equal(selectApprovedFloorplan(brief("1_5_storey"), [record(makeDocument("1_5_storey", { office: false }))]), null);
 });
+
+test("WordPress route cannot use legacy generated fallback", async () => {
+  const route = await readFile(
+    new URL("../src/app/api/zuhausefinder/floorplan/route.ts", import.meta.url),
+    "utf8",
+  );
+  assert.doesNotMatch(route, /generateVariants|selectQualityVariant|renderFloorplanJpeg/);
+  assert.match(route, /approved_catalog_required:\s*true/);
+  assert.match(route, /noch kein freigegebener korrigierter Grundriss/);
+});
