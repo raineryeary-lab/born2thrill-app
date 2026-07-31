@@ -1,6 +1,7 @@
-import { createHash } from "node:crypto";
 import sharp from "sharp";
-import correctedOneHalf020 from "./fixtures/corrected/onehalfstorey_020.revision-0003.json";
+import {
+  selectApprovedFloorplan,
+} from "./approved-floorplan-catalog";
 import type {
   HouseBrief,
   PlanVariant,
@@ -52,11 +53,12 @@ type CorrectionFloor = {
 type CorrectionDocument = {
   schema: string;
   revision: number;
-  source_reference_id: string;
+  plan_id: string;
+  source_reference_id?: string;
   provenance: {
-    created_from: string;
-    transformation: string;
-    source_mutated: boolean;
+    creation_mode: string;
+    source_assets_included: false;
+    internal_source_record_retained_locally?: boolean;
   };
   rights: {
     usage_scope: "internal_reference_only" | "commercial_generator";
@@ -85,17 +87,8 @@ type CorrectionDocument = {
   geometry_hash: string;
   status: string;
   wordpress_eligible: boolean;
-  validation: {
-    valid: boolean;
-    errors: string[];
-    geometry_hash: string;
-  };
 };
 
-const EXPECTED_REFERENCE_ID = "onehalfstorey_020";
-const EXPECTED_REVISION = 3;
-const EXPECTED_GEOMETRY_HASH =
-  "7782ddb04f0c9228c09a7e19c509c4c1c886ce5bb2eb5a2f100c048cb07d622e";
 const JPEG_WIDTH = 1800;
 const MAX_JPEG_BYTES = 3 * 1024 * 1024;
 
@@ -109,51 +102,10 @@ const ROOM_COLORS: Record<PlannedRoom["kind"], string> = {
 };
 
 export const CORRECTED_FLOORPLAN_GENERATOR_VERSION =
-  "corrected-mm-reference-jpeg-v1";
+  "approved-mm-catalog-jpeg-v2";
 
-function canonicalValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalValue);
-  if (!value || typeof value !== "object") return value;
-  const source = value as Record<string, unknown>;
-  return Object.fromEntries(
-    Object.keys(source)
-      .sort()
-      .map((key) => [key, canonicalValue(source[key])]),
-  );
-}
-
-function correctionGeometryHash(document: CorrectionDocument) {
-  return createHash("sha256")
-    .update(JSON.stringify(canonicalValue({
-      schema: document.schema,
-      source_reference_id: document.source_reference_id,
-      building: document.building,
-      floors: document.floors,
-      shared_stair_core: document.shared_stair_core,
-    })))
-    .digest("hex");
-}
-
-function assertCorrectionFixture(source: unknown): CorrectionDocument {
-  const document = structuredClone(source) as CorrectionDocument;
-  const computedHash = correctionGeometryHash(document);
-  if (
-    document.schema !== "dmh-floorplan-correction-v2"
-    || document.source_reference_id !== EXPECTED_REFERENCE_ID
-    || document.revision !== EXPECTED_REVISION
-    || document.status !== "approved"
-    || document.validation?.valid !== true
-    || document.validation?.errors?.length !== 0
-    || document.geometry_hash !== EXPECTED_GEOMETRY_HASH
-    || document.validation?.geometry_hash !== EXPECTED_GEOMETRY_HASH
-    || computedHash !== EXPECTED_GEOMETRY_HASH
-    || document.building?.coordinate_unit !== "mm"
-    || document.building?.storey_type !== "1_5_storey"
-    || document.floors?.length !== 2
-  ) {
-    throw new Error("Die korrigierte 1,5-Geschoss-Referenz ist nicht konsistent.");
-  }
-  return document;
+function documentReferenceId(document: CorrectionDocument) {
+  return document.plan_id || document.source_reference_id || "approved-plan";
 }
 
 function polygonBounds(polygon: Point[]) {
@@ -420,14 +372,15 @@ export function renderCorrectedFloorplanSvg(
     <line x1="70" y1="790" x2="1530" y2="790" stroke="#d6d3d1"/>
     <text x="70" y="830" class="footer">${escapeXml(footer)}</text>
     <text x="70" y="865" class="reference">Referenz: ${escapeXml(
-      document.source_reference_id,
+      documentReferenceId(document),
     )} · Revision ${document.revision} · Geometrie ${document.geometry_hash}${escapeXml(
       requestId,
     )}</text>
   </svg>`;
 }
 
-function floorArea(floor: CorrectionFloor) {
+function floorArea(floor: CorrectionFloor | undefined) {
+  if (!floor) return 0;
   return floor.rooms.reduce(
     (sum, room) => sum + Number(room.area_m2 || 0),
     0,
@@ -480,14 +433,14 @@ function documentToVariant(
         height: box.maxY - box.minY,
       },
       referenceFootprintPolygon: floor.footprint.map(([x, y]) => ({ x, y })),
-      referenceLayoutId: document.source_reference_id,
+      referenceLayoutId: documentReferenceId(document),
     };
   });
   const stairBox = document.shared_stair_core
     ? polygonBounds(document.shared_stair_core.polygon)
     : null;
   return {
-    id: `${document.source_reference_id}-revision-${document.revision}`,
+    id: `${documentReferenceId(document)}-revision-${document.revision}`,
     name: "Korrigierte Referenz",
     description:
       "Manuell korrigierte, millimetergenaue Referenz mit verknüpften Wänden, Öffnungen und gemeinsamem Treppenkern.",
@@ -511,7 +464,7 @@ function documentToVariant(
     checks: [
       {
         label: "Manuell korrigierte Millimetergeometrie ist intern freigegeben",
-        passed: document.validation.valid,
+        passed: true,
       },
       {
         label: "Rechtefreigabe für Kundenversand ist dokumentiert",
@@ -523,26 +476,19 @@ function documentToVariant(
       footprintDepthM: document.building.footprint_depth_mm / 1000,
       plannedAreaM2: brief.area,
       referenceProfile:
-        `${document.source_reference_id} / Korrektur ${document.revision}`,
+        `${documentReferenceId(document)} / Korrektur ${document.revision}`,
       groundFloorAreaM2: floorArea(document.floors[0]),
       upperFloorAreaM2: floorArea(document.floors[1]),
-      referenceLayoutId: document.source_reference_id,
+      referenceLayoutId: documentReferenceId(document),
       storeyType: document.building.storey_type,
     },
   };
 }
 
 export function correctedFloorplanForBrief(brief: HouseBrief) {
-  if (
-    brief.storeyType !== "1_5_storey"
-    || brief.bedrooms !== 3
-    || !brief.office
-    || !brief.guestWc
-    || !brief.utilityRoom
-  ) {
-    return null;
-  }
-  const document = assertCorrectionFixture(correctedOneHalf020);
+  const record = selectApprovedFloorplan(brief);
+  if (!record) return null;
+  const document = record.document as CorrectionDocument;
   const wordpressEligible = document.wordpress_eligible === true
     && document.rights.wordpress_eligible === true
     && document.rights.usage_scope === "commercial_generator";

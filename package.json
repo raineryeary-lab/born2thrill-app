@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "next start",
     "start:railway": "node .next/standalone/server.js",
+    "import:approved-floorplan": "node scripts/import-approved-floorplan-package.mjs",
+    "test:approved-floorplan-package": "node --test --test-isolation=none scripts/approved-floorplan-package.test.mjs",
     "build:fixture:bungalow-033": "node scripts/build-bungalow-033-fixture.mjs",
     "import:simplifier": "node scripts/import-simplifier-handoff.mjs",
     "test:canonical-floorplan": "node --test --test-isolation=none scripts/canonical-floorplan.test.mjs",

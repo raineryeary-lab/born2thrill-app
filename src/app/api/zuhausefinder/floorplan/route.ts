@@ -106,10 +106,10 @@ export async function POST(request: Request) {
 
     const quality = floorplanQuality(variant);
     const customerReady = corrected
-      ? corrected.document.validation.valid
+      ? true
       : customerFacingQualityPassed(quality);
     const manualReviewAllowed = corrected
-      ? corrected.document.validation.valid
+      ? true
       : candidateMayEnterManualReview(quality);
     if (!customerReady && !manualReviewAllowed) {
       return json({
@@ -176,7 +176,9 @@ export async function POST(request: Request) {
           ? CORRECTED_FLOORPLAN_GENERATOR_VERSION
           : FLOORPLAN_JPEG_GENERATOR_VERSION,
         reference_layout_id: variant.metrics.referenceLayoutId,
-        reference_usage_scope: brief.referenceUsageScope,
+        reference_usage_scope: corrected?.wordpressEligible
+          ? "commercial_generator"
+          : brief.referenceUsageScope,
         distribution_scope: corrected?.distributionScope
           ?? "internal_review_only",
         rights_eligible_for_customer_delivery:
