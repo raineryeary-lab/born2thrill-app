@@ -1,40 +1,48 @@
 {
-  "name": "born2thrill-app",
-  "version": "0.1.0",
-  "private": true,
-  "packageManager": "pnpm@11.7.0",
-  "engines": {
-    "node": ">=20.9.0"
-  },
-  "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "start:railway": "node .next/standalone/server.js",
-    "build:fixture:bungalow-033": "node scripts/build-bungalow-033-fixture.mjs",
-    "import:simplifier": "node scripts/import-simplifier-handoff.mjs",
-    "test:canonical-floorplan": "node --test --test-isolation=none scripts/canonical-floorplan.test.mjs",
-    "test:zuhausefinder-generator": "node --test --test-isolation=none scripts/zuhausefinder-generator.test.mjs",
-    "test:storey-model": "node --test --test-isolation=none scripts/storey-model.test.mjs",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "@supabase/ssr": "^0.12.0",
-    "@supabase/supabase-js": "^2.108.2",
-    "next": "16.2.9",
-    "pg": "^8.22.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
-  },
-  "devDependencies": {
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/pg": "^8.20.0",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.9",
-    "tailwindcss": "^4",
-    "typescript": "^5"
-  }
+    "name":  "born2thrill-app",
+    "version":  "0.1.0",
+    "private":  true,
+    "packageManager":  "pnpm@11.7.0",
+    "engines":  {
+                    "node":  "\u003e=20.9.0"
+                },
+    "scripts":  {
+                    "dev":  "next dev",
+                    "build":  "next build",
+                    "start":  "next start",
+                    "build:floorplan-catalog":  "node scripts/build-floorplan-search-catalog.mjs",
+                    "test:floorplan-catalog":  "node --test --test-isolation=none scripts/build-floorplan-search-catalog.test.mjs",
+                    "start:railway":  "node .next/standalone/server.js",
+                    "build:fixture:bungalow-033":  "node scripts/build-bungalow-033-fixture.mjs",
+                    "import:simplifier":  "node scripts/import-simplifier-handoff.mjs",
+                    "test:canonical-floorplan":  "node --test --test-isolation=none scripts/canonical-floorplan.test.mjs",
+                    "test:zuhausefinder-generator":  "node --test --test-isolation=none scripts/zuhausefinder-generator.test.mjs",
+                    "test:local-floorplan-workbench":  "node --test --test-isolation=none scripts/local-floorplan-workbench.test.mjs",
+                    "test:canonical-candidate":  "node --test --test-isolation=none scripts/canonical-candidate.test.mjs",
+                    "test:blender-export":  "node --test --test-isolation=none scripts/blender-export.test.mjs",
+                    "test:storey-model":  "node --test --test-isolation=none scripts/storey-model.test.mjs",
+    "test:floorplan-rulebook":  "node --test --test-isolation=none scripts/floorplan-rulebook.test.mjs",
+                    "lint":  "eslint",
+                    "audit:canonical-batch":  "node scripts/batch-canonical-promotion.mjs"
+                },
+    "dependencies":  {
+                         "@supabase/ssr":  "^0.12.0",
+                         "@supabase/supabase-js":  "^2.108.2",
+                         "next":  "16.2.9",
+                         "pg":  "^8.22.0",
+                         "react":  "19.2.4",
+                         "react-dom":  "19.2.4",
+                         "sharp":  "0.34.5"
+                     },
+    "devDependencies":  {
+                            "@tailwindcss/postcss":  "^4",
+                            "@types/node":  "^20",
+                            "@types/pg":  "^8.20.0",
+                            "@types/react":  "^19",
+                            "@types/react-dom":  "^19",
+                            "eslint":  "^9",
+                            "eslint-config-next":  "16.2.9",
+                            "tailwindcss":  "^4",
+                            "typescript":  "^5"
+                        }
 }
