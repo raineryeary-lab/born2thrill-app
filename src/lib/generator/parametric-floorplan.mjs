@@ -1,3 +1,5 @@
+import { FLOORPLAN_RULES } from "./floorplan-rulebook.mjs";
+
 const GRID_MM = 100;
 const EXTERIOR_WALL_MM = 365;
 const LOADBEARING_WALL_MM = 240;
@@ -487,7 +489,10 @@ export function validateParametricFloorplan(plan) {
       const glazing = plan.windows
         .filter((window) => window.roomId === room.id)
         .reduce((sum, window) => sum + window.glazingAreaM2, 0);
-      if (glazing + 1e-9 < room.areaM2 / 8) errors.push(`window_area_below_one_eighth:${room.id}`);
+      if (
+        glazing + 1e-9
+        < room.areaM2 * FLOORPLAN_RULES.windows.minimumGlazingToRoomAreaRatio
+      ) errors.push(`window_area_below_one_tenth:${room.id}`);
     }
   }
 

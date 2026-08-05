@@ -33,6 +33,7 @@ export type HouseBrief = {
   generationAttempt: number;
   critiqueNotes: string;
   referenceUsageScope?: "internal_reference_only" | "commercial_generator";
+  preferredReferenceLayoutId?: string;
 };
 
 export type PlannedRoom = {
@@ -954,6 +955,53 @@ function sharedStairCoreForFloors(
   };
 }
 
+export function buildVariantFromExplicitReference(
+  brief: HouseBrief,
+  reference: ReferenceLayoutMatch,
+): PlanVariant {
+  if (reference.qualityStatus !== "passed" || reference.packageStatus !== "training_ready") {
+    throw new Error("Explicit reference is not quality-passed and training-ready.");
+  }
+  const profile = profileForArea(brief.area);
+  const archetype = VARIANT_ARCHETYPES[0];
+  const baseFloorArea = targetAreaForFloor(brief, 0, profile);
+  const ratio = Math.max(1.04, profile.preferredFootprintRatio + archetype.ratioOffset);
+  const depth = Math.sqrt(baseFloorArea / ratio);
+  const width = depth * ratio;
+  const stair = brief.floors > 1 ? createStairGeometry() : null;
+  const floors = Array.from({ length: brief.floors }, (_, floor) => {
+    const converted = layoutFloorFromReference(brief, floor, stair, targetAreaForFloor(brief, floor, profile), archetype, reference, width);
+    if (!converted) throw new Error(`Explicit reference floor ${floor} cannot be converted.`);
+    return converted;
+  });
+  const stairCore = sharedStairCoreForFloors(floors, stair);
+  if (brief.floors > 1 && !stairCore) throw new Error("Explicit reference has no shared stair core.");
+  const checks = [
+    { label: "Explicit quality-passed reference", passed: true },
+    { label: "All floors use the named reference", passed: floors.every((floor) => floor.referenceLayoutId === reference.projectId) },
+    { label: "No synthetic geometry fallback", passed: true },
+  ];
+  return {
+    id: `reference-${reference.projectId}`,
+    name: reference.projectId,
+    description: `Deterministic conversion of ${reference.projectId}`,
+    floors,
+    storeyType: brief.storeyType,
+    stairCore,
+    score: 100,
+    checks,
+    metrics: {
+      footprintWidthM: Number(width.toFixed(1)),
+      footprintDepthM: Number(depth.toFixed(1)),
+      plannedAreaM2: brief.area,
+      referenceProfile: `explicit / ${reference.projectId}`,
+      referenceLayoutId: reference.projectId,
+      groundFloorAreaM2: targetAreaForFloor(brief, 0, profile),
+      upperFloorAreaM2: brief.floors > 1 ? targetAreaForFloor(brief, 1, profile) : 0,
+      storeyType: brief.storeyType,
+    },
+  };
+}
 export function generateVariants(brief: HouseBrief): PlanVariant[] {
   const rotation = brief.generationAttempt % VARIANT_ARCHETYPES.length;
   const archetypes = [
@@ -970,6 +1018,7 @@ export function generateVariants(brief: HouseBrief): PlanVariant[] {
       basement: brief.basement !== "none", stairPreference: brief.stairPreference,
       usageScope: brief.referenceUsageScope,
       variantOffset: brief.generationAttempt + index,
+      preferredProjectId: brief.preferredReferenceLayoutId,
     });
     const baseFloorArea = targetAreaForFloor(brief, 0, profile);
     const attemptRatioOffset = ((brief.generationAttempt + index) % 3 - 1) * 0.04;

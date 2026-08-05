@@ -19,6 +19,13 @@
     "test:corrected-floorplan": "node --test --test-isolation=none scripts/corrected-floorplan-fixture.test.mjs",
     "test:zuhausefinder-generator": "node --test --test-isolation=none scripts/zuhausefinder-generator.test.mjs",
     "test:storey-model": "node --test --test-isolation=none scripts/storey-model.test.mjs",
+    "build:floorplan-catalog": "node scripts/build-floorplan-search-catalog.mjs",
+    "test:floorplan-catalog": "node --test --test-isolation=none scripts/build-floorplan-search-catalog.test.mjs",
+    "test:local-floorplan-workbench": "node --test --test-isolation=none scripts/local-floorplan-workbench.test.mjs",
+    "test:canonical-candidate": "node --test --test-isolation=none scripts/canonical-candidate.test.mjs",
+    "test:blender-export": "node --test --test-isolation=none scripts/blender-export.test.mjs",
+    "test:floorplan-rulebook": "node --test --test-isolation=none scripts/floorplan-rulebook.test.mjs",
+    "audit:canonical-batch": "node scripts/batch-canonical-promotion.mjs",
     "lint": "eslint"
   },
   "dependencies": {

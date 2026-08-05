@@ -1,5 +1,6 @@
-import knowledge from "../../../data/simplifier-v1/knowledge.json";
-import dataset from "../../../data/simplifier-v1/dataset.json";
+import knowledge from "../../../data/simplifier-v2/knowledge.json";
+import dataset from "../../../data/simplifier-v2/dataset.json";
+import reconstructionDataset from "../../../data/simplifier-v2/reconstruction-dataset.json";
 
 type SimplifierRoomProfile = {
   floor_level: string;
@@ -35,8 +36,12 @@ type RawProject = {
   project_id: string;
   house_type: string;
   package_status: string;
+  quality_status?: string;
   approval_status?: string;
   usage_scope?: string;
+  source_rights_status?: string;
+  reconstruction_only?: boolean;
+  commercial_generator_eligible?: boolean;
   floors: RawFloor[];
 };
 type SimplifierDataset = { projects: RawProject[] };
@@ -44,6 +49,13 @@ type SimplifierDataset = { projects: RawProject[] };
 export type ReferenceLayoutMatch = {
   projectId: string;
   houseType: string;
+  packageStatus: string;
+  qualityStatus: string;
+  approvalStatus: string;
+  usageScope: string;
+  sourceRightsStatus: string;
+  reconstructionOnly: boolean;
+  habitableFloors: number;
   score: number;
   roomIds: string[];
   hasBasement: boolean;
@@ -56,6 +68,7 @@ export type ReferenceLayoutMatch = {
 export const SIMPLIFIER_REFERENCE = knowledge as SimplifierKnowledge;
 const SIMPLIFIER_DATASET = dataset as SimplifierDataset;
 
+const RECONSTRUCTION_DATASET = reconstructionDataset as SimplifierDataset;
 function validPoint(point: number[]): point is ReferencePoint {
   return point.length >= 2 && Number.isFinite(point[0]) && Number.isFinite(point[1]);
 }
@@ -114,9 +127,13 @@ function normalizeProject(project: RawProject) {
   return {
     projectId: project.project_id,
     houseType: project.house_type,
+    packageStatus: project.package_status,
+    qualityStatus: project.quality_status ?? "",
     approvalStatus: project.approval_status ?? "",
     usageScope: project.usage_scope ?? "",
     floors,
+    sourceRightsStatus: project.source_rights_status ?? "not_restricted",
+    reconstructionOnly: project.reconstruction_only === true,
     roomCounts,
     roomIds: [...roomCounts.keys()],
     hasBasement: floors.some((floor) => floor.floorLevel === "basement"),
@@ -130,6 +147,7 @@ function normalizeProject(project: RawProject) {
 
 const STAIR_REVIEW_PROJECT_IDS = new Set([
   "cubicasa_review_high_quality_architectural_904",
+  "onehalfstorey_003",
 ]);
 
 const REFERENCE_PROJECTS = SIMPLIFIER_DATASET.projects
@@ -138,13 +156,79 @@ const REFERENCE_PROJECTS = SIMPLIFIER_DATASET.projects
   .map(normalizeProject)
   .filter((project) => project.floors.some((floor) => floor.rooms.length > 0));
 
+type NormalizedReferenceProject = ReturnType<typeof normalizeProject>;
+
+const RECONSTRUCTION_PROJECTS = RECONSTRUCTION_DATASET.projects
+  .filter((project) => ["annotated", "reviewed", "training_ready"].includes(project.package_status))
+  .map(normalizeProject)
+  .filter((project) => project.floors.some((floor) => floor.rooms.length > 0));
+
+const ALL_REFERENCE_PROJECTS = [...new Map(
+  [...REFERENCE_PROJECTS, ...RECONSTRUCTION_PROJECTS]
+    .map((project) => [project.projectId, project]),
+).values()];
+
+function asReferenceLayoutMatch(project: NormalizedReferenceProject, score = 0): ReferenceLayoutMatch {
+  return {
+    projectId: project.projectId,
+    houseType: project.houseType,
+    packageStatus: project.packageStatus,
+    qualityStatus: project.qualityStatus,
+    approvalStatus: project.approvalStatus,
+    usageScope: project.usageScope,
+    sourceRightsStatus: project.sourceRightsStatus,
+    reconstructionOnly: project.reconstructionOnly,
+    habitableFloors: project.habitableFloors,
+    score,
+    roomIds: project.roomIds,
+    hasBasement: project.hasBasement,
+    hasStairs: project.hasStairs,
+    sourceStairCoreAligned: project.sourceStairCoreAligned,
+    sourceStairReviewRequired: project.sourceStairReviewRequired,
+    floors: project.floors,
+  };
+}
+
+export function reconstructionReferenceCatalog(): ReferenceLayoutMatch[] {
+  return RECONSTRUCTION_PROJECTS
+    .map((project) => asReferenceLayoutMatch(project))
+    .sort((left, right) => left.houseType.localeCompare(right.houseType) || left.projectId.localeCompare(right.projectId));
+}
+
+export function referenceLayoutById(projectId: string): ReferenceLayoutMatch | null {
+  const project = ALL_REFERENCE_PROJECTS.find((candidate) => candidate.projectId === projectId);
+  return project ? asReferenceLayoutMatch(project) : null;
+}
+
 export function selectReferenceLayout(input: {
   houseType: string; floors: number; bedrooms: number; bathrooms: number;
   office: boolean; guestWc: boolean; utilityRoom: boolean; basement: boolean;
   stairPreference: "central" | "feature" | "separable" | "undecided";
   usageScope?: "internal_reference_only" | "commercial_generator";
   variantOffset?: number;
+  preferredProjectId?: string;
 }): ReferenceLayoutMatch | null {
+  if (input.preferredProjectId) {
+    const preferred = referenceLayoutById(input.preferredProjectId);
+    if (!preferred) return null;
+    if (input.usageScope === "commercial_generator" && (
+      preferred.usageScope !== "commercial_generator"
+      || preferred.approvalStatus !== "approved_real"
+      || preferred.qualityStatus !== "passed"
+    )) return null;
+    return preferred;
+  }
+  const candidates = referenceLayoutCandidates(input);
+  if (!candidates.length) return null;
+  return candidates[(input.variantOffset ?? 0) % candidates.length];
+}
+
+export function referenceLayoutCandidates(input: {
+  houseType: string; floors: number; bedrooms: number; bathrooms: number;
+  office: boolean; guestWc: boolean; utilityRoom: boolean; basement: boolean;
+  stairPreference: "central" | "feature" | "separable" | "undecided";
+  usageScope?: "internal_reference_only" | "commercial_generator";
+}): ReferenceLayoutMatch[] {
   const desired = new Map<string, number>([
     ["eltern", 1], ["kind", Math.max(0, input.bedrooms - 1)], ["bad", Math.max(1, input.bathrooms)],
     ["wc", input.guestWc ? 1 : 0], ["hwr_htr", input.utilityRoom ? 1 : 0],
@@ -156,8 +240,12 @@ export function selectReferenceLayout(input: {
     ? REFERENCE_PROJECTS.filter((project) =>
         project.approvalStatus === "approved_real"
         && project.usageScope === "commercial_generator"
+        && project.qualityStatus === "passed"
       )
-    : REFERENCE_PROJECTS;
+    : REFERENCE_PROJECTS.filter((project) =>
+        project.qualityStatus === "passed"
+        && project.packageStatus === "training_ready"
+      );
   const candidates = eligibleProjects.map((project) => {
     let programMatches = 0;
     let programMissing = 0;
@@ -173,25 +261,17 @@ export function selectReferenceLayout(input: {
       + (project.hasBasement === input.basement ? 10 : -10)
       + programMatches * 3 - programMissing * 2
       + (input.floors > 1 && project.hasStairs ? 8 : input.floors > 1 ? -20 : 0)
-      + (input.floors > 1 && wantsWallStair && project.stairNearWall ? 8 : 0);
+      + (input.floors > 1 && wantsWallStair && project.stairNearWall ? 8 : 0)
+      + (project.qualityStatus === "passed" ? 20 : 0)
+      + (project.packageStatus === "training_ready" ? 10 : 0);
     return { project, score };
   }).sort((left, right) => right.score - left.score || left.project.projectId.localeCompare(right.project.projectId));
 
-  if (!candidates.length) return null;
+  if (!candidates.length) return [];
   const bestScore = candidates[0].score;
-  const shortlist = candidates.filter((candidate) => candidate.score >= bestScore - 4);
-  const selected = shortlist[(input.variantOffset ?? 0) % shortlist.length];
-  return {
-    projectId: selected.project.projectId,
-    houseType: selected.project.houseType,
-    score: selected.score,
-    roomIds: selected.project.roomIds,
-    hasBasement: selected.project.hasBasement,
-    hasStairs: selected.project.hasStairs,
-    sourceStairCoreAligned: selected.project.sourceStairCoreAligned,
-    sourceStairReviewRequired: selected.project.sourceStairReviewRequired,
-    floors: selected.project.floors,
-  };
+  return candidates
+    .filter((candidate) => candidate.score >= bestScore - 12)
+    .map(({ project, score }) => asReferenceLayoutMatch(project, score));
 }
 
 export function simplifierReferenceLabel() {
