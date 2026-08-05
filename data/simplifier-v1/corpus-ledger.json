@@ -1,6 +1,6 @@
 {
   "schema_version": "floorplan-corpus-ledger-v1",
-  "generated_at": "2026-07-30T06:18:17.055082+00:00",
+  "generated_at": "2026-07-31T10:48:36.556797+00:00",
   "policy": {
     "unchanged_annotations_are_not_reprocessed_until_hash_changes": true,
     "commercial_approval_requires_explicit_rights_and_quality": true,
@@ -8,11 +8,11 @@
     "generated_candidates_require_human_approval": true
   },
   "counts": {
-    "annotated_reference": 159,
-    "corrupt": 11,
+    "annotated_reference": 160,
+    "corrupt": 13,
     "internal_test": 4,
     "local_only_restricted": 55,
-    "needs_annotation": 13
+    "needs_annotation": 12
   },
   "projects": [
     {
@@ -27,7 +27,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -42,7 +42,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -57,7 +57,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -72,7 +72,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -87,7 +87,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -102,7 +102,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -117,7 +117,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -132,7 +132,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -147,7 +147,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -162,7 +162,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -177,7 +177,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -192,7 +192,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -207,7 +207,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -222,7 +222,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -237,7 +237,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -252,7 +252,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -267,7 +267,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -282,7 +282,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -297,7 +297,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -312,7 +312,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -327,7 +327,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -342,7 +342,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -357,7 +357,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -372,7 +372,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -387,7 +387,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -402,7 +402,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -417,7 +417,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -432,7 +432,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -447,7 +447,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -462,7 +462,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -477,7 +477,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -492,7 +492,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -507,7 +507,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -516,29 +516,29 @@
       "corpus_status": "needs_annotation",
       "internal_reference_eligible": false,
       "commercial_generator_eligible": false,
-      "quality_status": "passed",
+      "quality_status": "review_required",
       "package_status": "draft",
-      "annotation_sha256": "d615e5d794478f6d001481c10bc394deab9bb3ec3b7c3e78591e0ec1d8bff3e8",
+      "annotation_sha256": "b37c9dcb15fe773bce277f9cda1c5df36604ca4a1875180234b9e49f208eb2ea",
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
       "project_id": "bungalow_037",
       "source_kind": "real_annotated",
-      "corpus_status": "needs_annotation",
-      "internal_reference_eligible": false,
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
       "commercial_generator_eligible": false,
       "quality_status": "passed",
-      "package_status": "draft",
-      "annotation_sha256": "54654bbe5c2db8bdf62008430c988bd44c9c6bf51e306a4addd9af2cff68d450",
-      "annotation_recorded_at": null,
+      "package_status": "training_ready",
+      "annotation_sha256": "cfe6f04bb4614ef33fb7c232b110f5494a328210ddc0b0c96eae9a7cb6613796",
+      "annotation_recorded_at": "2026-07-31T10:48:36.556797+00:00",
       "approval_recorded_at": null,
-      "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
-      "reason": "room annotations are incomplete"
+      "unchanged_until_hash_changes": true,
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
+      "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
       "project_id": "bungalow_038",
@@ -552,7 +552,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -567,7 +567,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -582,7 +582,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -597,7 +597,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -612,7 +612,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -627,7 +627,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -642,7 +642,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -657,7 +657,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -672,7 +672,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -687,7 +687,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -702,7 +702,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -717,7 +717,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -732,7 +732,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -747,7 +747,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -762,7 +762,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -777,7 +777,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -792,7 +792,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -807,7 +807,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -822,7 +822,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -837,7 +837,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -852,7 +852,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -867,7 +867,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -882,7 +882,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -897,7 +897,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -912,7 +912,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -927,7 +927,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -942,7 +942,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -957,7 +957,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -972,7 +972,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -987,7 +987,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1002,7 +1002,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1017,7 +1017,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1032,7 +1032,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1047,7 +1047,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1062,7 +1062,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1077,7 +1077,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1092,7 +1092,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1107,7 +1107,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1122,7 +1122,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1137,7 +1137,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1152,7 +1152,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1167,7 +1167,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1182,7 +1182,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1197,7 +1197,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1212,7 +1212,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1227,7 +1227,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -1242,7 +1242,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1257,7 +1257,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -1272,7 +1272,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -1287,7 +1287,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -1302,7 +1302,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -1317,7 +1317,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -1332,7 +1332,37 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
+      "reason": "metadata could not be read: FileNotFoundError"
+    },
+    {
+      "project_id": "bungalow_040_56",
+      "source_kind": "real_annotated",
+      "corpus_status": "corrupt",
+      "internal_reference_eligible": false,
+      "commercial_generator_eligible": false,
+      "quality_status": "review_required",
+      "package_status": "missing",
+      "annotation_sha256": null,
+      "annotation_recorded_at": null,
+      "approval_recorded_at": null,
+      "unchanged_until_hash_changes": false,
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
+      "reason": "metadata could not be read: FileNotFoundError"
+    },
+    {
+      "project_id": "bungalow_040_57",
+      "source_kind": "real_annotated",
+      "corpus_status": "corrupt",
+      "internal_reference_eligible": false,
+      "commercial_generator_eligible": false,
+      "quality_status": "review_required",
+      "package_status": "missing",
+      "annotation_sha256": null,
+      "annotation_recorded_at": null,
+      "approval_recorded_at": null,
+      "unchanged_until_hash_changes": false,
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -1347,7 +1377,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1362,7 +1392,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1377,7 +1407,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1392,7 +1422,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -1407,7 +1437,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -1422,7 +1452,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -1437,7 +1467,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -1452,7 +1482,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1467,7 +1497,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1482,7 +1512,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1497,7 +1527,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1512,7 +1542,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1527,7 +1557,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1542,7 +1572,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1557,7 +1587,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1572,7 +1602,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1587,7 +1617,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1602,7 +1632,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1617,7 +1647,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1632,7 +1662,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1647,7 +1677,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1662,7 +1692,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1677,7 +1707,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1692,7 +1722,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1707,7 +1737,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1722,7 +1752,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1737,7 +1767,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1752,7 +1782,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1767,7 +1797,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1782,7 +1812,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1797,7 +1827,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1812,7 +1842,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1827,7 +1857,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1842,7 +1872,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1857,7 +1887,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1872,7 +1902,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1887,7 +1917,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1902,7 +1932,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1917,7 +1947,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1932,7 +1962,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1947,7 +1977,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1962,7 +1992,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1977,7 +2007,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -1992,7 +2022,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2007,7 +2037,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2022,7 +2052,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2037,7 +2067,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2052,7 +2082,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2067,7 +2097,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2082,7 +2112,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2097,7 +2127,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2112,7 +2142,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2127,7 +2157,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2142,7 +2172,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2157,7 +2187,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2172,7 +2202,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2187,7 +2217,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2202,7 +2232,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2217,7 +2247,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2232,7 +2262,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2247,7 +2277,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2262,7 +2292,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "usage-rights metadata blocks commercial generator export"
     },
     {
@@ -2277,7 +2307,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "metadata could not be read: FileNotFoundError"
     },
     {
@@ -2292,7 +2322,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2307,7 +2337,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2322,7 +2352,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -2337,7 +2367,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2352,7 +2382,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2367,7 +2397,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2382,7 +2412,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2397,7 +2427,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2412,7 +2442,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2427,7 +2457,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2442,7 +2472,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2457,7 +2487,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2472,7 +2502,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2487,7 +2517,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2502,7 +2532,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2517,7 +2547,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2532,7 +2562,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2547,7 +2577,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2562,7 +2592,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2577,7 +2607,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2592,7 +2622,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2607,7 +2637,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2622,7 +2652,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2637,7 +2667,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2652,7 +2682,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2667,7 +2697,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2682,7 +2712,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2697,7 +2727,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2712,7 +2742,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2727,7 +2757,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2742,7 +2772,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2757,7 +2787,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2772,7 +2802,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2787,7 +2817,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2802,7 +2832,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2817,7 +2847,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2832,7 +2862,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2847,7 +2877,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2862,7 +2892,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2877,7 +2907,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2892,7 +2922,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -2907,7 +2937,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2922,7 +2952,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2937,7 +2967,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -2952,7 +2982,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -2967,7 +2997,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2982,7 +3012,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -2997,7 +3027,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3012,7 +3042,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "room annotations are incomplete"
     },
     {
@@ -3027,7 +3057,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3042,7 +3072,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3057,7 +3087,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3072,7 +3102,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3087,7 +3117,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3102,7 +3132,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3117,7 +3147,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3132,7 +3162,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3147,7 +3177,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3162,7 +3192,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3177,7 +3207,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3192,7 +3222,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3207,7 +3237,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3222,7 +3252,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3237,7 +3267,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3252,7 +3282,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3267,7 +3297,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3282,7 +3312,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3297,7 +3327,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3312,7 +3342,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3327,7 +3357,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3342,7 +3372,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3357,7 +3387,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3372,7 +3402,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3387,7 +3417,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3402,7 +3432,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3417,7 +3447,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3432,7 +3462,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3447,7 +3477,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3462,7 +3492,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3477,7 +3507,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3492,7 +3522,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3507,7 +3537,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3522,7 +3552,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3537,7 +3567,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3552,7 +3582,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3567,7 +3597,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3582,7 +3612,7 @@
       "annotation_recorded_at": "2026-07-30T06:13:38.669486+00:00",
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": true,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "human-annotated real plan retained as an internal reference; commercial rights are not explicitly recorded"
     },
     {
@@ -3597,7 +3627,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "internal test package; excluded from the learning corpus"
     },
     {
@@ -3612,7 +3642,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "internal test package; excluded from the learning corpus"
     },
     {
@@ -3627,7 +3657,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "internal test package; excluded from the learning corpus"
     },
     {
@@ -3642,7 +3672,7 @@
       "annotation_recorded_at": null,
       "approval_recorded_at": null,
       "unchanged_until_hash_changes": false,
-      "last_seen_at": "2026-07-30T06:18:17.055082+00:00",
+      "last_seen_at": "2026-07-31T10:48:36.556797+00:00",
       "reason": "internal test package; excluded from the learning corpus"
     }
   ]

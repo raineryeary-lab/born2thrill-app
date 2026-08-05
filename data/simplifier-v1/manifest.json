@@ -1,18 +1,18 @@
 {
   "dataset_version": "floorplan-generator-simplifier-v1",
-  "project_count": 159,
-  "floor_count": 244,
-  "room_count": 1541,
-  "element_count": 3480,
+  "project_count": 160,
+  "floor_count": 245,
+  "room_count": 1548,
+  "element_count": 3495,
   "house_types": {
-    "bungalow": 77,
+    "bungalow": 78,
     "onehalfstorey": 40,
     "other": 1,
     "twostorey": 41
   },
   "floor_levels": {
     "basement": 2,
-    "groundfloor": 159,
+    "groundfloor": 160,
     "upperfloor": 83
   }
 }

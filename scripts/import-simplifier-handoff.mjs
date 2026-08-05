@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 const DEFAULT_SOURCE = "/Users/raineryeary/Documents/Codex/2026-06-23/fl/work/floorplan-simplifier/exports/floorplan-generator/simplifier-v1";
 const DEFAULT_TARGET = path.resolve("data/simplifier-v1");
 const DATASET_VERSION = "floorplan-generator-simplifier-v1";
+const RECONSTRUCTION_DATASET_VERSION = "floorplan-reconstruction-reference-v1";
 const SOURCE_SCHEMA = "simplifier-annotations-v1";
 const KNOWLEDGE_VERSION = "simplifier-knowledge-v1";
 const COUNT_FIELDS = ["project_count", "floor_count", "room_count", "element_count"];
@@ -195,6 +196,40 @@ export function validateDataset(dataset, manifest, knowledge) {
   return counts;
 }
 
+export function validateReconstructionDataset(dataset) {
+  assertEqual("reconstruction.dataset_version", dataset.dataset_version, RECONSTRUCTION_DATASET_VERSION);
+  assertEqual("reconstruction.source_schema", dataset.source_schema, SOURCE_SCHEMA);
+
+  if (dataset.privacy?.local_only !== true) throw new Error("reconstruction privacy.local_only must be exactly true.");
+  if (dataset.privacy?.contains_raw_floorplans !== false) throw new Error("reconstruction privacy.contains_raw_floorplans must be exactly false.");
+  if (dataset.privacy?.contains_customer_names_or_addresses !== false) throw new Error("reconstruction privacy.contains_customer_names_or_addresses must be exactly false.");
+  if (dataset.policy?.source_assets_excluded !== true) throw new Error("Reconstruction dataset must exclude source assets.");
+  if (dataset.policy?.reconstruction_only !== true) throw new Error("Reconstruction dataset must be reconstruction-only.");
+  if (dataset.policy?.commercial_output_requires_separate_geometry_and_rights_approval !== true) {
+    throw new Error("Reconstruction dataset must require separate geometry and rights approval.");
+  }
+
+  validateStructure(dataset);
+  const projects = Array.isArray(dataset.projects) ? dataset.projects : [];
+  for (const project of projects) {
+    const name = project.project_id || "<unnamed>";
+    if (project.source_rights_status !== "restricted_reference") {
+      throw new Error(`${name}.source_rights_status must be restricted_reference.`);
+    }
+    if (project.reconstruction_only !== true) {
+      throw new Error(`${name}.reconstruction_only must be exactly true.`);
+    }
+    if (project.commercial_generator_eligible !== false) {
+      throw new Error(`${name}.commercial_generator_eligible must be exactly false.`);
+    }
+  }
+  const counts = countDataset(dataset);
+  if (counts.project_count < 1) {
+    throw new Error("Reconstruction dataset must contain at least one annotated restricted reference.");
+  }
+  return counts;
+}
+
 export function validateCorpusLedger(ledger, counts, dataset) {
   if (ledger?.schema_version !== "floorplan-corpus-ledger-v1") {
     throw new Error("corpus-ledger.json must use floorplan-corpus-ledger-v1.");
@@ -257,19 +292,23 @@ export async function importSimplifierHandoff(sourcePath = DEFAULT_SOURCE, targe
   const knowledgePath = path.join(source, "knowledge.json");
   const manifestPath = path.join(source, "manifest.json");
   const ledgerPath = path.join(source, "corpus-ledger.json");
+  const reconstructionPath = path.join(source, "reconstruction-dataset.json");
 
   const dataset = await readJson(datasetPath);
   const knowledge = await readJson(knowledgePath);
   const manifest = await readJson(manifestPath);
   const ledger = await readJson(ledgerPath);
+  const reconstructionDataset = await readJson(reconstructionPath);
   const counts = validateDataset(dataset, manifest, knowledge);
   validateCorpusLedger(ledger, counts, dataset);
+  const reconstructionCounts = validateReconstructionDataset(reconstructionDataset);
 
   await mkdir(target, { recursive: true });
   await copyFile(datasetPath, path.join(target, "dataset.json"));
   await copyFile(knowledgePath, path.join(target, "knowledge.json"));
   await copyFile(manifestPath, path.join(target, "manifest.json"));
   await copyFile(ledgerPath, path.join(target, "corpus-ledger.json"));
+  await copyFile(reconstructionPath, path.join(target, "reconstruction-dataset.json"));
 
   const sourceReadme = path.resolve(source, "..", "README.md");
   try {
@@ -278,18 +317,19 @@ export async function importSimplifierHandoff(sourcePath = DEFAULT_SOURCE, targe
     await writeFile(path.join(target, "README.md"), "# Simplifier v1 handoff\n\nPrivacy-safe local Floorplan Simplifier handoff.\n");
   }
 
-  return { counts, target };
+  return { counts, reconstructionCounts, target };
 }
 
 async function main() {
   const source = process.argv[2] ?? DEFAULT_SOURCE;
   const target = process.argv[3] ?? DEFAULT_TARGET;
-  const { counts, target: resolvedTarget } = await importSimplifierHandoff(source, target);
+  const { counts, reconstructionCounts, target: resolvedTarget } = await importSimplifierHandoff(source, target);
   const basementFloors = counts.floor_levels.basement ?? 0;
 
   console.log(`Imported Simplifier handoff into ${resolvedTarget}`);
   console.log(`Validated ${counts.project_count} projects, ${counts.floor_count} floors, ${counts.room_count} rooms, ${counts.element_count} elements.`);
   console.log(`Preserved ${basementFloors} basement floor(s) via floor_level=basement.`);
+  console.log("Loaded " + reconstructionCounts.project_count + " restricted references for local reconstruction only.");
 }
 
 const isMain = process.argv[1]
