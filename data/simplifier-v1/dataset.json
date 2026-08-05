@@ -1,6 +1,6 @@
 {
   "dataset_version": "floorplan-generator-simplifier-v1",
-  "generated_at": "2026-07-30T06:18:17.055082+00:00",
+  "generated_at": "2026-07-31T10:48:36.556797+00:00",
   "source_schema": "simplifier-annotations-v1",
   "privacy": {
     "local_only": true,
@@ -13645,7 +13645,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.032147
+              "area_ratio": 0.034072
             },
             {
               "id": "1784460336376_970b17968511",
@@ -13738,7 +13738,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.02477
+              "area_ratio": 0.029161
             },
             {
               "id": "1784460348429_b800fe39379768",
@@ -16423,6 +16423,466 @@
                 [
                   0.52829,
                   0.636707
+                ]
+              ]
+            }
+          ],
+          "architectural_features": []
+        }
+      ]
+    },
+    {
+      "project_id": "bungalow_037",
+      "house_type": "bungalow",
+      "package_status": "training_ready",
+      "source_kind": "real_annotated",
+      "approval_status": "annotated_reference",
+      "usage_scope": "internal_reference_only",
+      "quality_status": "passed",
+      "annotation_sha256": "cfe6f04bb4614ef33fb7c232b110f5494a328210ddc0b0c96eae9a7cb6613796",
+      "schema_version": "simplifier-annotations-v1",
+      "floors": [
+        {
+          "floor_level": "groundfloor",
+          "rooms": [
+            {
+              "id": "1785410098257_e6160642f2e0d",
+              "room_id": "eltern",
+              "room_ids": [
+                "eltern"
+              ],
+              "label": "Eltern / Schlafen",
+              "polygon": [
+                [
+                  0.140377,
+                  0.156429
+                ],
+                [
+                  0.468369,
+                  0.156429
+                ],
+                [
+                  0.468369,
+                  0.481666
+                ],
+                [
+                  0.140377,
+                  0.481666
+                ]
+              ],
+              "area_ratio": 0.106675
+            },
+            {
+              "id": "1785410102831_ce860d3f4a097",
+              "room_id": "bad",
+              "room_ids": [
+                "bad"
+              ],
+              "label": "Bad",
+              "polygon": [
+                [
+                  0.143066,
+                  0.485714
+                ],
+                [
+                  0.372929,
+                  0.485714
+                ],
+                [
+                  0.372929,
+                  0.669924
+                ],
+                [
+                  0.143066,
+                  0.669924
+                ]
+              ],
+              "area_ratio": 0.042343
+            },
+            {
+              "id": "1785410111186_21e262310b5648",
+              "room_id": "wohnen_essen",
+              "room_ids": [
+                "wohnen_essen"
+              ],
+              "label": "Wohnen / Essen",
+              "polygon": [
+                [
+                  0.477778,
+                  0.158454
+                ],
+                [
+                  0.842064,
+                  0.158454
+                ],
+                [
+                  0.842064,
+                  0.480991
+                ],
+                [
+                  0.477778,
+                  0.480991
+                ]
+              ],
+              "area_ratio": 0.117496
+            },
+            {
+              "id": "1785410115934_f38131257e68d",
+              "room_id": "buero",
+              "room_ids": [
+                "buero"
+              ],
+              "label": "Büro",
+              "polygon": [
+                [
+                  0.606152,
+                  0.485039
+                ],
+                [
+                  0.842736,
+                  0.485039
+                ],
+                [
+                  0.842736,
+                  0.659128
+                ],
+                [
+                  0.606152,
+                  0.659128
+                ]
+              ],
+              "area_ratio": 0.041187
+            },
+            {
+              "id": "1785410122257_d9242f7d02022",
+              "room_id": "kochen",
+              "room_ids": [
+                "kochen"
+              ],
+              "label": "Kochen",
+              "polygon": [
+                [
+                  0.542973,
+                  0.659803
+                ],
+                [
+                  0.846769,
+                  0.659803
+                ],
+                [
+                  0.846769,
+                  0.862907
+                ],
+                [
+                  0.542973,
+                  0.862907
+                ]
+              ],
+              "area_ratio": 0.061702
+            },
+            {
+              "id": "1785410130545_9e620f5579263",
+              "room_id": "hwr_htr",
+              "room_ids": [
+                "hwr_htr"
+              ],
+              "label": "HWR / HTR",
+              "polygon": [
+                [
+                  0.138226,
+                  0.676402
+                ],
+                [
+                  0.368896,
+                  0.673771
+                ],
+                [
+                  0.372828,
+                  0.723771
+                ],
+                [
+                  0.434427,
+                  0.723771
+                ],
+                [
+                  0.435738,
+                  0.861929
+                ],
+                [
+                  0.139537,
+                  0.860613
+                ]
+              ],
+              "area_ratio": 0.052024
+            },
+            {
+              "id": "1785410139208_07bc93302465c",
+              "room_id": "diele",
+              "room_ids": [
+                "diele"
+              ],
+              "label": "Diele",
+              "polygon": [
+                [
+                  0.380691,
+                  0.484297
+                ],
+                [
+                  0.604808,
+                  0.485613
+                ],
+                [
+                  0.61005,
+                  0.65535
+                ],
+                [
+                  0.541898,
+                  0.661929
+                ],
+                [
+                  0.552383,
+                  0.86456
+                ],
+                [
+                  0.44098,
+                  0.865876
+                ],
+                [
+                  0.437048,
+                  0.722455
+                ],
+                [
+                  0.370206,
+                  0.721139
+                ]
+              ],
+              "area_ratio": 0.066645
+            }
+          ],
+          "elements": [
+            {
+              "id": "1785410142959_ad9511ec260878",
+              "type": "window",
+              "points": [
+                [
+                  0.264046,
+                  0.154034
+                ],
+                [
+                  0.405593,
+                  0.148771
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410144398_8deabb70d3506",
+              "type": "window",
+              "points": [
+                [
+                  0.536655,
+                  0.151402
+                ],
+                [
+                  0.692619,
+                  0.154034
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410146258_e668c8f28ed1f",
+              "type": "window",
+              "points": [
+                [
+                  0.839409,
+                  0.276402
+                ],
+                [
+                  0.838098,
+                  0.361929
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410147878_0ee77e55436368",
+              "type": "window",
+              "points": [
+                [
+                  0.843341,
+                  0.527718
+                ],
+                [
+                  0.843341,
+                  0.61456
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410149850_af463e632a3ce8",
+              "type": "window",
+              "points": [
+                [
+                  0.759461,
+                  0.860613
+                ],
+                [
+                  0.657233,
+                  0.865876
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410151290_d3c0fc252cfd98",
+              "type": "window",
+              "points": [
+                [
+                  0.290259,
+                  0.861928
+                ],
+                [
+                  0.22997,
+                  0.872455
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410152557_11e7c703461a48",
+              "type": "window",
+              "points": [
+                [
+                  0.139537,
+                  0.759297
+                ],
+                [
+                  0.143469,
+                  0.836928
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410154162_4fd5630caef538",
+              "type": "window",
+              "points": [
+                [
+                  0.140848,
+                  0.548771
+                ],
+                [
+                  0.150022,
+                  0.63035
+                ]
+              ],
+              "placement_context": "standard_facade",
+              "roof_window": false
+            },
+            {
+              "id": "1785410158101_bc51eb9e4cb0b8",
+              "type": "door",
+              "points": [
+                [
+                  0.391176,
+                  0.477718
+                ],
+                [
+                  0.456707,
+                  0.481665
+                ]
+              ]
+            },
+            {
+              "id": "1785410159504_f4a567c48f74a8",
+              "type": "door",
+              "points": [
+                [
+                  0.523549,
+                  0.481665
+                ],
+                [
+                  0.58908,
+                  0.477718
+                ]
+              ]
+            },
+            {
+              "id": "1785410160665_88a9a205133c28",
+              "type": "door",
+              "points": [
+                [
+                  0.611361,
+                  0.501402
+                ],
+                [
+                  0.611361,
+                  0.572455
+                ]
+              ]
+            },
+            {
+              "id": "1785410161940_b36b4b645ea76",
+              "type": "door",
+              "points": [
+                [
+                  0.544519,
+                  0.68035
+                ],
+                [
+                  0.548451,
+                  0.747455
+                ]
+              ]
+            },
+            {
+              "id": "1785410164168_2cdf42ba7dc208",
+              "type": "door",
+              "points": [
+                [
+                  0.456707,
+                  0.863244
+                ],
+                [
+                  0.539277,
+                  0.86456
+                ]
+              ]
+            },
+            {
+              "id": "1785410165706_2743a9f91af2d8",
+              "type": "door",
+              "points": [
+                [
+                  0.434427,
+                  0.740876
+                ],
+                [
+                  0.437048,
+                  0.813244
+                ]
+              ]
+            },
+            {
+              "id": "1785410167318_4da339447ea4a",
+              "type": "door",
+              "points": [
+                [
+                  0.372828,
+                  0.501402
+                ],
+                [
+                  0.372828,
+                  0.584297
                 ]
               ]
             }
@@ -24170,7 +24630,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.073194
+              "area_ratio": 0.07595
             },
             {
               "id": "1784833649684_edee7caf6d7448",
@@ -25478,7 +25938,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.118907
+              "area_ratio": 0.118489
             },
             {
               "id": "1784835027128_61948075ac8598",
@@ -26094,7 +26554,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.145904
+              "area_ratio": 0.146886
             },
             {
               "id": "1784835252106_4b438f1b9865b8",
@@ -27288,7 +27748,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.064243
+              "area_ratio": 0.065127
             },
             {
               "id": "1784835630790_46fe73368461c",
@@ -28703,7 +29163,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.055679
+              "area_ratio": 0.056487
             },
             {
               "id": "1784828007151_e9b99c4d053f08",
@@ -94528,7 +94988,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.129831
+              "area_ratio": 0.133217
             },
             {
               "id": "1784468503736_501e8c6ca37fe",
@@ -101942,7 +102402,7 @@
                   ]
                 ]
               ],
-              "area_ratio": 0.109069
+              "area_ratio": 0.109674
             },
             {
               "id": "1784471770942_5ceaa283c924c",

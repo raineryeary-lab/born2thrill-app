@@ -1,34 +1,34 @@
 {
   "knowledge_version": "simplifier-knowledge-v1",
-  "generated_at": "2026-07-30T06:18:17.055082+00:00",
+  "generated_at": "2026-07-31T10:48:36.556797+00:00",
   "basis": {
-    "project_count": 159,
-    "floor_count": 244,
-    "room_count": 1541,
-    "element_count": 3480,
+    "project_count": 160,
+    "floor_count": 245,
+    "room_count": 1548,
+    "element_count": 3495,
     "house_types": {
-      "bungalow": 77,
+      "bungalow": 78,
       "onehalfstorey": 40,
       "other": 1,
       "twostorey": 41
     },
     "floor_levels": {
       "basement": 2,
-      "groundfloor": 159,
+      "groundfloor": 160,
       "upperfloor": 83
     }
   },
   "element_counts": {
     "balcony": 4,
-    "door": 1311,
+    "door": 1318,
     "opening": 101,
     "stairs": 166,
-    "window": 1898
+    "window": 1906
   },
   "element_context_counts": {
     "door:under_stairs": 1,
     "window:quergiebel_facade": 6,
-    "window:standard_facade": 1501
+    "window:standard_facade": 1509
   },
   "architectural_feature_counts": {
     "gable:quergiebel": 12,
@@ -93,18 +93,18 @@
   ],
   "room_label_counts": {
     "Kind": 223,
-    "HWR / HTR": 162,
-    "Diele": 161,
-    "Bad": 160,
-    "Eltern / Schlafen": 156,
+    "HWR / HTR": 163,
+    "Diele": 162,
+    "Bad": 161,
+    "Eltern / Schlafen": 157,
     "Wohnen / Essen / Kochen": 107,
     "Flur": 102,
     "WC": 92,
-    "Büro": 76,
+    "Büro": 77,
     "Ankleide": 53,
     "DU-WC": 50,
-    "Kochen": 48,
-    "Wohnen / Essen": 44,
+    "Kochen": 49,
+    "Wohnen / Essen": 45,
     "Gast": 28,
     "Speisekammer": 25,
     "Abstellraum": 15,
@@ -124,6 +124,12 @@
   },
   "room_profiles": [
     {
+      "floor_level": "groundfloor",
+      "room_id": "diele",
+      "occurrences": 162,
+      "median_share_of_marked_room_area": 0.1493
+    },
+    {
       "floor_level": "upperfloor",
       "room_id": "kind",
       "occurrences": 162,
@@ -131,15 +137,9 @@
     },
     {
       "floor_level": "groundfloor",
-      "room_id": "diele",
-      "occurrences": 161,
-      "median_share_of_marked_room_area": 0.1503
-    },
-    {
-      "floor_level": "groundfloor",
       "room_id": "hwr_htr",
-      "occurrences": 160,
-      "median_share_of_marked_room_area": 0.1035
+      "occurrences": 161,
+      "median_share_of_marked_room_area": 0.1037
     },
     {
       "floor_level": "groundfloor",
@@ -174,19 +174,19 @@
     {
       "floor_level": "groundfloor",
       "room_id": "eltern",
-      "occurrences": 76,
-      "median_share_of_marked_room_area": 0.1277
+      "occurrences": 77,
+      "median_share_of_marked_room_area": 0.1296
     },
     {
       "floor_level": "groundfloor",
       "room_id": "bad",
-      "occurrences": 75,
-      "median_share_of_marked_room_area": 0.0825
+      "occurrences": 76,
+      "median_share_of_marked_room_area": 0.0832
     },
     {
       "floor_level": "groundfloor",
       "room_id": "buero",
-      "occurrences": 62,
+      "occurrences": 63,
       "median_share_of_marked_room_area": 0.1034
     },
     {
@@ -198,14 +198,14 @@
     {
       "floor_level": "groundfloor",
       "room_id": "kochen",
-      "occurrences": 48,
-      "median_share_of_marked_room_area": 0.1229
+      "occurrences": 49,
+      "median_share_of_marked_room_area": 0.1231
     },
     {
       "floor_level": "groundfloor",
       "room_id": "wohnen_essen",
-      "occurrences": 44,
-      "median_share_of_marked_room_area": 0.4052
+      "occurrences": 45,
+      "median_share_of_marked_room_area": 0.4015
     },
     {
       "floor_level": "groundfloor",
@@ -383,7 +383,7 @@
     }
   ],
   "average_rooms_per_house_type": {
-    "bungalow": 8.29,
+    "bungalow": 8.27,
     "onehalfstorey": 10.7,
     "other": 16,
     "twostorey": 11.2
@@ -454,6 +454,10 @@
       "occurrences": 2
     },
     {
+      "signature": "bungalow:groundfloor:bad|buero|diele|eltern|hwr_htr|kochen|wohnen_essen",
+      "occurrences": 2
+    },
+    {
       "signature": "bungalow:groundfloor:bad|diele|eltern|gast|hwr_htr|wohnen_essen_kochen",
       "occurrences": 2
     },
@@ -463,10 +467,6 @@
     },
     {
       "signature": "bungalow:groundfloor:bad|diele|du_wc|eltern|hwr_htr|kind|wohnen_essen_kochen",
-      "occurrences": 2
-    },
-    {
-      "signature": "bungalow:groundfloor:bad|buero|diele|eltern|hwr_htr|kind|wohnen_essen_kochen",
       "occurrences": 2
     }
   ],

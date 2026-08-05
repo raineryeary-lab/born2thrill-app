@@ -5,6 +5,7 @@ import {
   countDataset,
   validateCorpusLedger,
   validateDataset,
+  validateReconstructionDataset,
 } from "./import-simplifier-handoff.mjs";
 
 function project(index, floorLevel = "groundfloor") {
@@ -80,6 +81,35 @@ function fixture(projects = [project(1)]) {
   };
   return { dataset, manifest, knowledge, counts };
 }
+test("restricted references are accepted only by the reconstruction dataset contract", () => {
+  const restricted = project(9);
+  restricted.source_rights_status = "restricted_reference";
+  restricted.reconstruction_only = true;
+  restricted.commercial_generator_eligible = false;
+  const dataset = {
+    dataset_version: "floorplan-reconstruction-reference-v1",
+    source_schema: "simplifier-annotations-v1",
+    privacy: {
+      local_only: true,
+      contains_raw_floorplans: false,
+      contains_customer_names_or_addresses: false,
+    },
+    policy: {
+      source_assets_excluded: true,
+      reconstruction_only: true,
+      commercial_output_requires_separate_geometry_and_rights_approval: true,
+    },
+    projects: [restricted],
+  };
+
+  assert.equal(validateReconstructionDataset(dataset).project_count, 1);
+  restricted.commercial_generator_eligible = true;
+  assert.throws(
+    () => validateReconstructionDataset(dataset),
+    /commercial_generator_eligible/,
+  );
+});
+
 
 test("accepts a future larger dataset without fixed counts", () => {
   const value = fixture(Array.from({ length: 200 }, (_, index) => project(index)));
