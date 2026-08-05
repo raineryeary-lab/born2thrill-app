@@ -1,0 +1,1305 @@
+{
+  "schema": "dmh-floorplan-approved-canonical-v1",
+  "revision": 4,
+  "provenance": {
+    "creation_mode": "identity",
+    "source_assets_included": false,
+    "internal_source_record_retained_locally": true
+  },
+  "rulebook_version": "dmh-floorplan-rulebook-v3-2026-07-31",
+  "rights": {
+    "source_status": "not_restricted",
+    "usage_scope": "commercial_generator",
+    "decision": "commercially_cleared",
+    "commercial_approval_attested": false,
+    "wordpress_eligible": true
+  },
+  "building": {
+    "coordinate_unit": "mm",
+    "footprint_width_mm": 12500,
+    "footprint_depth_mm": 11200,
+    "floor_height_mm": 2800,
+    "storey_type": "1_storey",
+    "roof_form": "gable",
+    "geometry_source": "rectified_annotated_reference"
+  },
+  "defaults": {
+    "exteriorWallMm": 350,
+    "interiorWallMm": 100,
+    "internalDoorMm": 880,
+    "smallWcDoorMm": 760,
+    "entranceDoorMm": 1100,
+    "stairWidthMm": 900,
+    "sourceAxisSnapTolerancePx": 10,
+    "editSnapMm": 50
+  },
+  "floors": [
+    {
+      "id": "floor-0",
+      "name": "Erdgeschoss",
+      "level": 0,
+      "footprint": [
+        [
+          0,
+          0
+        ],
+        [
+          12500,
+          0
+        ],
+        [
+          12500,
+          11200
+        ],
+        [
+          0,
+          11200
+        ]
+      ],
+      "rooms": [
+        {
+          "id": "ref-0-1784831479122_ed519459f5f36",
+          "name": "Bad",
+          "kind": "wet",
+          "polygon": [
+            [
+              3947,
+              0
+            ],
+            [
+              6469,
+              0
+            ],
+            [
+              6469,
+              4923
+            ],
+            [
+              3947,
+              4923
+            ]
+          ],
+          "area_m2": 12.42
+        },
+        {
+          "id": "ref-0-1784831485121_368864b17a2c88",
+          "name": "DU-WC",
+          "kind": "wet",
+          "polygon": [
+            [
+              6850,
+              7887
+            ],
+            [
+              8924,
+              7887
+            ],
+            [
+              8924,
+              11200
+            ],
+            [
+              6850,
+              11200
+            ]
+          ],
+          "area_m2": 6.87
+        },
+        {
+          "id": "ref-0-1784831498149_7c3b7950b0bd3",
+          "name": "Kind",
+          "kind": "sleeping",
+          "polygon": [
+            [
+              2168,
+              7062
+            ],
+            [
+              2812,
+              7062
+            ],
+            [
+              2812,
+              6569
+            ],
+            [
+              5038,
+              6569
+            ],
+            [
+              5038,
+              11200
+            ],
+            [
+              2168,
+              11200
+            ]
+          ],
+          "area_m2": 12.97
+        },
+        {
+          "id": "ref-0-1784831502934_9c70dec42839c8",
+          "name": "Ankleide",
+          "kind": "flex",
+          "polygon": [
+            [
+              0,
+              7062
+            ],
+            [
+              2168,
+              7062
+            ],
+            [
+              2168,
+              11200
+            ],
+            [
+              0,
+              11200
+            ]
+          ],
+          "area_m2": 8.97
+        },
+        {
+          "id": "ref-0-1784831507922_88ff129f496d38",
+          "name": "Eltern / Schlafen",
+          "kind": "sleeping",
+          "polygon": [
+            [
+              0,
+              2750
+            ],
+            [
+              2812,
+              2750
+            ],
+            [
+              2812,
+              7062
+            ],
+            [
+              0,
+              7062
+            ]
+          ],
+          "area_m2": 12.13
+        },
+        {
+          "id": "ref-0-1784831517500_8e81cb1ceb0e1",
+          "name": "HWR / HTR",
+          "kind": "service",
+          "polygon": [
+            [
+              2812,
+              4923
+            ],
+            [
+              3947,
+              4923
+            ],
+            [
+              3947,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              2750
+            ],
+            [
+              2812,
+              2750
+            ]
+          ],
+          "area_m2": 13.32
+        },
+        {
+          "id": "ref-0-1784831529102_d4de5a495b0d9",
+          "name": "Diele",
+          "kind": "circulation",
+          "polygon": [
+            [
+              2812,
+              4923
+            ],
+            [
+              8924,
+              4923
+            ],
+            [
+              8924,
+              7887
+            ],
+            [
+              6850,
+              7887
+            ],
+            [
+              6850,
+              11200
+            ],
+            [
+              5038,
+              11200
+            ],
+            [
+              5038,
+              6569
+            ],
+            [
+              2812,
+              6569
+            ]
+          ],
+          "area_m2": 21.19
+        },
+        {
+          "id": "ref-0-1784831545850_b5ea16ba4e4ee8",
+          "name": "Wohnen / Essen / Kochen",
+          "kind": "living",
+          "polygon": [
+            [
+              8924,
+              11200
+            ],
+            [
+              12500,
+              11200
+            ],
+            [
+              12500,
+              0
+            ],
+            [
+              6469,
+              0
+            ],
+            [
+              6469,
+              4923
+            ],
+            [
+              8924,
+              4923
+            ]
+          ],
+          "area_m2": 52.14
+        }
+      ],
+      "walls": [
+        {
+          "id": "f0-wall-001",
+          "start": [
+            0,
+            0
+          ],
+          "end": [
+            3947,
+            0
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831517500_8e81cb1ceb0e1"
+          ],
+          "length_mm": 3947
+        },
+        {
+          "id": "f0-wall-002",
+          "start": [
+            3947,
+            0
+          ],
+          "end": [
+            6469,
+            0
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831479122_ed519459f5f36"
+          ],
+          "length_mm": 2522
+        },
+        {
+          "id": "f0-wall-003",
+          "start": [
+            6469,
+            0
+          ],
+          "end": [
+            12500,
+            0
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "length_mm": 6031
+        },
+        {
+          "id": "f0-wall-004",
+          "start": [
+            0,
+            2750
+          ],
+          "end": [
+            2812,
+            2750
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831507922_88ff129f496d38",
+            "ref-0-1784831517500_8e81cb1ceb0e1"
+          ],
+          "length_mm": 2812
+        },
+        {
+          "id": "f0-wall-005",
+          "start": [
+            2812,
+            4923
+          ],
+          "end": [
+            3947,
+            4923
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831517500_8e81cb1ceb0e1",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 1135
+        },
+        {
+          "id": "f0-wall-006",
+          "start": [
+            3947,
+            4923
+          ],
+          "end": [
+            6469,
+            4923
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831479122_ed519459f5f36",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 2522
+        },
+        {
+          "id": "f0-wall-007",
+          "start": [
+            6469,
+            4923
+          ],
+          "end": [
+            8924,
+            4923
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831529102_d4de5a495b0d9",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "length_mm": 2455
+        },
+        {
+          "id": "f0-wall-008",
+          "start": [
+            2812,
+            6569
+          ],
+          "end": [
+            5038,
+            6569
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831498149_7c3b7950b0bd3",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 2226
+        },
+        {
+          "id": "f0-wall-009",
+          "start": [
+            0,
+            7062
+          ],
+          "end": [
+            2168,
+            7062
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831502934_9c70dec42839c8",
+            "ref-0-1784831507922_88ff129f496d38"
+          ],
+          "length_mm": 2168
+        },
+        {
+          "id": "f0-wall-010",
+          "start": [
+            2168,
+            7062
+          ],
+          "end": [
+            2812,
+            7062
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831498149_7c3b7950b0bd3",
+            "ref-0-1784831507922_88ff129f496d38"
+          ],
+          "length_mm": 644
+        },
+        {
+          "id": "f0-wall-011",
+          "start": [
+            6850,
+            7887
+          ],
+          "end": [
+            8924,
+            7887
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831485121_368864b17a2c88",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 2074
+        },
+        {
+          "id": "f0-wall-012",
+          "start": [
+            0,
+            11200
+          ],
+          "end": [
+            2168,
+            11200
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831502934_9c70dec42839c8"
+          ],
+          "length_mm": 2168
+        },
+        {
+          "id": "f0-wall-013",
+          "start": [
+            2168,
+            11200
+          ],
+          "end": [
+            5038,
+            11200
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831498149_7c3b7950b0bd3"
+          ],
+          "length_mm": 2870
+        },
+        {
+          "id": "f0-wall-014",
+          "start": [
+            5038,
+            11200
+          ],
+          "end": [
+            6850,
+            11200
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 1812
+        },
+        {
+          "id": "f0-wall-015",
+          "start": [
+            6850,
+            11200
+          ],
+          "end": [
+            8924,
+            11200
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831485121_368864b17a2c88"
+          ],
+          "length_mm": 2074
+        },
+        {
+          "id": "f0-wall-016",
+          "start": [
+            8924,
+            11200
+          ],
+          "end": [
+            12500,
+            11200
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "length_mm": 3576
+        },
+        {
+          "id": "f0-wall-017",
+          "start": [
+            0,
+            0
+          ],
+          "end": [
+            0,
+            2750
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831517500_8e81cb1ceb0e1"
+          ],
+          "length_mm": 2948
+        },
+        {
+          "id": "f0-wall-018",
+          "start": [
+            0,
+            2750
+          ],
+          "end": [
+            0,
+            7062
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831507922_88ff129f496d38"
+          ],
+          "length_mm": 4114
+        },
+        {
+          "id": "f0-wall-019",
+          "start": [
+            0,
+            7062
+          ],
+          "end": [
+            0,
+            11200
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831502934_9c70dec42839c8"
+          ],
+          "length_mm": 4138
+        },
+        {
+          "id": "f0-wall-020",
+          "start": [
+            2168,
+            7062
+          ],
+          "end": [
+            2168,
+            11200
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831498149_7c3b7950b0bd3",
+            "ref-0-1784831502934_9c70dec42839c8"
+          ],
+          "length_mm": 4138
+        },
+        {
+          "id": "f0-wall-021",
+          "start": [
+            2812,
+            2750
+          ],
+          "end": [
+            2812,
+            4923
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831507922_88ff129f496d38",
+            "ref-0-1784831517500_8e81cb1ceb0e1"
+          ],
+          "length_mm": 1975
+        },
+        {
+          "id": "f0-wall-022",
+          "start": [
+            2812,
+            4923
+          ],
+          "end": [
+            2812,
+            6569
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831507922_88ff129f496d38",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 1646
+        },
+        {
+          "id": "f0-wall-023",
+          "start": [
+            2812,
+            6569
+          ],
+          "end": [
+            2812,
+            7062
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831498149_7c3b7950b0bd3",
+            "ref-0-1784831507922_88ff129f496d38"
+          ],
+          "length_mm": 493
+        },
+        {
+          "id": "f0-wall-024",
+          "start": [
+            3947,
+            0
+          ],
+          "end": [
+            3947,
+            4923
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831479122_ed519459f5f36",
+            "ref-0-1784831517500_8e81cb1ceb0e1"
+          ],
+          "length_mm": 4923
+        },
+        {
+          "id": "f0-wall-025",
+          "start": [
+            5038,
+            6569
+          ],
+          "end": [
+            5038,
+            11200
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831498149_7c3b7950b0bd3",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 4631
+        },
+        {
+          "id": "f0-wall-026",
+          "start": [
+            6469,
+            0
+          ],
+          "end": [
+            6469,
+            4923
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831479122_ed519459f5f36",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "length_mm": 4923
+        },
+        {
+          "id": "f0-wall-027",
+          "start": [
+            6850,
+            7887
+          ],
+          "end": [
+            6850,
+            11200
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831485121_368864b17a2c88",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "length_mm": 3313
+        },
+        {
+          "id": "f0-wall-028",
+          "start": [
+            8924,
+            4923
+          ],
+          "end": [
+            8924,
+            7887
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831529102_d4de5a495b0d9",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "length_mm": 2964
+        },
+        {
+          "id": "f0-wall-029",
+          "start": [
+            8924,
+            7887
+          ],
+          "end": [
+            8924,
+            11200
+          ],
+          "thickness": 100,
+          "wall_type": "partition",
+          "room_ids": [
+            "ref-0-1784831485121_368864b17a2c88",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "length_mm": 3313
+        },
+        {
+          "id": "f0-wall-030",
+          "start": [
+            12500,
+            0
+          ],
+          "end": [
+            12500,
+            11200
+          ],
+          "thickness": 350,
+          "wall_type": "exterior",
+          "room_ids": [
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "length_mm": 11200
+        }
+      ],
+      "openings": [
+        {
+          "id": "1784831549623_3fc5f7bbbf2f08",
+          "opening_type": "window",
+          "wall_id": "f0-wall-003",
+          "position": 0.268778,
+          "width": 980,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              7600,
+              169
+            ],
+            [
+              8580,
+              193
+            ]
+          ],
+          "source_distance_to_wall_mm": 181,
+          "wall_length_mm": 6031
+        },
+        {
+          "id": "1784831551206_2c20ddb008b4d",
+          "opening_type": "window",
+          "wall_id": "f0-wall-003",
+          "position": 0.736279,
+          "width": 1878,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              9972,
+              169
+            ],
+            [
+              11847,
+              72
+            ]
+          ],
+          "source_distance_to_wall_mm": 121,
+          "wall_length_mm": 6031
+        },
+        {
+          "id": "1784831552952_b63b52d1552c18",
+          "opening_type": "window",
+          "wall_id": "f0-wall-030",
+          "position": 0.267723,
+          "width": 2400,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              12431,
+              1517
+            ],
+            [
+              12414,
+              4480
+            ]
+          ],
+          "source_distance_to_wall_mm": 78,
+          "wall_length_mm": 11200
+        },
+        {
+          "id": "1784831554446_c21e5de2f37b08",
+          "opening_type": "window",
+          "wall_id": "f0-wall-030",
+          "position": 0.797857,
+          "width": 2264,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              12500,
+              7804
+            ],
+            [
+              12483,
+              10068
+            ]
+          ],
+          "source_distance_to_wall_mm": 9,
+          "wall_length_mm": 11200
+        },
+        {
+          "id": "1784831556457_a32d4f9cead5f",
+          "opening_type": "window",
+          "wall_id": "f0-wall-015",
+          "position": 0.332449,
+          "width": 673,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831485121_368864b17a2c88"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              7204,
+              11200
+            ],
+            [
+              7875,
+              11152
+            ]
+          ],
+          "source_distance_to_wall_mm": 24,
+          "wall_length_mm": 2074
+        },
+        {
+          "id": "1784831557783_b18cb9820bd88",
+          "opening_type": "window",
+          "wall_id": "f0-wall-013",
+          "position": 0.505575,
+          "width": 1152,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831498149_7c3b7950b0bd3"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              4195,
+              11152
+            ],
+            [
+              3043,
+              11128
+            ]
+          ],
+          "source_distance_to_wall_mm": 60,
+          "wall_length_mm": 2870
+        },
+        {
+          "id": "1784831560093_dcd9b711718228",
+          "opening_type": "window",
+          "wall_id": "f0-wall-018",
+          "position": 0.457341,
+          "width": 2004,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831507922_88ff129f496d38"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              0,
+              3830
+            ],
+            [
+              138,
+              5829
+            ]
+          ],
+          "source_distance_to_wall_mm": 69,
+          "wall_length_mm": 4114
+        },
+        {
+          "id": "1784831561766_7072a0a5f28f28",
+          "opening_type": "window",
+          "wall_id": "f0-wall-017",
+          "position": 0.526967,
+          "width": 1426,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831517500_8e81cb1ceb0e1"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              34,
+              843
+            ],
+            [
+              155,
+              2264
+            ]
+          ],
+          "source_distance_to_wall_mm": 95,
+          "wall_length_mm": 2948
+        },
+        {
+          "id": "1784831563288_aad1c39bb5bae8",
+          "opening_type": "window",
+          "wall_id": "f0-wall-001",
+          "position": 0.801495,
+          "width": 759,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831517500_8e81cb1ceb0e1"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              2785,
+              24
+            ],
+            [
+              3542,
+              72
+            ]
+          ],
+          "source_distance_to_wall_mm": 48,
+          "wall_length_mm": 3947
+        },
+        {
+          "id": "1784831564481_a7594b9ac23d68",
+          "opening_type": "window",
+          "wall_id": "f0-wall-002",
+          "position": 0.698454,
+          "width": 1031,
+          "role": "standard",
+          "connects": [
+            "outside",
+            "ref-0-1784831479122_ed519459f5f36"
+          ],
+          "traversable": false,
+          "height_mm": 1350,
+          "sill_height_mm": 900,
+          "source_points_mm": [
+            [
+              5193,
+              24
+            ],
+            [
+              6224,
+              24
+            ]
+          ],
+          "source_distance_to_wall_mm": 24,
+          "wall_length_mm": 2522
+        },
+        {
+          "id": "1784831568111_cb5a178aae16d8",
+          "opening_type": "door",
+          "wall_id": "f0-wall-006",
+          "position": 0.255155,
+          "width": 880,
+          "role": "standard",
+          "connects": [
+            "ref-0-1784831479122_ed519459f5f36",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              4109,
+              4962
+            ],
+            [
+              5072,
+              4962
+            ]
+          ],
+          "source_distance_to_wall_mm": 39,
+          "wall_length_mm": 2522
+        },
+        {
+          "id": "1784831569656_e95bf9eb214df",
+          "opening_type": "door",
+          "wall_id": "f0-wall-005",
+          "position": 0.49163,
+          "width": 880,
+          "role": "standard",
+          "connects": [
+            "ref-0-1784831517500_8e81cb1ceb0e1",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              3026,
+              4938
+            ],
+            [
+              3714,
+              4938
+            ]
+          ],
+          "source_distance_to_wall_mm": 15,
+          "wall_length_mm": 1135
+        },
+        {
+          "id": "1784831571020_db6acac3192a6",
+          "opening_type": "door",
+          "wall_id": "f0-wall-022",
+          "position": 0.469927,
+          "width": 880,
+          "role": "standard",
+          "connects": [
+            "ref-0-1784831507922_88ff129f496d38",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              2785,
+              5227
+            ],
+            [
+              2734,
+              6166
+            ]
+          ],
+          "source_distance_to_wall_mm": 53,
+          "wall_length_mm": 1646
+        },
+        {
+          "id": "1784831572588_c89f7dae9ee1e8",
+          "opening_type": "door",
+          "wall_id": "f0-wall-008",
+          "position": 0.67947,
+          "width": 880,
+          "role": "standard",
+          "connects": [
+            "ref-0-1784831498149_7c3b7950b0bd3",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              3989,
+              6672
+            ],
+            [
+              4660,
+              6503
+            ]
+          ],
+          "source_distance_to_wall_mm": 19,
+          "wall_length_mm": 2226
+        },
+        {
+          "id": "1784831574418_4ae7d4a2f74ac",
+          "opening_type": "door",
+          "wall_id": "f0-wall-027",
+          "position": 0.396619,
+          "width": 760,
+          "role": "standard",
+          "connects": [
+            "ref-0-1784831485121_368864b17a2c88",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              6860,
+              8647
+            ],
+            [
+              6826,
+              9755
+            ]
+          ],
+          "source_distance_to_wall_mm": 7,
+          "wall_length_mm": 3313
+        },
+        {
+          "id": "1784831578147_55b8bda6e135d8",
+          "opening_type": "door",
+          "wall_id": "f0-wall-014",
+          "position": 0.450607,
+          "width": 1100,
+          "role": "main_entrance",
+          "connects": [
+            "outside",
+            "ref-0-1784831529102_d4de5a495b0d9"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              5313,
+              11152
+            ],
+            [
+              6396,
+              11104
+            ]
+          ],
+          "source_distance_to_wall_mm": 72,
+          "wall_length_mm": 1812
+        },
+        {
+          "id": "1784831588631_3a533d9b26dc1",
+          "opening_type": "passage",
+          "wall_id": "f0-wall-028",
+          "position": 0.423414,
+          "width": 2098,
+          "role": "standard",
+          "connects": [
+            "ref-0-1784831529102_d4de5a495b0d9",
+            "ref-0-1784831545850_b5ea16ba4e4ee8"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              8838,
+              5130
+            ],
+            [
+              8924,
+              7226
+            ]
+          ],
+          "source_distance_to_wall_mm": 43,
+          "wall_length_mm": 2964
+        },
+        {
+          "id": "1784831594429_954b154077ee18",
+          "opening_type": "passage",
+          "wall_id": "f0-wall-009",
+          "position": 0.491697,
+          "width": 1238,
+          "role": "standard",
+          "connects": [
+            "ref-0-1784831502934_9c70dec42839c8",
+            "ref-0-1784831507922_88ff129f496d38"
+          ],
+          "traversable": true,
+          "source_points_mm": [
+            [
+              447,
+              7057
+            ],
+            [
+              1685,
+              7057
+            ]
+          ],
+          "source_distance_to_wall_mm": 5,
+          "wall_length_mm": 2168
+        }
+      ],
+      "stair_core_id": null
+    }
+  ],
+  "shared_stair_core": null,
+  "geometry_hash": "dc905efd8b1bbc280a8af5acb317461cf7dff83bb26e391d1e1d94cecf9b1cba",
+  "status": "approved",
+  "created_at": "2026-08-01T00:00:00.000Z",
+  "wordpress_eligible": true,
+  "updated_at": "2026-08-02T18:27:34.461Z",
+  "plan_id": "plan-dc905efd8b1bbc28"
+}

@@ -13,6 +13,8 @@
     "start:railway": "node .next/standalone/server.js",
     "import:approved-floorplan": "node scripts/import-approved-floorplan-package.mjs",
     "test:approved-floorplan-package": "node --test --test-isolation=none scripts/approved-floorplan-package.test.mjs",
+    "batch-import:approved-floorplans": "node scripts/batch-import-approved-exports.mjs",
+    "test:batch-import-approved-exports": "node --test --test-isolation=none scripts/batch-import-approved-exports.test.mjs",
     "build:fixture:bungalow-033": "node scripts/build-bungalow-033-fixture.mjs",
     "import:simplifier": "node scripts/import-simplifier-handoff.mjs",
     "test:canonical-floorplan": "node --test --test-isolation=none scripts/canonical-floorplan.test.mjs",

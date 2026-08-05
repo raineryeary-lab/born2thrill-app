@@ -1,0 +1,2185 @@
+{
+  "schema_version": "floorplan-corpus-ledger-v1",
+  "generated_at": "2026-08-02T13:58:55.393Z",
+  "policy": {
+    "unchanged_annotations_are_not_reprocessed_until_hash_changes": true,
+    "commercial_approval_requires_explicit_rights_and_quality": true,
+    "generated_candidates_require_human_approval": true
+  },
+  "counts": {
+    "annotated_reference": 310,
+    "approved_real": 0
+  },
+  "projects": [
+    {
+      "project_id": "bungalow_001",
+      "annotation_sha256": "1e787018a422e7eacadb091e04934df5b6c8aef172a23db6ddf8cd7ae9aad397",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_003",
+      "annotation_sha256": "d158737f3b03e6b6ef527804c3065079363c63a583aa863f41ecba046276b2dd",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_007",
+      "annotation_sha256": "be44132af0e51e4a4bb5c258e6f5a5636829893566897f23d214162b395d37d8",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_008",
+      "annotation_sha256": "381d26b9fa1a2f4371f988d7902251821e84cb96d64f4ae3db2eb2a699dfe154",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_009",
+      "annotation_sha256": "7318a4ff1b16aa3f122901e388cbc5bbff16aa42d6378420750cc13f2a9f298b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_010",
+      "annotation_sha256": "0fd924caadb8e50f579eb18bd40a60887a71cb26373c0756ff184c03b529b31b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_011",
+      "annotation_sha256": "e10a3a9b5821e7b986f08a55a8a344121756ee5ab60752c25577f87c096fc3ca",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_012",
+      "annotation_sha256": "081c7c7c55339eea4d43b0573b35be9823b0ac7dff931f2a824970375c07207b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_013",
+      "annotation_sha256": "63706b368adfb6d07171d8951c5adaecf01b66bb84912a62d3805654728399f5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_014",
+      "annotation_sha256": "e6626b1719a30cce6e9f6060272a0db45e4239a47f787c0b86a42863ef8b54d6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_015",
+      "annotation_sha256": "de559734b7609ef1a6ca354996c0929e5b84fde4538548c0660637febf8b983d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_016",
+      "annotation_sha256": "83ee3d8b50c3ed3817231e1d148190adf9bb031fc4c4e84b6a64c776dc7bdf18",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_017",
+      "annotation_sha256": "b2deed16eb70d223f5a7a40734b953dcd20205672a7bdecdfdf338da58344335",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_018",
+      "annotation_sha256": "a642d61181ff64a11e638feb9b3f7428d9d7cde96eb49dc240cdd0e05dce3734",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_019",
+      "annotation_sha256": "81e4e2f7d5f34681c1f3accbf95e6bdbe5490505bc5fdd4d4d108ba22d6c3d24",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_021",
+      "annotation_sha256": "6d86633e135f5d0834495ad92771f4ec623d0299fad83037fb65024700b35459",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_022",
+      "annotation_sha256": "f1ae9d0b8f62abfbe1ab256ca61ac7e61e976239ddb5541b40feb3d27b323b70",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_023",
+      "annotation_sha256": "e892061a2f2c7d7e6f7c2242dd757975a7853ed8c2850fab02bc4b2a381ea63f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_024",
+      "annotation_sha256": "18824e3c0b22b803bf6b610b39fd59d0f3da6f6beef1c2b697c9ab2e25ded8b4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_025",
+      "annotation_sha256": "b458c838292c7952c96a7db26e9aa2bdc4c1867380cef15bcc31bae4d2b0e020",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_027",
+      "annotation_sha256": "282f6145f46fc2096c6b5a1572c8c60fb03dadba0da87e74dc89b101506e20d0",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_028",
+      "annotation_sha256": "1bd03ef5adaaee77b712e27dcb138352f4453b1fc792c1948e8ba5f4b8c6d808",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_029",
+      "annotation_sha256": "266f4f24949dc9b99245f088b0ea06d9fe029bdd52bd07954c97ea37a5844cec",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_030",
+      "annotation_sha256": "bbce165592e06e3d702c42f429f866aa9d498d1963768ae0a2ab704cb5d65c45",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_031",
+      "annotation_sha256": "e31551283c16b39e8765e063ca6f5965ae2bee5abc7ed1487f97ad3088ed527f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_032",
+      "annotation_sha256": "eefc9f0f4cb2371bb485c77e44aaeb56c1e71ee3ac10bd352c52d8ff5fda43b6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_033",
+      "annotation_sha256": "bf0d61d01c408ac220706d54f107b010208cb0e3622e5a900027b6d2dc50a114",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_034",
+      "annotation_sha256": "c4fc4d04b60a96477f21ca8e6a957df904f53f9c6f7999277bbb5c5ee46f66fa",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_035",
+      "annotation_sha256": "c5d9d58d09e850ba0339cec7f7798884cc062537c9552354695edeb9ee3e954a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_039",
+      "annotation_sha256": "37eef2d1b5f2dd165d4e24ff066c82799e851efc854c19e8f7f5bbea111b5342",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_10",
+      "annotation_sha256": "7c9e830ff1a1bb524bc76fe46c2b16cbd57a2b8c647e121e811ad0679ad74b3d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_11",
+      "annotation_sha256": "8c91776dfb67f3b71ab8a20c23fdfd4d05a4b715861df267453651d60884403c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_12",
+      "annotation_sha256": "35ce5300f6cfc2ccc7abd08f9ad46f79938ca8432f68c913240c0bdc2baca806",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_13",
+      "annotation_sha256": "b97a1724fc0191890d45c6eadf3ac915ec0906b9397d8c224543393a05740b80",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_14",
+      "annotation_sha256": "67177a72e5edce5dee42654a52caa4967e248803b86856d73c444fd2f964e43f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_15",
+      "annotation_sha256": "a388a6c2cd6c7601812a8613ccba7d7530ae3d03781030b318d3f118f652abd7",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_16",
+      "annotation_sha256": "24347db7c3b865547c990bc536b3625842080e618af2f32881b43a603158c71b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_17",
+      "annotation_sha256": "3f0288c3331d4f3c37af80afefb5b4b678b28766eb4ef9f2aea365ec045f50fe",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_18",
+      "annotation_sha256": "104361dae3091d1139c0839a179bf2e1ece75f53acebafa89d50478d7eaba265",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_19",
+      "annotation_sha256": "f8421dfb21a973f2a60497d40b320d471930bf5633292df72f98b7ec839ec838",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_20",
+      "annotation_sha256": "7415b4e2e624805dc10c980fc58a5aec3c27ea1dda06b3b4be44ccb91ed95be6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_21",
+      "annotation_sha256": "fc71a81a7e11225690cc25faa8815e4934ae25a3898c48444618f684b327f994",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_22",
+      "annotation_sha256": "44e9647217148bc1bc768f2ecc1145afe4ba42e31b49cc5c53d72469edd2d1a7",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_23",
+      "annotation_sha256": "3680a688c061d962c2523eb1f40de4d815c5ad5b051eff153a7cb131ddaf7a3a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_24",
+      "annotation_sha256": "5a2e1e3c35d491596b7d7ac2f0c86b05c0f242799867c35ef258b44092c5a7c5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_25",
+      "annotation_sha256": "d73220d7c4f1de21e3dd4c8aa681b4e3ef16c5c0edae03d2d119cab56566b5fc",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_26",
+      "annotation_sha256": "563a4a33e13940a79c7a76a40ad1c64102c939d0b47230178f5a753953b002fc",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_27",
+      "annotation_sha256": "bae2b52d58bdaf3a8762fb6fccdab5a81f3a968f1cd4f8261535583588e90aab",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_28",
+      "annotation_sha256": "acdd7c4bd980794ba61cbc62241497c6ea1b9cb086b94a8708f496a2e59249d1",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_29",
+      "annotation_sha256": "419bccc20449596fd13b2c21d555f17f927814d2eb493bd0fc5857bf25d77e13",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_3",
+      "annotation_sha256": "4448541cc33ca3ba5a5212f2e120948347d3bd50c8d3f67a1f4869123ca6ab8d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_30",
+      "annotation_sha256": "054c67d0768f45e4ae1a21457034ff43178e08d8b26a2718021bbe8645e0bffb",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_31",
+      "annotation_sha256": "2d3f8f383d3773b7326eefd59f53bbd382ce842c2a45a7b0337980e2d70cf783",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_32",
+      "annotation_sha256": "ec823bc35c69fed0aa084ce5181e637da92ceccf68f251e59c34ad3c2cb59ee1",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_33",
+      "annotation_sha256": "befcad8477f80da555455c925a98e391718b7e4f808f80607fa88906d1f3935e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_34",
+      "annotation_sha256": "3102ec00f4e3b9d774db4698f13c5e5486581846670848870cbf84f96399f4d9",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_35",
+      "annotation_sha256": "8f12df5addf733ad2829c2d018cfe651c78de2bef2e9173fb631ba2ce4e32d96",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_36",
+      "annotation_sha256": "922d38667b8515d4fd00d9e58c3f1a7c38be9a8909379bd6eca1e5684f4f7a0d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_37",
+      "annotation_sha256": "adb6c9b3f123fc9c505f6df324ff3e7203ff2f9e0788f2fcc20bcb8bfc5509b6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_38",
+      "annotation_sha256": "cecd507ff674e8b1c82c0e04c7f56216cdf267f2f3628c8c79566483e1d14369",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_39",
+      "annotation_sha256": "238db4878b14ef6a8b6dda82ce8fcaec617dfa3f53809d38ca145e470cba606d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_4",
+      "annotation_sha256": "b3d038ffd76bcce726a03fcd4b38526f998de427a1e0976c4ac72561f372d979",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_40",
+      "annotation_sha256": "bed990ecca22bf05b0414ae5daa5ef9c047bea3186f6932b0e41263a1933d763",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_41",
+      "annotation_sha256": "d1178c8b3e2da9d381ce1eb0d04571edf04fb6e8af423a31ba36d4990697000d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_42",
+      "annotation_sha256": "417b005e98268b3e58e5ffdc1e7646a252216b88449682ae0696dc76ae5823f8",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_43",
+      "annotation_sha256": "48cb58692ae3f9a756437db49b18d583506d5321265ab931570f9b6a5178f2bd",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_44",
+      "annotation_sha256": "73895f34030a5878bd23bb7e103113badc2b8ec11c3713405f2995254001f162",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_45",
+      "annotation_sha256": "43f9713db3ba9c7fdfa61ea165acca85724cfdafa9fdcb0ccde793b746fed772",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_46",
+      "annotation_sha256": "0721bfb134587106bc88843ad710f8b1c4c32da071673a9b57bff993420c7b37",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_47",
+      "annotation_sha256": "ec94f87acb5a0b644bd554d9a2c555b055c5595b38eaaa294dce5c857a71e859",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_48",
+      "annotation_sha256": "f0fd829fea3848a0d21575e6f572917c79d01b6840d7b5f1650638dfe08c5527",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_5",
+      "annotation_sha256": "886349584573e7105ffce0e37be840cb92f86d5388a2e22430f9bb2df09daeee",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_50",
+      "annotation_sha256": "919e4e98e8cf293ca29ebe2f0ca9a66e933c8c9de88d4d77d6c00362eaa987b6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_51",
+      "annotation_sha256": "3df290fb8e4bacc8ad71f928813d4c4f5b8258acc5f647501465b90a9fac6ee2",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_52",
+      "annotation_sha256": "578f159115637c4120f3ce3384a697e22715c5d2d9d62596241ff5a055d6d625",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_53",
+      "annotation_sha256": "fa960e0fdfd197c12bc991955c5a0530044d881ce1ed97778ffd872806c42eb9",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_54",
+      "annotation_sha256": "1b0c8f824ff60ba27e641734478dc4b1887228574d5b6e6ee9fa4418800cb92e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_56",
+      "annotation_sha256": "fae170210e20d690510a7f0d543341e47d2db85019ac50f82ddac6ef3f348d24",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_57",
+      "annotation_sha256": "455e2078f5f674a61813b5c717ffe0519e70355454ccff0557a98e0346105623",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_58",
+      "annotation_sha256": "5b3c66a286229203432f7fb0324157513ab6897b9781cd3e8cd7d51345b1021a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_59",
+      "annotation_sha256": "d5a03e2f31d331f7db7ebe84456909597602b95ef9cf57e31b1ac1d2146bd288",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_6",
+      "annotation_sha256": "df74dde78ef993099a151d83226c1f703e8a22140d2e3f0ab278bd2803e87eb1",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_60",
+      "annotation_sha256": "780c6b34044e755de7614e0470753db86d0815c5b29788dea7f361fc7e4ec8e0",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_67",
+      "annotation_sha256": "d9fb8ea6fcdc7b2520488572fb07990c803a864194a5ebdec1324ba5cb61f5a6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_7",
+      "annotation_sha256": "2d39bbb3554034520bf25400bdfc00d6f672bba91ede6d3346aa38b8287645f9",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_8",
+      "annotation_sha256": "64f5753d674af78a986aa6894ec1b85b0884bc90c32db8148bc4975119e29906",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_040_9",
+      "annotation_sha256": "61aa104e451314391b2c883a54032fd9e7d529963700621b4a9eec9f3ad882d3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_queue_3_5_3_b_145",
+      "annotation_sha256": "dbaa8220982981578bf98b997cd9d6865cd5d1aeccf05dcd44809c22d9522b6d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_queue_3_5_4_b_145",
+      "annotation_sha256": "9ec987b5951bba160f62b79052a6e534f92a9dd8f77b05e4680da50aa9884e57",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_queue_3_5_5_b_145",
+      "annotation_sha256": "e529c6b0e46d195612f537a0e922608435891258135fced0bf379dd980cfdc70",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_queue_4_4_1_wb_145",
+      "annotation_sha256": "144595eb09a596cdc62ccf4566f33513fe3d7209ddfa3798f67e19f37b7b0e5e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_queue_4_4_2_wb_145",
+      "annotation_sha256": "62e1dcad011947199d2536545e5199f247812c28b812eb38bc610faa3f4fd519",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "bungalow_queue_4_4_3_wb_145",
+      "annotation_sha256": "1bd25477ee82d8d767b309375b3d15f9a7fa526a5fa62a27af8dc42fb4b01670",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_1_1_b85",
+      "annotation_sha256": "d2b5d0e7490bb9d8a8a01beee373906f4efeba9bfb6c483ec25ed1767540e798",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_1_2_b_85",
+      "annotation_sha256": "6c3ee0e726f2ec9dd78c8b7c4753124efe3fa50d17e1e9a5e4f4a3d8d6199710",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_2_1_b_100_1",
+      "annotation_sha256": "eab1fc7dda2017632cb47103815bb36fb91a1dfea1cd9e746e06371b180c6ece",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_2_2_b_100_1",
+      "annotation_sha256": "66c1a34a24bed4047e96670d670cab6121736dc1b9ff00684ee7a9b18e1cf6de",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_2_3_b_100_1",
+      "annotation_sha256": "3b09b6a17fe185d4080ed80f6462a79b4a7aa747074fb1592532799f5c4cf8f2",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_2_4_b_100_1",
+      "annotation_sha256": "e479e6d71f473e06616ef4384f445239a8df03599ca41709366d75eb450d882e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_2_5_b_100_1",
+      "annotation_sha256": "eae173a65b1323061b64576abb12388b01dc8b433a64a0c951e455b361c3c2fa",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_3_1_b_100_2",
+      "annotation_sha256": "5bb264f0a84e2f17c8d599e6da71b03a4e362144b19ac4e5e6ba282a38f3d3a6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_3_2_b_100_2",
+      "annotation_sha256": "a8291c8660b147b909a5fec82c12fb4e34961215b5d48b3b8c079119a61e32e9",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_3_3_b_100_2",
+      "annotation_sha256": "734fd5c9c7f74a8a2b723a88944647050194d1650d175e6e0a5d37b36ef7cad3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_3_4_b_100_2",
+      "annotation_sha256": "f8fc5731581539f07332cae10828a5cab189ce5ff9988ca2a2c8f6d606a6abc4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_4_1_b120",
+      "annotation_sha256": "7b0ddaa04d0f1b6478bae2f52848a4988707ecfb89dc30e33ac1538718b04148",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_4_2_b_120",
+      "annotation_sha256": "25363dea9796cea447d70e6952a5f03e6e7ea7590a680a711ce40229537e48af",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_4_3_b_120",
+      "annotation_sha256": "20e4bd17669d3ced0d1ba3077e9ed2ce4f97499e48cfcba265f023dbbecc442d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_4_4_b_120",
+      "annotation_sha256": "6dd3d83728b1946f2fc437c9ac22b0ff4c4a89510c7ad37db03473770d93b6b5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_4_5_b_120",
+      "annotation_sha256": "7156d21afd975ba2b9d44769ced950c8cfc5ab33b2e2a6dd0102d94718ae4e7d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_4_6_b_120",
+      "annotation_sha256": "a285efbd8e251ade5e49d3f1ff31f59e17d3ff8cf88d95705cae36a76831fad1",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_4_7_b_120",
+      "annotation_sha256": "16824683403e26cca00889fb267ffaf6d303eea1ba91d9068f829970278f2dee",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_5_1_b_145",
+      "annotation_sha256": "fc6554484af9dfd05d6930a98791d5c58e947c8786dcb0ab5f99ab318e23e06f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_3_5_7_b_145",
+      "annotation_sha256": "b40def0ce6ad31743b0134d0833e30a3cd6702fea6fdf41334e169f246077a21",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_1_1_wb_105",
+      "annotation_sha256": "3e95575857d3262fe468caebb3ea368c1334b0754d3d9873b84bed0d31a030cb",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_1_2_wb_105",
+      "annotation_sha256": "3894e81c552ea1d3ec6eee8d16e3322b70d8afee6abc483d202c5da6f14e9c35",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_1_3_wb_105",
+      "annotation_sha256": "1bff4536fb13659c4a6459283cc1f6259fd47bfc1679af1a5e89f0900f91a104",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_1_4_wb_105",
+      "annotation_sha256": "573f96276f1df135eef36fe297d377e9105e6003f97363fa5aa7a264c3750eb4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_1_5_wb_105",
+      "annotation_sha256": "702ae22b6c39271123ee1b919918b8a581415bb914710239dad3c9b68989e721",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_1_6_wb_105",
+      "annotation_sha256": "32c3b9eaadc052faf6908ed3584c47ef3318462afb7b25cb195cd1cffc1cff3f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_1_7_wb_105",
+      "annotation_sha256": "f98b2b42acdefb93c0b3e8b3a5c168f8fe24023cc26b245da8cf69a3ba0540cc",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_2_1_wb_115",
+      "annotation_sha256": "fd8960a786d279a2d728f1bf5915d59c28a8be30fc087fdf63033391c93bb466",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_2_2_wb_115",
+      "annotation_sha256": "8612a40bfe753f19698d3c40ffaa58e2402fcb39966f2af6f286704970a26697",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_2_3_wb_115",
+      "annotation_sha256": "ce198a30f36952fa66ce3cbe3fe9ce3557f0cf2c4d68bff53a521bb2ef92e5ab",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_2_4_wb_115",
+      "annotation_sha256": "3eb4950742fc01c54df332b7742818ed848e7d8edbf2dd93e52c087f67a74319",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_2_5_wb_115",
+      "annotation_sha256": "2153935155d9ce17f1c13a16931c0216e40d1101e9b35d94c33624613ebf3dd0",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_2_6_wb_115",
+      "annotation_sha256": "2d8c98ccd041cbdc4a70fb3d68c8bbd873740b5ab81e0789ca2aae0cb920912b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_3_1_wb_125",
+      "annotation_sha256": "ccb8c916ac1bb1a5b04f9e70f6b97f7b229cd569897b48499cb9f213db876425",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_3_2_wb_125",
+      "annotation_sha256": "1a93558880e2e24b50d9c14f3d61c12c7a6b4dd1802f11fdfa5cc88ea5c46fec",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_3_3_wb_125",
+      "annotation_sha256": "de68873e7e8a82041eb89cee955bad0a79c6aca21ed40a7e5d924a262396df22",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_3_4_wb_125",
+      "annotation_sha256": "9ee4b463770a868c910e3d46cb7d725dd3e63eb611dcefa547f177c38e681f7a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_3_5_wb_125",
+      "annotation_sha256": "352ce73ebb2c3232cbf2549c7f673ed9fa2a2762c1d9530e01460a3b0e928ca7",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_3_6_wb_125",
+      "annotation_sha256": "7d7ec410b8a236b7f3973d64408b839305ad681bb070ac67c3abbd4fc5530523",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_bungalow_4_3_7_wb_125",
+      "annotation_sha256": "c7efd3e414d62e7910e4db4cd08e1852a7259fdc2f7f9638a721825a7a14e26a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_1_1_efh_120",
+      "annotation_sha256": "7cc62a041cd5bb00d4feab58d00b668021ca345cff9f5e784430c5080c97abc0",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_1_2_efh_120",
+      "annotation_sha256": "4bea8c9f953280e5912c33973524fe4fb08c2dbeb9649a406aa7ca1c979114f4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_2_1_efh_140_1",
+      "annotation_sha256": "57035131c85237ba4f8df3749285eef7c1ffc94cc034392fbfd48684c61fe2b0",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_2_2_efh_140_1",
+      "annotation_sha256": "9516b4fb1c413eb08f8f2d8b617f10ea7d999bf5b8c6dcd4fbbb20d4369e83cb",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_5_16_efh_160",
+      "annotation_sha256": "e973c22ba5caf82ba154037d6a628654e315cd0b9624c8c642ed3a297e969deb",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_5_1_efh_160",
+      "annotation_sha256": "8992d0524d9c6e7f12ac4018f52e0c28580c4e950af2a6f5f5352f355150c08a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_6_1_efh_190",
+      "annotation_sha256": "02222c0ff3c4e58807da70d34f29071eb969acd1caeb903b0c0912b0371f4bc8",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_onehalfstorey_1_6_2_efh_190",
+      "annotation_sha256": "65177541b3d907015eb731a5ebb6508ca25438f8f749a9607d42f3d14fa86ada",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_twostorey_5_1_1_sv_130",
+      "annotation_sha256": "edd51b639c06a06a17f4f7db63fcd8d85352766906f2e8816a0e3071de539a63",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_twostorey_5_1_2_sv_130",
+      "annotation_sha256": "cf9105ea461b8f38d65f29b8775e6973be0f8697c81be1e89a2a9d43dbd2a9dd",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_twostorey_5_3_1_sv_145",
+      "annotation_sha256": "fddee14fdbcf9a0603b5b9e7f11c340bab51e65dd4d65330951279d75f9bac69",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_twostorey_5_3_6_sv_145",
+      "annotation_sha256": "6e9eb054c815297bcb88ce80b2b446a66e225fd63f85a78c44ee13a2d7474cf4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_twostorey_5_4_1_sv_170_1",
+      "annotation_sha256": "4e83b673ecf312bdc172bbb0ac76652e9aa0dc2d7ff9c6b319066ed774876f7c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_twostorey_5_6_1_sv_195",
+      "annotation_sha256": "e097f9f4b373a8b77f767e5a15021e2e8928099a82a6c548af5d82171e719efe",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "german_catalog_review_twostorey_5_6_3_sv_195",
+      "annotation_sha256": "6450c4b56cac6cda9ee099f90d2328e8c05da610d85275248fad353ac50a9d53",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "measured_onehalfstorey_012",
+      "annotation_sha256": "3e69c2799e06d4b293f38fb73f2c8f5381b3e0fcee827a66c56eb0747da136cb",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "measured_twostorey_bach_001",
+      "annotation_sha256": "1fc43ca798d06c29079ffe6a9d7df365a306c1eae233d33e1de56edf7a8acb1b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_002",
+      "annotation_sha256": "5ab76fa5dc397a5e65afee069851faa04d76baaf25687b63391d6a569ea25d43",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_003",
+      "annotation_sha256": "1c7936e0168107aa47ed84c8035cecb312aed269d80248506f6a37f2a0edda93",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_005",
+      "annotation_sha256": "a0dd3e3117a60e3bfeca01d0eca7547d8eebb3ee3234d2b20216553346836987",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_006",
+      "annotation_sha256": "e9822f63dfe74e1aabc5749315472e8623ef9bd77f77f8b29e454bf9720a001d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_007",
+      "annotation_sha256": "9bb074f74147d93e50c37e19f0fb48f8fa795a23c7c6da46a203b9780650b248",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_008",
+      "annotation_sha256": "3a82ba084edba6455dcd75a254cfe254a91def04c42c477c742f648614271f35",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_009",
+      "annotation_sha256": "ba86454fdbc83206e95549e12e8691cf5e8da7f6efc9e4f83527e7b0c7612bf3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_010",
+      "annotation_sha256": "080249073b23b6da7b3896b06e5072a711ca16aa274f7e231c147f42758893b3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_011",
+      "annotation_sha256": "88d819542188cb04cd16073c3bd3be34c25aad267a55e66d7b8d0bc4e7d81425",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_012",
+      "annotation_sha256": "261e032aacf1ee69812b1a5484b3b9540357d8bf65da7e1862521804376cf974",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_013",
+      "annotation_sha256": "17b2b09f63405859b6e30925895e6ff7a418f602af48cc528f8cd96354666cb4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_014",
+      "annotation_sha256": "a804872480de2ed88de28fdac54ba2f887daddc94814efc399f980d6488ebcf4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_015",
+      "annotation_sha256": "6730b8796e36b4204a98f7aee5526289e1eca1e5be14118d8243854a50a0e0a2",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_016",
+      "annotation_sha256": "32e1dd124ea34162e1c00baad3411ae6c079816858e973638fc958ffdfc25a96",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_017",
+      "annotation_sha256": "0807a83918c9a41a22ad15d2dfdd938567eddc0cc5860139ac5b69aa900900a9",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_018",
+      "annotation_sha256": "37dd00c5400cfafab974451426e437eda3bf59a941c9c7dc823b49d81290bef6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_019",
+      "annotation_sha256": "ef2f835127d672ba65b2363ff2802c5bb8bbfd95a125dc14921a926c1b95b4b2",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_020",
+      "annotation_sha256": "32e284cbc74a6c9d622b409f775c0981afe306f52d87191f9fdb3312a1252d84",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_021",
+      "annotation_sha256": "240efb4352e49c823f9f85c068ed41c25cbb8dda4e4651d087fbe16486f117b6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_022",
+      "annotation_sha256": "06625bbf7e2e0439627530a21282d6fc9e4a941dad5c9fb936bc14829943bb37",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_023",
+      "annotation_sha256": "f3c4dd0e7313c6afd89e8b8bd1ddc4994289499d6752b9731a69f2b5297d862d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_024",
+      "annotation_sha256": "3804b096af2d0e5a3d89fd5d86d8e4a5b3397b552ea900b119dd0abaad0eb850",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_025",
+      "annotation_sha256": "2354d755585d92d3db03b5414aaf81761c43d7ded9b955ab16f5901b17eed01a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_026",
+      "annotation_sha256": "071d0d802a814eb5c5b7843d8753a66007c7d3a5a090214ac489e323a3208a04",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_027",
+      "annotation_sha256": "47fc4c62ad46f936a7890d99171afbf7fa2ee5965c0c072a844fc351dc190b9e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_028",
+      "annotation_sha256": "615c1c6483f0989ba2999c0ce5ddd8b786be98e3a564d0a219e5cbd627f5ce5b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_029",
+      "annotation_sha256": "9baa769be717e3a4cfdbffb13ff294e4a6b55927620553dd34280ce00fb7d362",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_030",
+      "annotation_sha256": "4c05f4b9b20190fe3acb031a468b01b71c3e7f98b1eb9c133ff62620866049b5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_031",
+      "annotation_sha256": "536f9504e0ac8a29f566025e95b3ed5cce9f5bcbdc11c77b79fd7ffce7661e39",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_032",
+      "annotation_sha256": "8440b6fd21005b2c2e0e58f4c6b6b1e10cd22cb8f92acaa3fa2219accb0e747e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_033",
+      "annotation_sha256": "3112fd0409566d0dd7143aa9d1235de3a629f10b8e5862ce1cd7e5f5e4b3247c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_034",
+      "annotation_sha256": "eada284a0f07869538a4551fb0fed482281ef19d2981d8f271f2786b577b98f0",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_035",
+      "annotation_sha256": "11806d35603a0f0129479f723c1d9601ca7144430f179cc9694c40e10e10d20e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_036",
+      "annotation_sha256": "52bcdca6951c9ad0f0c9b1dd298e6d885af9bfb15e5d4b5fddf17158fea9c284",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_037",
+      "annotation_sha256": "83ebe8641609a4d483c919d4f2d0177299fb1f0dbb00059306d80500a5e993c4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_038",
+      "annotation_sha256": "c5894b64443103d0dd7e5cd4af7af7db419ff6108c0d0d1d04fac4e31355d88f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_039",
+      "annotation_sha256": "38eb7abc1331ca166b984b5069c1e06af02eaead9c0e010a21dbca68a5fda5c3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_040",
+      "annotation_sha256": "702a8b663b35bd9d75b8215733c33b14d6ac7d623c69330a82e1bd35147a744c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_041",
+      "annotation_sha256": "cbb0397feb3243575fc0ed0e234200fd72a1279d10f7440e1ca60cbbe4d56b8e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_043",
+      "annotation_sha256": "9920f4dc48070a790421d8910993cee82276c508dc9190fd6488498c3514abef",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_044",
+      "annotation_sha256": "04b45afbe43d37bf2ac1b8199d46513e5833e933cb28bd7894cd13b3e1deeab3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_045",
+      "annotation_sha256": "46cc0b0c0e5095415a7a68e3e1079efe3e1b1866b44d2664eac1bbbcd6032875",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_046",
+      "annotation_sha256": "0f205f909924f385aa5c45efd9ebba0e59b72cdbf76ce3d0b8c1bc54bb1d2c76",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_047",
+      "annotation_sha256": "6eec904a22e431fb1ba66eb243526edb3deefe9376161de825421d8fe0bdf35f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_048",
+      "annotation_sha256": "36bec758e8ce7b4c52da03dc366bf9b21ffe3697645205d4951a153ef050a5de",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_049",
+      "annotation_sha256": "060feed1d50fd9e96ba84aefdd6b35e6a657ec568e372aed7184159a637caf44",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_050",
+      "annotation_sha256": "c9b06421c0a944a94ed9b3dfb46c5702286d8990b464bcbf5743f635bc95509b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_051",
+      "annotation_sha256": "6007569e4326f169127d13abe51070dfd0b956eac4351cc97f4f92f26e51411a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_052",
+      "annotation_sha256": "76aa33b746671992f74c3047867bab74e959ddc4007e8b062443142dd25c2050",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_053",
+      "annotation_sha256": "3edd4d8154043a7b500d39c37b76e610be23c6c209a5e4381ce12ffd0860177c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_054",
+      "annotation_sha256": "46fa65d68de3840778ffaccf8bf2383322436ae087575f6e3aecb29facb62979",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_055",
+      "annotation_sha256": "4f2626890a2607040bfd604a1c924744b8e052386bf577cf5a39aa5bc269e202",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_056",
+      "annotation_sha256": "c0421d445f92137b0f97ef1f9353d23e7871989e1f820127799f79b53096dc12",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_057",
+      "annotation_sha256": "3adb1e89c284d6d168fad60a2dcd5ff3bc7eff2fc0cdb6c113845e7c9c7e6a32",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_058",
+      "annotation_sha256": "482ad7ccca125efa2e29bf5b12457c40e23957b559196c866db01972e357fd76",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_1_3_efh_120",
+      "annotation_sha256": "05c8f3a2fa11870bf5f71977ab2baab0ba46669d6b72b00c916e783c8c926d99",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_2_3_efh_140_1",
+      "annotation_sha256": "aba6f31bcb71c42ccef391c013cacb4929dbaa79f3e901536ef1e7c0841bf918",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_3_1_efh_140_2",
+      "annotation_sha256": "2bd8de434713a1efcfc715e9c43ad81038ed249dcc2d053e60669fbff8a85e16",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_3_2_efh_140_2",
+      "annotation_sha256": "8f450a12f0aaa4b32cf1e76d87b87d00d4d6ea7161bcd1ff277f9be5d45bc055",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_3_3_efh_140_2",
+      "annotation_sha256": "6b72b67c3cc9acf6c58f0b1d72459f8c282a9d98861898168947017913317b87",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_4_1_efh_140_3",
+      "annotation_sha256": "b211d1f168a07245ede6df3e526fa870291529ac7824c94af7c331a0a7f13696",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_4_2_efh_140_3",
+      "annotation_sha256": "d692a42c697d646b88722b95a3d87fb32c0e07112592b2715674bb35b71d3ade",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_4_3_efh_140_3",
+      "annotation_sha256": "320bb0c812e7e5e099c40c8277066544037df5aa8c2038ff01e119b82a9f432f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_5_2_efh_160",
+      "annotation_sha256": "c4adc34afdd2c5acff94952cf4def5a5c3e5588a6b8b7ea4c722c3b0c3f17e30",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_1_6_3_efh_190",
+      "annotation_sha256": "866d2bc80ab03ce2ef999029fb5c3e190c22337e63e7caf3cfe273a57a2c1e85",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_1_1_fh_145",
+      "annotation_sha256": "48f0e05b83f5969c7a452a9991a6b4e7083c21e9b4a173c5198944c7c962e91c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_1_2_fh_145",
+      "annotation_sha256": "5702aee3062f5c8803429b581416676b5b1be9e13d9c195679f489d8703fdda5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_1_3_fh_145",
+      "annotation_sha256": "70639549aa98af782c53e496fc94abb97229251c3b6bce74a43fd820d0d2fadd",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_2_1_fh_155",
+      "annotation_sha256": "5fb1ad03cd358689439a4b8a4d67d61b1c5207dc87d439eb678b4d3f272799d9",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_2_2_fh_155",
+      "annotation_sha256": "ae1f9ba6cec498d9981a41a1364de8f22c548ca21b9ff92eeda24276861dd40b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_2_3_fh_155",
+      "annotation_sha256": "40749d986558516859a893e9afa7e97638c2e52509bf1ef9058bf152d8a83235",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_4_1_fh_145",
+      "annotation_sha256": "0a1edf097a6eba6446912c27d84c8010b6fef5282f7b712bf0798ad6dc3cf370",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_4_2_fh_145",
+      "annotation_sha256": "9055d7e2b93eff7bec29698195970434b7435b7aaf92f0f33959fb57cf321046",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_4_3_fh_145",
+      "annotation_sha256": "09014195758eb290b3326dd61544cd51cddd9960cb18a800daeadcb9dd3b559f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_5_1_fh_155",
+      "annotation_sha256": "4edc35afe5ec0f0b889d59374a3389e660e7db147e97b8085f70c14c1631264e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_5_2_fh_155",
+      "annotation_sha256": "cca6250dd50af423f00a5c7d5fc6f34719c0188cb7fa2c8cfe798d87c8e2bd76",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_5_3_fh_155",
+      "annotation_sha256": "7157b67c9e06141b2ec637523c8ed7fa41914a8a4d8af91d124f139ab571ff54",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_6_1_fh_180",
+      "annotation_sha256": "1d9894b4fa7c155c53805723cfa86c7ebfef849097b5242751d4db254da7b22c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_6_2_fh_180",
+      "annotation_sha256": "5d702ec3bdd7e7529c282d8ecf4f9088346ffc86d01ffeb1b945a3f48f228292",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "onehalfstorey_queue_2_6_3_fh_180",
+      "annotation_sha256": "f871fdb2d4199c21c72b34172131d78f1e9ca73163065d9e78673e90245ad6b3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "other_002",
+      "annotation_sha256": "84df28fc60974cd3968f8e1907600bb8854ef74f811bbced44dd53ec5457800e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "other_1_5_story_with_cellar",
+      "annotation_sha256": "c5f723aa2576b50df067af8d7f02fde3c0b5b2a52a9efb3b18dd7a9c858ffc97",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_003",
+      "annotation_sha256": "f30e79c0b79fcd8a6d05a3b0060e45b1a85ee0b45c5159e63a1f85ed3448eb0b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_004",
+      "annotation_sha256": "df795c45cdb10aaba0ede7a0e04d6b61c3161b9927bd56f238db042b415086f7",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_005",
+      "annotation_sha256": "241719b01229638ee582f9b62fcd05c76f6408ca1e334f3042aa5fb590b1f4aa",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_007",
+      "annotation_sha256": "c2e5e9df8f7aecc26ebc2f29977f23e8a532c451a201a6b25aa79b5b27a30ea6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_008",
+      "annotation_sha256": "e77be8058e455ef7906d16e965a315d6f82a2b68d232ac7590d0de19495b6d08",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_009",
+      "annotation_sha256": "379d7eff5f023ee97085b9d810beba84a36a043ba36d403a8634e6144a56b883",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_010",
+      "annotation_sha256": "92f253356db1571a2fc2e01e1f1226c24f78b8956b310c05279e0500349aadd7",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_011",
+      "annotation_sha256": "bcd0f8a80df50dca439846991153d6be5193f0e9852091a1914ab986dcb3d7bb",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_012",
+      "annotation_sha256": "3e8fde6bb5b23565be939bb49729f8eb3196661c4d770e35d837ea85063bcd50",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_013",
+      "annotation_sha256": "5f3981b32c84274f3db13d68bba06dda84fdd8ac1e3d1bec3baa08f42f1fd3ec",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_014",
+      "annotation_sha256": "666675bf7112e2fb11ca9c40bb7cf19bd654e6df4064b00ac5f31a56425a2c41",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_015",
+      "annotation_sha256": "a9754ab401b4be917a28cc656a3d4d99f1cd45cba65b4c84b039880378b92845",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_016",
+      "annotation_sha256": "8fe4730917c4f18e7971d4876f62c37299d936e5c677a9f72b02a5bc520b43b5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_017",
+      "annotation_sha256": "b1e414868e9c0484bccab1a2a392e062ff58932acdeefb27f1a56e63cac44a9b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_018",
+      "annotation_sha256": "1d6fe7bbfe20fd355e4eeac174b90986cbac6eae32b71a8689e4f951d47b6d83",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_019",
+      "annotation_sha256": "11fc39626ecbac1577981c8698694dd4bb158b2d5f64717db627424440321a66",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_020",
+      "annotation_sha256": "80f6f0b79fcedee5300d78b3809fad6e35092ae79bfc0774b0cc0fa2296a5cae",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_021",
+      "annotation_sha256": "c0a18f2a158db5247ef6843c73f9ee63c167ac64a38603924f2c2ed25db34623",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_022",
+      "annotation_sha256": "f60a66eae89ec11620757ebb3b2fb82c3f7bcac30dbb24f8850dbeab3f9d7a2c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_023",
+      "annotation_sha256": "a348f6b26cf6bbb8d75f4922a7b57a5bf12f8d6e0c4cd65698f004a96610d333",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_024",
+      "annotation_sha256": "098d4280f8d24464a5321df9eba198a4e71956f4f94bdae64d10346b83e68d9c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_025",
+      "annotation_sha256": "35b143c791df0bd608cda91129bb76a0cc1db2f8b54c298d48df0374a195bf2b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_026",
+      "annotation_sha256": "84c785f0baecabfd022a2a72165f93f7ca1e6b695a937028b42630cd0b959e71",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_027",
+      "annotation_sha256": "77fb2941d6e5a41e6e126e6480738d31166cf67886dd9d88e3786a88c97ac774",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_028",
+      "annotation_sha256": "1f68e1c53a561c240bb35af4d103e2dbfd0ac4cfab0b9958f1973bd6507edd55",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_029",
+      "annotation_sha256": "228a7aaea8d4fa9581b710c11a57d5be68dfe0804efb64bdeb748041098e76ae",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_030",
+      "annotation_sha256": "a19e44a276ca7113a46bf88025025e2043a6cefd3c5e497eb7d6640ef589ba9a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_031",
+      "annotation_sha256": "45152387f0f0019dce75412d62127b9aea91c2c56aac9d22266c8349f39f6178",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_032",
+      "annotation_sha256": "231635176f44fb77d82b494efea574dc0c58185eb7a713825b09da62e58eae99",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_033",
+      "annotation_sha256": "823f5bce5787e3f46f83a475e228795ec89097c57f21a19d1c772eaefe3202a6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_034",
+      "annotation_sha256": "c5461c209603e82ba2e20dd5e60d190e448dbce73190097b8b280df0010b2571",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_035",
+      "annotation_sha256": "40142e7653caa5a13eec5d94e2f17a9eb53b2703a376fe5f3be458e10002ed42",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_036",
+      "annotation_sha256": "a9f0ee27b68b0524f01fd991f47233e8e2cf8b5140365848017b13704a702efd",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_037",
+      "annotation_sha256": "1391613a354453fe133a8ecde365de5669ef168b787990c12968c22a4e7314e5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_038",
+      "annotation_sha256": "dd8d6591f50d39abf9e562e4957296c390aceb7e663c61b4eb92c024e9fdcf44",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_039",
+      "annotation_sha256": "dce6aabe07ff7ef2f97cdf0cdbac42e166f48a6506127f2e094f75cc83a3bf3e",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_040",
+      "annotation_sha256": "29ada59d62ce6e3bbf7a7391861a482e51dd628cea4649fa05d723b2fb241de3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_041",
+      "annotation_sha256": "927822d158295cb73d12b1bdcb4bdf77f2f1e8fcfe63303d0c054a6a5053a70b",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_042",
+      "annotation_sha256": "74f0753e0d7f0a75a5223046eb7bbab5925394975af622cc4fb3d35dd454fd6c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_043",
+      "annotation_sha256": "5bfc689710be06cab3bdc0077c8589bdc3931db500e83b14f8710ce07d5f8f2f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_044",
+      "annotation_sha256": "21481a744ca235017cc3b87cf3b5783125ac1079ad597851a5890b852da987aa",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_045",
+      "annotation_sha256": "e964ee5264dd1e8ba9f582c2e7b9acaff061ada092f21f49788dc94e91f07e82",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_046",
+      "annotation_sha256": "ddade7c5c44de8436885a1407987732c6a687de0babeb27c06d15efc891fc170",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_047",
+      "annotation_sha256": "880f627a39557d85727cf2e758a8578987b728c9fb63f5eabf250c00cd83b72d",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_048",
+      "annotation_sha256": "81aa084bb1dd63819e54f72ac077c8eef2a9abe241a72470ef1a8b00cb7522a3",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_049",
+      "annotation_sha256": "759fcc8e1e54a269ad07b9f36ee82d51d28d335c4512fb5c2df98c792d9bb6ba",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_050",
+      "annotation_sha256": "8e90a0bb5ebbf6f375d4d6fd7620b0f0a862bb04be1f6c278c5424940b4b862c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_051",
+      "annotation_sha256": "7fe6c2a6a9f78337bad353c71a5f362d988f4c3097ba5ac18f8eefdaecb65381",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_052",
+      "annotation_sha256": "74375daaf97c4962b654edb5e5f6c3a05deca7f8031fad081387edf8ec653d31",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_054",
+      "annotation_sha256": "d899fa460feaa9ff2e59e2da0cbb435ed774158f953ea0ee7591b38ba6c435ff",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_055",
+      "annotation_sha256": "94cd41c42b5f39767190e7288038adf844203751023d3b5698ccb08c80164517",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_056",
+      "annotation_sha256": "cf81948d26bab4e6428b467970abebeb1ded02c906e85bd16f0f653db74d2bbd",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_057",
+      "annotation_sha256": "deaa336ddbca3b2f674f0c78e645af475e74cf252aa648eb2fcd2308f8d87f91",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_058",
+      "annotation_sha256": "6348ea32e65253b3002f2360166a39dc603f5533cc7b77b1e8922b94bcbc474a",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_cellar_001",
+      "annotation_sha256": "9889603524f69f3021c94aaadca069e1a6e6a586202cd030385eef4559aaa598",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_1_3_sv_130",
+      "annotation_sha256": "b304e9c38f9a855180a1485e777b41ae1adf5f6421298c5a754bc7836c170298",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_1_4_sv_130",
+      "annotation_sha256": "5f0fc940ef946358d2a1cee27932157f899225a024d28bdd22a893e7045d6474",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_1_5_sv_130",
+      "annotation_sha256": "e8b17c4d2f87f0cdd300e3e5f9d63325f74629a4767109ad737d9e123f7d06a5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_2_1_sv_135",
+      "annotation_sha256": "c7da6345701830865b8cf6c9ce8408050aa7a6c6bb84d9d7e52c2217fdfc2134",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_2_2_sv_135",
+      "annotation_sha256": "17652b344f2ebda19e73c58027fb1c0ff3d80ff67869dc7bf2fa676e953d62d7",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_2_3_sv_135",
+      "annotation_sha256": "b67ac199346515da1c71f43fc22f6970a7c2bf7e641188f8cec6ba91b8f37f82",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_2_4_sv_135",
+      "annotation_sha256": "270fbfc10d969e27a22cdf9e7266f7ea33bce45d8f944e1733155fd6c9378b8f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_2_5_sv_135",
+      "annotation_sha256": "141a1271f77cc5a6915c32ee3b3625846f1b8f37e874cfbcb41a75d159691b1f",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_3_2_sv_145",
+      "annotation_sha256": "c404af883d5e209d08e5b3c0a8b712d511f6a62e2cd47ee62ca56fe23e3b0abc",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_3_3_sv_145",
+      "annotation_sha256": "d66c18a65a76d26d484826c0ac68dcc81e1c56e21324d0bda3462360f2bbc5f1",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_3_4_sv_145",
+      "annotation_sha256": "279caa1d5567261f5d8c697b6bb6777aef8369956b399bf4922cf38b084025fb",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_3_5_sv_145",
+      "annotation_sha256": "57f420df246057dc362da92fdbe0c8ee24059158bd619ecc9296a2f0e17d9ca6",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_4_2_sv_170_1",
+      "annotation_sha256": "dfa1cfd57dd0b557f96441b27419a11b4e898f9e2bc139bb32ea9bb3ec9e6490",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_4_3_sv_170_1",
+      "annotation_sha256": "3879d118e84adde849f08ecb756cb8b5749e3d3a9c6798a34a89f49d66ab9f4c",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_4_4_sv_170_1",
+      "annotation_sha256": "398591049071a2e47cfafc240caddd534a945cfb80ae84fe8f7a581733da5bda",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_4_5_sv_170_1",
+      "annotation_sha256": "0a0c821a64bb0658e9b5a2eefc2908fc32db3d2f3def037b9e486f714ccd38cc",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_5_1_sv_170_2",
+      "annotation_sha256": "0022ce88bda74b85819ef1621c74603548f61a6702b4a5fe58aab6975f8184b4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_5_2_sv_170_2",
+      "annotation_sha256": "9766538625493fd506e7e8c8506278a044422a21bcfc45fafddc5819af9143d4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_5_3_sv_170_2",
+      "annotation_sha256": "2e84a143bdc4044877981fcac9ffd3677b331ccce27d75a071b78250a6b59109",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_5_4_sv_170_2",
+      "annotation_sha256": "a0a0566ca473053a5704e17cf3a61c7cc945612d30305cec56d8c7e62a6855c0",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_5_5_sv_170_2",
+      "annotation_sha256": "996d5576554b0650046d88709578e5124fb8662f7796833c5249124126c77103",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_6_2_sv_195",
+      "annotation_sha256": "162d8fb1ad29553c3fa9aa04d0dbde7e9b702948591e22eb6161e92cf5423ab4",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    },
+    {
+      "project_id": "twostorey_queue_5_6_4_sv_195",
+      "annotation_sha256": "14385d4963c38376d9324055668e8b14c96d5db280efe5ac7e8f131aff8c3bf5",
+      "corpus_status": "annotated_reference",
+      "internal_reference_eligible": true,
+      "commercial_generator_eligible": false
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "schema": "dmh-floorplan-approved-package-v3",
+  "plan_id": "plan-f958a0be48513046",
+  "source_assets_included": false,
+  "revision": 8,
+  "geometry_hash": "f958a0be485130469fd66c92160d3944ae3c1207a80c104cf12319189024dadb",
+  "provenance": {
+    "created_from": "quality_passed_annotated_reference",
+    "transformation": "identity",
+    "source_mutated": false,
+    "source_snapshot_scope": "internal_revision_only",
+    "publication_excludes_source_artifacts": true
+  },
+  "rights": {
+    "source_status": "not_restricted",
+    "usage_scope": "commercial_generator",
+    "decision": "commercially_cleared",
+    "commercial_approval_attested": false,
+    "wordpress_eligible": true
+  },
+  "wordpress_eligible": true,
+  "created_at": "2026-08-03T05:46:33.998Z",
+  "files": {
+    "canonical-plan.json": {
+      "sha256": "1890b57e444457b3ae5862cc3b91b4c81dad12f697b5b89fb7a73f6b764b9e48",
+      "bytes": 36090
+    },
+    "floorplan.jpg": {
+      "sha256": "12d6c69653c2c94e69eef2c3cf2152f4917456b3e8d427dda5381f3dcdb810d9",
+      "bytes": 71861
+    },
+    "geometry-guide.png": {
+      "sha256": "9ac280b77f77f47331372e5bc6fe464a6df893fa57bb7c4f036356a2009d7265",
+      "bytes": 57925
+    },
+    "massing.json": {
+      "sha256": "707be46ad12a97f8d4d7dab46f483103ee79a26aed56f250ac0983c169cc043d",
+      "bytes": 29440
+    }
+  }
+}

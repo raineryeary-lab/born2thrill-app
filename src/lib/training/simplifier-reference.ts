@@ -1,5 +1,5 @@
-import knowledge from "../../../data/simplifier-v1/knowledge.json";
-import dataset from "../../../data/simplifier-v1/dataset.json";
+import knowledge from "../../../data/simplifier-v2/knowledge.json";
+import dataset from "../../../data/simplifier-v2/dataset.json";
 
 type SimplifierRoomProfile = {
   floor_level: string;
@@ -35,6 +35,7 @@ type RawProject = {
   project_id: string;
   house_type: string;
   package_status: string;
+  quality_status?: string;
   approval_status?: string;
   usage_scope?: string;
   floors: RawFloor[];
@@ -114,6 +115,8 @@ function normalizeProject(project: RawProject) {
   return {
     projectId: project.project_id,
     houseType: project.house_type,
+    packageStatus: project.package_status,
+    qualityStatus: project.quality_status ?? "",
     approvalStatus: project.approval_status ?? "",
     usageScope: project.usage_scope ?? "",
     floors,
@@ -130,12 +133,14 @@ function normalizeProject(project: RawProject) {
 
 const STAIR_REVIEW_PROJECT_IDS = new Set([
   "cubicasa_review_high_quality_architectural_904",
+  "onehalfstorey_003",
 ]);
 
 const REFERENCE_PROJECTS = SIMPLIFIER_DATASET.projects
   .filter((project) => !STAIR_REVIEW_PROJECT_IDS.has(project.project_id))
   .filter((project) => ["annotated", "reviewed", "training_ready"].includes(project.package_status))
   .map(normalizeProject)
+  .filter((project) => project.qualityStatus === "passed" && project.packageStatus === "training_ready")
   .filter((project) => project.floors.some((floor) => floor.rooms.length > 0));
 
 export function selectReferenceLayout(input: {
