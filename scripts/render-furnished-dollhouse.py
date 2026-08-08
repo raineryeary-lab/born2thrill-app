@@ -204,7 +204,7 @@ def polygon_object(name, points_mm, z_m, thickness_m, material):
     mesh.from_pydata(verts, [], [list(range(len(verts)))])
     mesh.update()
     obj = bpy.data.objects.new(name, mesh)
-    bpy.context.collection.objects.link(obj)
+    collection("Architecture").objects.link(obj)
     obj.data.materials.append(material)
     solidify = obj.modifiers.new("thickness", "SOLIDIFY")
     solidify.thickness = thickness_m
@@ -226,7 +226,31 @@ HANDLE_HEIGHT_M = 1.05
 SMALL_ROOM_OUTWARD_M2 = 4.0
 
 
-def box(name, location, dimensions, angle, material):
+# Scene is split into collections rather than one flat list. Architecture and
+# furniture are separate concerns — furniture is presentation data that must
+# never affect geometry_hash — and the split is what makes "render this floor
+# unfurnished" or "hide the near walls" a one-line operation instead of a
+# per-object hunt.
+COLLECTIONS = {}
+
+
+def collection(name):
+    if name not in COLLECTIONS:
+        created = bpy.data.collections.new(name)
+        bpy.context.scene.collection.children.link(created)
+        COLLECTIONS[name] = created
+    return COLLECTIONS[name]
+
+
+def place_in(obj, name):
+    """Move an object out of whatever collection it landed in and into ours."""
+    for existing in list(obj.users_collection):
+        existing.objects.unlink(obj)
+    collection(name).objects.link(obj)
+    return obj
+
+
+def box(name, location, dimensions, angle, material, into="Architecture"):
     bpy.ops.mesh.primitive_cube_add(size=1, location=location)
     obj = bpy.context.object
     obj.name = name
@@ -234,7 +258,7 @@ def box(name, location, dimensions, angle, material):
     obj.rotation_euler[2] = angle
     if material:
         obj.data.materials.append(material)
-    return obj
+    return place_in(obj, into)
 
 
 def opening_transform(wall, opening, height_mm_override=None):
@@ -345,17 +369,18 @@ def add_door_leaf(name, wall, opening, leaf_height, rooms):
     leaf_x = hinge_x + math.cos(swing) * width / 2
     leaf_y = hinge_y + math.sin(swing) * width / 2
 
-    box(name, (leaf_x, leaf_y, leaf_height / 2),
-        (width, DOOR_LEAF_THICKNESS_M, leaf_height), swing, DOOR_MAT)
+    leaf = box(name, (leaf_x, leaf_y, leaf_height / 2),
+               (width, DOOR_LEAF_THICKNESS_M, leaf_height), swing, DOOR_MAT)
 
     # Lever handle near the free edge, projecting from the leaf face.
     reach = width / 2 - 0.07
     handle_x = leaf_x + math.cos(swing) * reach
     handle_y = leaf_y + math.sin(swing) * reach
-    box(f"{name}-handle", (handle_x, handle_y, HANDLE_HEIGHT_M),
-        (0.022, 0.13, 0.022), swing, HANDLE_MAT)
-    box(f"{name}-rose", (handle_x, handle_y, HANDLE_HEIGHT_M),
-        (0.055, DOOR_LEAF_THICKNESS_M + 0.02, 0.055), swing, HANDLE_MAT)
+    handle = box(f"{name}-handle", (handle_x, handle_y, HANDLE_HEIGHT_M),
+                 (0.022, 0.13, 0.022), swing, HANDLE_MAT)
+    rose = box(f"{name}-rose", (handle_x, handle_y, HANDLE_HEIGHT_M),
+               (0.055, DOOR_LEAF_THICKNESS_M + 0.02, 0.055), swing, HANDLE_MAT)
+    return [leaf, handle, rose]
 
 
 def cut_opening(wall_obj, cutter):
@@ -382,6 +407,10 @@ def wall_object(name, wall, openings, height_mm, rooms):
     angle = math.atan2(y2 - y1, x2 - x1)
     obj = box(name, ((x1 + x2) / 2, (y1 + y2) / 2, height / 2),
               (length, thickness, height), angle, WALL_MAT)
+    # Everything that belongs to this wall: its glazing and door leaves. The
+    # cutaway hides these together with the wall, otherwise removing a near
+    # wall leaves its windows floating in mid-air.
+    parts = [obj]
 
     for opening in openings:
         # Clamp to wall height so a 2010mm door in a 2400mm wall keeps a
@@ -399,13 +428,13 @@ def wall_object(name, wall, openings, height_mm, rooms):
         cut_opening(obj, cutter)
 
         if opening["opening_type"] == "window":
-            box(f"{name}-glass", centre,
-                (opening["width_mm"] * MM * 0.94, 0.02, cut_h * 0.94),
-                opening_angle, GLASS_MAT)
+            parts.append(box(f"{name}-glass", centre,
+                             (opening["width_mm"] * MM * 0.94, 0.02, cut_h * 0.94),
+                             opening_angle, GLASS_MAT))
         elif opening["opening_type"] == "door":
-            add_door_leaf(f"{name}-door", wall, opening, cut_h, rooms)
+            parts.extend(add_door_leaf(f"{name}-door", wall, opening, cut_h, rooms))
 
-    return obj
+    return parts
 
 
 # ---------------------------------------------------- furniture normalisation
@@ -539,11 +568,57 @@ openings_by_wall = {}
 for opening in floor.get("openings", []):
     openings_by_wall.setdefault(opening["wall_id"], []).append(opening)
 
+# Diagnostic: DMH_HIDE_WALLS=1 renders without any walls, to distinguish
+# "furniture failed to instance" from "furniture is occluded by a wall".
+hide_walls = os.environ.get("DMH_HIDE_WALLS") == "1"
+
+# Dollhouse cutaway. Full-height exterior walls between the camera and the
+# building hide everything placed against them — a sofa against the east wall
+# is behind that wall from a camera sitting east of it. Removing the near-side
+# exterior walls is what makes a dollhouse view readable; interior walls stay,
+# because the elevated camera already sees over them.
+building_points = [p for room in floor["rooms"] for p in room["polygon_mm"]]
+building_centre = (
+    sum(p[0] for p in building_points) / len(building_points),
+    sum(p[1] for p in building_points) / len(building_points),
+)
+# Horizontal component of the camera direction, matching the camera set up
+# further down. Anything whose outward side points this way is between the
+# viewer and the interior.
+CAMERA_DIR_XY = (1.0, -1.0)
+_len = math.hypot(*CAMERA_DIR_XY)
+CAMERA_DIR_XY = (CAMERA_DIR_XY[0] / _len, CAMERA_DIR_XY[1] / _len)
+NEAR_WALL_THRESHOLD = 0.35
+
 cut_count = 0
+hidden_walls = 0
 for index, wall in enumerate(floor["walls"]):
     wall_openings = openings_by_wall.get(wall.get("id"), [])
-    wall_object(f"wall-{index}", wall, wall_openings, wall_height, floor["rooms"])
+    parts = wall_object(f"wall-{index}", wall, wall_openings, wall_height, floor["rooms"])
     cut_count += len(wall_openings)
+    if not parts:
+        continue
+
+    def hide(objects):
+        for item in objects:
+            item.hide_render = True
+
+    if hide_walls:
+        hide(parts)
+        hidden_walls += 1
+        continue
+
+    if wall.get("wall_type") == "exterior":
+        mid = (
+            (wall["start_mm"][0] + wall["end_mm"][0]) / 2 - building_centre[0],
+            (wall["start_mm"][1] + wall["end_mm"][1]) / 2 - building_centre[1],
+        )
+        length = math.hypot(*mid)
+        if length > 0:
+            towards_camera = (mid[0] * CAMERA_DIR_XY[0] + mid[1] * CAMERA_DIR_XY[1]) / length
+            if towards_camera > NEAR_WALL_THRESHOLD:
+                hide(parts)
+                hidden_walls += 1
 
 prototypes = {}
 placed = 0
@@ -569,6 +644,7 @@ for item in floor["placements"]:
             obj.data.materials.append(furniture_material(item["type"]))
 
         obj.name = f"proto-{asset_id}"
+        place_in(obj, "Prototypes")
         obj.hide_render = True
         obj.hide_viewport = True
         prototypes[asset_id] = obj
@@ -578,7 +654,7 @@ for item in floor["placements"]:
         continue
 
     instance = bpy.data.objects.new(f"{asset_id}-{placed}", proto.data)
-    bpy.context.collection.objects.link(instance)
+    collection("Furniture").objects.link(instance)
 
     # `height_mm` is a MOUNT height — where the centre of a wall-mounted item
     # sits — but prototypes are re-origined with their base at z=0. Placing a
@@ -614,7 +690,7 @@ camera_data = bpy.data.cameras.new("dollhouse-camera")
 camera_data.type = "ORTHO"
 camera_data.ortho_scale = span * 1.4
 camera = bpy.data.objects.new("dollhouse-camera", camera_data)
-bpy.context.collection.objects.link(camera)
+collection("Staging").objects.link(camera)
 
 # Steeper than the first attempt so full-height walls don't hide the rooms
 # behind them.
@@ -660,7 +736,7 @@ sun_data = bpy.data.lights.new("key-sun", type="SUN")
 sun_data.energy = 2.2
 sun_data.angle = math.radians(6.0)
 sun = bpy.data.objects.new("key-sun", sun_data)
-bpy.context.collection.objects.link(sun)
+collection("Staging").objects.link(sun)
 sun.location = centre + mathutils.Vector((span, -span, span * 1.6))
 sun.rotation_euler = (math.radians(48), 0.0, math.radians(-55))
 
@@ -699,6 +775,7 @@ print(f"[dollhouse] floor           {floor['name']}")
 print(f"[dollhouse] rooms           {len(floor['rooms'])}")
 print(f"[dollhouse] walls           {len(floor['walls'])} at {wall_height}mm")
 print(f"[dollhouse] openings cut    {cut_count}")
+print(f"[dollhouse] walls hidden    {hidden_walls} (near-side cutaway)")
 print(f"[dollhouse] furniture       {placed} instances from {len([p for p in prototypes.values() if p])} meshes")
 print(f"[dollhouse] engine          {scene.render.engine}")
 print(f"[dollhouse] hdri            {'yes' if hdri_path else 'NO — flat sky fallback'}")
