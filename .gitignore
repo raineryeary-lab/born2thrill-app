@@ -46,3 +46,11 @@ supabase/.temp/
 *.tsbuildinfo
 next-env.d.ts
 .workbench-*.log
+
+# Local scratch: render plans, preview PNGs, working data. Regenerable.
+/tmp/
+scripts/__pycache__/
+
+# This project uses pnpm. package-lock.json appears when npm install is run
+# by mistake and creates a second, conflicting lockfile.
+package-lock.json

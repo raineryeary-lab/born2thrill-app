@@ -349,3 +349,48 @@ test("hard-invalid geometry cannot invoke Blender or approval", async () => {
   assert.equal((await request("render_blender")).status, 422);
   assert.equal((await request("approve")).status, 422);
 });
+
+test("rearrange_room recomputes one room's furniture without persisting a revision or touching other rooms", async () => {
+  const result = await proof();
+  const validDocument = satisfyGlazingRule(buildCorrectionDocument(result.variant));
+  const floor = validDocument.floors[0];
+  const room = floor.rooms.find((item) => item.kind === "living") || floor.rooms[0];
+
+  const rearrange = async (body) => {
+    const response = await fetch(`${origin}/api/floorplan-workbench/corrections`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "rearrange_room", document: validDocument, ...body }),
+    });
+    return { response, body: await response.json() };
+  };
+
+  const revisionsBefore = await (await fetch(`${origin}/api/floorplan-workbench/corrections?reference=${validDocument.source_reference_id}`)).json();
+
+  const modern = await rearrange({ floor_id: floor.id, room_id: room.id, style: "modern" });
+  assert.equal(modern.response.status, 200);
+  assert.equal(modern.body.floor_id, floor.id);
+  assert.equal(modern.body.room_id, room.id);
+  assert.equal(modern.body.style, "modern");
+  assert.equal(modern.body.placement.room_id, room.id);
+  assert.ok(Array.isArray(modern.body.placement.placements));
+
+  const classic = await rearrange({ floor_id: floor.id, room_id: room.id, style: "classic" });
+  assert.equal(classic.response.status, 200);
+  if (modern.body.placement.placements.length && classic.body.placement.placements.length) {
+    assert.notEqual(modern.body.placement.placements[0].asset_id, classic.body.placement.placements[0].asset_id, "different styles must use different asset ids for the same slot");
+  }
+
+  assert.equal((await rearrange({ floor_id: "not-a-real-floor", room_id: room.id, style: "modern" })).response.status, 404);
+  assert.equal((await rearrange({ floor_id: floor.id, room_id: "not-a-real-room", style: "modern" })).response.status, 404);
+  assert.equal((await rearrange({ floor_id: floor.id, room_id: room.id, style: "brutalist" })).response.status, 400);
+  assert.equal((await rearrange({ floor_id: floor.id, style: "modern" })).response.status, 400, "room_id is required");
+  assert.equal((await rearrange({ room_id: room.id, style: "modern" })).response.status, 400, "floor_id is required");
+
+  // Statelessness: rearrange_room must never create a revision. Compare the
+  // revision list for this reference before and after the calls above,
+  // rather than asserting an exact value, since this is a real file-backed
+  // dev data directory that may already have revisions from other work.
+  const revisionsAfterBody = await (await fetch(`${origin}/api/floorplan-workbench/corrections?reference=${validDocument.source_reference_id}`)).json();
+  assert.deepEqual(revisionsAfterBody.revisions, revisionsBefore.revisions, "rearrange_room must not write a revision file");
+});

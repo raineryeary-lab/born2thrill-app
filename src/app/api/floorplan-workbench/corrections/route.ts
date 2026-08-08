@@ -7,6 +7,8 @@ import sharp from "sharp";
 import { approvedGeometryHash, validateCorrectionDocument, withUpdatedHash } from "@/lib/generator/correction-editor.mjs";
 import { doorColour, FLOORPLAN_RULES } from "@/lib/generator/floorplan-rulebook.mjs";
 import { buildBlenderSceneManifest } from "@/lib/generator/blender-scene-manifest.mjs";
+import { planRoomFurniture } from "@/lib/generator/furniture-placement.mjs";
+import { FURNITURE_STYLES } from "@/lib/generator/furniture-catalog.mjs";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -376,6 +378,32 @@ async function renderBlender(document: any, view: string) {
   if (!png) return { ok: false, status: 500, error: "Blender finished without creating scene.png." };
   return { ok: true, status: 201, manifest, render_view: view, geometry_hash: normalized.geometry_hash, blend_path: blendPath, png_path: pngPath, png_base64: png.toString("base64") };
 }
+// Furniture is presentation-only (see plans/furnished-3d-dollhouse-render-v1.md
+// "Floorplan-suite invariant") — it never touches geometry_hash and is never
+// persisted into a revision file. `rearrange_room` is therefore stateless:
+// it recomputes ONE room's deterministic auto-placement from the document as
+// given and returns it, without writing anything or mutating other rooms.
+// "Rearrange" today means "reset to deterministic auto-placement" — the
+// placement engine has no randomized-alternate-layout mode yet, so repeated
+// calls with the same room/style currently return the same result. A manual
+// per-item override (drag a piece by hand) is a separate, not-yet-built
+// feature; this action does not touch or know about any such override.
+function rearrangeRoom(document: any, floorId: string, roomId: string, style: string) {
+  if (!FURNITURE_STYLES.includes(style)) return { ok: false, status: 400, error: `Unsupported furniture style: ${style}` };
+  const floor = (document?.floors || []).find((item: any) => item.id === floorId);
+  if (!floor) return { ok: false, status: 404, error: `Floor "${floorId}" not found on this document.` };
+  const room = (floor.rooms || []).find((item: any) => item.id === roomId);
+  if (!room) return { ok: false, status: 404, error: `Room "${roomId}" not found on floor "${floorId}".` };
+  let plan;
+  try {
+    // Runtime-validated above via FURNITURE_STYLES.includes(style); cast is safe.
+    plan = planRoomFurniture(room, style as "modern" | "classic");
+  } catch (error) {
+    return { ok: false, status: 422, error: error instanceof Error ? error.message : String(error) };
+  }
+  return { ok: true, status: 200, floor_id: floorId, room_id: roomId, style, placement: plan };
+}
+
 export async function GET(request: Request) {
   if (!enabled(request)) return Response.json({ error: "Local-only endpoint." }, { status: 404 });
   const reference = safeReference(new URL(request.url).searchParams.get("reference") || "onehalfstorey_003");
@@ -422,6 +450,14 @@ export async function POST(request: Request) {
   }
   if (action === "export") {
     const result = await exportApproved(document);
+    return Response.json(result, { status: result.status });
+  }
+  if (action === "rearrange_room") {
+    const floorId = typeof source.floor_id === "string" ? source.floor_id : "";
+    const roomId = typeof source.room_id === "string" ? source.room_id : "";
+    const style = typeof source.style === "string" ? source.style : "modern";
+    if (!floorId || !roomId) return Response.json({ error: "floor_id and room_id are required." }, { status: 400 });
+    const result = rearrangeRoom(document, floorId, roomId, style);
     return Response.json(result, { status: result.status });
   }
   return Response.json({ error: "Unknown action." }, { status: 400 });

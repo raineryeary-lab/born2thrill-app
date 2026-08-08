@@ -1,0 +1,10 @@
+{
+  "_comment": "Maps a furniture type to an external model file, taking priority over the generated .glb library. This is the first step toward the symbol -> model registry described in plans/annotation-symbols-v1.md: annotations never name a model, only a type, so the library can be swapped here without touching a single package. Paths are absolute because these libraries live outside the repo.",
+  "_caveat": "CGAxis volumes ship room SETS, not single fixtures. cgaxis_models_22_07 is a bath plus vanity plus shower column in one file. Mapping it to 'bathtub' drops the whole set into the room. Acceptable while proving the pipeline; a real bathroom-set symbol is the proper fix.",
+  "models": {
+    "shower": "E:\\_models_converted\\22 BATHROOMS\\C4D\\cgaxis_models_22_02.fbx",
+    "sink": "E:\\_models_converted\\22 BATHROOMS\\C4D\\cgaxis_models_22_04.fbx",
+    "bathtub": "E:\\_models_converted\\22 BATHROOMS\\C4D\\cgaxis_models_22_07.fbx"
+  },
+  "preserve_native_scale": ["shower", "sink", "bathtub"]
+}

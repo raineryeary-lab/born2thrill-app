@@ -1,0 +1,347 @@
+{
+  "generated_at": "2026-08-08T14:22:23.222Z",
+  "total_credits_consumed": 0,
+  "items": [
+    {
+      "type": "nightstand",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\nightstand__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\nightstand__modern.png"
+    },
+    {
+      "type": "nightstand",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\nightstand__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\nightstand__classic.png"
+    },
+    {
+      "type": "wardrobe",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wardrobe__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wardrobe__modern.png"
+    },
+    {
+      "type": "wardrobe",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wardrobe__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wardrobe__classic.png"
+    },
+    {
+      "type": "coffee_table",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coffee_table__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coffee_table__modern.png"
+    },
+    {
+      "type": "coffee_table",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coffee_table__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coffee_table__classic.png"
+    },
+    {
+      "type": "tv_unit",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\tv_unit__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\tv_unit__modern.png"
+    },
+    {
+      "type": "tv_unit",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\tv_unit__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\tv_unit__classic.png"
+    },
+    {
+      "type": "dining_table",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dining_table__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dining_table__modern.png"
+    },
+    {
+      "type": "dining_table",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dining_table__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dining_table__classic.png"
+    },
+    {
+      "type": "washer_dryer_unit",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\washer_dryer_unit__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\washer_dryer_unit__modern.png"
+    },
+    {
+      "type": "washer_dryer_unit",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\washer_dryer_unit__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\washer_dryer_unit__classic.png"
+    },
+    {
+      "type": "storage_shelving",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\storage_shelving__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\storage_shelving__modern.png"
+    },
+    {
+      "type": "storage_shelving",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\storage_shelving__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\storage_shelving__classic.png"
+    },
+    {
+      "type": "dressing_wardrobe",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dressing_wardrobe__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dressing_wardrobe__modern.png"
+    },
+    {
+      "type": "dressing_wardrobe",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dressing_wardrobe__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\dressing_wardrobe__classic.png"
+    },
+    {
+      "type": "desk",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\desk__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\desk__modern.png"
+    },
+    {
+      "type": "desk",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\desk__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\desk__classic.png"
+    },
+    {
+      "type": "office_chair",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\office_chair__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\office_chair__modern.png"
+    },
+    {
+      "type": "office_chair",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\office_chair__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\office_chair__classic.png"
+    },
+    {
+      "type": "coat_rack",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coat_rack__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coat_rack__modern.png"
+    },
+    {
+      "type": "coat_rack",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coat_rack__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\coat_rack__classic.png"
+    },
+    {
+      "type": "bathroom_vanity",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\bathroom_vanity__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\bathroom_vanity__modern.png"
+    },
+    {
+      "type": "bathroom_vanity",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\bathroom_vanity__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\bathroom_vanity__classic.png"
+    },
+    {
+      "type": "rug",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\rug__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\rug__modern.png"
+    },
+    {
+      "type": "rug",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\rug__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\rug__classic.png"
+    },
+    {
+      "type": "wall_art",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wall_art__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wall_art__modern.png"
+    },
+    {
+      "type": "wall_art",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wall_art__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\wall_art__classic.png"
+    },
+    {
+      "type": "mirror",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\mirror__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\mirror__modern.png"
+    },
+    {
+      "type": "mirror",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\mirror__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\mirror__classic.png"
+    },
+    {
+      "type": "floor_lamp",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\floor_lamp__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\floor_lamp__modern.png"
+    },
+    {
+      "type": "floor_lamp",
+      "style": "classic",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\floor_lamp__classic.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\floor_lamp__classic.png"
+    },
+    {
+      "type": "table_lamp",
+      "style": "modern",
+      "task_id": null,
+      "credits_consumed": null,
+      "model_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\table_lamp__modern.glb",
+      "preview_path": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench\\data\\furniture-assets\\full-catalog\\table_lamp__modern.png"
+    }
+  ],
+  "failures": [
+    {
+      "type": "table_lamp",
+      "style": "classic",
+      "error": "Submit failed for table_lamp/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "potted_plant",
+      "style": "modern",
+      "error": "Submit failed for potted_plant/modern: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "potted_plant",
+      "style": "classic",
+      "error": "Submit failed for potted_plant/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "shower",
+      "style": "modern",
+      "error": "Submit failed for shower/modern: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "shower",
+      "style": "classic",
+      "error": "Submit failed for shower/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "bathtub",
+      "style": "modern",
+      "error": "Submit failed for bathtub/modern: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "bathtub",
+      "style": "classic",
+      "error": "Submit failed for bathtub/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "sink",
+      "style": "modern",
+      "error": "Submit failed for sink/modern: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "sink",
+      "style": "classic",
+      "error": "Submit failed for sink/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "towel",
+      "style": "modern",
+      "error": "Submit failed for towel/modern: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "towel",
+      "style": "classic",
+      "error": "Submit failed for towel/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "clothing_rack",
+      "style": "modern",
+      "error": "Submit failed for clothing_rack/modern: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "clothing_rack",
+      "style": "classic",
+      "error": "Submit failed for clothing_rack/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "shoe_rack",
+      "style": "modern",
+      "error": "Submit failed for shoe_rack/modern: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    },
+    {
+      "type": "shoe_rack",
+      "style": "classic",
+      "error": "Submit failed for shoe_rack/classic: {\"code\":2,\"status\":\"error\",\"message\":\"Invalid API key\",\"suggestion\":\"Check if your credentials is valid\"}"
+    }
+  ]
+}

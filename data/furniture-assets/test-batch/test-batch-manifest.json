@@ -1,0 +1,54 @@
+{
+  "generated_at": "2026-08-06T05:13:12.499Z",
+  "total_credits_consumed": 180,
+  "items": [
+    {
+      "type": "bed_double",
+      "style": "modern",
+      "task_id": "a0e216fe-87be-4254-9ef7-fec95513a52f",
+      "credits_consumed": 30,
+      "model_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\bed_double__modern.glb",
+      "preview_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\bed_double__modern.png"
+    },
+    {
+      "type": "bed_double",
+      "style": "classic",
+      "task_id": "2e4b1946-25c2-4cc6-9963-3581c1903c55",
+      "credits_consumed": 30,
+      "model_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\bed_double__classic.glb",
+      "preview_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\bed_double__classic.png"
+    },
+    {
+      "type": "sofa",
+      "style": "modern",
+      "task_id": "4a8a54ea-c73a-45f7-987d-9301738ca039",
+      "credits_consumed": 30,
+      "model_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\sofa__modern.glb",
+      "preview_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\sofa__modern.png"
+    },
+    {
+      "type": "sofa",
+      "style": "classic",
+      "task_id": "687e3630-f898-4477-a2b9-afa6312fac16",
+      "credits_consumed": 30,
+      "model_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\sofa__classic.glb",
+      "preview_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\sofa__classic.png"
+    },
+    {
+      "type": "dining_chair",
+      "style": "modern",
+      "task_id": "a646ae33-f851-49c6-8749-83ee0f418f35",
+      "credits_consumed": 30,
+      "model_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\dining_chair__modern.glb",
+      "preview_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\dining_chair__modern.png"
+    },
+    {
+      "type": "dining_chair",
+      "style": "classic",
+      "task_id": "a34d10fe-c2c8-4404-b660-8e4a5c911eed",
+      "credits_consumed": 30,
+      "model_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\dining_chair__classic.glb",
+      "preview_path": "C:\\dev\\born2thrill-local-workbench\\data\\furniture-assets\\test-batch\\dining_chair__classic.png"
+    }
+  ]
+}

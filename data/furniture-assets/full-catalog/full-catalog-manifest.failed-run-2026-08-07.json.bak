@@ -1,0 +1,247 @@
+{
+  "generated_at": "2026-08-07T19:46:00.118Z",
+  "total_credits_consumed": 0,
+  "items": [],
+  "failures": [
+    {
+      "type": "nightstand",
+      "style": "modern",
+      "error": "Submit failed for nightstand/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"2d6293a1-5fa8-42ef-af09-49f25e609aba\"}"
+    },
+    {
+      "type": "nightstand",
+      "style": "classic",
+      "error": "Submit failed for nightstand/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"c51f06c1-c5c9-498f-b0cd-db3612ea119e\"}"
+    },
+    {
+      "type": "wardrobe",
+      "style": "modern",
+      "error": "Submit failed for wardrobe/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"85c697ac-1f69-45f3-92d4-f5f88e3bf2f4\"}"
+    },
+    {
+      "type": "wardrobe",
+      "style": "classic",
+      "error": "Submit failed for wardrobe/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"5d8b2c63-87ba-4a0b-b1cd-4c88ef391305\"}"
+    },
+    {
+      "type": "coffee_table",
+      "style": "modern",
+      "error": "Submit failed for coffee_table/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"c73aed3b-2010-4e3a-b83f-72207e1b5342\"}"
+    },
+    {
+      "type": "coffee_table",
+      "style": "classic",
+      "error": "Submit failed for coffee_table/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"6443781a-74dd-474d-b8a4-7a4a6fd60cef\"}"
+    },
+    {
+      "type": "tv_unit",
+      "style": "modern",
+      "error": "Submit failed for tv_unit/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"d681f4df-118f-4e25-b22f-a934bc2330d4\"}"
+    },
+    {
+      "type": "tv_unit",
+      "style": "classic",
+      "error": "Submit failed for tv_unit/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"92195508-7325-4474-949f-5e3018bfb21f\"}"
+    },
+    {
+      "type": "dining_table",
+      "style": "modern",
+      "error": "Submit failed for dining_table/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"5444b475-73a2-4cd0-a045-00d89f32c6dd\"}"
+    },
+    {
+      "type": "dining_table",
+      "style": "classic",
+      "error": "Submit failed for dining_table/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"e57222bd-43a5-4e55-b579-8436a736f4c4\"}"
+    },
+    {
+      "type": "washer_dryer_unit",
+      "style": "modern",
+      "error": "Submit failed for washer_dryer_unit/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"6d3e3a53-b047-4f5c-a441-67751bbbe5f8\"}"
+    },
+    {
+      "type": "washer_dryer_unit",
+      "style": "classic",
+      "error": "Submit failed for washer_dryer_unit/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"4aff614a-712c-40b2-9882-6afd62ad6ae4\"}"
+    },
+    {
+      "type": "storage_shelving",
+      "style": "modern",
+      "error": "Submit failed for storage_shelving/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"4bcc6dba-c911-463e-b22d-4ed3cc57bbc0\"}"
+    },
+    {
+      "type": "storage_shelving",
+      "style": "classic",
+      "error": "Submit failed for storage_shelving/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"ce797d3f-5fdf-400f-ab66-851e123e7dd9\"}"
+    },
+    {
+      "type": "dressing_wardrobe",
+      "style": "modern",
+      "error": "Submit failed for dressing_wardrobe/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"1f542b1e-0817-4ead-baa3-70b6043d29e6\"}"
+    },
+    {
+      "type": "dressing_wardrobe",
+      "style": "classic",
+      "error": "Submit failed for dressing_wardrobe/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"8be98fc5-8bff-4370-9166-cb10fd1a5640\"}"
+    },
+    {
+      "type": "desk",
+      "style": "modern",
+      "error": "Submit failed for desk/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"292bf60e-e23f-40b8-900e-aec2b07efcd7\"}"
+    },
+    {
+      "type": "desk",
+      "style": "classic",
+      "error": "Submit failed for desk/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"988524db-09c5-4f6c-b99e-b610a3a3d980\"}"
+    },
+    {
+      "type": "office_chair",
+      "style": "modern",
+      "error": "Submit failed for office_chair/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"7255a385-75bc-46e7-a36f-14d77851df42\"}"
+    },
+    {
+      "type": "office_chair",
+      "style": "classic",
+      "error": "Submit failed for office_chair/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"e63b3b6d-fa21-44c4-856b-21dac8eca372\"}"
+    },
+    {
+      "type": "coat_rack",
+      "style": "modern",
+      "error": "Submit failed for coat_rack/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"eb2a0de8-80e9-40e6-b9fb-84bceedcde34\"}"
+    },
+    {
+      "type": "coat_rack",
+      "style": "classic",
+      "error": "Submit failed for coat_rack/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"a00bf8b9-5c5d-4c5b-9fac-ed8cc1f405c6\"}"
+    },
+    {
+      "type": "bathroom_vanity",
+      "style": "modern",
+      "error": "Submit failed for bathroom_vanity/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"8b64e8d6-94dd-457a-be7f-6b1e19c6ca34\"}"
+    },
+    {
+      "type": "bathroom_vanity",
+      "style": "classic",
+      "error": "Submit failed for bathroom_vanity/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"072e3cbb-6287-43bc-a785-6eef642f902f\"}"
+    },
+    {
+      "type": "rug",
+      "style": "modern",
+      "error": "Submit failed for rug/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"9b09b6cf-1365-4bbc-aff4-df266511ccf9\"}"
+    },
+    {
+      "type": "rug",
+      "style": "classic",
+      "error": "Submit failed for rug/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"32008917-0877-4387-bb50-7e8a8d846066\"}"
+    },
+    {
+      "type": "wall_art",
+      "style": "modern",
+      "error": "Submit failed for wall_art/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"62f6db2e-0e2e-4943-b254-a36924211ebd\"}"
+    },
+    {
+      "type": "wall_art",
+      "style": "classic",
+      "error": "Submit failed for wall_art/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"62cfcd3b-5d9f-40f8-9074-a5ff4babea34\"}"
+    },
+    {
+      "type": "mirror",
+      "style": "modern",
+      "error": "Submit failed for mirror/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"567a72db-f3e2-4fc2-b085-c6debf19164d\"}"
+    },
+    {
+      "type": "mirror",
+      "style": "classic",
+      "error": "Submit failed for mirror/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"dfc45b23-c88e-4d06-befe-9af2cd15a180\"}"
+    },
+    {
+      "type": "floor_lamp",
+      "style": "modern",
+      "error": "Submit failed for floor_lamp/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"cf5b1380-ab84-4431-9613-a60d5a25f85d\"}"
+    },
+    {
+      "type": "floor_lamp",
+      "style": "classic",
+      "error": "Submit failed for floor_lamp/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"8724777f-4476-4153-a5e6-57c4f6788a82\"}"
+    },
+    {
+      "type": "table_lamp",
+      "style": "modern",
+      "error": "Submit failed for table_lamp/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"751e4f69-9a7e-4816-8283-e723d00416eb\"}"
+    },
+    {
+      "type": "table_lamp",
+      "style": "classic",
+      "error": "Submit failed for table_lamp/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"2f5f10a6-cf7a-4001-8d95-17b552318380\"}"
+    },
+    {
+      "type": "potted_plant",
+      "style": "modern",
+      "error": "Submit failed for potted_plant/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"af2111ae-d2b7-4369-84b5-def1df2b7f5f\"}"
+    },
+    {
+      "type": "potted_plant",
+      "style": "classic",
+      "error": "Submit failed for potted_plant/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"5e1d0c63-97b9-4392-8b7c-11d9d14d7b31\"}"
+    },
+    {
+      "type": "shower",
+      "style": "modern",
+      "error": "Submit failed for shower/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"fd26d3a5-1a4d-47cf-86a9-7515a8dcec63\"}"
+    },
+    {
+      "type": "shower",
+      "style": "classic",
+      "error": "Submit failed for shower/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"b26cc330-c5f1-44ea-8558-311ecee20f68\"}"
+    },
+    {
+      "type": "bathtub",
+      "style": "modern",
+      "error": "Submit failed for bathtub/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"eb2c6131-50a1-4659-b5b5-17fb595d6f5f\"}"
+    },
+    {
+      "type": "bathtub",
+      "style": "classic",
+      "error": "Submit failed for bathtub/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"f8edbcf5-4b26-41df-9fd7-7625c481a9b5\"}"
+    },
+    {
+      "type": "sink",
+      "style": "modern",
+      "error": "Submit failed for sink/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"3ea9261f-2eb4-46ba-8185-9d7567c60040\"}"
+    },
+    {
+      "type": "sink",
+      "style": "classic",
+      "error": "Submit failed for sink/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"57e56459-1f2b-4aae-9407-84ac6a76b9ef\"}"
+    },
+    {
+      "type": "towel",
+      "style": "modern",
+      "error": "Submit failed for towel/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"6da0e372-9923-4107-a822-0e749224ff27\"}"
+    },
+    {
+      "type": "towel",
+      "style": "classic",
+      "error": "Submit failed for towel/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"c2fd7f80-0e39-4da3-9b43-65c00150d1d2\"}"
+    },
+    {
+      "type": "clothing_rack",
+      "style": "modern",
+      "error": "Submit failed for clothing_rack/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"b6746368-cc1b-449d-9b17-823842092c88\"}"
+    },
+    {
+      "type": "clothing_rack",
+      "style": "classic",
+      "error": "Submit failed for clothing_rack/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"104f8d0d-9de1-4d4e-bcef-d296f78e2aec\"}"
+    },
+    {
+      "type": "shoe_rack",
+      "style": "modern",
+      "error": "Submit failed for shoe_rack/modern: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"357b0e5e-dc1a-4539-baae-830f09ef2688\"}"
+    },
+    {
+      "type": "shoe_rack",
+      "style": "classic",
+      "error": "Submit failed for shoe_rack/classic: {\"code\":2010,\"status\":\"error\",\"message\":\"You don't have enough credit to create this task\",\"suggestion\":\"Please purchase more credit\",\"request_id\":\"fc8f8eba-94f4-4096-b47e-1250fce755a4\"}"
+    }
+  ]
+}
