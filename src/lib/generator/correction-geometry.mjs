@@ -573,10 +573,19 @@ export function openingsForMillimetreFloor(elements, walls, rooms, transform, fl
         connects,
         traversable: openingType !== "window",
         ...(openingType === "window"
-          ? {
-              height_mm: FLOORPLAN_RULES.windows.defaultHeightMm,
-              sill_height_mm: FLOORPLAN_RULES.windows.defaultSillHeightMm,
-            }
+          ? (element.window_type === "bodentief"
+              ? {
+                  height_mm: FLOORPLAN_RULES.windows.bodentiefHeightMm,
+                  sill_height_mm: FLOORPLAN_RULES.windows.bodentiefSillHeightMm,
+                }
+              : {
+                  // Everything without an explicit "bodentief" annotation keeps
+                  // the Brüstungsfenster defaults, so packages annotated before
+                  // window_type existed produce identical geometry and their
+                  // geometry_hash is unchanged.
+                  height_mm: FLOORPLAN_RULES.windows.defaultHeightMm,
+                  sill_height_mm: FLOORPLAN_RULES.windows.defaultSillHeightMm,
+                })
           : {}),
         source_points_mm: sourcePoints,
         source_distance_to_wall_mm: rounded(selected.distance),

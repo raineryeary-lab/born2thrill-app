@@ -34,6 +34,13 @@ export const FLOORPLAN_RULES = Object.freeze({
     minimumGlazingToRoomAreaRatio: 0.1,
     defaultHeightMm: 1350,
     defaultSillHeightMm: 900,
+    // A bodentiefes Fenster reaches the floor, so its sill is 0 and its head
+    // sits at door height rather than 900 + 1350. Applied only when the
+    // annotation explicitly records window_type "bodentief"; every other
+    // window keeps the Brüstungsfenster defaults above, so existing packages
+    // produce byte-identical geometry.
+    bodentiefHeightMm: 2100,
+    bodentiefSillHeightMm: 0,
     habitableRoomKinds: Object.freeze(["living", "sleeping", "flex"]),
     wetAndServiceRoomsMayBeInternal: true,
   }),
