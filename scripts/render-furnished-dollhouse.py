@@ -614,7 +614,48 @@ def opening_frame(name, wall, opening, centre, angle, height, material):
     return parts
 
 
-def wall_object(name, wall, openings, height_mm, rooms):
+def _end_extension_mm(endpoint, own, all_walls):
+    """How far one wall END may extend: to the far face of whatever wall it
+    meets there, and not a millimetre further.
+
+    The previous blanket rule (extend every >=200mm wall by half its own
+    thickness) filled the corner notches but pushed thick walls THROUGH
+    thinner crossing partitions and out the far side -- confirmed on render
+    as plus-shaped bumps and stubs on the wall caps at T- and cross-
+    junctions, unchanged even after boolean-unioning the walls, because the
+    protrusion is real geometry, not an overlap artifact.
+
+    A wall meets another wall at this endpoint if the endpoint sits on or
+    near that wall's centreline segment (within the sum of half-
+    thicknesses). The correct reach is to that wall's FAR face: half the
+    met wall's thickness past its centreline. Where several walls meet,
+    the largest such reach fills the deepest junction. Where nothing meets
+    (a free end at an opening), the wall stops dead -- the blanket rule was
+    also planting 120mm phantom stubs on those.
+    """
+    ex, ey = endpoint
+    best = 0.0
+    for other in all_walls:
+        if other is own:
+            continue
+        sx, sy = other["start_mm"]
+        tx, ty = other["end_mm"]
+        seg_sq = (tx - sx) ** 2 + (ty - sy) ** 2
+        if not seg_sq:
+            continue
+        t = max(0.0, min(1.0, ((ex - sx) * (tx - sx) + (ey - sy) * (ty - sy)) / seg_sq))
+        dist = math.hypot(ex - (sx + t * (tx - sx)), ey - (sy + t * (ty - sy)))
+        touch = (own["thickness_mm"] + other["thickness_mm"]) / 2 + 5
+        if dist <= touch:
+            # Endpoint sits `dist` off the met wall's centreline; its far
+            # face is half its thickness beyond that centreline. At a shared
+            # corner endpoint (dist 0) this is exactly half the met wall --
+            # flush with its outer face, no stub.
+            best = max(best, dist + other["thickness_mm"] / 2)
+    return best
+
+
+def wall_object(name, wall, openings, height_mm, rooms, all_walls=()):
     """Build a wall and boolean-cut its doors, windows and passages. Without
     the cuts every wall is a solid slab and the plan reads as a maze."""
     x1, y1 = wall["start_mm"][0] * MM, wall["start_mm"][1] * MM
@@ -626,30 +667,15 @@ def wall_object(name, wall, openings, height_mm, rooms):
     height = height_mm * MM
     thickness = wall["thickness_mm"] * MM
     angle = math.atan2(y2 - y1, x2 - x1)
-    # Each wall is a box spanning exactly its own centreline endpoints.
-    # At a corner, two perpendicular walls meeting at a shared endpoint
-    # each stop at that single point -- neither one's box actually reaches
-    # the true OUTER corner (the point where their outer faces would meet),
-    # leaving a small notch missing at every corner ("the corners are
-    # missing", confirmed by the geometry: no corner-fill logic existed
-    # anywhere in this function). Extending each wall by half its own
-    # thickness at BOTH ends closes that gap -- for two abutting walls of
-    # similar thickness this reaches exactly to the other wall's outer
-    # face. The box is still centred on the true midpoint, so this grows
-    # symmetrically outward at both ends, not a directional guess.
-    #
-    # Only extend walls at the standard structural thickness (240mm, 22 of
-    # 31 walls here). Checked the full thickness distribution before this
-    # went out a second time: the other 9 walls sit at 42-132mm -- thin
-    # partitions, not exterior walls. Extending EVERY wall by half its own
-    # thickness closes a corner cleanly only when both walls meeting there
-    # are close in thickness; a 240mm wall extending 120mm against a 62mm
-    # partition extending 31mm leaves a mismatched step, not a clean
-    # corner -- confirmed visually (a stair-step notch) after the first
-    # version of this fix, at a partition-to-wall junction.
-    extend = thickness if wall["thickness_mm"] >= 200 else 0.0
-    obj = box(name, ((x1 + x2) / 2, (y1 + y2) / 2, height / 2),
-              (length + extend, thickness, height), angle, WALL_MAT)
+    # Per-end, junction-aware extension (see _end_extension_mm). Ends grow
+    # asymmetrically, so the box centre shifts by half the difference.
+    e1 = _end_extension_mm(wall["start_mm"], wall, all_walls) * MM
+    e2 = _end_extension_mm(wall["end_mm"], wall, all_walls) * MM
+    ux, uy = (x2 - x1) / length, (y2 - y1) / length
+    cx = (x1 + x2) / 2 + ux * (e2 - e1) / 2
+    cy = (y1 + y2) / 2 + uy * (e2 - e1) / 2
+    obj = box(name, (cx, cy, height / 2),
+              (length + e1 + e2, thickness, height), angle, WALL_MAT)
     # The wall BODY and its openings are kept apart on purpose. The angled
     # cutaway slices the body; frames, glazing and door leaves are exempt from
     # it, which is the whole point of the effect Rainer asked for.
@@ -1110,9 +1136,12 @@ openings_by_wall = {}
 for opening in floor.get("openings", []):
     openings_by_wall.setdefault(opening["wall_id"], []).append(opening)
 
-# Diagnostic: DMH_HIDE_WALLS=1 renders without any walls, to distinguish
+# Diagnostic: DMH_HIDE_FEATURES=1 hides the cut-exempt opening features
+# (frames, glazing, door leaves) to attribute cap-level artifacts to either
+# the wall body or the features. DMH_HIDE_WALLS=1 renders without any walls, to distinguish
 # "furniture failed to instance" from "furniture is occluded by a wall".
 hide_walls = os.environ.get("DMH_HIDE_WALLS") == "1"
+hide_features = os.environ.get("DMH_HIDE_FEATURES") == "1"
 
 # Dollhouse cutaway by a TILTED clipping plane.
 #
@@ -1131,6 +1160,11 @@ hide_walls = os.environ.get("DMH_HIDE_WALLS") == "1"
 # the wall around it is only knee-high.
 CUT_HEIGHT_FRONT_MM = 500
 CUT_HEIGHT_BACK_MM = 2000
+# DMH_FLAT_CUT=<mm> overrides both with one uniform height: boss-reference
+# style flat caps, and the diagnostic that isolated the junction "notches"
+# (they are the saddle where two SLOPING caps intersect, not bad geometry).
+if os.environ.get("DMH_FLAT_CUT"):
+    CUT_HEIGHT_FRONT_MM = CUT_HEIGHT_BACK_MM = int(os.environ["DMH_FLAT_CUT"])
 
 building_points = [p for room in floor["rooms"] for p in room["polygon_mm"]]
 building_centre = (
@@ -1260,9 +1294,11 @@ cut_solid = build_cut_solid()
 cut_count = 0
 sliced_walls = 0
 exempt_features = 0
+wall_bodies = []
 for index, wall in enumerate(floor["walls"]):
     wall_openings = openings_by_wall.get(wall.get("id"), [])
-    built = wall_object(f"wall-{index}", wall, wall_openings, wall_height, floor["rooms"])
+    built = wall_object(f"wall-{index}", wall, wall_openings, wall_height,
+                        floor["rooms"], floor["walls"])
     cut_count += len(wall_openings)
     if not built:
         continue
@@ -1273,10 +1309,46 @@ for index, wall in enumerate(floor["walls"]):
             item.hide_render = True
         continue
 
-    bpy.ops.object.select_all(action="DESELECT")
-    apply_cut(built["body"], cut_solid)
-    sliced_walls += 1
+    wall_bodies.append(built["body"])
     exempt_features += len(built["features"])
+    if hide_features:
+        for item in built["features"]:
+            item.hide_render = True
+
+# Walls were separate overlapping boxes, so every T- and cross-junction
+# showed the intersecting wall poking through the cap as a plus-shaped bump
+# or a stub (confirmed on render at the kitchen/living corner and the
+# living/Diele T). A boolean UNION merges them into one continuous body
+# with a single flat cap — interior overlap faces disappear, which no
+# per-wall extension tuning can achieve. Union BEFORE the dollhouse cut so
+# the tilted slice sees one solid, not thirty.
+if wall_bodies:
+    merged = wall_bodies[0]
+    for other in wall_bodies[1:]:
+        modifier = merged.modifiers.new("wall-union", "BOOLEAN")
+        modifier.operation = "UNION"
+        modifier.solver = "EXACT"
+        modifier.object = other
+        bpy.context.view_layer.objects.active = merged
+        bpy.ops.object.select_all(action="DESELECT")
+        bpy.ops.object.modifier_apply(modifier=modifier.name)
+        bpy.data.objects.remove(other, do_unlink=True)
+    # 30 chained EXACT unions leave degenerate slivers and duplicate
+    # vertices along every formerly-coincident face — and the FINAL boolean
+    # (the tilted dollhouse cut) then fails locally around the dirtiest
+    # junctions, leaving full-height towers exactly there (the plus-shaped
+    # bumps: same failure family as the window-cutter coplanarity bug).
+    # Clean the merged mesh before asking one more boolean of it.
+    bpy.context.view_layer.objects.active = merged
+    bpy.ops.object.mode_set(mode="EDIT")
+    bpy.ops.mesh.select_all(action="SELECT")
+    bpy.ops.mesh.remove_doubles(threshold=0.001)
+    bpy.ops.mesh.dissolve_degenerate(threshold=0.001)
+    bpy.ops.mesh.normals_make_consistent(inside=False)
+    bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.select_all(action="DESELECT")
+    apply_cut(merged, cut_solid)
+    sliced_walls = len(wall_bodies)
 
 # ------------------------------------------------- procedurally built pieces
 #
@@ -1877,3 +1949,37 @@ if os.environ.get("DMH_INVENTORY") == "1":
               f"[{collections}]{' HIDDEN' if hidden else ''}")
 
 print(f"[dollhouse] wrote           {scene.render.filepath}")
+
+# ---------------------------------------------------------------- probe
+# DMH_DUMP_AT="x_mm,y_mm" prints every render-visible object whose XY
+# bounding box contains that point, just before rendering. Diagnostic only.
+if os.environ.get("DMH_DUMP_AT"):
+    qx, qy = [float(v) * MM for v in os.environ["DMH_DUMP_AT"].split(",")]
+    print(f"[probe] objects covering ({qx:.2f}, {qy:.2f}) m:")
+    import mathutils
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        corners = [obj.matrix_world @ mathutils.Vector(c) for c in obj.bound_box]
+        lox = min(c.x for c in corners); hix = max(c.x for c in corners)
+        loy = min(c.y for c in corners); hiy = max(c.y for c in corners)
+        loz = min(c.z for c in corners); hiz = max(c.z for c in corners)
+        if lox - 0.05 <= qx <= hix + 0.05 and loy - 0.05 <= qy <= hiy + 0.05:
+            mat = obj.data.materials[0].name if obj.data.materials else "none"
+            print(f"[probe]   {obj.name:32} z {loz:.2f}..{hiz:.2f}  mat={mat}")
+
+# DMH_DUMP_TALL=<z_m> lists every render-visible mesh whose top exceeds z_m.
+if os.environ.get("DMH_DUMP_TALL"):
+    limit = float(os.environ["DMH_DUMP_TALL"])
+    import mathutils
+    print(f"[tall] objects reaching above {limit} m:")
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        corners = [obj.matrix_world @ mathutils.Vector(c) for c in obj.bound_box]
+        hiz = max(c.z for c in corners)
+        if hiz > limit:
+            lox = min(c.x for c in corners); hix = max(c.x for c in corners)
+            loy = min(c.y for c in corners); hiy = max(c.y for c in corners)
+            mat = obj.data.materials[0].name if obj.data.materials else "none"
+            print(f"[tall]   {obj.name:32} top {hiz:.2f}  xy ({lox:.1f}..{hix:.1f}, {loy:.1f}..{hiy:.1f})  mat={mat}")
