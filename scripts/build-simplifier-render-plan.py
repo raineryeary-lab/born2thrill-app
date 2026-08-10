@@ -119,6 +119,7 @@ SYMBOL_3D = {
     "schreibtisch":      {"height": 750,  "type": "desk"},
     "schreibtisch_kind": {"height": 720,  "type": "desk"},
     "garderobe":         {"height": 1900, "type": "wardrobe"},
+    "schreibtischstuhl": {"height": 1200, "type": "office_chair"},
 }
 
 DEFAULT_WALL_THICKNESS_MM = 240
@@ -638,6 +639,49 @@ def main():
                 "wall_snapped": bool(symbol.get("wall_snapped")),
                 "source": "simplifier_annotations_proof",
             })
+
+        # A desk without a chair reads as unfinished (defect #4). If Rainer
+        # annotated no schreibtischstuhl, derive one: offset from the desk
+        # toward its room's centre (convention-free — no guess about which
+        # local axis is 'front'), turned to face the desk. Presentation-only,
+        # like all furnishing; never geometry.
+        has_chair = any(p["asset_id"] == "schreibtischstuhl" for p in placements)
+        chair_model = models.get("schreibtischstuhl")
+        if not has_chair and chair_model:
+            for desk in [p for p in placements if p["asset_id"].startswith("schreibtisch")]:
+                dx, dy = desk["position_mm"]
+                room = next((r for r in rooms if point_in_polygon((dx, dy), r["polygon_mm"], 0)), None)
+                if not room:
+                    continue
+                pts = room["polygon_mm"]
+                centroid = (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+                vx, vy = centroid[0] - dx, centroid[1] - dy
+                norm = math.hypot(vx, vy) or 1.0
+                offset = (desk["target_bbox_mm"].get("depth_mm") or 800) / 2 + 350
+                cx, cy = dx + vx / norm * offset, dy + vy / norm * offset
+                facing = (math.degrees(math.atan2(-vx, vy)) + 180.0) % 360.0
+                placements.append({
+                    "asset_id": "schreibtischstuhl",
+                    "type": "office_chair",
+                    "mesh_path": chair_model["path"],
+                    "model_source": chair_model["source"],
+                    "model_label": chair_model.get("label"),
+                    "scale_divisor": chair_model.get("divisor", 1.0),
+                    "verified_size_mm": chair_model.get("size_mm"),
+                    "size_mismatch": False,
+                    "footprint_measured": False,
+                    "build": None,
+                    "position_mm": [round(cx, 1), round(cy, 1)],
+                    "rotation_deg": round(facing, 1),
+                    "mirrored": False,
+                    "target_bbox_mm": {"width_mm": 650, "depth_mm": 650,
+                                       "height_mm": 1200},
+                    "height_mm": 0,
+                    "preserve_materials": True,
+                    "wall_snapped": False,
+                    "derived_from": desk["asset_id"],
+                    "source": "simplifier_annotations_proof",
+                })
 
         floors_out.append({
             "id": level,

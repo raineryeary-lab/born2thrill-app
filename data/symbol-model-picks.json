@@ -673,6 +673,28 @@
     ]
    },
    "candidates": 4
+  },
+  "schreibtischstuhl": {
+   "modern": {
+    "path": "E:/_models_hub/_extracted/Office_Chair_48_BLEND/Office Chair 48.blend",
+    "label": "Office Chair 48",
+    "size_mm": [
+     639,
+     640
+    ],
+    "divisor": 3.5,
+    "note": "measured 2236x2238x4340mm raw on 2026-08-10; divisor calibrated to 1240mm seat-back height"
+   },
+   "classic": {
+    "path": "E:/_models_hub/_extracted/Office_Chair_48_BLEND/Office Chair 48.blend",
+    "label": "Office Chair 48",
+    "size_mm": [
+     639,
+     640
+    ],
+    "divisor": 3.5,
+    "note": "measured 2236x2238x4340mm raw on 2026-08-10; divisor calibrated to 1240mm seat-back height"
+   }
   }
  }
 }
