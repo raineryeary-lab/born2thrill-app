@@ -627,7 +627,14 @@ def main():
                 # Library models carry their own materials, which is the entire
                 # reason to prefer them over generated meshes. Scale them to the
                 # annotated footprint, but never overwrite what they came with.
-                "preserve_materials": bool(model),
+                # An item with a `build` kind is routed through a procedural
+                # builder by the renderer and its mesh is never imported, so
+                # claiming preserve_materials there made the plan lie about
+                # which path the item takes. The one exception the renderer
+                # actually honours is the sink (`spuele`), which imports its
+                # real model despite carrying build="hob".
+                "preserve_materials": bool(model) and (
+                    not build or spec["type"] == "sink"),
                 "wall_snapped": bool(symbol.get("wall_snapped")),
                 "source": "simplifier_annotations_proof",
             })
