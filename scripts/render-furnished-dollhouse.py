@@ -52,7 +52,10 @@ GRANITE_NORMAL = None
 # Real-world size of one texture repeat, in metres. Wrong values here are the
 # usual reason a textured floor reads as either wallpaper or mush.
 WOOD_TILE_SIZE_M = 2.0
-GRANITE_TILE_SIZE_M = 0.6  # standard granite slab format
+GRANITE_TILE_SIZE_M = 1.2  # XXL Feinsteinzeug format: at dollhouse camera
+# distance the 0.6m slabs repeated so densely they read as speckle noise
+# (Rainer: "the tiles ... dont look good") — double format halves the
+# visual frequency, and a light tint below calms the grain contrast.
 
 missing_assets = []
 
@@ -167,8 +170,9 @@ WALL_MAT = flat("dollhouse-wall", FINISH["wall"], roughness=0.9)
 WOOD_MAT = textured("floor-wood", WOOD_DIFFUSE, WOOD_TILE_SIZE_M, 0.45, (0.62, 0.42, 0.24),
                     uv_offset=(0.33, 0.27),
                     tint=FINISH["floor_tint"], tint_factor=FINISH["floor_tint_factor"])
-GRANITE_MAT = textured("floor-granite", GRANITE_DIFFUSE, GRANITE_TILE_SIZE_M, 0.25,
-                       (0.55, 0.55, 0.57), normal_path=GRANITE_NORMAL, uv_offset=(0.17, 0.42))
+GRANITE_MAT = textured("floor-granite", GRANITE_DIFFUSE, GRANITE_TILE_SIZE_M, 0.35,
+                       (0.55, 0.55, 0.57), normal_path=GRANITE_NORMAL, uv_offset=(0.17, 0.42),
+                       tint=(0.88, 0.88, 0.89), tint_factor=0.45)
 SCREED_MAT = flat("floor-screed", (0.52, 0.52, 0.50), roughness=0.8)
 
 # Granite in Diele, Bad, DU-WC and HWR. The kitchen is open-plan with the
@@ -991,7 +995,19 @@ MODEL_FACING_DEG = {
 # adding the canvas turn on top double-applies that correction. The canvas
 # transpose is real but it is a 2D-icon-display fix, not a fact about which
 # way the 3D model should face; do not reintroduce it here.
-MODEL_MIRROR_Y = {"ecksofa"}
+# 2026-08-10 evening, checked against the DRAWING (the only ground truth,
+# crop pair in tmp/sofa-mirror-test.png): UNMIRRORED matches — long arm on
+# the north wall, short arm east, exactly as annotated. The previous
+# night's mirror entry was an over-correction, verified circularly against
+# symbol art that carried the same mirror. Empty set kept for the next
+# asset that genuinely needs it.
+MODEL_MIRROR_Y = set()
+# Flip test against the drawing: DMH_MIRROR_OFF=<ids> removes assets from
+# the mirror set for one render; DMH_MIRROR_ON=<ids> adds them.
+if os.environ.get("DMH_MIRROR_OFF"):
+    MODEL_MIRROR_Y = MODEL_MIRROR_Y - set(os.environ["DMH_MIRROR_OFF"].split(","))
+if os.environ.get("DMH_MIRROR_ON"):
+    MODEL_MIRROR_Y = MODEL_MIRROR_Y | set(os.environ["DMH_MIRROR_ON"].split(","))
 
 
 def mirror_in_y(obj):
@@ -1966,6 +1982,26 @@ if os.environ.get("DMH_WALLS_ONLY") == "1":
         if _obj.type == "MESH" and not _obj.name.startswith("wall-0"):
             _obj.hide_render = True
 
+# A white ground plane under the model. Rainer reported "missing" walls at
+# the Büro — probed the merged mesh: all three walls EXIST (26-33 vertices
+# on each segment); their brightly lit exterior faces simply vanish into
+# the equally bright backdrop. The boss-reference renders solve this with a
+# soft drop shadow around the house — same trick here: the plane catches
+# the sun shadow, so white walls read against shadowed ground, not void.
+if os.environ.get("DMH_NO_GROUND") != "1":
+    ground_size = max(20.0, span * 4.0)
+    ground_mesh = bpy.data.meshes.new("ground-mesh")
+    half = ground_size / 2
+    ground_mesh.from_pydata(
+        [(centre.x - half, centre.y - half, -0.02),
+         (centre.x + half, centre.y - half, -0.02),
+         (centre.x + half, centre.y + half, -0.02),
+         (centre.x - half, centre.y + half, -0.02)], [], [[0, 1, 2, 3]])
+    ground_mesh.update()
+    ground = bpy.data.objects.new("ground", ground_mesh)
+    collection("Staging").objects.link(ground)
+    ground.data.materials.append(flat("ground-white", (0.92, 0.92, 0.92), roughness=1.0))
+
 scene.render.film_transparent = False
 scene.render.image_settings.file_format = "PNG"
 scene.render.filepath = os.path.abspath(out_path)
@@ -2165,3 +2201,23 @@ if os.environ.get("DMH_DUMP_TALL"):
             loy = min(c.y for c in corners); hiy = max(c.y for c in corners)
             mat = obj.data.materials[0].name if obj.data.materials else "none"
             print(f"[tall]   {obj.name:32} top {hiz:.2f}  xy ({lox:.1f}..{hix:.1f}, {loy:.1f}..{hiy:.1f})  mat={mat}")
+# DMH_PROBE_SEGMENT="x1,y1,x2,y2;..." (mm): counts merged-wall vertices
+# within 300mm of each segment, to tell "wall lost in boolean" apart from
+# "wall present but hard to see". Runs post-render, print-only.
+if os.environ.get("DMH_PROBE_SEGMENT"):
+    merged_obj = bpy.context.scene.objects.get("wall-0")
+    if merged_obj:
+        mesh = merged_obj.data
+        for spec in os.environ["DMH_PROBE_SEGMENT"].split(";"):
+            x1, y1, x2, y2 = [float(v) * MM for v in spec.split(",")]
+            ux, uy = x2 - x1, y2 - y1
+            seg_len_sq = ux * ux + uy * uy or 1.0
+            count = 0
+            for vertex in mesh.vertices:
+                world = merged_obj.matrix_world @ vertex.co
+                wx, wy = world.x, world.y
+                t = max(0.0, min(1.0, ((wx - x1) * ux + (wy - y1) * uy) / seg_len_sq))
+                px, py = x1 + t * ux, y1 + t * uy
+                if ((wx - px) ** 2 + (wy - py) ** 2) ** 0.5 <= 0.3:
+                    count += 1
+            print(f"[seg-probe] ({spec}): {count} vertices within 300mm")
