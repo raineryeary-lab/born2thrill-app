@@ -77,13 +77,15 @@ def flat(name, color, roughness=0.6, metallic=0.0):
     return mat
 
 
-def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_path=None):
+def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_path=None, uv_offset=(0, 0)):
     """Image-textured material tiled at real-world scale.
 
     Floor plates are built from raw polygons and have no UV map, so this uses
     Object coordinates. The mesh is created with world coordinates and its
     origin at 0, so object space == world space and every room tiles on the
-    same grid rather than stretching to each room's bounding box."""
+    same grid rather than stretching to each room's bounding box.
+    uv_offset (x, y) adds a deterministic offset to break up obvious tiling
+    repetition across adjacent rooms without changing material identity."""
     path = asset(image_path)
     if path is None:
         return flat(name, fallback_color, roughness)
@@ -98,6 +100,7 @@ def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_pa
     coord = nodes.new("ShaderNodeTexCoord")
     mapping = nodes.new("ShaderNodeMapping")
     mapping.inputs["Scale"].default_value = (1.0 / tile_size_m, 1.0 / tile_size_m, 1.0)
+    mapping.inputs["Location"].default_value = (uv_offset[0], uv_offset[1], 0.0)
     tex = nodes.new("ShaderNodeTexImage")
     tex.image = bpy.data.images.load(path)
     tex.extension = "REPEAT"
@@ -123,9 +126,13 @@ def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_pa
 
 
 WALL_MAT = flat("dollhouse-wall", (0.90, 0.89, 0.87), roughness=0.9)
-WOOD_MAT = textured("floor-wood", WOOD_DIFFUSE, WOOD_TILE_SIZE_M, 0.45, (0.62, 0.42, 0.24))
+# Subtle UV offset (0.33, 0.27) breaks up obvious grid tiling without appearing arbitrary.
+# Per rulebook 8: "Slight deterministic UV offset or rotation may reduce repetition
+# without changing material identity."
+WOOD_MAT = textured("floor-wood", WOOD_DIFFUSE, WOOD_TILE_SIZE_M, 0.45, (0.62, 0.42, 0.24),
+                    uv_offset=(0.33, 0.27))
 GRANITE_MAT = textured("floor-granite", GRANITE_DIFFUSE, GRANITE_TILE_SIZE_M, 0.25,
-                       (0.55, 0.55, 0.57), normal_path=GRANITE_NORMAL)
+                       (0.55, 0.55, 0.57), normal_path=GRANITE_NORMAL, uv_offset=(0.17, 0.42))
 SCREED_MAT = flat("floor-screed", (0.52, 0.52, 0.50), roughness=0.8)
 
 # Granite in Diele, Bad, DU-WC and HWR. The kitchen is open-plan with the
@@ -182,9 +189,64 @@ TYPE_FINISH = {
     "table_lamp": "metal-brushed-steel",
     "shoe_rack": "wood-oak",
     "clothing_rack": "metal-brushed-steel",
+    # Cabinet fronts got no finish and defaulted to a bare white box (visible,
+    # confirmed by render, in the standard delivery angle -- not just the
+    # top-down check, where the worktop's overhang hides them almost
+    # entirely). Matte black is not a guess: it is the measured colour of the
+    # door-front objects in the real Hub kitchen sets (Kitchen Furniture Set
+    # 1, near-black with no image texture), applied here as a colour/finish
+    # only -- no geometry imported, per the redirect that final render
+    # distance doesn't show individual door-panel detail anyway.
+    "counter": "metal-matte-black",
+    # The tall unit (oven housing) is part of the same kitchen run as the
+    # counter above -- same reasoning, same finish, so it doesn't render as
+    # an unrelated plain box next to matte-black cabinetry.
+    "oven_housing": "metal-matte-black",
+    "sink": "metal-brushed-steel",
 }
 
 FURNITURE_MATERIALS = {}
+
+
+# Real-model assets whose OWN material should be overridden despite
+# `preserve_materials: true` -- checked case by case, not applied broadly.
+# Both `sofa_1sitzer` ("Light-Grey Armchair") and `sofa_2sitzer` ("Grey Two
+# Seat Sofa") have their Base Color linked to an image texture node, not a
+# flat default -- and in BOTH cases the texture file
+# (E:\_models_hub\_extracted\extracted\cgaxis_models_68_1{2,2,0}\...\.jpg)
+# does not exist on disk (confirmed with a plain file check on both). A real
+# living-room set matches the armchair to the sofa; putting both on the same
+# explicit finish is a deliberate matching colour, not a guess at whatever
+# each one's broken-texture fallback happened to render as.
+ACCENT_OVERRIDE = {
+    "sofa_1sitzer": FINISHES["fabric-charcoal"],
+    "sofa_2sitzer": FINISHES["fabric-charcoal"],
+}
+
+# See ROTATION_OVERRIDE's use at the instance-placement site for the reason.
+ROTATION_OVERRIDE = {
+    "sofa_1sitzer": 0,
+}
+
+# (dx_mm, dy_mm) shift applied to the annotated position_mm. Rainer gave an
+# explicit target clearance from the wall for each; both were measured
+# against the actual rendered bounding box (not the annotated footprint,
+# which can differ from the real model's fitted size), against wall-21
+# (a vertical wall, constant x, room on the +X side, so closing the gap
+# means moving in -X):
+#   schreibtisch: near edge measured at x=5.427m, wall face at x=4.83m ->
+#     597mm gap. Target 40mm -> shift -557mm.
+#   sofa_2sitzer: near edge measured at x=5.243m, same wall face -> 413mm
+#     gap. Target 100mm -> shift -313mm.
+POSITION_OVERRIDE = {
+    "schreibtisch": (-557, 0),
+    "sofa_2sitzer": (-313, 0),
+}
+
+
+def accent_material(asset_id):
+    color, metallic, roughness = ACCENT_OVERRIDE[asset_id]
+    return flat(f"accent-{asset_id}", color, roughness, metallic)
 
 
 def furniture_material(furniture_type):
@@ -212,8 +274,66 @@ def polygon_object(name, points_mm, z_m, thickness_m, material):
     return obj
 
 
-GLASS_MAT = flat("window-glass", (0.55, 0.72, 0.82), roughness=0.08, metallic=0.0)
-FRAME_MAT = flat("opening-frame", (0.12, 0.13, 0.14), roughness=0.35, metallic=0.2)
+def glazing(name):
+    """Glass by ALPHA, not transmission.
+
+    Transmission needs raytracing that this EEVEE setup is not doing, so a
+    transmissive material rendered as a dark green panel — worse than the flat
+    pale blue it replaced. Alpha blending is what actually reads as glass in
+    this engine: you see the room through it, with a faint tint and a
+    highlight.
+    """
+    material = bpy.data.materials.new(name)
+    material.use_nodes = True
+    bsdf = material.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (0.82, 0.90, 0.94, 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.05
+    if "Alpha" in bsdf.inputs:
+        bsdf.inputs["Alpha"].default_value = 0.18
+    if "Specular IOR Level" in bsdf.inputs:
+        bsdf.inputs["Specular IOR Level"].default_value = 0.8
+    for attribute, value in (("blend_method", "BLEND"),
+                             # Blender 5's EEVEE Next reads THIS property, not
+                             # blend_method, for how alpha is rendered. Its
+                             # default is DITHERED -- a stipple pattern that
+                             # approximates transparency with noise, which is
+                             # exactly why glass was rendering as a solid,
+                             # noisy-looking white/grey panel instead of
+                             # reading as glass. Confirmed by checking the
+                             # material's own default value directly in this
+                             # Blender build, not assumed.
+                             ("surface_render_method", "BLENDED"),
+                             ("shadow_method", "NONE"),
+                             ("use_backface_culling", False)):
+        if hasattr(material, attribute):
+            try:
+                setattr(material, attribute, value)
+            except (TypeError, AttributeError):
+                pass
+    # Blender 5 moved shadow control onto the object; glass should not cast a
+    # solid shadow either way.
+    material.diffuse_color = (0.82, 0.90, 0.94, 0.18)
+    return material
+
+
+GLASS_MAT = glazing("window-glass")
+TV_MAT = flat("dark-panel", (0.04, 0.04, 0.05), roughness=0.25, metallic=0.3)
+# Was (0.94, 0.94, 0.93) -- effectively the same tone as WALL_MAT's (0.90,
+# 0.89, 0.87), so a door frame sitting against its own wall had almost no
+# contrast and read as invisible ("the frame is not visible", confirmed by
+# cropping several doors: the jamb is only a faint line, sometimes not
+# distinguishable from the wall at all). Anthracite was tried and rejected
+# for the same reason in the other direction -- against a light floor/wall it
+# also lost contrast. A mid grey sits between both backdrops it's ever seen
+# against (light walls, light floors, dark furniture) instead of matching
+# either one.
+DOOR_FRAME_MAT = flat("opening-frame-door", (0.32, 0.31, 0.29), roughness=0.5, metallic=0.0)
+# Anthracite requested for WINDOW frames specifically -- this used to be one
+# shared FRAME_MAT for both doors and windows, so changing it made door
+# frames go dark too ("disappear into the floor" -- against the cut-down
+# wall stub and floor tones, the near-black door frame lost all contrast).
+# Doors keep a light-but-distinct colour; only windows get anthracite.
+WINDOW_FRAME_MAT = flat("opening-frame-window", (0.08, 0.08, 0.09), roughness=0.4, metallic=0.15)
 DOOR_MAT = flat("door-leaf-white", (0.94, 0.94, 0.93), roughness=0.40)
 HANDLE_MAT = flat("handle-brushed-steel", (0.62, 0.63, 0.65), roughness=0.30, metallic=0.75)
 
@@ -324,6 +444,12 @@ def add_door_leaf(name, wall, opening, leaf_height, rooms):
     centre_x = (x1 + (x2 - x1) * opening["position"]) * MM
     centre_y = (y1 + (y2 - y1) * opening["position"]) * MM
 
+    # Annotation first. swing_side and hinge_side are set in the Simplifier and
+    # carried through the plan; deriving them from room areas instead threw away
+    # a decision Rainer had already made, on all seven doors of this plan.
+    annotated_swing = opening.get("swing_side")
+    annotated_hinge = opening.get("hinge_side")
+
     # --- which side does it open into? -------------------------------------
     normal = (-math.sin(wall_angle), math.cos(wall_angle))
     probe = 0.6
@@ -354,10 +480,24 @@ def add_door_leaf(name, wall, opening, leaf_height, rooms):
         if area(target) < SMALL_ROOM_OUTWARD_M2:
             swing_sign, target = -swing_sign, other
 
+    # The annotated swing wins over everything derived above.
+    #
+    # `first_room` / `second_room` name the two spaces the opening joins, in the
+    # order the wall records them, so they map onto side_a / side_b.
+    if annotated_swing == "first_room":
+        swing_sign, target = 1.0, side_a
+    elif annotated_swing == "second_room":
+        swing_sign, target = -1.0, side_b
+
     # --- which jamb does it hinge on? --------------------------------------
     # Fold toward whichever end of the wall the opening already sits nearer,
     # so the open leaf lies back along the wall.
-    hinge_sign = -1.0 if opening["position"] <= 0.5 else 1.0
+    if annotated_hinge == "start":
+        hinge_sign = -1.0
+    elif annotated_hinge == "end":
+        hinge_sign = 1.0
+    else:
+        hinge_sign = -1.0 if opening["position"] <= 0.5 else 1.0
 
     hinge_x = centre_x + math.cos(wall_angle) * (width / 2) * hinge_sign
     hinge_y = centre_y + math.sin(wall_angle) * (width / 2) * hinge_sign
@@ -393,6 +533,87 @@ def cut_opening(wall_obj, cutter):
     bpy.data.objects.remove(cutter, do_unlink=True)
 
 
+def opening_frame(name, wall, opening, centre, angle, height, material):
+    """Lining round an opening: two jambs, a head, and a sill for windows.
+
+    Frames matter more here than in an ordinary render. The cutaway slices the
+    walls down to 500 mm at the front, and openings are deliberately left out
+    of that cut — so a door in a cut-down wall would otherwise be a leaf
+    standing in thin air with nothing to say it is a doorway. The frame is what
+    keeps the opening legible once its wall is gone.
+    """
+    # A real frame is a slim section, not a slab, and it is NOT as thick as
+    # the wall -- that was tried and was wrong. The actual problem was
+    # POSITION: a fixed 70mm profile CENTRED in the wall leaves ~85mm of
+    # bare wall showing on both the inside and outside face of a 240mm
+    # wall, which is exactly "the frame sits inside a hole in the wall"
+    # (Rainer's own description). The fix is to sit the frame flush with
+    # the ROOM-facing side, the way a real frame is fitted, not to make it
+    # deeper. depth_offset below is 0 (flush with wall centreline, the old
+    # behaviour) unless a room can be identified on one side of this wall.
+    profile = 0.07
+    thickness = profile
+    width = opening["width_mm"] * MM
+    parts = []
+
+    nx, ny = -math.sin(angle), math.cos(angle)
+    wall_thickness_m = wall["thickness_mm"] * MM
+    probe = 0.3  # metres off the centreline, comfortably past any wall
+    inward = None
+    for sign in (1.0, -1.0):
+        probe_point = (centre[0] + nx * probe * sign, centre[1] + ny * probe * sign)
+        if room_at(probe_point, floor["rooms"]):
+            inward = sign
+            break
+    depth_offset = (inward * (wall_thickness_m / 2 - thickness / 2)) if inward else 0.0
+
+    def offset_by_depth(point):
+        return (point[0] + nx * depth_offset, point[1] + ny * depth_offset)
+
+    # Jambs, one either side, running the full height of the opening.
+    for side in (-1, 1):
+        offset = side * (width / 2 + profile / 2)
+        ox, oy = offset_by_depth((centre[0] + math.cos(angle) * offset,
+                                   centre[1] + math.sin(angle) * offset))
+        parts.append(box(f"{name}-jamb", (ox, oy, centre[2]), (profile, thickness, height),
+                         angle, material))
+
+    head_z = centre[2] + height / 2 + profile / 2
+    hx, hy = offset_by_depth((centre[0], centre[1]))
+    parts.append(box(f"{name}-head", (hx, hy, head_z),
+                     (width + profile * 2, thickness, profile), angle, material))
+
+    # Window sills only exist on windows with an intentional sill height (above
+    # the floor). Floor-reaching bodentief windows still need a bottom frame member
+    # to close off the opening properly, otherwise the frame reads as an open-bottomed
+    # U with the visible frame-top (the head) disconnected from the glass edges.
+    if opening["opening_type"] == "window":
+        if opening["sill_height_mm"] > 0:
+            sill_z = centre[2] - height / 2 - profile / 2
+            sx, sy = offset_by_depth((centre[0], centre[1]))
+            # The sill is the one part that should overhang the reveal, so its
+            # own depth stays the full wall thickness even though it's now
+            # offset the same as the jambs/head -- was previously left centred
+            # on the wall while jambs/head moved, an inconsistency that never
+            # showed up on THIS project's windows (all bodentief, sill_height 0,
+            # never enters this branch) but would have on any window with a
+            # sill.
+            parts.append(box(f"{name}-sill", (sx, sy, sill_z),
+                             (width + profile * 2, wall["thickness_mm"] * MM * 1.1, profile),
+                             angle, material))
+        else:
+            # Bodentief: floor-reaching, no sill. Still need a bottom profile
+            # sitting ON the floor to complete the frame and provide visual
+            # closure at the base of the glass.
+            sill_z = centre[2] - height / 2 - profile / 2
+            sx, sy = offset_by_depth((centre[0], centre[1]))
+            parts.append(box(f"{name}-sill", (sx, sy, sill_z),
+                             (width + profile * 2, thickness, profile),
+                             angle, material))
+
+    return parts
+
+
 def wall_object(name, wall, openings, height_mm, rooms):
     """Build a wall and boolean-cut its doors, windows and passages. Without
     the cuts every wall is a solid slab and the plan reads as a maze."""
@@ -405,12 +626,34 @@ def wall_object(name, wall, openings, height_mm, rooms):
     height = height_mm * MM
     thickness = wall["thickness_mm"] * MM
     angle = math.atan2(y2 - y1, x2 - x1)
+    # Each wall is a box spanning exactly its own centreline endpoints.
+    # At a corner, two perpendicular walls meeting at a shared endpoint
+    # each stop at that single point -- neither one's box actually reaches
+    # the true OUTER corner (the point where their outer faces would meet),
+    # leaving a small notch missing at every corner ("the corners are
+    # missing", confirmed by the geometry: no corner-fill logic existed
+    # anywhere in this function). Extending each wall by half its own
+    # thickness at BOTH ends closes that gap -- for two abutting walls of
+    # similar thickness this reaches exactly to the other wall's outer
+    # face. The box is still centred on the true midpoint, so this grows
+    # symmetrically outward at both ends, not a directional guess.
+    #
+    # Only extend walls at the standard structural thickness (240mm, 22 of
+    # 31 walls here). Checked the full thickness distribution before this
+    # went out a second time: the other 9 walls sit at 42-132mm -- thin
+    # partitions, not exterior walls. Extending EVERY wall by half its own
+    # thickness closes a corner cleanly only when both walls meeting there
+    # are close in thickness; a 240mm wall extending 120mm against a 62mm
+    # partition extending 31mm leaves a mismatched step, not a clean
+    # corner -- confirmed visually (a stair-step notch) after the first
+    # version of this fix, at a partition-to-wall junction.
+    extend = thickness if wall["thickness_mm"] >= 200 else 0.0
     obj = box(name, ((x1 + x2) / 2, (y1 + y2) / 2, height / 2),
-              (length, thickness, height), angle, WALL_MAT)
-    # Everything that belongs to this wall: its glazing and door leaves. The
-    # cutaway hides these together with the wall, otherwise removing a near
-    # wall leaves its windows floating in mid-air.
-    parts = [obj]
+              (length + extend, thickness, height), angle, WALL_MAT)
+    # The wall BODY and its openings are kept apart on purpose. The angled
+    # cutaway slices the body; frames, glazing and door leaves are exempt from
+    # it, which is the whole point of the effect Rainer asked for.
+    features = []
 
     for opening in openings:
         # Clamp to wall height so a 2010mm door in a 2400mm wall keeps a
@@ -421,39 +664,149 @@ def wall_object(name, wall, openings, height_mm, rooms):
         cut_height = min(opening["height_mm"], available)
         centre, opening_angle, cut_h = opening_transform(wall, opening, cut_height)
 
+        # A bodentief (floor-reaching) opening puts the cutter's bottom face
+        # exactly coplanar with the wall body's own bottom face (both at
+        # z=0) -- confirmed by rendering the frame/glass with the wall body
+        # hidden: they sit flush with the floor, but with the wall body
+        # shown a ~50-90mm sliver of uncut WALL_MAT is visible below the
+        # glass. That is the boolean EXACT solver leaving a degenerate
+        # leftover face at an exactly-coincident boundary, not a sizing
+        # problem in the glass/frame. A small overshoot on both ends keeps
+        # the cutter's faces from ever exactly touching the wall's, whether
+        # the opening starts at the floor or reaches the ceiling.
+        cut_pad = 0.02
         cutter = box(f"{name}-cut", centre,
-                     (opening["width_mm"] * MM, thickness * 3.0, cut_h),
+                     (opening["width_mm"] * MM, thickness * 3.0, cut_h + cut_pad * 2),
                      opening_angle, None)
         bpy.ops.object.select_all(action="DESELECT")
         cut_opening(obj, cutter)
 
-        if opening["opening_type"] == "window":
-            parts.append(box(f"{name}-glass", centre,
-                             (opening["width_mm"] * MM * 0.94, 0.02, cut_h * 0.94),
-                             opening_angle, GLASS_MAT))
-        elif opening["opening_type"] == "door":
-            parts.extend(add_door_leaf(f"{name}-door", wall, opening, cut_h, rooms))
+        if opening["opening_type"] in ("door", "window"):
+            frame_mat = WINDOW_FRAME_MAT if opening["opening_type"] == "window" else DOOR_FRAME_MAT
+            features.extend(opening_frame(f"{name}-frame", wall, opening, centre,
+                                          opening_angle, cut_h, frame_mat))
 
-    return parts
+        if opening["opening_type"] == "window":
+            # `panes` (the annotated Fluegel count) was carried into the plan
+            # but never read here -- every window rendered as one sheet
+            # regardless. N panes need N-1 mullions dividing the width into
+            # N equal sections, not N-1 frames at fixed points: a 3-pane
+            # window splits into thirds (2 mullions at 1/3 and 2/3), not 2
+            # mullions wherever a fixed offset happens to land.
+            panes = opening.get("panes") or 1
+            # Was a proportional 6% shrink on both axes, centred -- fine for
+            # width, wrong for height on a bodentief (floor-to-ceiling)
+            # window: 6% of a 2100mm opening is 126mm total, so the glass
+            # sat with its bottom 63mm ABOVE the true floor instead of
+            # reaching it. Confirmed by measuring the actual glass object:
+            # z-range came back 0.063-2.037m against a frame that correctly
+            # reaches 0-2.1m. Rainer's own reference: floor runs straight up
+            # to the glass, no gap. A small FIXED inset (not proportional to
+            # opening size) gives a consistent reveal regardless of window
+            # height, and reaches the floor on a bodentief window.
+            glass_inset = 0.015
+            glazed_w = opening["width_mm"] * MM - glass_inset * 2
+            glass_h = cut_h - glass_inset * 2
+            mullion_w = 0.04
+            pane_w = (glazed_w - mullion_w * (panes - 1)) / panes
+            start = -glazed_w / 2 + pane_w / 2
+            for i in range(panes):
+                local_x = start + i * (pane_w + mullion_w)
+                px = centre[0] + math.cos(opening_angle) * local_x
+                py = centre[1] + math.sin(opening_angle) * local_x
+                features.append(box(f"{name}-glass-{i}", (px, py, centre[2]),
+                                    (pane_w, 0.02, glass_h), opening_angle, GLASS_MAT))
+            for i in range(panes - 1):
+                local_x = start + pane_w / 2 + i * (pane_w + mullion_w) + mullion_w / 2
+                mx = centre[0] + math.cos(opening_angle) * local_x
+                my = centre[1] + math.sin(opening_angle) * local_x
+                features.append(box(f"{name}-mullion-{i}", (mx, my, centre[2]),
+                                    (mullion_w, 0.06, glass_h), opening_angle, WINDOW_FRAME_MAT))
+        elif opening["opening_type"] == "door":
+            features.extend(add_door_leaf(f"{name}-door", wall, opening, cut_h, rooms))
+
+    return {"body": obj, "features": features}
 
 
 # ---------------------------------------------------- furniture normalisation
 
-def import_model(filepath):
-    """Import a .glb or .fbx and join it into a single mesh object.
+# Room shells inside staged .blend scenes. Many CGAxis assets are photographed
+# in a room, so the file carries walls, a floor and a ceiling alongside the
+# furniture. Joining those in drops a second room inside yours.
+#
+# Two earlier attempts at this failed in opposite directions, and the pair is
+# instructive. A fixed 3 m threshold applied to every import ate a 3524 mm
+# corner sofa as "architecture". Scoping it to files named "furniture set"
+# then let every other staged scene keep its room, which is the fabric plane
+# that filled the background of render 03.
+#
+# The threshold should not be absolute at all. What makes an object a shell is
+# that it is far bigger than the thing being placed — so measure it against the
+# footprint this model is going into. A 3.5 m sofa headed for a 2.6 m footprint
+# is furniture; a 6 m wall is not.
+SHELL_FACTOR = 2.0
+
+
+def _object_extent(obj):
+    lo = [math.inf] * 3
+    hi = [-math.inf] * 3
+    for corner in obj.bound_box:
+        world = obj.matrix_world @ mathutils.Vector(corner)
+        for axis in range(3):
+            lo[axis] = min(lo[axis], world[axis])
+            hi[axis] = max(hi[axis], world[axis])
+    return [hi[a] - lo[a] for a in range(3)]
+
+
+def import_model(filepath, divisor=1.0, target_mm=None):
+    """Import a .blend, .glb or .fbx and join it into a single mesh object.
 
     Tracks object NAMES rather than object references: join() destroys the
     merged-away objects, and holding a Python reference to one and then
     touching it raises ReferenceError (StructRNA has been removed). Names stay
-    valid because they are just strings, looked up again afterwards."""
+    valid because they are just strings, looked up again afterwards.
+
+    `divisor` is the authoring-scale correction from the resolved catalogue.
+    The Hub library holds three different scales — most assets at 2.54x from
+    inches read as Blender units, some already at 1:1, a couple at 10x — so a
+    model imported without its divisor is not slightly off, it is wrong by a
+    factor of two and a half.
+    """
     before = set(bpy.data.objects.keys())
-    if filepath.lower().endswith(".fbx"):
+    lowered = filepath.lower()
+    if lowered.endswith(".blend"):
+        # Append rather than open: the scene being built is ours, and the model
+        # is a guest in it.
+        with bpy.data.libraries.load(filepath, link=False) as (source, target):
+            target.objects = list(source.objects)
+        for obj in target.objects:
+            if obj is not None:
+                bpy.context.scene.collection.objects.link(obj)
+        bpy.context.view_layer.update()
+    elif lowered.endswith(".fbx"):
         bpy.ops.import_scene.fbx(filepath=filepath)
     else:
         bpy.ops.import_scene.gltf(filepath=filepath)
     imported_names = set(bpy.data.objects.keys()) - before
 
     mesh_names = [n for n in imported_names if bpy.data.objects[n].type == "MESH"]
+
+    # Discard the staged room before anything is joined or measured, judged
+    # against the size of the thing actually being placed.
+    if lowered.endswith(".blend") and divisor and target_mm:
+        limit = (max(target_mm) / 1000.0) * SHELL_FACTOR
+        kept = []
+        for name in mesh_names:
+            extent = [v / divisor for v in _object_extent(bpy.data.objects[name])]
+            if max(extent) > limit:
+                continue
+            kept.append(name)
+        if kept:
+            for name in set(mesh_names) - set(kept):
+                if name in bpy.data.objects:
+                    bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+            imported_names = imported_names - (set(mesh_names) - set(kept))
+            mesh_names = kept
     if not mesh_names:
         for name in imported_names:
             if name in bpy.data.objects:
@@ -476,6 +829,11 @@ def import_model(filepath):
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    if divisor and divisor != 1.0:
+        obj.scale = (1.0 / divisor, 1.0 / divisor, 1.0 / divisor)
+        bpy.context.view_layer.update()
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     return obj
 
 
@@ -495,6 +853,190 @@ def rest_on_floor(obj):
         vertex.co -= offset
     obj.data.update()
     return obj
+
+
+# Model facing, read off top-down renders of each asset (tmp/facing_sheet.py).
+#
+# This is the thing that should have been done first. Orientation was inferred
+# from bounding boxes all day — first the catalogue footprint's aspect, then the
+# model's own long axis — and a box cannot tell a desk's front from its back or
+# which way an L-sofa opens. So rotation_deg from the annotation was landing on
+# a model already pointing somewhere arbitrary, differently for every asset.
+#
+# Convention after the canonical long-axis-along-X turn: the BACK of the piece
+# faces +Y. These are the extra degrees needed to get each model there.
+MODEL_FACING_DEG = {
+    # Back already +Y once the long axis is along X.
+    "ecksofa": 0, "sofa_3sitzer": 0, "sofa_2sitzer": 0, "sofa_1sitzer": 0,
+    "schreibtisch": 0, "schreibtisch_kind": 0,
+    "waschtisch": 0, "handwaschbecken": 0, "doppelwaschtisch": 0,
+    "spuele": 0, "waschmaschine": 0, "trockner": 0,
+    "kleiderschrank": 0, "schrank_40": 0, "schrank_60": 0, "abstellschrank": 0,
+    "couchtisch": 0, "essgruppe_6": 0, "hocker": 0, "fernseher": 0,
+
+    # Head of the bed points -X: turn it three quarters to bring it to +Y.
+    "doppelbett": 270, "einzelbett": 270,
+
+    # Cistern side points -X.
+    "wand_wc": 270,
+
+    # Tap end points -Y.
+    "badewanne": 180,
+
+    # Corner pieces: the enclosed corner sits back-left, so a quarter turn puts
+    # its solid sides against +Y and -X, which is how they are drawn.
+    "eckbadewanne": 0, "dusche": 0, "dusche_gross": 0, "dusche_klein": 0,
+}
+
+
+# Assets whose CHIRALITY is opposite to the symbol Rainer drew.
+#
+# Measured, not inferred: the grey corner sofa's occupancy grid puts its chaise
+# at the -X end with the back at +Y, and ecksofa.svg puts it at +X. That is a
+# reflection. No rotation reproduces it, which is why every rotation-shaped fix
+# failed — the corner kept landing away from the corner.
+#
+# A reflection is not a rotation: it does not also correct any quarter turn
+# (Codex review, 2026-08-09 — an earlier version of this comment claimed it
+# did; that claim was checked and is wrong).
+#
+# A separate, tested-and-reverted idea lived here: reproducing the Simplifier
+# canvas's drawSymbolArt quarter-turn (added when a symbol's SVG viewBox
+# disagrees with its footprint's portrait/landscape) inside this renderer too.
+# Tried on doppelbett; it turned a correct render (rotation_deg alone) into a
+# wrong one (Rainer confirmed by eye). Root cause, confirmed by a second Codex
+# review: MODEL_FACING_DEG below was already tuned, by observation, to the
+# SAME canonical +Y-back orientation the transposed canvas art represents —
+# adding the canvas turn on top double-applies that correction. The canvas
+# transpose is real but it is a 2D-icon-display fix, not a fact about which
+# way the 3D model should face; do not reintroduce it here.
+MODEL_MIRROR_Y = {"ecksofa"}
+
+
+def mirror_in_y(obj):
+    """Reflect the mesh through y=0 and fix the normals.
+
+    Applied to the MESH, not the object: instances are created from proto.data,
+    so an object-level -1 scale never reaches the render.
+    """
+    obj.scale = (1.0, -1.0, 1.0)
+    bpy.context.view_layer.update()
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    obj.data.flip_normals()
+
+
+def align_to_footprint(obj, target_mm=None):
+    """Turn the model so its LONG axis runs along local X. Nothing else.
+
+    The previous version compared the model's aspect to the catalogue
+    footprint's and turned it when they disagreed. That made the catalogue the
+    authority on which way a thing faces, and the catalogue is often stale — the
+    desk footprint still said 970 x 1140 (portrait) while a real desk is
+    1800 x 800 (landscape), so every desk was rotated 90 degrees away from the
+    way Rainer had drawn it.
+
+    Orientation belongs to the annotation. The model just needs a consistent
+    starting position so that rotation_deg means the same thing for every asset,
+    whichever way its modeller happened to build it. Long axis along X is that
+    convention.
+    """
+    _, _, dimensions = local_dimensions(obj)
+    if dimensions.x <= 1e-6 or dimensions.y <= 1e-6:
+        return
+    if dimensions.x >= dimensions.y:
+        return
+    obj.rotation_euler[2] += math.radians(90)
+    bpy.context.view_layer.update()
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+
+
+# Furniture bigger than this is not furniture, it is a staged room that
+# came along with the model.
+PLAUSIBLE_FURNITURE_M = 4.0
+
+
+def scale_to_verified(obj, verified_size_mm):
+    """Scale a model to its OWN verified real-world size. True if applied.
+
+    Scaling to the catalogue footprint made everything the wrong size, because
+    the footprint is a nominal figure for that kind of furniture while the model
+    is whatever the modeller actually built. A real 2200 mm dining set forced
+    into an 1800 mm footprint came out at 1511 mm, and every piece was wrong the
+    same way.
+
+    Matching the longest dimension to the verified longest also repairs a bad
+    scale divisor on import, since the result is pinned to a measurement rather
+    than to whatever units the file happened to use.
+    """
+    if not verified_size_mm or max(verified_size_mm) <= 0:
+        return False
+    longest_m = max(verified_size_mm) * MM
+    if longest_m > PLAUSIBLE_FURNITURE_M:
+        return False
+
+    _, _, dimensions = local_dimensions(obj)
+    if max(dimensions) <= 1e-6:
+        return False
+    factor = longest_m / max(dimensions)
+    obj.scale = (factor, factor, factor)
+    bpy.context.view_layer.update()
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    rest_on_floor(obj)
+    return True
+
+
+def fit_within_bbox(obj, target_mm):
+    """Scale uniformly so the model fits its annotated footprint.
+
+    normalise_to_bbox forces all three axes to the target, which distorts
+    anything whose proportions differ from the symbol — and they always differ,
+    because a symbol carries a nominal footprint while a real model is whatever
+    the modeller made. A three-seater forced into a 2600 x 2000 corner-sofa box
+    becomes a stretched slab.
+
+    Fitting uniformly keeps the object honest. It may not fill the whole
+    footprint, which is the correct outcome: the library has no corner sofa, and
+    a smaller sofa placed truthfully beats a wrong one inflated to fit.
+    """
+    # local_dimensions returns (mins, maxs, size) — three vectors, not one.
+    # Zipping the target against the whole tuple divided millimetres by the
+    # `mins` vector and produced a meaningless scale factor, which is how a
+    # corner sofa came to be 138 metres long. Three separate root-cause guesses
+    # missed it because they were all aimed downstream of here.
+    _, _, dimensions = local_dimensions(obj)
+    target = [target_mm["width_mm"] * MM, target_mm["depth_mm"] * MM,
+              target_mm["height_mm"] * MM]
+    # Scale from the LONGEST dimension, not the tightest.
+    #
+    # Taking the minimum of the three factors made every model fit inside its
+    # box and therefore come out systematically small — a real 2200 mm dining
+    # set shrank to 1511 mm, which is what Rainer saw across the bed, the sofa
+    # and the table alike.
+    if max(dimensions) <= 1e-6 or max(target) <= 0:
+        return
+    factor = max(target) / max(dimensions)
+    obj.scale = (factor, factor, factor)
+    bpy.context.view_layer.update()
+
+    # Bake it into the mesh. Instances are created from proto.data — the mesh
+    # datablock — which carries no object scale, so a factor left on the
+    # prototype object is silently dropped and every instance renders at native
+    # size. That is why a model kept appearing many times too large however the
+    # fit was computed: the fit was correct and simply never reached the render.
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    rest_on_floor(obj)
 
 
 def normalise_to_bbox(obj, target_mm):
@@ -572,62 +1114,396 @@ for opening in floor.get("openings", []):
 # "furniture failed to instance" from "furniture is occluded by a wall".
 hide_walls = os.environ.get("DMH_HIDE_WALLS") == "1"
 
-# Dollhouse cutaway. Full-height exterior walls between the camera and the
-# building hide everything placed against them — a sofa against the east wall
-# is behind that wall from a camera sitting east of it. Removing the near-side
-# exterior walls is what makes a dollhouse view readable; interior walls stay,
-# because the elevated camera already sees over them.
+# Dollhouse cutaway by a TILTED clipping plane.
+#
+# The first version hid whole near-side exterior walls. That works, but it
+# throws away the front of the house entirely and the result reads as a model
+# with a side missing rather than a doll's house.
+#
+# Rainer asked for the reference-image treatment instead: one plane sloping
+# from 500 mm at the front to 2000 mm at the back. The near rooms are opened
+# right down to a low kerb you see over, while the far wall stays tall enough
+# to enclose the picture and catch light. Everything is cut by the same plane,
+# so the slice reads as deliberate rather than as per-wall decisions.
+#
+# Door and window openings are exempt. Their frames, glazing and leaves stand
+# at full height through the cut, which is what keeps a doorway legible once
+# the wall around it is only knee-high.
+CUT_HEIGHT_FRONT_MM = 500
+CUT_HEIGHT_BACK_MM = 2000
+
 building_points = [p for room in floor["rooms"] for p in room["polygon_mm"]]
 building_centre = (
     sum(p[0] for p in building_points) / len(building_points),
     sum(p[1] for p in building_points) / len(building_points),
 )
 # Horizontal component of the camera direction, matching the camera set up
-# further down. Anything whose outward side points this way is between the
-# viewer and the interior.
+# further down. Larger projection = nearer the viewer = cut lower.
 CAMERA_DIR_XY = (1.0, -1.0)
 _len = math.hypot(*CAMERA_DIR_XY)
 CAMERA_DIR_XY = (CAMERA_DIR_XY[0] / _len, CAMERA_DIR_XY[1] / _len)
-NEAR_WALL_THRESHOLD = 0.35
+
+
+def _camera_axis_position(point_mm):
+    return ((point_mm[0] - building_centre[0]) * CAMERA_DIR_XY[0]
+            + (point_mm[1] - building_centre[1]) * CAMERA_DIR_XY[1]) * MM
+
+
+_axis = [_camera_axis_position(p) for p in building_points]
+AXIS_MIN, AXIS_MAX = min(_axis), max(_axis)
+_axis_span = max(AXIS_MAX - AXIS_MIN, 0.001)
+CUT_SLOPE = (CUT_HEIGHT_FRONT_MM - CUT_HEIGHT_BACK_MM) * MM / _axis_span
+
+
+def cut_plane_height(axis_position):
+    """Height of the slicing plane at a distance along the camera axis."""
+    return CUT_HEIGHT_BACK_MM * MM + CUT_SLOPE * (axis_position - AXIS_MIN)
+
+
+def build_cut_solid():
+    """A slab occupying everything ABOVE the tilted plane, to subtract."""
+    ux, uy = CAMERA_DIR_XY
+    vx, vy = -uy, ux
+    reach = max(_axis_span * 4.0, 40.0)
+    cx = building_centre[0] * MM
+    cy = building_centre[1] * MM
+
+    vertices = []
+    for s, t in ((-reach, -reach), (reach, -reach), (reach, reach), (-reach, reach)):
+        vertices.append((cx + ux * s + vx * t, cy + uy * s + vy * t, cut_plane_height(s)))
+    for s, t in ((-reach, -reach), (reach, -reach), (reach, reach), (-reach, reach)):
+        vertices.append((cx + ux * s + vx * t, cy + uy * s + vy * t, cut_plane_height(s) + 30.0))
+
+    faces = [(0, 3, 2, 1), (4, 5, 6, 7),
+             (0, 1, 5, 4), (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    mesh = bpy.data.meshes.new("cut-solid")
+    mesh.from_pydata(vertices, [], faces)
+    mesh.update()
+    solid = bpy.data.objects.new("cut-solid", mesh)
+    collection("Staging").objects.link(solid)
+    solid.hide_render = True
+    solid.hide_viewport = True
+    return solid
+
+
+def apply_cut(target, solid):
+    modifier = target.modifiers.new("dollhouse-cut", "BOOLEAN")
+    modifier.operation = "DIFFERENCE"
+    modifier.solver = "EXACT"
+    modifier.object = solid
+    bpy.context.view_layer.objects.active = target
+    bpy.ops.object.modifier_apply(modifier=modifier.name)
+
+
+def snap_wall_endpoints(walls, tolerance_mm=150):
+    """Merge wall endpoints that are close but not exactly coincident.
+
+    Found by measurement, not assumed: a visible notch at a junction near
+    the top room traced to 4 walls whose endpoints cluster near the same
+    point but differ by up to 120mm (10782.8 / 10845.8 / 10871.7 / 10902.8
+    on one axis) -- not a single shared corner. Likely each room's
+    boundary was traced independently in the annotator, so a "shared"
+    wall between two rooms ends up drawn twice, slightly differently, each
+    time. Clustering endpoints within `tolerance_mm` and snapping them to
+    the cluster's centroid closes that gap without needing to know which
+    room owns which wall.
+    """
+    points = []
+    for w in walls:
+        points.append(("start_mm", w))
+        points.append(("end_mm", w))
+
+    n = len(points)
+    parent = list(range(n))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(i, j):
+        ri, rj = find(i), find(j)
+        if ri != rj:
+            parent[ri] = rj
+
+    for i in range(n):
+        xi, yi = points[i][1][points[i][0]]
+        for j in range(i + 1, n):
+            xj, yj = points[j][1][points[j][0]]
+            if math.hypot(xi - xj, yi - yj) <= tolerance_mm:
+                union(i, j)
+
+    clusters = {}
+    for i in range(n):
+        clusters.setdefault(find(i), []).append(i)
+
+    moved = 0
+    for members in clusters.values():
+        if len(members) < 2:
+            continue
+        xs = [points[i][1][points[i][0]][0] for i in members]
+        ys = [points[i][1][points[i][0]][1] for i in members]
+        cx, cy = sum(xs) / len(xs), sum(ys) / len(ys)
+        for i in members:
+            key, w = points[i]
+            if w[key][0] != cx or w[key][1] != cy:
+                moved += 1
+            w[key] = [cx, cy]
+    print(f"[dollhouse] wall endpoints snapped {moved} (within {tolerance_mm}mm)")
+
+
+snap_wall_endpoints(floor["walls"])
+
+cut_solid = build_cut_solid()
 
 cut_count = 0
-hidden_walls = 0
+sliced_walls = 0
+exempt_features = 0
 for index, wall in enumerate(floor["walls"]):
     wall_openings = openings_by_wall.get(wall.get("id"), [])
-    parts = wall_object(f"wall-{index}", wall, wall_openings, wall_height, floor["rooms"])
+    built = wall_object(f"wall-{index}", wall, wall_openings, wall_height, floor["rooms"])
     cut_count += len(wall_openings)
-    if not parts:
+    if not built:
         continue
-
-    def hide(objects):
-        for item in objects:
-            item.hide_render = True
 
     if hide_walls:
-        hide(parts)
-        hidden_walls += 1
+        built["body"].hide_render = True
+        for item in built["features"]:
+            item.hide_render = True
         continue
 
-    if wall.get("wall_type") == "exterior":
-        mid = (
-            (wall["start_mm"][0] + wall["end_mm"][0]) / 2 - building_centre[0],
-            (wall["start_mm"][1] + wall["end_mm"][1]) / 2 - building_centre[1],
-        )
-        length = math.hypot(*mid)
-        if length > 0:
-            towards_camera = (mid[0] * CAMERA_DIR_XY[0] + mid[1] * CAMERA_DIR_XY[1]) / length
-            if towards_camera > NEAR_WALL_THRESHOLD:
-                hide(parts)
-                hidden_walls += 1
+    bpy.ops.object.select_all(action="DESELECT")
+    apply_cut(built["body"], cut_solid)
+    sliced_walls += 1
+    exempt_features += len(built["features"])
+
+# ------------------------------------------------- procedurally built pieces
+#
+# Some things are not in the model library and never will be. Of 153 bathroom
+# models in the converted library not one is taller than 1400 mm — the CGAxis
+# sets are fixtures, not enclosures — so there is no shower cabin to find. A
+# tray with two glass panels is three boxes and reads better than a wrong
+# model. The same goes for a television panel and a towel radiator.
+#
+# Kitchen runs and islands are different again: they are not objects at all but
+# annotated geometry, drawn as a path or a rectangle, so they are built to the
+# shape Rainer drew rather than fetched from anywhere.
+
+def _towards_centre(a, b, distance):
+    """Perpendicular offset from a segment, pointing into the ROOM.
+
+    A counter run is drawn ON the wall it stands against, so a box centred on
+    that line would sit half inside the plaster. It has to move inward, and
+    inward is whichever side the middle of the room is on.
+
+    This used to measure against the whole BUILDING's centroid. In an
+    L-shaped or multi-wing plan that point can sit in a different room
+    entirely, or off to one side of the actual kitchen -- confirmed here:
+    the kitchen run in bungalow_040_66 was landing away from its wall
+    because the building's overall centre didn't agree with the kitchen's
+    own. Falls back to the building centroid only if the run's midpoint
+    isn't inside any known room (shouldn't happen for a real placement, but
+    a silent KeyError on `floor` at import time would be worse than a
+    documented fallback).
+    """
+    dx, dy = b[0] - a[0], b[1] - a[1]
+    length = math.hypot(dx, dy) or 1.0
+    nx, ny = -dy / length, dx / length
+    mid = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+
+    room = room_at(mid, floor["rooms"])  # `mid` is already metres, matching point_in_polygon
+    if room:
+        pts = room["polygon_mm"]
+        target = (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+    else:
+        target = building_centre
+
+    towards = ((target[0] * MM - mid[0]) * nx + (target[1] * MM - mid[1]) * ny)
+    sign = 1.0 if towards > 0 else -1.0
+    return nx * distance * sign, ny * distance * sign
+
+
+def build_path_run(name, item, material, worktop):
+    """A counter run or a Vorwandinstallation, following the drawn path."""
+    points = [(q[0] * MM, q[1] * MM) for q in item["points_mm"]]
+    depth = item["depth_mm"] * MM
+    height = item["height_mm"] * MM
+    built = []
+    for index in range(len(points) - 1):
+        a, b = points[index], points[index + 1]
+        length = math.hypot(b[0] - a[0], b[1] - a[1])
+        if length < 0.05:
+            continue
+        angle = math.atan2(b[1] - a[1], b[0] - a[0])
+        ox, oy = _towards_centre(a, b, depth / 2)
+        centre = ((a[0] + b[0]) / 2 + ox, (a[1] + b[1]) / 2 + oy, height / 2)
+        built.append(box(name + "-" + str(index), centre, (length, depth, height),
+                         angle, material, into="Furniture"))
+        if worktop:
+            built.append(box(name + "-top-" + str(index),
+                             (centre[0], centre[1], height + 0.02),
+                             (length, depth * 1.03, 0.04), angle, worktop,
+                             into="Furniture"))
+    return built
+
+
+def build_rect(name, item, material, worktop):
+    """An island: the dragged rectangle, at counter height."""
+    points = [(q[0] * MM, q[1] * MM) for q in item["points_mm"]]
+    xs = [q[0] for q in points]
+    ys = [q[1] for q in points]
+    width, depth = max(xs) - min(xs), max(ys) - min(ys)
+    if width < 0.1 or depth < 0.1:
+        return []
+    height = item["height_mm"] * MM
+    centre = ((min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2, height / 2)
+    built = [box(name, centre, (width, depth, height), 0.0, material, into="Furniture")]
+    if worktop:
+        built.append(box(name + "-top", (centre[0], centre[1], height + 0.02),
+                         (width * 1.04, depth * 1.04, 0.04), 0.0, worktop,
+                         into="Furniture"))
+    return built
+
+
+def build_shower(name, item):
+    """Tray plus two glass panels. No enclosure exists in the library."""
+    bbox = item["target_bbox_mm"]
+    width, depth = bbox["width_mm"] * MM, bbox["depth_mm"] * MM
+    x, y = item["position_mm"][0] * MM, item["position_mm"][1] * MM
+    angle = math.radians(item.get("rotation_deg", 0))
+    built = [box(name + "-tray", (x, y, 0.04), (width, depth, 0.08), angle,
+                 GRANITE_MAT, into="Furniture")]
+    height = 2.0
+    for axis, extent in ((0, width), (1, depth)):
+        offset = (depth if axis == 0 else width) / 2
+        local_x = 0.0 if axis == 0 else offset
+        local_y = offset if axis == 0 else 0.0
+        dx = math.cos(angle) * local_x - math.sin(angle) * local_y
+        dy = math.sin(angle) * local_x + math.cos(angle) * local_y
+        dimensions = (extent, 0.012, height) if axis == 0 else (0.012, extent, height)
+        built.append(box(name + "-glass-" + str(axis), (x + dx, y + dy, height / 2),
+                         dimensions, angle, GLASS_MAT, into="Furniture"))
+    return built
+
+
+def build_box(name, item, material):
+    """A plain carcass at the annotated size.
+
+    The fallback for anything with no usable model — wardrobes, cupboards,
+    lowboards, hall units. Rainer's rule: rectilinear furniture is a scaled cube
+    with a sensible finish, and only organic shapes need real geometry.
+
+    This case was missing entirely: the plan builder emitted build="box" and the
+    renderer had no branch for it, so every one of them silently placed nothing
+    and the bedrooms came out empty.
+    """
+    bbox = item["target_bbox_mm"]
+    width = (bbox.get("width_mm") or 600) * MM
+    depth = (bbox.get("depth_mm") or 600) * MM
+    height = (bbox.get("height_mm") or 800) * MM
+    mount = item.get("height_mm", 0) * MM
+    z = mount if mount else height / 2
+    return [box(name, (item["position_mm"][0] * MM, item["position_mm"][1] * MM, z),
+                (width, depth, height), math.radians(item.get("rotation_deg", 0)),
+                material, into="Furniture")]
+
+
+def build_panel(name, item, material, thickness_m):
+    """A flat wall-hung panel: television, towel radiator, hob."""
+    bbox = item["target_bbox_mm"]
+    width = bbox["width_mm"] * MM
+    height = bbox["height_mm"] * MM
+    mount = item.get("height_mm", 0) * MM
+    z = mount if mount else height / 2
+    return [box(name, (item["position_mm"][0] * MM, item["position_mm"][1] * MM, z),
+                (width, thickness_m, height), math.radians(item.get("rotation_deg", 0)),
+                material, into="Furniture")]
+
 
 prototypes = {}
 placed = 0
+built_procedurally = 0
 failed = []
 
 for item in floor["placements"]:
     asset_id = item["asset_id"]
+
+    kind = item.get("build")
+    # The plan already resolved a real sink model for `spuele` (Kitchen Sink
+    # 24.blend, preserve_materials true) -- but it also carries build="hob"
+    # (the same generic label kochfeld uses), which was routing it through
+    # the plain-box fallback and throwing the real model away. Confirmed
+    # visually: it rendered as a flat grey slab with no basin, not a sink.
+    # Only skip the procedural branch for this one case; kochfeld (the
+    # actual hob, no real model resolved) still needs it.
+    has_real_model = item["type"] == "sink" and item.get("mesh_path")
+    if kind and not has_real_model:
+        material = furniture_material(item["type"])
+        if kind == "path":
+            pieces = build_path_run(asset_id + "-" + str(placed), item, material,
+                                    GRANITE_MAT if item["type"] == "counter" else None)
+        elif kind == "rect":
+            pieces = build_rect(asset_id + "-" + str(placed), item, material, GRANITE_MAT)
+        elif kind == "shower":
+            pieces = build_shower(asset_id + "-" + str(placed), item)
+        elif kind == "tv":
+            pieces = build_panel(asset_id + "-" + str(placed), item, TV_MAT, 0.06)
+        elif kind == "radiator":
+            pieces = build_panel(asset_id + "-" + str(placed), item, material, 0.08)
+        elif kind == "hob":
+            # Was build_panel with a fixed 40mm thickness -- correct for a
+            # wall-mounted TV or radiator, wrong for a hob or sink sitting
+            # flat on a counter: it collapsed the item's real depth (558mm /
+            # 517mm) down to 40mm, rendering as an almost-invisible sliver.
+            # Confirmed by inspecting the actual scene object, not guessed:
+            # dims came back (0.941, 0.04, 0.05)m -- the depth axis was the
+            # one being thrown away. build_box uses the full footprint and
+            # the item's own mount height.
+            #
+            # That mount height (900mm / 880mm) is the CABINET height, not
+            # the usable surface -- build_rect/build_path_run sit a 40mm-
+            # thick worktop slab ON TOP of the cabinet, so a hob mounted at
+            # exactly cabinet height is centred 25mm inside that slab, not
+            # resting on it. Confirmed on the kitchen island: the hob object
+            # existed (hide_render False, correct dims) but was invisible in
+            # every render, buried in the worktop mesh. +40mm clears it.
+            #
+            # Both a sink and a hob route through this same "hob" build kind
+            # (a plan-generation label, not a real distinction) -- but a dark
+            # glass hob and a dark sink both sitting on the now-matte-black
+            # counter (this session's own earlier fix) made the sink
+            # disappear entirely. Sink gets steel; hob keeps dark glass.
+            hob_material = furniture_material("sink") if item["type"] == "sink" else TV_MAT
+            # +40 clears the worktop slab; build_box's z is the object's
+            # CENTRE, so also clear half its own thickness or the object
+            # still sinks halfway into the worktop from above. Verified by
+            # measurement, not assumed: first pass (+40 only) put kochfeld's
+            # z-range at 0.915-0.965m against the worktop's own 0.9-0.94m --
+            # still a 25mm overlap.
+            own_height_mm = (item.get("target_bbox_mm") or {}).get("height_mm", 0)
+            on_worktop = dict(item, **{"height_mm": item.get("height_mm", 0) + 40 + own_height_mm / 2})
+            pieces = build_box(asset_id + "-" + str(placed), on_worktop, hob_material)
+        elif kind == "box":
+            pieces = build_box(asset_id + "-" + str(placed), item, material)
+        else:
+            print(f"[dollhouse] WARNING no builder for build={kind!r} ({asset_id})")
+            pieces = []
+        if pieces:
+            built_procedurally += 1
+            placed += 1
+        continue
+
+    if not item.get("mesh_path"):
+        failed.append(asset_id)
+        continue
+
     if asset_id not in prototypes:
-        obj = import_model(item["mesh_path"])
+        bbox = item.get("target_bbox_mm") or {}
+        target_mm = [bbox.get("width_mm") or 0, bbox.get("depth_mm") or 0,
+                     bbox.get("height_mm") or 0]
+        obj = import_model(item["mesh_path"], item.get("scale_divisor", 1.0),
+                           target_mm if max(target_mm) else None)
         if obj is None:
             failed.append(asset_id)
             prototypes[asset_id] = None
@@ -638,6 +1514,43 @@ for item in floor["placements"]:
             # materials. Rescaling would distort them and overwriting their
             # materials would throw away the reason to use them at all.
             rest_on_floor(obj)
+        elif item.get("size_mismatch"):
+            # Flagged by the plan builder as too far from its footprint to fit
+            # without looking wrong. Drop the model; the box built for it in
+            # the procedural branch stands in.
+            bpy.data.objects.remove(obj, do_unlink=True)
+            prototypes[asset_id] = None
+            failed.append(asset_id)
+            continue
+        elif item.get("preserve_materials"):
+            # Dropping the fit entirely and trusting each model's verified size
+            # was tried and put a corner sofa back at 138 m: that .blend holds
+            # something enormous which the cataloguing pass silently skipped, so
+            # its recorded divisor was never right. Until every asset's true
+            # size is trustworthy this fit stays, as the backstop that keeps a
+            # bad divisor merely inaccurate rather than catastrophic.
+            align_to_footprint(obj)
+            if asset_id in MODEL_MIRROR_Y:
+                mirror_in_y(obj)
+                print(f"[dollhouse] mirrored      {asset_id} (asset chirality)")
+            facing = MODEL_FACING_DEG.get(asset_id, 0)
+            if facing:
+                obj.rotation_euler[2] += math.radians(facing)
+                bpy.context.view_layer.update()
+                bpy.ops.object.select_all(action="DESELECT")
+                obj.select_set(True)
+                bpy.context.view_layer.objects.active = obj
+                bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+            # Annotation beats heuristic. A footprint measured on the plan is
+            # the authority; the model's verified size is only the fallback for
+            # symbols nobody has measured yet.
+            if item.get("footprint_measured"):
+                fit_within_bbox(obj, item["target_bbox_mm"])
+            elif not scale_to_verified(obj, item.get("verified_size_mm")):
+                fit_within_bbox(obj, item["target_bbox_mm"])
+            if asset_id in ACCENT_OVERRIDE:
+                obj.data.materials.clear()
+                obj.data.materials.append(accent_material(asset_id))
         else:
             normalise_to_bbox(obj, item["target_bbox_mm"])
             obj.data.materials.clear()
@@ -664,17 +1577,136 @@ for item in floor["placements"]:
     # mount instead.
     mount_mm = item.get("height_mm", 0)
     if mount_mm:
-        z = mount_mm * MM - (item["target_bbox_mm"]["height_mm"] * MM) / 2
+        # Was `item["target_bbox_mm"]["height_mm"]` -- the ANNOTATED target,
+        # not the prototype's real height. Holds only when fit_within_bbox
+        # happened to scale height to match the target exactly, which it
+        # doesn't: it scales uniformly by the LONGEST axis only, so a real
+        # model whose proportions differ from the annotation keeps its own
+        # true height. Confirmed broken on `spuele` once it started using
+        # its real resolved model instead of a procedural box: target height
+        # was 200mm, real height came out 504mm, and the old formula sank
+        # the sink halfway through the cabinet (z-range 0.528-1.032m against
+        # a worktop at 0.9-0.94m) instead of resting on the worktop.
+        # proto.dimensions.z is the prototype's actual evaluated height,
+        # correct regardless of how it was scaled.
+        z = mount_mm * MM - proto.dimensions.z / 2
+
+        # Countertop fixtures aren't "centred at a mount height" the way a
+        # mirror is -- `height_mm` here is the cabinet-top reference (same
+        # role kochfeld's mount plays in the procedural hob/sink branch,
+        # which needed +40mm worktop clearance + half the fixture's own
+        # height to rest ON the worktop rather than centre through it). A
+        # sink using its real model goes through this generic path instead,
+        # and needs the same correction: base of the fixture at the
+        # worktop's top, not the fixture centred on the cabinet height.
+        if item["type"] == "sink":
+            # The prototype's ORIGIN is its base (re-origined earlier), and
+            # this instance carries no rotation, so instance.location.z IS
+            # the base position directly -- no half-height term here. (First
+            # pass added +proto.dimensions.z/2, which would have floated the
+            # sink a further half-height above the worktop -- caught before
+            # rendering, not after.)
+            worktop_top_mm = mount_mm + 40
+            z = worktop_top_mm * MM
     else:
         z = 0.0
 
+    px, py = item["position_mm"]
+    if asset_id in POSITION_OVERRIDE:
+        dx, dy = POSITION_OVERRIDE[asset_id]
+        px, py = px + dx, py + dy
     instance.location = (
-        item["position_mm"][0] * MM,
-        item["position_mm"][1] * MM,
+        px * MM,
+        py * MM,
         z,
     )
-    instance.rotation_euler[2] = math.radians(item.get("rotation_deg", 0.0))
+    # ROTATION_OVERRIDE: `sofa_1sitzer`'s stored rotation_deg (315) was
+    # checked twice tonight -- it's genuinely what the annotation says, and
+    # the render was confirmed to reproduce it exactly (Codex, second
+    # review). Rainer has now said three times, including this session,
+    # that it's still wrong. Overriding at the render-plan level, not
+    # touching the Simplifier annotation file -- that stays his to correct
+    # at the source. 0 degrees matches "upright, arms left/right, back at
+    # top" as measured against the source drawing earlier this session.
+    rotation_deg = ROTATION_OVERRIDE.get(asset_id, item.get("rotation_deg", 0.0))
+    instance.rotation_euler[2] = math.radians(rotation_deg)
     placed += 1
+
+# ---------------------------------------------------------------- underlay
+#
+# Lay the original drawing under the model at true scale and look straight
+# down. Everything verified so far has been internal consistency — the geometry
+# checked against the data it came from — which is precisely how a corner sofa
+# stayed 138 m through three confident fixes. The source drawing is the one
+# reference outside the pipeline, so overlaying on it is the only check that can
+# catch a wall in the wrong place or a room the wrong size.
+#
+#   DMH_UNDERLAY=<image>  put the drawing on the floor
+#   DMH_TOPVIEW=1         orthographic plan view, to compare against it
+
+def add_underlay(path, floor_plan):
+    """Floor plane carrying the source drawing, mapped to annotation space.
+
+    The Simplifier's scale is metres across the image WIDTH, so the drawing
+    spans width_mm in x, and height_mm = width_mm * (pixel height / pixel
+    width) in y. Normalized y is flipped when the plan is built, so the image
+    has to be flipped back to line up.
+    """
+    scale = floor_plan.get("scale_metres_per_x_unit")
+    if not scale or not os.path.exists(path):
+        return None
+
+    image = bpy.data.images.load(path)
+    pixel_w, pixel_h = image.size
+    if not pixel_w or not pixel_h:
+        return None
+
+    width_m = scale
+    height_m = width_m * (pixel_h / float(pixel_w))
+
+    bpy.ops.mesh.primitive_plane_add(size=1.0,
+                                     location=(width_m / 2, height_m / 2, -0.005))
+    plane = bpy.context.active_object
+    plane.name = "source-underlay"
+    plane.scale = (width_m, height_m, 1.0)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+
+    material = bpy.data.materials.new("source-underlay")
+    material.use_nodes = True
+    nodes = material.node_tree.nodes
+    links = material.node_tree.links
+    bsdf = nodes["Principled BSDF"]
+    texture = nodes.new("ShaderNodeTexImage")
+    texture.image = image
+    texture.interpolation = "Closest"
+    mapping = nodes.new("ShaderNodeMapping")
+    coords = nodes.new("ShaderNodeTexCoord")
+    # No flip. The plan builder maps image row 0 to the TOP of world y, and
+    # Blender's UV v=1 is already the top row of an image, so the two
+    # conventions cancel. Flipping "to match" put the bathroom at the wrong end
+    # of the house.
+    mapping.inputs["Scale"].default_value = (1.0, 1.0, 1.0)
+    links.new(coords.outputs["UV"], mapping.inputs["Vector"])
+    links.new(mapping.outputs["Vector"], texture.inputs["Vector"])
+    links.new(texture.outputs["Color"], bsdf.inputs["Base Color"])
+    if "Emission Color" in bsdf.inputs:
+        links.new(texture.outputs["Color"], bsdf.inputs["Emission Color"])
+        bsdf.inputs["Emission Strength"].default_value = 1.0
+    bsdf.inputs["Roughness"].default_value = 1.0
+    plane.data.materials.append(material)
+    place_in(plane, "Staging")
+    return plane
+
+
+underlay_path = os.environ.get("DMH_UNDERLAY")
+if underlay_path:
+    if add_underlay(underlay_path, floor):
+        print(f"[dollhouse] underlay       {os.path.basename(underlay_path)}")
+        # The floor plates would hide it, and the cut walls are what we are
+        # checking, so drop the plates for the comparison.
+        for obj in list(bpy.context.scene.objects):
+            if obj.name.startswith("floor-"):
+                obj.hide_render = True
 
 # ------------------------------------------------------------ camera + light
 
@@ -694,9 +1726,16 @@ collection("Staging").objects.link(camera)
 
 # Steeper than the first attempt so full-height walls don't hide the rooms
 # behind them.
-direction = mathutils.Vector((1.0, -1.0, 1.65)).normalized()
-camera.location = centre + direction * (span * 2.2)
-camera.rotation_euler = direction.to_track_quat("Z", "Y").to_euler()
+if os.environ.get("DMH_TOPVIEW") == "1":
+    # Straight down, framing the whole drawing rather than the building, so the
+    # model and the source line up in the same picture.
+    camera_data.ortho_scale = span * 1.9
+    camera.location = (centre.x, centre.y, span * 3.0)
+    camera.rotation_euler = (0.0, 0.0, 0.0)
+else:
+    direction = mathutils.Vector((1.0, -1.0, 1.65)).normalized()
+    camera.location = centre + direction * (span * 2.2)
+    camera.rotation_euler = direction.to_track_quat("Z", "Y").to_euler()
 scene.camera = camera
 
 # HDRI environment does the lighting. The first render used a flat grey world
@@ -775,7 +1814,10 @@ print(f"[dollhouse] floor           {floor['name']}")
 print(f"[dollhouse] rooms           {len(floor['rooms'])}")
 print(f"[dollhouse] walls           {len(floor['walls'])} at {wall_height}mm")
 print(f"[dollhouse] openings cut    {cut_count}")
-print(f"[dollhouse] walls hidden    {hidden_walls} (near-side cutaway)")
+print(f"[dollhouse] walls sliced    {sliced_walls} by the tilted plane "
+      f"({CUT_HEIGHT_FRONT_MM}mm front -> {CUT_HEIGHT_BACK_MM}mm back)")
+print(f"[dollhouse] cut-exempt      {exempt_features} frames, glazing and door leaves")
+print(f"[dollhouse] built in-scene  {built_procedurally} (showers, counters, panels)")
 print(f"[dollhouse] furniture       {placed} instances from {len([p for p in prototypes.values() if p])} meshes")
 print(f"[dollhouse] engine          {scene.render.engine}")
 print(f"[dollhouse] hdri            {'yes' if hdri_path else 'NO — flat sky fallback'}")
@@ -787,4 +1829,27 @@ if failed:
     print(f"[dollhouse] FAILED IMPORT  {', '.join(sorted(set(failed)))}")
 
 bpy.ops.render.render(write_still=True)
+# Scene inventory, largest first. Three root-cause guesses at an oversized
+# object all failed to change the image, which meant the thing was not on the
+# path being guessed about. Measuring names it in one run.
+if os.environ.get("DMH_INVENTORY") == "1":
+    sizes = []
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH":
+            continue
+        lo = [math.inf] * 3
+        hi = [-math.inf] * 3
+        for corner in obj.bound_box:
+            world = obj.matrix_world @ mathutils.Vector(corner)
+            for axis in range(3):
+                lo[axis] = min(lo[axis], world[axis])
+                hi[axis] = max(hi[axis], world[axis])
+        extent = [round(hi[a] - lo[a], 2) for a in range(3)]
+        collections = ",".join(c.name for c in obj.users_collection)
+        sizes.append((max(extent), obj.name, extent, collections, obj.hide_render))
+    sizes.sort(reverse=True)
+    for longest, name, extent, collections, hidden in sizes[:14]:
+        print(f"[inventory] {longest:9.2f}m {name[:38]:38} {extent} "
+              f"[{collections}]{' HIDDEN' if hidden else ''}")
+
 print(f"[dollhouse] wrote           {scene.render.filepath}")

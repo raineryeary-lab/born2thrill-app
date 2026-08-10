@@ -1,0 +1,1071 @@
+{
+  "picks": {
+    "cgaxis_beige_large_corner_sofa_blender": {
+      "modern": {
+        "path": "E:/_models_hub\\cgaxis_beige_large_corner_sofa_blender\\cgaxis_beige_large_corner_sofa_blender.blend",
+        "label": "cgaxis beige large corner sofa blender",
+        "size_mm": [
+          2400,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "bathroom_furniture_set_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Bathroom_Furniture_Set_BLEND\\Bathroom Furniture Set.blend",
+        "label": "Bathroom Furniture Set",
+        "size_mm": [
+          1700,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "bathroom_heater_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Bathroom_Heater_BLEND\\Bathroom Heater.blend",
+        "label": "Bathroom Heater",
+        "size_mm": [
+          1700,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "bathtube_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Bathtube_BLEND\\Bathtube.blend",
+        "label": "Bathtube",
+        "size_mm": [
+          1700,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "bathtube_with_wooden_elements_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Bathtube_with_Wooden_Elements_BLEND\\Bathtube with Wooden Elements.blend",
+        "label": "Bathtube with Wooden Elements",
+        "size_mm": [
+          1700,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "bidet_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Bidet_BLEND\\Bidet.blend",
+        "label": "Bidet",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "black_bathtube_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Black_Bathtube_BLEND\\Black Bathtube.blend",
+        "label": "Black Bathtube",
+        "size_mm": [
+          1700,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "black_leather_classic_sofa_3d_model_9718_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Black_Leather_Classic_Sofa_3D_Model_9718_BLEND\\Black Leather Classic Sofa 3D Model (9718).blend",
+        "label": "Black Leather Classic Sofa 3D Model 9718",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "black_leather_sofa_3d_model_9711_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Black_Leather_Sofa_3D_Model_9711_BLEND\\Black Leather Sofa 3D Model (9711).blend",
+        "label": "Black Leather Sofa 3D Model 9711",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "black_table_and_chairs_set_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
+        "label": "Black Table and Chairs Set",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_2_seat_grey_sofa_blender": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\cgaxis_2_seat_grey_sofa_blender\\cgaxis_2_seat_grey_sofa_blender\\cgaxis_2_seat_grey_sofa_blender.blend",
+        "label": "cgaxis 2 seat grey sofa blender",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_black_and_white_modern_dining_table_blender": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\cgaxis_black_and_white_modern_dining_table_blender\\cgaxis_black_and_white_modern_dining_table_blender\\cgaxis_black_and_white_modern_dining_table_blender.blend",
+        "label": "cgaxis black and white modern dining table blender",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_dark_grey_velvet_dining_chair_blender": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\cgaxis_dark_grey_velvet_dining_chair_blender\\cgaxis_dark_grey_velvet_dining_chair_blender\\cgaxis_dark_grey_velvet_dining_chair_blender.blend",
+        "label": "cgaxis dark grey velvet dining chair blender",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_door_30_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\CGAxis_Door_30_BLEND\\CGAxis Door 30.blend",
+        "label": "CGAxis Door 30",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_door_40_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\CGAxis_Door_40_BLEND\\CGAxis Door 40.blend",
+        "label": "CGAxis Door 40",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_grey_corner_modern_sofa_blender": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\cgaxis_grey_corner_modern_sofa_blender\\cgaxis_grey_corner_modern_sofa_blender\\cgaxis_grey_corner_modern_sofa_blender.blend",
+        "label": "cgaxis grey corner modern sofa blender",
+        "size_mm": [
+          2400,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_orange_fabric_chair_blender": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\cgaxis_orange_fabric_chair_blender\\cgaxis_orange_fabric_chair_blender\\cgaxis_orange_fabric_chair_blender.blend",
+        "label": "cgaxis orange fabric chair blender",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "cgaxis_round_black_and_glass_coffee_table_blender": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\cgaxis_round_black_and_glass_coffee_table_blender\\cgaxis_round_black_and_glass_coffee_table_blender\\cgaxis_round_black_and_glass_coffee_table_blender.blend",
+        "label": "cgaxis round black and glass coffee table blender",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "corner_bathtube_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Corner_Bathtube_BLEND\\Corner Bathtube.blend",
+        "label": "Corner Bathtube",
+        "size_mm": [
+          1700,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "dark_leather_sofa_15_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Dark_Leather_Sofa_15_BLEND\\Dark Leather Sofa 15.blend",
+        "label": "Dark Leather Sofa 15",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "double_glass_door_3d_model_7991_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Double_Glass_Door_3D_Model_7991_BLEND\\Double Glass Door 3D Model (7991).blend",
+        "label": "Double Glass Door 3D Model 7991",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "extension_rectangular_table_13_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Extension_Rectangular_Table_13_BLEND\\Extension Rectangular Table 13.blend",
+        "label": "Extension Rectangular Table 13",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "glass_table_23_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Glass_Table_23_BLEND\\Glass Table 23.blend",
+        "label": "Glass Table 23",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "glass_table_24_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Glass_Table_24_BLEND\\Glass Table 24.blend",
+        "label": "Glass Table 24",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "graphite_armchair_11_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Graphite_Armchair_11_BLEND\\Graphite Armchair 11.blend",
+        "label": "Graphite Armchair 11",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "graphite_sofa_12_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Graphite_Sofa_12_BLEND\\Graphite Sofa 12.blend",
+        "label": "Graphite Sofa 12",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_armchair_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Armchair_BLEND\\Grey Armchair.blend",
+        "label": "Grey Armchair",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_armchair_with_pillow_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Armchair_with_Pillow_BLEND\\Grey Armchair with Pillow.blend",
+        "label": "Grey Armchair with Pillow",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_bed_with_drawers_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Bed_with_Drawers_BLEND\\Grey Bed with Drawers.blend",
+        "label": "Grey Bed with Drawers",
+        "size_mm": [
+          1000,
+          2000
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_bed_with_grid_pattern_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Bed_with_Grid_Pattern_BLEND\\Grey Bed with Grid Pattern.blend",
+        "label": "Grey Bed with Grid Pattern",
+        "size_mm": [
+          1000,
+          2000
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_sofa_with_pillows_1_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Sofa_with_Pillows_1_BLEND\\Grey Sofa with Pillows 1.blend",
+        "label": "Grey Sofa with Pillows 1",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_sofa_with_pillows_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Sofa_with_Pillows_BLEND\\Grey Sofa with Pillows.blend",
+        "label": "Grey Sofa with Pillows",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_sofa_with_wooden_frame_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Sofa_with_Wooden_Frame_BLEND\\Grey Sofa with Wooden Frame.blend",
+        "label": "Grey Sofa with Wooden Frame",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_three_seat_sofa_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Three_Seat_Sofa_BLEND\\Grey Three Seat Sofa.blend",
+        "label": "Grey Three Seat Sofa",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "grey_two_seat_sofa_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Grey_Two_Seat_Sofa_BLEND\\Grey Two Seat Sofa.blend",
+        "label": "Grey Two Seat Sofa",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_10_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_10_BLEND\\Kitchen Furniture Set 10.blend",
+        "label": "Kitchen Furniture Set 10",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_16_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_16_BLEND\\Kitchen Furniture Set 16.blend",
+        "label": "Kitchen Furniture Set 16",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_17_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_17_BLEND\\Kitchen Furniture Set 17.blend",
+        "label": "Kitchen Furniture Set 17",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_1_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_1_BLEND\\Kitchen Furniture Set 1.blend",
+        "label": "Kitchen Furniture Set 1",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_20_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_20_BLEND\\Kitchen Furniture Set 20.blend",
+        "label": "Kitchen Furniture Set 20",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_3_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_3_BLEND\\Kitchen Furniture Set 3.blend",
+        "label": "Kitchen Furniture Set 3",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_4_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_4_BLEND\\Kitchen Furniture Set 4.blend",
+        "label": "Kitchen Furniture Set 4",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_6_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_6_BLEND\\Kitchen Furniture Set 6.blend",
+        "label": "Kitchen Furniture Set 6",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_7_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_7_BLEND\\Kitchen Furniture Set 7.blend",
+        "label": "Kitchen Furniture Set 7",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_9": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_9\\Kitchen Furniture Set 9.blend",
+        "label": "Kitchen Furniture Set 9",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_furniture_set_9_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Furniture_Set_9_BLEND\\Kitchen Furniture Set 9.blend",
+        "label": "Kitchen Furniture Set 9",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "kitchen_sink_24_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Kitchen_Sink_24_BLEND\\Kitchen Sink 24.blend",
+        "label": "Kitchen Sink 24",
+        "size_mm": [
+          600,
+          550
+        ],
+        "divisor": 1.0
+      }
+    },
+    "large_rounded_bathtube_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Large_Rounded_Bathtube_BLEND\\Large Rounded Bathtube.blend",
+        "label": "Large Rounded Bathtube",
+        "size_mm": [
+          1700,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "leather_armchair_with_footrest_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Leather_Armchair_with_Footrest_BLEND\\Leather Armchair with Footrest.blend",
+        "label": "Leather Armchair with Footrest",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "leather_chair_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Leather_Chair_BLEND\\Leather Chair.blend",
+        "label": "Leather Chair",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "leather_hocker_chair_3_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Leather_Hocker_Chair_3_BLEND\\Leather Hocker Chair 3.blend",
+        "label": "Leather Hocker Chair 3",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "light_grey_armchair_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Light-Grey_Armchair_BLEND\\Light-Grey Armchair.blend",
+        "label": "Light-Grey Armchair",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "light_grey_three_seat_sofa_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Light-Grey_Three_Seat_Sofa_BLEND\\Light-Grey Three Seat Sofa.blend",
+        "label": "Light-Grey Three Seat Sofa",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "light_grey_two_seat_sofa_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Light-Grey_Two_Seat_Sofa_BLEND\\Light-Grey Two Seat Sofa.blend",
+        "label": "Light-Grey Two Seat Sofa",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "metal_front_door_3d_model_7961_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Metal_Front_Door_3D_Model_7961_BLEND\\Metal Front Door 3D Model (7961).blend",
+        "label": "Metal Front Door 3D Model 7961",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "metal_front_door_3d_model_7962_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Metal_Front_Door_3D_Model_7962_BLEND\\Metal Front Door 3D Model (7962).blend",
+        "label": "Metal Front Door 3D Model 7962",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "metal_front_door_3d_model_7968_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Metal_Front_Door_3D_Model_7968_BLEND\\Metal Front Door 3D Model (7968).blend",
+        "label": "Metal Front Door 3D Model 7968",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "metal_front_door_3d_model_7976_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Metal_Front_Door_3D_Model_7976_BLEND\\Metal Front Door 3D Model (7976).blend",
+        "label": "Metal Front Door 3D Model 7976",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "metal_window_1180mm_x_1260mm_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Metal_Window_1180mm_x_1260mm_BLEND\\Metal Window 1180mm x 1260mm.blend",
+        "label": "Metal Window 1180mm x 1260mm",
+        "size_mm": [
+          1500,
+          1500
+        ],
+        "divisor": 1.0
+      }
+    },
+    "metal_window_1770mm_x_1800mm_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Metal_Window_1770mm_x_1800mm_BLEND\\Metal Window 1770mm x 1800mm.blend",
+        "label": "Metal Window 1770mm x 1800mm",
+        "size_mm": [
+          1500,
+          1500
+        ],
+        "divisor": 1.0
+      }
+    },
+    "modern_glass_topped_table_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Modern_Glass_Topped_Table_BLEND\\Modern Glass Topped Table.blend",
+        "label": "Modern Glass Topped Table",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "modern_square_washbasin_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Modern_Square_Washbasin_BLEND\\Modern Square Washbasin.blend",
+        "label": "Modern Square Washbasin",
+        "size_mm": [
+          600,
+          550
+        ],
+        "divisor": 1.0
+      }
+    },
+    "office_cabinet_12_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Office_Cabinet_12_BLEND\\Office Cabinet 12.blend",
+        "label": "Office Cabinet 12",
+        "size_mm": [
+          1500,
+          650
+        ],
+        "divisor": 1.0
+      }
+    },
+    "office_cabinet_13_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Office_Cabinet_13_BLEND\\Office Cabinet 13.blend",
+        "label": "Office Cabinet 13",
+        "size_mm": [
+          1500,
+          650
+        ],
+        "divisor": 1.0
+      }
+    },
+    "office_chair_48_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Office_Chair_48_BLEND\\Office Chair 48.blend",
+        "label": "Office Chair 48",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "office_chair_49_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Office_Chair_49_BLEND\\Office Chair 49.blend",
+        "label": "Office Chair 49",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "office_desk_34_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Office_Desk_34_BLEND\\Office Desk 34.blend",
+        "label": "Office Desk 34",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "office_desk_workstation_41_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Office_Desk_Workstation_41_BLEND\\Office Desk Workstation 41.blend",
+        "label": "Office Desk Workstation 41",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "office_storage_cubby_shelf_unit_09_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Office_Storage_Cubby_Shelf_Unit_09_BLEND\\Office Storage Cubby Shelf Unit 09.blend",
+        "label": "Office Storage Cubby Shelf Unit 09",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "rectangular_shower_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Rectangular_Shower_BLEND\\Rectangular Shower.blend",
+        "label": "Rectangular Shower",
+        "size_mm": [
+          900,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "rectangular_washbasin_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Rectangular_Washbasin_BLEND\\Rectangular Washbasin.blend",
+        "label": "Rectangular Washbasin",
+        "size_mm": [
+          600,
+          550
+        ],
+        "divisor": 1.0
+      }
+    },
+    "rouded_toilet_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Rouded_Toilet_BLEND\\Rouded Toilet.blend",
+        "label": "Rouded Toilet",
+        "size_mm": [
+          400,
+          600
+        ],
+        "divisor": 1.0
+      }
+    },
+    "shower_cabine_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Shower_Cabine_BLEND\\Shower Cabine.blend",
+        "label": "Shower Cabine",
+        "size_mm": [
+          900,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "square_batroom_sink_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Square_Batroom_Sink_BLEND\\Square Batroom Sink.blend",
+        "label": "Square Batroom Sink",
+        "size_mm": [
+          600,
+          550
+        ],
+        "divisor": 1.0
+      }
+    },
+    "square_coffee_table_with_glass_window_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Square_Coffee_Table_with_Glass_Window_BLEND\\Square Coffee Table with Glass Window.blend",
+        "label": "Square Coffee Table with Glass Window",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "square_shower_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Square_Shower_BLEND\\Square Shower.blend",
+        "label": "Square Shower",
+        "size_mm": [
+          900,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "standing_towel_hanger_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Standing_Towel_Hanger_BLEND\\Standing Towel Hanger.blend",
+        "label": "Standing Towel Hanger",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "toilet_bowl_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Toilet_Bowl_BLEND\\Toilet Bowl.blend",
+        "label": "Toilet Bowl",
+        "size_mm": [
+          400,
+          600
+        ],
+        "divisor": 1.0
+      }
+    },
+    "tv_flatscreen_01_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\TV_Flatscreen_01_BLEND\\TV Flatscreen 01.blend",
+        "label": "TV Flatscreen 01",
+        "size_mm": [
+          1400,
+          300
+        ],
+        "divisor": 1.0
+      }
+    },
+    "tv_flatscreen_03_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\TV_Flatscreen_03_BLEND\\TV Flatscreen 03.blend",
+        "label": "TV Flatscreen 03",
+        "size_mm": [
+          1400,
+          300
+        ],
+        "divisor": 1.0
+      }
+    },
+    "two_small_wooden_cabinets_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Two_Small_Wooden_Cabinets_BLEND\\Two Small Wooden Cabinets.blend",
+        "label": "Two Small Wooden Cabinets",
+        "size_mm": [
+          1500,
+          650
+        ],
+        "divisor": 1.0
+      }
+    },
+    "violet_corner_sofa_14_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Violet_Corner_Sofa_14_BLEND\\Violet Corner Sofa 14.blend",
+        "label": "Violet Corner Sofa 14",
+        "size_mm": [
+          2400,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "washbasin_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Washbasin_BLEND\\Washbasin.blend",
+        "label": "Washbasin",
+        "size_mm": [
+          600,
+          550
+        ],
+        "divisor": 1.0
+      }
+    },
+    "washing_machine_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+        "label": "Washing Machine",
+        "size_mm": [
+          1200,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "white_brown_cupboard_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\White-Brown_Cupboard_BLEND\\White-Brown Cupboard.blend",
+        "label": "White-Brown Cupboard",
+        "size_mm": [
+          1500,
+          650
+        ],
+        "divisor": 1.0
+      }
+    },
+    "white_door_3d_model_79100_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\White_Door_3D_Model_79100_BLEND\\White Door 3D Model (79100).blend",
+        "label": "White Door 3D Model 79100",
+        "size_mm": [
+          900,
+          2050
+        ],
+        "divisor": 1.0
+      }
+    },
+    "white_modern_sofa_13_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\White_Modern_Sofa_13_BLEND\\White Modern Sofa 13.blend",
+        "label": "White Modern Sofa 13",
+        "size_mm": [
+          2100,
+          900
+        ],
+        "divisor": 1.0
+      }
+    },
+    "white_rectangular_coffee_table_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\White_Rectangular_Coffee_Table_BLEND\\White Rectangular Coffee Table.blend",
+        "label": "White Rectangular Coffee Table",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "white_rounded_cupboard_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+        "label": "White Rounded Cupboard",
+        "size_mm": [
+          1500,
+          650
+        ],
+        "divisor": 1.0
+      }
+    },
+    "white_wardrobe_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\White_Wardrobe_BLEND\\White Wardrobe.blend",
+        "label": "White Wardrobe",
+        "size_mm": [
+          1500,
+          650
+        ],
+        "divisor": 1.0
+      }
+    },
+    "white_wooden_chair_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\White_Wooden_Chair_BLEND\\White Wooden Chair.blend",
+        "label": "White Wooden Chair",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "wooden_bed_with_black_orange_bedclothes_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Wooden_Bed_with_Black-Orange_Bedclothes_BLEND\\Wooden Bed with Black-Orange Bedclothes.blend",
+        "label": "Wooden Bed with Black-Orange Bedclothes",
+        "size_mm": [
+          1000,
+          2000
+        ],
+        "divisor": 1.0
+      }
+    },
+    "wooden_bed_with_black_mattress_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Wooden_Bed_with_Black_Mattress_BLEND\\Wooden Bed with Black Mattress.blend",
+        "label": "Wooden Bed with Black Mattress",
+        "size_mm": [
+          1000,
+          2000
+        ],
+        "divisor": 1.0
+      }
+    },
+    "wooden_chair_with_fabric_seat_and_pillow_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Wooden_Chair_with_Fabric_Seat_and_Pillow_BLEND\\Wooden Chair with Fabric Seat and Pillow.blend",
+        "label": "Wooden Chair with Fabric Seat and Pillow",
+        "size_mm": [
+          800,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "wooden_glass_table_29_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Wooden_Glass_Table_29_BLEND\\Wooden Glass Table 29.blend",
+        "label": "Wooden Glass Table 29",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "wooden_parsons_table_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Wooden_Parsons_Table_BLEND\\Wooden Parsons Table.blend",
+        "label": "Wooden Parsons Table",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    },
+    "wood_and_glass_coffee_table_3d_model_9730_blend": {
+      "modern": {
+        "path": "E:/_models_hub\\_extracted\\Wood_and_Glass_Coffee_Table_3D_Model_9730_BLEND\\Wood and Glass Coffee Table 3D Model (9730).blend",
+        "label": "Wood and Glass Coffee Table 3D Model 9730",
+        "size_mm": [
+          1600,
+          800
+        ],
+        "divisor": 1.0
+      }
+    }
+  }
+}
