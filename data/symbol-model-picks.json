@@ -269,14 +269,14 @@
   "essgruppe_6": {
    "type": "dining_set",
    "modern": {
-    "path": "E:\\_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
-    "divisor": 2.54,
-    "label": "Black Table and Chairs Set",
+    "path": "E:/_models_hub/_extracted/cgaxis_black_and_white_modern_dining_table_blender/cgaxis_black_and_white_modern_dining_table_blender/cgaxis_black_and_white_modern_dining_table_blender.blend",
+    "label": "cgaxis black and white modern dining table",
     "size_mm": [
-     2200,
-     1310,
-     924
-    ]
+     1522,
+     914
+    ],
+    "divisor": 1.0,
+    "note": "table only, measured 2026-08-10; 6 velvet chairs derived by the plan builder"
    },
    "classic": {
     "path": "E:\\_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
@@ -694,6 +694,17 @@
     ],
     "divisor": 3.5,
     "note": "measured 2236x2238x4340mm raw on 2026-08-10; divisor calibrated to 1240mm seat-back height"
+   }
+  },
+  "essgruppe_stuhl": {
+   "modern": {
+    "path": "E:/_models_hub/_extracted/cgaxis_dark_grey_velvet_dining_chair_blender/cgaxis_dark_grey_velvet_dining_chair_blender/cgaxis_dark_grey_velvet_dining_chair_blender.blend",
+    "label": "cgaxis dark grey velvet dining chair",
+    "size_mm": [
+     563,
+     593
+    ],
+    "divisor": 1.0
    }
   }
  }

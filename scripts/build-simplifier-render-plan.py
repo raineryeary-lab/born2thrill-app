@@ -120,6 +120,7 @@ SYMBOL_3D = {
     "schreibtisch_kind": {"height": 720,  "type": "desk"},
     "garderobe":         {"height": 1900, "type": "wardrobe"},
     "schreibtischstuhl": {"height": 1200, "type": "office_chair"},
+    "essgruppe_stuhl":   {"height": 844,  "type": "dining_chair"},
 }
 
 DEFAULT_WALL_THICKNESS_MM = 240
@@ -725,6 +726,54 @@ def main():
                     "derived_from": desk["asset_id"],
                     "source": "simplifier_annotations_proof",
                 })
+
+        # The modern dining pick is a TABLE-ONLY model (the old set model was
+        # a black blob and got swapped on Rainer's request); six chairs are
+        # derived around it: two per long side, one per end, each turned to
+        # face the table. Only when the resolved pick is a bare table —
+        # a set model (classic) brings its own chairs.
+        chair_model = models.get("essgruppe_stuhl")
+        if chair_model:
+            for table in [p for p in placements
+                          if p["asset_id"] == "essgruppe_6"
+                          and "table" in (p.get("model_label") or "").lower()
+                          and "set" not in (p.get("model_label") or "").lower()]:
+                tx, ty = table["position_mm"]
+                theta = math.radians(table.get("rotation_deg", 0))
+                cos_t, sin_t = math.cos(theta), math.sin(theta)
+                half_w = (table["verified_size_mm"] or [1522, 914])[0] / 2
+                half_d = (table["verified_size_mm"] or [1522, 914])[1] / 2
+                chair_half = 297
+                side_y = half_d + 40 + chair_half
+                end_x = half_w + 40 + chair_half
+                locals_deg = [(-half_w / 2, side_y, 180), (half_w / 2, side_y, 180),
+                              (-half_w / 2, -side_y, 0), (half_w / 2, -side_y, 0),
+                              (end_x, 0, 90), (-end_x, 0, 270)]
+                for lx, ly, face in locals_deg:
+                    wx = tx + lx * cos_t - ly * sin_t
+                    wy = ty + lx * sin_t + ly * cos_t
+                    placements.append({
+                        "asset_id": "essgruppe_stuhl",
+                        "type": "dining_chair",
+                        "mesh_path": chair_model["path"],
+                        "model_source": chair_model["source"],
+                        "model_label": chair_model.get("label"),
+                        "scale_divisor": chair_model.get("divisor", 1.0),
+                        "verified_size_mm": chair_model.get("size_mm"),
+                        "size_mismatch": False,
+                        "footprint_measured": False,
+                        "build": None,
+                        "position_mm": [round(wx, 1), round(wy, 1)],
+                        "rotation_deg": (table.get("rotation_deg", 0) + face) % 360,
+                        "mirrored": False,
+                        "target_bbox_mm": {"width_mm": 563, "depth_mm": 593,
+                                           "height_mm": 844},
+                        "height_mm": 0,
+                        "preserve_materials": True,
+                        "wall_snapped": False,
+                        "derived_from": "essgruppe_6",
+                        "source": "simplifier_annotations_proof",
+                    })
 
         floors_out.append({
             "id": level,

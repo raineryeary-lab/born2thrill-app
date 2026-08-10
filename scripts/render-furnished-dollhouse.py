@@ -268,6 +268,11 @@ FURNITURE_MATERIALS = {}
 ACCENT_OVERRIDE = {
     "sofa_1sitzer": FINISHES["fabric-charcoal"],
     "sofa_2sitzer": FINISHES["fabric-charcoal"],
+    # Keys may also be MODEL LABELS (checked first at the instance site):
+    # the classic dining set rendered as a black blob (Rainer), so it gets
+    # a light oak finish — label-keyed so the modern table's own black-and-
+    # white materials stay untouched.
+    "Black Table and Chairs Set": FINISHES["wood-oak"],
 }
 
 # See ROTATION_OVERRIDE's use at the instance-placement site for the reason.
@@ -1788,9 +1793,12 @@ for item in floor["placements"]:
                 fit_within_bbox(obj, item["target_bbox_mm"])
             elif not scale_to_verified(obj, item.get("verified_size_mm")):
                 fit_within_bbox(obj, item["target_bbox_mm"])
-            if asset_id in ACCENT_OVERRIDE:
+            accent_key = (item.get("model_label")
+                          if item.get("model_label") in ACCENT_OVERRIDE
+                          else asset_id)
+            if accent_key in ACCENT_OVERRIDE:
                 obj.data.materials.clear()
-                obj.data.materials.append(accent_material(asset_id))
+                obj.data.materials.append(accent_material(accent_key))
         else:
             normalise_to_bbox(obj, item["target_bbox_mm"])
             obj.data.materials.clear()
