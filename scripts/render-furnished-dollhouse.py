@@ -1404,9 +1404,33 @@ def build_box(name, item, material):
     height = (bbox.get("height_mm") or 800) * MM
     mount = item.get("height_mm", 0) * MM
     z = mount if mount else height / 2
-    return [box(name, (item["position_mm"][0] * MM, item["position_mm"][1] * MM, z),
-                (width, depth, height), math.radians(item.get("rotation_deg", 0)),
-                material, into="Furniture")]
+    angle = math.radians(item.get("rotation_deg", 0))
+    cx, cy = item["position_mm"][0] * MM, item["position_mm"][1] * MM
+    pieces = [box(name, (cx, cy, z), (width, depth, height), angle,
+                  material, into="Furniture")]
+
+    # A featureless slab at wardrobe size reads as a construction error, not
+    # as furniture (confirmed on render: every carcass looked like a blank
+    # monolith). Door gaps are what make cabinetry read as cabinetry at
+    # dollhouse distance: thin dark vertical reveals splitting the tall face
+    # into ~600 mm doors, on BOTH long faces since which one faces the room
+    # depends on the item's rotation and the back is hidden inside the wall
+    # zone anyway. Storage types only — a washer or TV panel has its own look.
+    if item.get("type") in ("wardrobe", "dressing_wardrobe", "storage_shelving",
+                            "sideboard", "tv_unit", "coat_rack") and height > 0.35:
+        gap_mat = furniture_material("office_chair")  # metal-matte-black
+        doors = max(2, round((width / MM) / 600))
+        sin_a, cos_a = math.sin(angle), math.cos(angle)
+        for d in range(1, doors):
+            along = -width / 2 + width * d / doors
+            for side in (-1.0, 1.0):
+                off_x = along * cos_a - side * (depth / 2) * sin_a
+                off_y = along * sin_a + side * (depth / 2) * cos_a
+                pieces.append(box(f"{name}-gap-{d}-{int(side)}",
+                                  (cx + off_x, cy + off_y, z),
+                                  (0.012, 0.006, height * 0.92), angle,
+                                  gap_mat, into="Furniture"))
+    return pieces
 
 
 def build_panel(name, item, material, thickness_m):
