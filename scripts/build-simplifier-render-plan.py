@@ -273,7 +273,22 @@ def build_walls(rooms):
     # one thin wall per neighbour.
     partnered = [False] * len(edges)
     paired = set()
+    # Per-edge list of (t0, t1) intervals along the edge that a pairing
+    # actually covered. One pairing used to consume the WHOLE edge, so the
+    # stretch of a long edge beyond its partner's overlap silently got NO
+    # wall at all — confirmed on bungalow_040_66: the Gast/office east
+    # edge paired with the Wohnen west edge over a partial span and the
+    # remainder (the missing 'Wand D' Rainer pointed at) vanished.
+    covered = [[] for _ in edges]
     walls = []
+
+    def _interval_on(edge, span):
+        ax, ay = edge["a"]
+        bx, by = edge["b"]
+        length = math.dist((ax, ay), (bx, by)) or 1.0
+        ux, uy = (bx - ax) / length, (by - ay) / length
+        ts = sorted(((p[0] - ax) * ux + (p[1] - ay) * uy) for p in span)
+        return (max(0.0, ts[0]), min(length, ts[1]))
 
     for i, edge in enumerate(edges):
         angle = math.atan2(edge["b"][1] - edge["a"][1], edge["b"][0] - edge["a"][0])
@@ -299,6 +314,8 @@ def build_walls(rooms):
             partnered[i] = partnered[j] = True
             paired.add((i, j))
             paired.add((j, i))
+            covered[i].append(_interval_on(edges[i], span))
+            covered[j].append(_interval_on(edges[j], span))
             other = edges[j]
             # Centreline sits midway between the two faces.
             ax, ay = edge["a"]
@@ -317,23 +334,38 @@ def build_walls(rooms):
             })
 
     for i, edge in enumerate(edges):
-        if partnered[i]:
-            continue
         ax, ay = edge["a"]
         bx, by = edge["b"]
         length = math.dist((ax, ay), (bx, by))
-        nx, ny = -(by - ay) / length, (bx - ax) / length
+        # The UNCOVERED stretches of this edge (whole edge when it never
+        # paired) each become an exterior wall — a partial pairing must
+        # not delete the rest of the wall.
+        gaps = []
+        cursor = 0.0
+        for t0, t1 in sorted(covered[i]):
+            if t0 - cursor > 300:
+                gaps.append((cursor, t0))
+            cursor = max(cursor, t1)
+        if length - cursor > 300:
+            gaps.append((cursor, length))
+        if not gaps:
+            continue
+        ux, uy = (bx - ax) / length, (by - ay) / length
+        nx, ny = -uy, ux
         # Push away from the room, so the wall sits outside its inner face.
         inward = (edge["centroid"][0] - ax) * nx + (edge["centroid"][1] - ay) * ny
         shift = (DEFAULT_WALL_THICKNESS_MM / 2.0) * (-1 if inward > 0 else 1)
-        walls.append({
-            "id": f"wall-{len(walls)}",
-            "start_mm": [round(ax + nx * shift, 1), round(ay + ny * shift, 1)],
-            "end_mm": [round(bx + nx * shift, 1), round(by + ny * shift, 1)],
-            "thickness_mm": DEFAULT_WALL_THICKNESS_MM,
-            "wall_type": "exterior",
-            "rooms": [edge["room"]],
-        })
+        for t0, t1 in gaps:
+            walls.append({
+                "id": f"wall-{len(walls)}",
+                "start_mm": [round(ax + ux * t0 + nx * shift, 1),
+                             round(ay + uy * t0 + ny * shift, 1)],
+                "end_mm": [round(ax + ux * t1 + nx * shift, 1),
+                           round(ay + uy * t1 + ny * shift, 1)],
+                "thickness_mm": DEFAULT_WALL_THICKNESS_MM,
+                "wall_type": "exterior",
+                "rooms": [edge["room"]],
+            })
 
     return walls
 

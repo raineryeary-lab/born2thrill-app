@@ -1002,6 +1002,14 @@ MODEL_FACING_DEG = {
 # directions — orientation calls on chiral furniture go to Rainer via
 # contact sheet from now on, never by eyeballing a perspective render.
 MODEL_MIRROR_Y = {"ecksofa"}
+
+# Per-LABEL orientation overrides, because one asset key resolves to a
+# DIFFERENT mesh per style. Each entry is a Rainer contact-sheet pick.
+MODEL_ORIENT_BY_LABEL = {
+    # tmp/violet-picker.png, pick Nr. 1 (n0): no mirror, total 0 —
+    # annotated rotation 180 means facing must be 180.
+    "Violet Corner Sofa 14": {"mirror": False, "facing": 180},
+}
 # Flip test against the drawing: DMH_MIRROR_OFF=<ids> removes assets from
 # the mirror set for one render; DMH_MIRROR_ON=<ids> adds them.
 if os.environ.get("DMH_MIRROR_OFF"):
@@ -1752,10 +1760,20 @@ for item in floor["placements"]:
             # size is trustworthy this fit stays, as the backstop that keeps a
             # bad divisor merely inaccurate rather than catastrophic.
             align_to_footprint(obj)
-            if asset_id in MODEL_MIRROR_Y:
+            # Orientation is per MODEL, not per asset key: the modern and
+            # classic picks for one symbol are different meshes with
+            # different chirality. Rainer settled each via contact sheet:
+            # grey modern ecksofa = Nr. 7 (mirror, facing 0), Violet
+            # Corner Sofa 14 = Nr. 1 (no mirror, facing 180, since his
+            # annotated rotation of 180 must land on 0 total).
+            orient = MODEL_ORIENT_BY_LABEL.get(item.get("model_label") or "")
+            mirror_this = (orient["mirror"] if orient
+                           else asset_id in MODEL_MIRROR_Y)
+            if mirror_this:
                 mirror_in_y(obj)
                 print(f"[dollhouse] mirrored      {asset_id} (asset chirality)")
-            facing = MODEL_FACING_DEG.get(asset_id, 0)
+            facing = (orient["facing"] if orient
+                      else MODEL_FACING_DEG.get(asset_id, 0))
             if facing:
                 obj.rotation_euler[2] += math.radians(facing)
                 bpy.context.view_layer.update()
