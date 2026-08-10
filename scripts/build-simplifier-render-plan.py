@@ -261,16 +261,25 @@ def build_walls(rooms):
     the room.
     """
     edges = _edges_of(rooms)
-    used = [False] * len(edges)
+    # An edge may face SEVERAL rooms along its length (a long HWR wall with
+    # DU-WC on one span and the Flur on another). Exclusive one-shot pairing
+    # (`used[j]`) let the first room consume the whole edge; the second
+    # room's edge then found no partner and fell through to the exterior
+    # branch -- a 240mm 'exterior' wall dead-ending in the middle of the
+    # flat, which is exactly the fat junction stub seen on render (task
+    # #12). So: an edge may partner once per FACING PAIR; only an edge that
+    # never partnered at all becomes exterior. Each room's own edge pulls
+    # in its own span, so a shared long edge ends up correctly split into
+    # one thin wall per neighbour.
+    partnered = [False] * len(edges)
+    paired = set()
     walls = []
 
     for i, edge in enumerate(edges):
-        if used[i]:
-            continue
         angle = math.atan2(edge["b"][1] - edge["a"][1], edge["b"][0] - edge["a"][0])
         partner = None
         for j, other in enumerate(edges):
-            if used[j] or j == i or other["room"] == edge["room"]:
+            if j == i or other["room"] == edge["room"] or (i, j) in paired:
                 continue
             other_angle = math.atan2(other["b"][1] - other["a"][1], other["b"][0] - other["a"][0])
             difference = abs((angle - other_angle + math.pi / 2) % math.pi - math.pi / 2)
@@ -287,7 +296,9 @@ def build_walls(rooms):
 
         if partner is not None:
             gap, j, span = partner
-            used[i] = used[j] = True
+            partnered[i] = partnered[j] = True
+            paired.add((i, j))
+            paired.add((j, i))
             other = edges[j]
             # Centreline sits midway between the two faces.
             ax, ay = edge["a"]
@@ -306,7 +317,7 @@ def build_walls(rooms):
             })
 
     for i, edge in enumerate(edges):
-        if used[i]:
+        if partnered[i]:
             continue
         ax, ay = edge["a"]
         bx, by = edge["b"]

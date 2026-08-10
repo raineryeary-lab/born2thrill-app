@@ -614,24 +614,19 @@ def opening_frame(name, wall, opening, centre, angle, height, material):
     return parts
 
 
-def _end_extension_mm(endpoint, own, all_walls):
-    """How far one wall END may extend: to the far face of whatever wall it
-    meets there, and not a millimetre further.
+def _end_extension_mm(endpoint, outward, own, all_walls):
+    """How far one wall END may extend ALONG ITS OWN AXIS: to the far face
+    of whatever wall it meets there, and not a millimetre further.
 
-    The previous blanket rule (extend every >=200mm wall by half its own
-    thickness) filled the corner notches but pushed thick walls THROUGH
-    thinner crossing partitions and out the far side -- confirmed on render
-    as plus-shaped bumps and stubs on the wall caps at T- and cross-
-    junctions, unchanged even after boolean-unioning the walls, because the
-    protrusion is real geometry, not an overlap artifact.
-
-    A wall meets another wall at this endpoint if the endpoint sits on or
-    near that wall's centreline segment (within the sum of half-
-    thicknesses). The correct reach is to that wall's FAR face: half the
-    met wall's thickness past its centreline. Where several walls meet,
-    the largest such reach fills the deepest junction. Where nothing meets
-    (a free end at an opening), the wall stops dead -- the blanket rule was
-    also planting 120mm phantom stubs on those.
+    Two failed versions taught the shape of this function. The blanket rule
+    (extend every >=200mm wall by half its own thickness) pushed thick
+    walls through thin partitions and planted stubs at free ends. The
+    euclidean version (`dist + half`) overshot whenever the endpoint sat
+    diagonally off the met wall, poking the wall out its far side --
+    isolated on a walls-only render as plus-shaped caps. The reach has to
+    be measured along the wall's own outward direction: project onto the
+    met wall's NORMAL, extend exactly to its far plane, capped so a near-
+    parallel projection can never explode.
     """
     ex, ey = endpoint
     best = 0.0
@@ -640,18 +635,35 @@ def _end_extension_mm(endpoint, own, all_walls):
             continue
         sx, sy = other["start_mm"]
         tx, ty = other["end_mm"]
-        seg_sq = (tx - sx) ** 2 + (ty - sy) ** 2
-        if not seg_sq:
+        seg = math.hypot(tx - sx, ty - sy)
+        if not seg:
             continue
-        t = max(0.0, min(1.0, ((ex - sx) * (tx - sx) + (ey - sy) * (ty - sy)) / seg_sq))
-        dist = math.hypot(ex - (sx + t * (tx - sx)), ey - (sy + t * (ty - sy)))
+        t = max(0.0, min(1.0, ((ex - sx) * (tx - sx) + (ey - sy) * (ty - sy)) / seg ** 2))
+        px, py = sx + t * (tx - sx), sy + t * (ty - sy)
+        dist = math.hypot(ex - px, ey - py)
         touch = (own["thickness_mm"] + other["thickness_mm"]) / 2 + 5
-        if dist <= touch:
-            # Endpoint sits `dist` off the met wall's centreline; its far
-            # face is half its thickness beyond that centreline. At a shared
-            # corner endpoint (dist 0) this is exactly half the met wall --
-            # flush with its outer face, no stub.
-            best = max(best, dist + other["thickness_mm"] / 2)
+        if dist > touch:
+            continue
+        # Signed distance from the endpoint to the met wall's centreline,
+        # along that wall's normal; positive toward the endpoint's side.
+        nx, ny = -(ty - sy) / seg, (tx - sx) / seg
+        side = (ex - sx) * nx + (ey - sy) * ny
+        if side < 0:
+            nx, ny, side = -nx, -ny, -side
+        # Along-axis rate of approach to the met wall's centreline. A near-
+        # parallel wall barely closes the distance -- skip it rather than
+        # divide by almost-zero.
+        approach = -(outward[0] * nx + outward[1] * ny)
+        if approach < 0.2:
+            continue
+        # Extend along `outward` until the endpoint's offset `side` becomes
+        # -half (the far face): (side + half) / approach, never further
+        # than the met wall is deep.
+        # +10mm past the far face: exactly-flush faces are coplanar, and the
+        # EXACT union leaves seam slivers on coplanar geometry (same trap as
+        # the window cutters). A buried overshoot is invisible; a seam isn't.
+        reach = (side + other["thickness_mm"] / 2) / approach + 10
+        best = max(best, min(reach, other["thickness_mm"] + own["thickness_mm"]))
     return best
 
 
@@ -669,9 +681,9 @@ def wall_object(name, wall, openings, height_mm, rooms, all_walls=()):
     angle = math.atan2(y2 - y1, x2 - x1)
     # Per-end, junction-aware extension (see _end_extension_mm). Ends grow
     # asymmetrically, so the box centre shifts by half the difference.
-    e1 = _end_extension_mm(wall["start_mm"], wall, all_walls) * MM
-    e2 = _end_extension_mm(wall["end_mm"], wall, all_walls) * MM
     ux, uy = (x2 - x1) / length, (y2 - y1) / length
+    e1 = _end_extension_mm(wall["start_mm"], (-ux, -uy), wall, all_walls) * MM
+    e2 = _end_extension_mm(wall["end_mm"], (ux, uy), wall, all_walls) * MM
     cx = (x1 + x2) / 2 + ux * (e2 - e1) / 2
     cy = (y1 + y2) / 2 + uy * (e2 - e1) / 2
     obj = box(name, (cx, cy, height / 2),
@@ -1902,6 +1914,15 @@ scene.view_settings.exposure = 0.2
 
 scene.render.resolution_x = 2000
 scene.render.resolution_y = 1500
+# DMH_WALLS_ONLY=1: hide every render object except the wall bodies, for
+# unambiguous attribution of cap-level artifacts. Must run BEFORE the
+# render call below — appended-at-EOF diagnostics execute after the PNG is
+# already written and silently do nothing.
+if os.environ.get("DMH_WALLS_ONLY") == "1":
+    for _obj in bpy.context.scene.objects:
+        if _obj.type == "MESH" and not _obj.name.startswith("wall-0"):
+            _obj.hide_render = True
+
 scene.render.film_transparent = False
 scene.render.image_settings.file_format = "PNG"
 scene.render.filepath = os.path.abspath(out_path)
