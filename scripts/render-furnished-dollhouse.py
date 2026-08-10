@@ -1927,6 +1927,7 @@ scene.render.film_transparent = False
 scene.render.image_settings.file_format = "PNG"
 scene.render.filepath = os.path.abspath(out_path)
 
+
 print(f"[dollhouse] floor           {floor['name']}")
 print(f"[dollhouse] rooms           {len(floor['rooms'])}")
 print(f"[dollhouse] walls           {len(floor['walls'])} at {wall_height}mm")
@@ -1946,6 +1947,123 @@ if failed:
     print(f"[dollhouse] FAILED IMPORT  {', '.join(sorted(set(failed)))}")
 
 bpy.ops.render.render(write_still=True)
+
+# --------------------------------------------- depth + edge passes (Stage 5)
+# The ComfyUI polish pass needs a true-geometry depth map (depth ControlNet)
+# and a clean edge map. The 5.0 compositor File Output node ignores
+# per-item PNG formats headless and only emits one multilayer EXR, so the
+# compositor route was abandoned (verified on a minimal graph). Instead: a
+# SECOND cheap render with every material overridden by a camera-depth
+# emission shader (no lights involved, few samples), then a numpy Sobel on
+# that depth for the edge map. Written as <out>-depth.png / <out>-edge.png.
+# DMH_NO_PASSES=1 skips.
+if os.environ.get("DMH_NO_PASSES") != "1":
+    base = os.path.splitext(os.path.abspath(out_path))[0]
+
+    depth_mat = bpy.data.materials.new("depth-emission")
+    depth_mat.use_nodes = True
+    nodes = depth_mat.node_tree.nodes
+    nodes.clear()
+    cam_data = nodes.new("ShaderNodeCameraData")
+    map_range = nodes.new("ShaderNodeMapRange")
+    # Normalize raw view depth into 0..1 with numpy afterwards; here just
+    # scale into a safe sub-1 band so the PNG doesn't clip: the camera sits
+    # about 2.2 spans from the far corner.
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = span * 3.0
+    map_range.inputs["To Min"].default_value = 1.0   # near = bright
+    map_range.inputs["To Max"].default_value = 0.0
+    emission = nodes.new("ShaderNodeEmission")
+    output = nodes.new("ShaderNodeOutputMaterial")
+    links = depth_mat.node_tree.links
+    links.new(cam_data.outputs["View Z Depth"], map_range.inputs["Value"])
+    links.new(map_range.outputs["Result"], emission.inputs["Color"])
+    links.new(emission.outputs["Emission"], output.inputs["Surface"])
+
+    overridden = []
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        overridden.append((obj, list(obj.data.materials)))
+        obj.data.materials.clear()
+        obj.data.materials.append(depth_mat)
+
+    world = bpy.context.scene.world
+    old_world_nodes = world.use_nodes if world else None
+    if world:
+        world.use_nodes = False
+        world.color = (0.0, 0.0, 0.0)
+    try:
+        scene.view_settings.view_transform = "Standard"
+    except TypeError:
+        pass
+    scene.view_settings.exposure = 0.0
+    try:
+        scene.eevee.taa_render_samples = 8
+    except AttributeError:
+        pass
+    scene.render.filepath = base + "-depth.png"
+    bpy.ops.render.render(write_still=True)
+
+    # Restore is unnecessary (the process exits) but cheap and keeps any
+    # later in-process diagnostics honest.
+    for obj, mats in overridden:
+        obj.data.materials.clear()
+        for m in mats:
+            obj.data.materials.append(m)
+    if world and old_world_nodes is not None:
+        world.use_nodes = old_world_nodes
+
+    try:
+        import numpy as np
+        img = bpy.data.images.load(base + "-depth.png")
+        w, h = img.size
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
+        grey = px[:, :, 0]
+        # The raw map only spans a narrow band of the safe 0..1 scale.
+        # Stretch the FOREGROUND (anything that isn't the flat background
+        # value) to full range — ControlNet depth wants full-contrast
+        # relative depth, and the Sobel below inherits the contrast.
+        background = grey[0, 0]
+        fg = np.abs(grey - background) > 0.02
+        # Low-sample dither speckle survives any threshold as isolated
+        # pixels; a single erosion pass keeps only pixels with a foreground
+        # neighbourhood, then one dilation restores the true silhouette.
+        core = fg.copy()
+        core[1:, :] &= fg[:-1, :]; core[:-1, :] &= fg[1:, :]
+        core[:, 1:] &= fg[:, :-1]; core[:, :-1] &= fg[:, 1:]
+        grown = core.copy()
+        grown[1:, :] |= core[:-1, :]; grown[:-1, :] |= core[1:, :]
+        grown[:, 1:] |= core[:, :-1]; grown[:, :-1] |= core[:, 1:]
+        fg = grown
+        if fg.any():
+            lo = np.percentile(grey[fg], 1.0)
+            hi = np.percentile(grey[fg], 99.0)
+            if hi > lo:
+                grey = np.clip((grey - lo) / (hi - lo), 0.0, 1.0)
+                grey[~fg] = 0.0
+        px[:, :, 0] = px[:, :, 1] = px[:, :, 2] = grey
+        img.pixels = px.ravel().tolist()
+        img.filepath_raw = base + "-depth.png"
+        img.file_format = "PNG"
+        img.save()
+        gx = np.zeros_like(grey); gy = np.zeros_like(grey)
+        gx[:, 1:-1] = grey[:, 2:] - grey[:, :-2]
+        gy[1:-1, :] = grey[2:, :] - grey[:-2, :]
+        mag = np.sqrt(gx ** 2 + gy ** 2)
+        top = np.percentile(mag, 99.5) or 1.0
+        mag = np.clip(mag / top, 0.0, 1.0)
+        out = np.zeros((h, w, 4), dtype=np.float32)
+        out[:, :, 0] = out[:, :, 1] = out[:, :, 2] = mag
+        out[:, :, 3] = 1.0
+        img.pixels = out.ravel().tolist()
+        img.filepath_raw = base + "-edge.png"
+        img.file_format = "PNG"
+        img.save()
+        print(f"[dollhouse] passes          {base}-depth.png / -edge.png")
+    except Exception as error:  # noqa: BLE001
+        print(f"[dollhouse] edge pass FAILED: {error}")
+
 # Scene inventory, largest first. Three root-cause guesses at an oversized
 # object all failed to change the image, which meant the thing was not on the
 # path being guessed about. Measuring names it in one run.
