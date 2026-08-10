@@ -48,7 +48,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Persistent follow-up tracking
 
-Canonical suite roadmap: `C:\dev\born2thrill-app-repo\plans\ROADMAP.md`
+Canonical suite roadmap: `C:\dev\Floorplan-tools\born2thrill-app-repo\plans\ROADMAP.md`
 
 Before marking any task complete:
 
