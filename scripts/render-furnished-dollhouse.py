@@ -995,13 +995,13 @@ MODEL_FACING_DEG = {
 # adding the canvas turn on top double-applies that correction. The canvas
 # transpose is real but it is a 2D-icon-display fix, not a fact about which
 # way the 3D model should face; do not reintroduce it here.
-# 2026-08-10 evening, checked against the DRAWING (the only ground truth,
-# crop pair in tmp/sofa-mirror-test.png): UNMIRRORED matches — long arm on
-# the north wall, short arm east, exactly as annotated. The previous
-# night's mirror entry was an over-correction, verified circularly against
-# symbol art that carried the same mirror. Empty set kept for the next
-# asset that genuinely needs it.
-MODEL_MIRROR_Y = set()
+# 2026-08-10, settled by RAINER HIMSELF from the 8-orientation contact
+# sheet (tmp/sofa-picker.png): Nr. 7 = mirrored, 180 total. With facing 0
+# and his annotated rotation_deg 180 that means the mirror is IN. Two
+# agent attempts to judge this from renders both failed in opposite
+# directions — orientation calls on chiral furniture go to Rainer via
+# contact sheet from now on, never by eyeballing a perspective render.
+MODEL_MIRROR_Y = {"ecksofa"}
 # Flip test against the drawing: DMH_MIRROR_OFF=<ids> removes assets from
 # the mirror set for one render; DMH_MIRROR_ON=<ids> adds them.
 if os.environ.get("DMH_MIRROR_OFF"):
@@ -1393,6 +1393,20 @@ for index, wall in enumerate(floor["walls"]):
 # with a single flat cap — interior overlap faces disappear, which no
 # per-wall extension tuning can achieve. Union BEFORE the dollhouse cut so
 # the tilted slice sees one solid, not thirty.
+# Per-wall slicing is the DEFAULT again. The 30-step EXACT union chain
+# silently DESTROYED whole wall stretches (proved by A/B render
+# tmp/union-wall-test2.png: the Buero window sits in a full wall without
+# the union, in a void with it — Rainer spotted it, the vertex probe was
+# fooled by leftover fragments). The junction-bump fixes live in the
+# pairing + axis-projected extensions, NOT in the union, so nothing is
+# lost. DMH_UNION=1 re-enables the chain for future experiments.
+if wall_bodies and os.environ.get("DMH_UNION") != "1":
+    for body in wall_bodies:
+        bpy.ops.object.select_all(action="DESELECT")
+        apply_cut(body, cut_solid)
+    sliced_walls = len(wall_bodies)
+    wall_bodies = []
+
 if wall_bodies:
     merged = wall_bodies[0]
     for other in wall_bodies[1:]:
@@ -1530,6 +1544,45 @@ def build_shower(name, item):
     return built
 
 
+FLUSH_TYPES = ("oven_housing", "fridge", "washer", "wardrobe", "wall_panel")
+
+
+def _snap_flush(centre_xy_m, depth_m, max_gap_mm=450):
+    """Shift a fitted item so its back face touches the nearest wall face.
+
+    A fitted kitchen has no air between tall units and the wall (Rainer:
+    'die Küche ist immer noch nicht ohne Lücken'). Gaps appear when the
+    annotated footprint is deeper than the catalogue depth the box is
+    built with — the centre stays, the faces shrink. Snapping the back
+    face to the nearest wall face within 450mm closes exactly that, and
+    never moves anything drawn free-standing in the middle of a room."""
+    cx_mm, cy_mm = centre_xy_m[0] / MM, centre_xy_m[1] / MM
+    best = None
+    for wall in floor["walls"]:
+        sx, sy = wall["start_mm"]
+        ex, ey = wall["end_mm"]
+        seg_sq = (ex - sx) ** 2 + (ey - sy) ** 2
+        if not seg_sq:
+            continue
+        t = max(0.0, min(1.0, ((cx_mm - sx) * (ex - sx) + (cy_mm - sy) * (ey - sy)) / seg_sq))
+        px, py = sx + t * (ex - sx), sy + t * (ey - sy)
+        dist = math.hypot(cx_mm - px, cy_mm - py)
+        face = dist - wall["thickness_mm"] / 2
+        if face <= 0 or face > max_gap_mm:
+            continue
+        if best is None or face < best[0]:
+            direction = ((px - cx_mm) / dist, (py - cy_mm) / dist)
+            best = (face, direction)
+    if best is None:
+        return centre_xy_m
+    face, direction = best
+    shift_mm = face - (depth_m / MM) / 2
+    if shift_mm <= 2:
+        return centre_xy_m
+    return (centre_xy_m[0] + direction[0] * shift_mm * MM,
+            centre_xy_m[1] + direction[1] * shift_mm * MM)
+
+
 def build_box(name, item, material):
     """A plain carcass at the annotated size.
 
@@ -1549,6 +1602,8 @@ def build_box(name, item, material):
     z = mount if mount else height / 2
     angle = math.radians(item.get("rotation_deg", 0))
     cx, cy = item["position_mm"][0] * MM, item["position_mm"][1] * MM
+    if item.get("type") in FLUSH_TYPES:
+        cx, cy = _snap_flush((cx, cy), depth)
     pieces = [box(name, (cx, cy, z), (width, depth, height), angle,
                   material, into="Furniture")]
 
