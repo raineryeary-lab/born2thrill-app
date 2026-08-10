@@ -326,6 +326,32 @@ def build_walls(rooms):
     return walls
 
 
+def point_in_polygon(point, polygon, tolerance_mm=300):
+    """Inside the polygon, or within tolerance of its boundary — openings sit
+    ON a room's edge, so their midpoint can land just outside the polygon."""
+    x, y = point
+    inside = False
+    j = len(polygon) - 1
+    for i in range(len(polygon)):
+        xi, yi = polygon[i]
+        xj, yj = polygon[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    if inside:
+        return True
+    for i in range(len(polygon)):
+        sx, sy = polygon[i]
+        ex, ey = polygon[(i + 1) % len(polygon)]
+        length_squared = (ex - sx) ** 2 + (ey - sy) ** 2
+        if not length_squared:
+            continue
+        t = max(0.0, min(1.0, ((x - sx) * (ex - sx) + (y - sy) * (ey - sy)) / length_squared))
+        if math.dist(point, (sx + t * (ex - sx), sy + t * (ey - sy))) <= tolerance_mm:
+            return True
+    return False
+
+
 def nearest_wall(walls, a, b):
     """The wall an opening belongs to: closest by midpoint, and roughly parallel.
 
@@ -432,11 +458,15 @@ def main():
         frame = Frame(scale, pixel_width, pixel_height)
 
         rooms = []
+        excluded_polygons = []
         for item in annotations.get("annotations", []):
             if item.get("floor_level") != level:
                 continue
             points = item.get("points") or []
-            if len(points) < 3 or excluded(item.get("label")):
+            if len(points) < 3:
+                continue
+            if excluded(item.get("label")):
+                excluded_polygons.append((item.get("label"), [frame.point(p) for p in points]))
                 continue
             polygon = [frame.point(p) for p in points]
             rooms.append({
@@ -451,6 +481,7 @@ def main():
 
         openings = []
         unmatched = []
+        skipped_excluded = []
         for element in annotations.get("elements", []):
             if element.get("floor_level") != level:
                 continue
@@ -463,7 +494,13 @@ def main():
             a, b = frame.point(points[0]), frame.point(points[1])
             match = nearest_wall(walls, a, b)
             if match is None or match[0] > 1200:
-                unmatched.append(element.get("id"))
+                midpoint = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+                host = next((label for label, poly in excluded_polygons
+                             if point_in_polygon(midpoint, poly)), None)
+                if host:
+                    skipped_excluded.append((element.get("id"), host))
+                else:
+                    unmatched.append(element.get("id"))
                 continue
             _, wall, t = match
 
@@ -607,6 +644,8 @@ def main():
             "unplaced": skipped,
             "skipped_rooms": [],
             "unmatched_openings": unmatched,
+            "openings_in_excluded_rooms": [
+                {"id": oid, "room": label} for oid, label in skipped_excluded],
         })
 
     out = {
@@ -632,6 +671,9 @@ def main():
               f"{len(floor['openings'])} openings, {len(floor['placements'])} furniture")
         if floor["unmatched_openings"]:
             print(f"[plan]   {len(floor['unmatched_openings'])} openings matched no wall")
+        for entry in floor.get("openings_in_excluded_rooms", []):
+            print(f"[plan]   opening {entry['id']} sits in excluded room "
+                  f"'{entry['room']}' — intentionally not rendered")
         for item in floor["unplaced"]:
             print(f"[plan]   skipped {item['symbol']}: {item['reason']}")
         procedural = [p["asset_id"] for p in floor["placements"] if p.get("model_source") == "procedural"]

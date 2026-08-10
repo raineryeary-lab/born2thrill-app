@@ -20,8 +20,8 @@ where noted:
 
 | # | Defect | Evidence on file | Status |
 |---|---|---|---|
-| 1 | 2 openings never cut into a wall | both at x 0.07–0.24; `nearest_wall` rejects beyond 1200mm | unverified |
-| 2 | Door swing ignores the annotation | 7/7 doors carry `swing_side`; partial fix in `add_door_leaf` mid-edit, never rendered | unverified, treat as broken |
+| 1 | 2 openings never cut into a wall | **RESOLVED 2026-08-10**: both are the Carport's open sides (3.4m/3.3m passages); Carport is an excluded room with no walls — nothing to cut. Plan builder now classifies openings inside excluded-room polygons (300mm boundary tolerance) and reports them as intentional, not as errors. Measured: midpoints 2.0m+ from any rendered wall | ✅ done |
+| 2 | Door swing ignores the annotation | **VERIFIED WORKING 2026-08-10**: overlay renders (drawing underlay + rendered leaf) confirm 6/7 leaves lie inside their drawn arcs (`tmp/door-overlay-verify*.png`); the annotated swing/hinge values flow annotation → plan JSON → `add_door_leaf` correctly. 7th (f7a23209, Bad) renders at the right opening trending into the correct room but the verification crop is not crisp — re-check when next full render is inspected | ✅ done (1 soft) |
 | 3 | Kuechenzeile pushed off its wall | `_towards_centre` uses building centroid | unverified |
 | 4 | No chair at the desk | 7 chairs catalogued, 0 placed | confirmed tonight — desk itself is correctly placed and oriented; only the chair is missing |
 | 5 | 12 of 35 placements are plain white boxes | no finishes lifted from real models | unverified; note tonight found 5 of these (spuele, badheizkoerper, fernseher, dusche, dusche_klein) route through procedural builders even though the plan JSON marks `preserve_materials: true` — that flag is dead for anything with a `build` kind set, worth fixing so the plan doesn't lie about which path an item takes |
