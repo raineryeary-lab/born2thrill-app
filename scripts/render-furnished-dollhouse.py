@@ -77,7 +77,8 @@ def flat(name, color, roughness=0.6, metallic=0.0):
     return mat
 
 
-def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_path=None, uv_offset=(0, 0)):
+def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_path=None, uv_offset=(0, 0),
+             tint=None, tint_factor=0.0):
     """Image-textured material tiled at real-world scale.
 
     Floor plates are built from raw polygons and have no UV map, so this uses
@@ -107,7 +108,18 @@ def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_pa
 
     links.new(coord.outputs["Object"], mapping.inputs["Vector"])
     links.new(mapping.outputs["Vector"], tex.inputs["Vector"])
-    links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if tint and tint_factor > 0:
+        # Finish variants re-colour the SAME floor texture instead of
+        # needing a texture per look: multiply toward the tint, keeping the
+        # grain. Deterministic, no new assets.
+        mix = nodes.new("ShaderNodeMixRGB")
+        mix.blend_type = "MULTIPLY"
+        mix.inputs["Fac"].default_value = tint_factor
+        mix.inputs["Color2"].default_value = (*tint, 1.0)
+        links.new(tex.outputs["Color"], mix.inputs["Color1"])
+        links.new(mix.outputs["Color"], bsdf.inputs["Base Color"])
+    else:
+        links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
 
     # A normal map is what makes stone read as stone rather than as a
     # photograph printed on a flat plane.
@@ -125,12 +137,36 @@ def textured(name, image_path, tile_size_m, roughness, fallback_color, normal_pa
     return mat
 
 
-WALL_MAT = flat("dollhouse-wall", (0.90, 0.89, 0.87), roughness=0.9)
+# ------------------------------------------------------------- finish sets
+# Rainer's variant strategy (2026-08-10): keep the geometry and most of the
+# scene identical; swap ONLY wall tone, floor tint, kitchen fronts and
+# upholstery. Small changes, big perceived difference — and each style
+# (modern/classic furniture picks) gets two finish looks, giving the four
+# interior images per home the rollout plan promises. Select with
+# DMH_FINISH=<name>; default is the look every render so far used.
+FINISH_SETS = {
+    "modern-a": {"wall": (0.90, 0.89, 0.87),
+                 "floor_tint": None, "floor_tint_factor": 0.0,
+                 "kitchen": "metal-matte-black", "sofa": "fabric-charcoal"},
+    "modern-b": {"wall": (0.87, 0.84, 0.78),
+                 "floor_tint": (0.38, 0.25, 0.18), "floor_tint_factor": 0.85,
+                 "kitchen": "lacquer-white", "sofa": "fabric-navy"},
+    "classic-a": {"wall": (0.92, 0.89, 0.82),
+                  "floor_tint": (0.74, 0.54, 0.34), "floor_tint_factor": 0.35,
+                  "kitchen": "wood-walnut", "sofa": "fabric-cream"},
+    "classic-b": {"wall": (0.86, 0.88, 0.85),
+                  "floor_tint": (0.55, 0.38, 0.25), "floor_tint_factor": 0.45,
+                  "kitchen": "wood-oak", "sofa": "fabric-terracotta"},
+}
+FINISH = FINISH_SETS[os.environ.get("DMH_FINISH", "modern-a")]
+
+WALL_MAT = flat("dollhouse-wall", FINISH["wall"], roughness=0.9)
 # Subtle UV offset (0.33, 0.27) breaks up obvious grid tiling without appearing arbitrary.
 # Per rulebook 8: "Slight deterministic UV offset or rotation may reduce repetition
 # without changing material identity."
 WOOD_MAT = textured("floor-wood", WOOD_DIFFUSE, WOOD_TILE_SIZE_M, 0.45, (0.62, 0.42, 0.24),
-                    uv_offset=(0.33, 0.27))
+                    uv_offset=(0.33, 0.27),
+                    tint=FINISH["floor_tint"], tint_factor=FINISH["floor_tint_factor"])
 GRANITE_MAT = textured("floor-granite", GRANITE_DIFFUSE, GRANITE_TILE_SIZE_M, 0.25,
                        (0.55, 0.55, 0.57), normal_path=GRANITE_NORMAL, uv_offset=(0.17, 0.42))
 SCREED_MAT = flat("floor-screed", (0.52, 0.52, 0.50), roughness=0.8)
@@ -163,6 +199,7 @@ FINISHES = {
     "wood-walnut": ((0.32, 0.20, 0.14), 0.0, 0.50),
     "wood-white-oak": ((0.82, 0.76, 0.66), 0.0, 0.60),
     "metal-matte-black": ((0.06, 0.06, 0.07), 0.6, 0.35),
+    "lacquer-white": ((0.92, 0.92, 0.90), 0.0, 0.35),
     "metal-brushed-steel": ((0.62, 0.63, 0.65), 0.75, 0.30),
     "glass-clear": ((0.85, 0.90, 0.92), 0.05, 0.08),
 }
@@ -204,6 +241,12 @@ TYPE_FINISH = {
     "oven_housing": "metal-matte-black",
     "sink": "metal-brushed-steel",
 }
+
+# The finish set overrides the variant-bearing surfaces; everything else in
+# TYPE_FINISH stays put so a wardrobe doesn't change colour with the kitchen.
+TYPE_FINISH["counter"] = FINISH["kitchen"]
+TYPE_FINISH["oven_housing"] = FINISH["kitchen"]
+TYPE_FINISH["sofa"] = FINISH["sofa"]
 
 FURNITURE_MATERIALS = {}
 
