@@ -2153,10 +2153,13 @@ for cx, cy, width, depth, angle, own_back_direction in OVEN_QUEUE:
     front_plane = cx * fx + cy * fy + depth / 2
     corners = [oven.matrix_world @ mathutils.Vector(c) for c in oven.bound_box]
     foremost = max(c.x * fx + c.y * fy for c in corners)
-    # 25mm proud: a built-in oven's fascia/handles stand slightly out of
-    # the carcass — at 5mm the dark glass front vanished optically into
-    # the dark cabinet (probe confirmed it was THERE, z 0.60-1.62).
-    shift = foremost - (front_plane + 0.025)
+    # 50mm proud. History: 5mm made the dark glass vanish optically into
+    # the dark cabinet, 25mm was still "sticking out too far" by eye
+    # according to Rainer AND simultaneously not far enough — he hand-
+    # repositioned it +28mm further out in the exported .blend (measured:
+    # 8.719 -> 8.747m along the facing axis). 25+28=53, rounded to a
+    # clean 50mm.
+    shift = foremost - (front_plane + 0.050)
     oven.location.x -= fx * shift
     oven.location.y -= fy * shift
     for coll in list(oven.users_collection):
@@ -2187,15 +2190,27 @@ if sink_cut_queue:
                          (sink_w * 0.78, sink_d * 0.78, 0.25), rot_z, None)
             cut_opening(candidate, cutter)
             print(f"[dollhouse] sink cutout    {candidate.name}")
-            # Steel floor plate inside the basin: the sink model is open
-            # underneath, so the cutout showed the black carcass through
-            # the bowl ('some black area inside of it').
-            liner_mat = flat("sink-liner", (0.62, 0.63, 0.65),
-                             roughness=0.35, metallic=0.7)
-            box(f"sink-liner-{index}",
-                (sx_m, sy_m, (worktop_top_mm - 110) * MM),
-                (sink_w * 0.74, sink_d * 0.74, 0.012), rot_z,
-                liner_mat, into="Furniture")
+            # Rainer's own fix (hand-edited in the exported .blend, folded
+            # back into the generator): the CORPUS box directly under the
+            # worktop still had its own solid top face right below the
+            # cutout, reading as a flat surface inside the sink instead of
+            # an open cabinet interior. Deleting that one face (not a
+            # boolean — the corpus stays a solid box everywhere else, it's
+            # hidden under the worktop anyway except exactly at this hole)
+            # is simpler than the steel-liner-plate patch it replaces.
+            corpus_name = candidate.name.replace("-top-", "-", 1)
+            corpus = bpy.data.objects.get(corpus_name)
+            if corpus is not None and corpus.type == "MESH":
+                import bmesh
+                bm = bmesh.new()
+                bm.from_mesh(corpus.data)
+                bm.faces.ensure_lookup_table()
+                top_faces = [f for f in bm.faces if f.normal.z > 0.9]
+                bmesh.ops.delete(bm, geom=top_faces, context="FACES")
+                bm.to_mesh(corpus.data)
+                bm.free()
+                corpus.data.update()
+                print(f"[dollhouse] sink corpus opened  {corpus_name}")
             break
         else:
             print(f"[dollhouse] sink cutout    NO WORKTOP at {sx_m:.2f},{sy_m:.2f}")
@@ -2679,3 +2694,11 @@ if os.environ.get("DMH_PROBE_SEGMENT"):
                 if ((wx - px) ** 2 + (wy - py) ** 2) ** 0.5 <= 0.3:
                     count += 1
             print(f"[seg-probe] ({spec}): {count} vertices within 300mm")
+
+# DMH_SAVE_BLEND=<path>: save the fully-built scene as a real .blend file
+# for interactive inspection — Rainer orbiting it himself in Blender's own
+# viewport, real lighting, real navigation, beats any more scripted camera
+# guesses on this session's evidence.
+if os.environ.get("DMH_SAVE_BLEND"):
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(os.environ["DMH_SAVE_BLEND"]))
+    print(f"[dollhouse] saved .blend    {os.environ['DMH_SAVE_BLEND']}")
