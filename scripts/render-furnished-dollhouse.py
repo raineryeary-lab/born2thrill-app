@@ -277,7 +277,10 @@ ACCENT_OVERRIDE = {
 
 # See ROTATION_OVERRIDE's use at the instance-placement site for the reason.
 ROTATION_OVERRIDE = {
-    "sofa_1sitzer": 0,
+    # sofa_1sitzer's override history: annotation said 315, an earlier
+    # session forced 0, Rainer asked for turns, 90 and 270 both missed.
+    # After the chirality fixes the ANNOTATION is authoritative again --
+    # no override. Kept as the documented mechanism for real cases.
 }
 
 # (dx_mm, dy_mm) shift applied to the annotated position_mm. Rainer gave an
@@ -1560,6 +1563,26 @@ def build_shower(name, item):
 FLUSH_TYPES = ("oven_housing", "fridge", "washer", "wardrobe", "wall_panel")
 
 
+def _nearest_wall_direction(centre_xy_m, max_gap_mm=900):
+    """Unit direction from a point toward the nearest wall face, or None."""
+    cx_mm, cy_mm = centre_xy_m[0] / MM, centre_xy_m[1] / MM
+    best = None
+    for wall in floor["walls"]:
+        sx, sy = wall["start_mm"]
+        ex, ey = wall["end_mm"]
+        seg_sq = (ex - sx) ** 2 + (ey - sy) ** 2
+        if not seg_sq:
+            continue
+        t = max(0.0, min(1.0, ((cx_mm - sx) * (ex - sx) + (cy_mm - sy) * (ey - sy)) / seg_sq))
+        px, py = sx + t * (ex - sx), sy + t * (ey - sy)
+        dist = math.hypot(cx_mm - px, cy_mm - py)
+        if dist <= 1 or dist > max_gap_mm:
+            continue
+        if best is None or dist < best[0]:
+            best = (dist, ((px - cx_mm) / dist, (py - cy_mm) / dist))
+    return best[1] if best else None
+
+
 def _snap_flush(centre_xy_m, depth_m, max_gap_mm=450):
     """Shift a fitted item so its back face touches the nearest wall face.
 
@@ -1587,13 +1610,13 @@ def _snap_flush(centre_xy_m, depth_m, max_gap_mm=450):
             direction = ((px - cx_mm) / dist, (py - cy_mm) / dist)
             best = (face, direction)
     if best is None:
-        return centre_xy_m
+        return centre_xy_m, None
     face, direction = best
     shift_mm = face - (depth_m / MM) / 2
     if shift_mm <= 2:
-        return centre_xy_m
-    return (centre_xy_m[0] + direction[0] * shift_mm * MM,
-            centre_xy_m[1] + direction[1] * shift_mm * MM)
+        return centre_xy_m, direction
+    return ((centre_xy_m[0] + direction[0] * shift_mm * MM,
+             centre_xy_m[1] + direction[1] * shift_mm * MM), direction)
 
 
 def build_box(name, item, material):
@@ -1615,10 +1638,38 @@ def build_box(name, item, material):
     z = mount if mount else height / 2
     angle = math.radians(item.get("rotation_deg", 0))
     cx, cy = item["position_mm"][0] * MM, item["position_mm"][1] * MM
+    back_direction = None
     if item.get("type") in FLUSH_TYPES:
-        cx, cy = _snap_flush((cx, cy), depth)
+        (cx, cy), back_direction = _snap_flush((cx, cy), depth)
     pieces = [box(name, (cx, cy, z), (width, depth, height), angle,
                   material, into="Furniture")]
+
+    # The tall oven housing gets Rainer's Built-in Double Oven model set
+    # INTO its front at proper height (2026-08-11) — a fitted appliance,
+    # not a box with a colour. Front = away from the nearest wall.
+    if item.get("type") == "oven_housing":
+        oven_path = (r"E:/_models_hub/_extracted/Built_in_Double_Oven_BLEND"
+                     r"/Built in Double Oven.blend")
+        if os.path.exists(oven_path):
+            # Front comes from the ANNOTATED rotation: the Simplifier's
+            # wall snap set the symbol's rotation from the wall it sits
+            # against, so local -Y is the room-facing side. Wall inference
+            # (both nearest-wall and snap-direction) picked flank walls at
+            # the counter junction twice.
+            oven = import_model(oven_path, 1.0, [560, 550, 880])
+            if oven is not None:
+                fx, fy = math.sin(angle), -math.cos(angle)
+                scale = min(1.0, (width * 0.9) / max(oven.dimensions.x, 1e-6))
+                oven.scale = (scale, scale, scale)
+                oven_depth = oven.dimensions.y * scale
+                oven.location = (cx + fx * (depth / 2 - oven_depth / 2 + 0.02),
+                                 cy + fy * (depth / 2 - oven_depth / 2 + 0.02),
+                                 0.60)
+                oven.rotation_euler = (0, 0, math.atan2(fy, fx) + math.pi / 2)
+                for coll in list(oven.users_collection):
+                    coll.objects.unlink(oven)
+                collection("Furniture").objects.link(oven)
+                pieces.append(oven)
 
     # A featureless slab at wardrobe size reads as a construction error, not
     # as furniture (confirmed on render: every carcass looked like a blank
@@ -1641,6 +1692,51 @@ def build_box(name, item, material):
                                   (cx + off_x, cy + off_y, z),
                                   (0.012, 0.006, height * 0.92), angle,
                                   gap_mat, into="Furniture"))
+    return pieces
+
+
+def build_plant(name, item):
+    """A potted plant placeholder: terracotta pot + layered green foliage.
+
+    Deliberately simple geometry — the ComfyUI polish pass turns a green
+    blob with the right silhouette into a plausible plant (Rainer's plan
+    for filling large empty areas). Real botany models are not worth their
+    polygon count at dollhouse distance."""
+    pot_mat = flat(f"{name}-pot", (0.70, 0.42, 0.30), roughness=0.8)
+    leaf_mat = flat(f"{name}-leaf", (0.23, 0.42, 0.20), roughness=0.9)
+    cx, cy = item["position_mm"][0] * MM, item["position_mm"][1] * MM
+    bbox = item.get("target_bbox_mm") or {}
+    width = (bbox.get("width_mm") or 450) * MM
+    total_h = (bbox.get("height_mm") or 1300) * MM
+    pot_h = total_h * 0.25
+    pieces = []
+    bpy.ops.mesh.primitive_cylinder_add(vertices=24, radius=width * 0.32,
+                                        depth=pot_h,
+                                        location=(cx, cy, pot_h / 2))
+    pot = bpy.context.active_object
+    pot.name = f"{name}-pot"
+    pot.data.materials.append(pot_mat)
+    for coll in list(pot.users_collection):
+        coll.objects.unlink(pot)
+    collection("Furniture").objects.link(pot)
+    pieces.append(pot)
+    import random
+    rng = random.Random(hash(name) & 0xFFFF)
+    for i in range(5):
+        fz = pot_h + (total_h - pot_h) * (0.25 + 0.16 * i)
+        radius = width * (0.55 - 0.07 * i) * (0.9 + rng.random() * 0.3)
+        bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=radius,
+                                              location=(cx + (rng.random() - 0.5) * width * 0.2,
+                                                        cy + (rng.random() - 0.5) * width * 0.2,
+                                                        fz))
+        blob = bpy.context.active_object
+        blob.name = f"{name}-leaf-{i}"
+        blob.scale = (1.0, 1.0, 0.55)
+        blob.data.materials.append(leaf_mat)
+        for coll in list(blob.users_collection):
+            coll.objects.unlink(blob)
+        collection("Furniture").objects.link(blob)
+        pieces.append(blob)
     return pieces
 
 
@@ -1719,6 +1815,8 @@ for item in floor["placements"]:
             own_height_mm = (item.get("target_bbox_mm") or {}).get("height_mm", 0)
             on_worktop = dict(item, **{"height_mm": item.get("height_mm", 0) + 40 + own_height_mm / 2})
             pieces = build_box(asset_id + "-" + str(placed), on_worktop, hob_material)
+        elif kind == "plant":
+            pieces = build_plant(asset_id + "-" + str(placed), item)
         elif kind == "box":
             pieces = build_box(asset_id + "-" + str(placed), item, material)
         else:

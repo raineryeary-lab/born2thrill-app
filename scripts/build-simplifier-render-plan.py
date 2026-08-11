@@ -85,7 +85,11 @@ SYMBOL_3D = {
     "dusche":            {"height": 2000, "type": "shower", "build": "shower"},
     "dusche_gross":      {"height": 2000, "type": "shower", "build": "shower"},
     "dusche_klein":      {"height": 2000, "type": "shower", "build": "shower"},
-    "wand_wc":           {"height": 400,  "type": "toilet", "mount": 200},
+    "wand_wc":           {"height": 400,  "type": "toilet", "mount": 660},
+    # mount is the item CENTRE. The resolved Toilet Bowl model is 820mm
+    # tall (probed z-range, includes the flush plate), so centre 660 puts
+    # its underside at 250mm -- wall-hung with visible air. 200 sat it on
+    # the floor (Rainer 2026-08-11); 480 still only left 70mm.
     "waschtisch":        {"height": 200,  "type": "sink",   "mount": 850},
     "doppelwaschtisch":  {"height": 200,  "type": "sink",   "mount": 850},
     "handwaschbecken":   {"height": 200,  "type": "sink",   "mount": 850},
@@ -121,6 +125,7 @@ SYMBOL_3D = {
     "garderobe":         {"height": 1900, "type": "wardrobe"},
     "schreibtischstuhl": {"height": 1200, "type": "office_chair"},
     "essgruppe_stuhl":   {"height": 844,  "type": "dining_chair"},
+    "pflanze":           {"height": 1300, "type": "plant", "build": "plant"},
 }
 
 DEFAULT_WALL_THICKNESS_MM = 240
