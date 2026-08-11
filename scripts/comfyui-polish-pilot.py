@@ -11,12 +11,23 @@ DENOISE = float(sys.argv[1]) if len(sys.argv) > 1 else 0.30
 CANNY = float(sys.argv[2]) if len(sys.argv) > 2 else 0.80
 DEPTH = float(sys.argv[3]) if len(sys.argv) > 3 else 0.45
 TAG = sys.argv[4] if len(sys.argv) > 4 else "pilot"
+# Optional palette/mood wording appended to the prompt: the automatic
+# colour-variant path (Rainer 2026-08-11). At denoise <=0.35 the recolor
+# stays subtle; 0.40-0.50 shifts colours decisively while both ControlNets
+# hold the geometry. Example:
+#   comfyui-polish-pilot.py 0.45 0.85 0.55 variant-sage "sage green walls,
+#   light oak floor, brass accents"
+PALETTE = sys.argv[5] if len(sys.argv) > 5 else ""
+# Optional manifest to update with the polish recipe (arg 6).
+MANIFEST = sys.argv[6] if len(sys.argv) > 6 else ""
 
 PROMPT = ("professional architectural interior visualization, top-down dollhouse "
           "cutaway of a modern single-storey home, soft natural daylight, subtle "
           "ambient occlusion, photorealistic materials, oak parquet floor, matte "
           "black kitchen with granite worktop, grey fabric sofa, crisp white "
           "walls, high-end real estate rendering, sharp focus, 8k")
+if PALETTE:
+    PROMPT = PROMPT + ", colour palette: " + PALETTE
 NEGATIVE = ("blurry, warped walls, bent lines, distorted geometry, extra rooms, "
             "furniture floating, text, watermark, people, cartoon, painting, "
             "oversaturated, lens flare")
@@ -77,9 +88,26 @@ for _ in range(240):
         entry = history[prompt_id]
         status = entry.get("status", {})
         if status.get("completed"):
-            for node_output in entry.get("outputs", {}).values():
-                for image in node_output.get("images", []):
-                    print("OUTPUT", image["filename"])
+            outputs = [image["filename"]
+                       for node_output in entry.get("outputs", {}).values()
+                       for image in node_output.get("images", [])]
+            for name in outputs:
+                print("OUTPUT", name)
+            if MANIFEST and outputs:
+                try:
+                    with open(MANIFEST, encoding="utf-8") as handle:
+                        manifest = json.load(handle)
+                    manifest["polish"] = {
+                        "output": outputs[0], "denoise": DENOISE,
+                        "canny": CANNY, "depth": DEPTH,
+                        "palette_prompt": PALETTE or None,
+                        "seed": 20260810, "checkpoint": "RealVisXL_V5.0_fp16",
+                    }
+                    with open(MANIFEST, "w", encoding="utf-8") as handle:
+                        json.dump(manifest, handle, indent=1)
+                    print("MANIFEST updated:", MANIFEST)
+                except Exception as error:
+                    print("manifest update failed:", error)
             sys.exit(0)
         if status.get("status_str") == "error":
             print("ERROR:", json.dumps(status)[:3000])

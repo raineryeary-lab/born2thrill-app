@@ -2224,6 +2224,62 @@ if os.environ.get("DMH_NO_PASSES") != "1":
     except Exception as error:  # noqa: BLE001
         print(f"[dollhouse] edge pass FAILED: {error}")
 
+# ------------------------------------------------------------ image manifest
+# Every render leaves a <out>.manifest.json next to it: what plan, which
+# style and finish set (with the RESOLVED palette values), which files
+# belong together, and a composed description. This is the record the
+# searchable catalog ingests (masterplan Phase 5) and the recipe the
+# ComfyUI batch runner reads to generate further colour-palette variants
+# automatically — Rainer's request 2026-08-11.
+def _rgb255(rgb):
+    return [round(c * 255) for c in rgb[:3]]
+
+finish_name = os.environ.get("DMH_FINISH", "modern-a")
+kitchen_rgb = _rgb255(FINISHES[FINISH["kitchen"]][0])
+sofa_rgb = _rgb255(FINISHES[FINISH["sofa"]][0])
+manifest = {
+    "schema": "dmh-render-manifest-v1",
+    "created": __import__("datetime").datetime.now().isoformat(timespec="seconds"),
+    "plan_source": plan.get("source"),
+    "source_geometry_hash": plan.get("source_geometry_hash"),
+    "furniture_style": plan.get("style"),
+    "finish_set": finish_name,
+    "palette": {
+        "wall_rgb": _rgb255(FINISH["wall"]),
+        "floor": "wood" if not FINISH["floor_tint"] else "wood-tinted",
+        "floor_tint_rgb": (_rgb255(FINISH["floor_tint"])
+                           if FINISH["floor_tint"] else None),
+        "floor_tint_factor": FINISH["floor_tint_factor"],
+        "kitchen_finish": FINISH["kitchen"],
+        "kitchen_rgb": kitchen_rgb,
+        "upholstery_finish": FINISH["sofa"],
+        "upholstery_rgb": sofa_rgb,
+    },
+    "image_type": ("plan_overlay" if os.environ.get("DMH_TOPVIEW") == "1"
+                   else "interior_dollhouse"),
+    "files": {
+        "color": os.path.basename(out_path),
+        "depth": (os.path.basename(os.path.splitext(out_path)[0] + "-depth.png")
+                  if os.environ.get("DMH_NO_PASSES") != "1" else None),
+        "edge": (os.path.basename(os.path.splitext(out_path)[0] + "-edge.png")
+                 if os.environ.get("DMH_NO_PASSES") != "1" else None),
+    },
+    "resolution": [scene.render.resolution_x, scene.render.resolution_y],
+    "furniture_count": placed,
+    "description": (
+        f"{plan.get('style', 'modern')} interior, finish {finish_name}: "
+        f"{'dark-tinted' if FINISH['floor_tint'] else 'light oak'} wood floor, "
+        f"{FINISH['kitchen'].replace('-', ' ')} kitchen fronts, "
+        f"{FINISH['sofa'].replace('-', ' ')} upholstery, "
+        f"wall tone RGB {tuple(_rgb255(FINISH['wall']))}"
+    ),
+    "polish": None,  # filled in by the ComfyUI runner when it polishes this image
+}
+with open(os.path.splitext(os.path.abspath(out_path))[0] + ".manifest.json",
+          "w", encoding="utf-8") as handle:
+    json.dump(manifest, handle, indent=1)
+print(f"[dollhouse] manifest        {os.path.basename(out_path)}.manifest.json")
+
 # Scene inventory, largest first. Three root-cause guesses at an oversized
 # object all failed to change the image, which meant the thing was not on the
 # path being guessed about. Measuring names it in one run.
