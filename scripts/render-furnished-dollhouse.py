@@ -884,6 +884,28 @@ def import_model(filepath, divisor=1.0, target_mm=None):
 
     mesh_names = [n for n in imported_names if bpy.data.objects[n].type == "MESH"]
 
+    # Discard leftover export-reference cubes: several Hub assets carry a
+    # bare "Cube" object with the default unnamed "Material" — a scale
+    # reference or accidental leftover from whatever tool exported the
+    # file, not modelled geometry. Confirmed the actual cause of the
+    # 'countertop visible in the sink' artifact: Kitchen Sink 24.blend
+    # bundles exactly this (2x2x2 local units, material "Material"), which
+    # got joined into the sink mesh and z-fought with the real worktop —
+    # three different cutter sizes changed nothing because the cutter was
+    # never the problem. Name AND material both generic, checked together
+    # so a legitimately-named "Cube" with real material isn't discarded.
+    junk_names = []
+    for name in mesh_names:
+        obj = bpy.data.objects[name]
+        mats = [m.name if m else None for m in obj.data.materials]
+        if obj.name.split(".")[0] == "Cube" and mats == ["Material"]:
+            junk_names.append(name)
+    if junk_names:
+        for name in junk_names:
+            bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+        mesh_names = [n for n in mesh_names if n not in junk_names]
+        imported_names = imported_names - set(junk_names)
+
     # Discard the staged room before anything is joined or measured, judged
     # against the size of the thing actually being placed.
     if lowered.endswith(".blend") and divisor and target_mm:
@@ -2182,14 +2204,52 @@ if sink_cut_queue:
             if not (lo[0] - 0.1 <= local.x <= hi[0] + 0.1
                     and lo[1] - 0.1 <= local.y <= hi[1] + 0.1):
                 continue
+            # worktop_top_mm travelled from placement time as mount_mm+40
+            # (920mm for spuele) but the counter's REAL built height is
+            # 900mm + 40mm slab = 940mm — a 20mm assumption-vs-geometry
+            # drift that buried the apron/liner INSIDE the granite slab
+            # instead of above it (probe: apron at z=0.92, slab spans
+            # 0.90-0.94). Recompute from the matched worktop's own actual
+            # world-space top face so nothing downstream can drift again.
+            top_corners = [candidate.matrix_world @ mathutils.Vector(c)
+                           for c in candidate.bound_box]
+            worktop_top_mm = max(c.z for c in top_corners) / MM
             cutter = box(f"sink-cut-{index}",
                          (sx_m, sy_m, worktop_top_mm * MM - 0.02),
-                         # 78%: tight enough that the sink body fills the
-                         # opening completely — at 88% a sliver of the black
-                         # carcass showed through around the basin.
-                         (sink_w * 0.78, sink_d * 0.78, 0.25), rot_z, None)
+                         # 104%: slightly LARGER than the sink, not
+                         # near-equal to it. 78% and 96% both left ragged
+                         # granite fragments right at the cut boundary —
+                         # the same EXACT-solver leftover-face defect the
+                         # window cutters hit (cut_pad, elsewhere in this
+                         # file) whenever a cutter face sits too close to
+                         # an existing edge loop. A clean overshoot avoids
+                         # near-coincident geometry entirely; any sliver
+                         # gap this leaves shows the open cabinet void
+                         # below (harmless now the corpus top is gone),
+                         # never leftover worktop material.
+                         (sink_w * 1.04, sink_d * 1.04, 0.25), rot_z, None)
             cut_opening(candidate, cutter)
             print(f"[dollhouse] sink cutout    {candidate.name}")
+            # A boolean cut through a 40mm-thick slab exposes new interior
+            # WALL faces at the cutout boundary, inheriting the granite
+            # material — viewed nearly edge-on from the dollhouse camera,
+            # that thin band reads as ragged "countertop visible in the
+            # sink" (Rainer). Changing the cutter's size (78/96/104%,
+            # tried in sequence) never touched this, because it isn't a
+            # sizing problem: every boolean cutout has this band regardless
+            # of size. A real drop-in sink hides it under its own rim
+            # flange sitting flush on the counter — same fix here: a thin
+            # flat steel apron exactly at counter height, sized to the
+            # sink's full (unshrunk) footprint, masking the cut boundary
+            # from above.
+            apron_mat = flat("sink-apron", (0.66, 0.67, 0.69),
+                             roughness=0.3, metallic=0.75)
+            # +2mm: sitting exactly AT worktop_top_mm put the apron
+            # coplanar with the granite's own top face at their shared
+            # boundary edge — still z-fighting there, just a thinner band
+            # of it. Unambiguously above removes the ambiguity entirely.
+            box(f"sink-apron-{index}", (sx_m, sy_m, worktop_top_mm * MM + 0.002),
+                (sink_w, sink_d, 0.003), rot_z, apron_mat, into="Furniture")
             # Rainer's own fix (hand-edited in the exported .blend, folded
             # back into the generator): the CORPUS box directly under the
             # worktop still had its own solid top face right below the
