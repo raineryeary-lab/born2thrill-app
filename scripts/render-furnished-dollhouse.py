@@ -1750,7 +1750,12 @@ def build_box(name, item, material):
     # (same placement-order trap as the sink cutout), so the actual
     # embedding runs AFTER the placement loop via OVEN_QUEUE.
     if item.get("type") == "oven_housing":
-        OVEN_QUEUE.append((cx, cy, width, depth, angle))
+        # back_direction (the housing's OWN snap direction, discarded until
+        # now) is the only reliable facing — the counter run's front can
+        # belong to a different wall on an L-shaped kitchen, which is
+        # exactly what pointed the oven at the aisle instead of the
+        # cabinet's real open side.
+        OVEN_QUEUE.append((cx, cy, width, depth, angle, back_direction))
 
     # A featureless slab at wardrobe size reads as a construction error, not
     # as furniture (confirmed on render: every carcass looked like a blank
@@ -2121,10 +2126,12 @@ for item in floor["placements"]:
 # known (fitted-kitchen rule: the tall unit fronts like its counter run).
 oven_path = (r"E:/_models_hub/_extracted/Built_in_Double_Oven_BLEND"
              r"/Built in Double Oven.blend")
-for cx, cy, width, depth, angle in OVEN_QUEUE:
+for cx, cy, width, depth, angle, own_back_direction in OVEN_QUEUE:
     if not os.path.exists(oven_path):
         break
-    if KITCHEN_RUN_FRONTS:
+    if own_back_direction is not None:
+        fx, fy = -own_back_direction[0], -own_back_direction[1]
+    elif KITCHEN_RUN_FRONTS:
         fx, fy = KITCHEN_RUN_FRONTS[0]
     else:
         direction = _nearest_wall_direction((cx, cy))
@@ -2418,6 +2425,7 @@ if missing_assets:
         print(f"              {path}")
 if failed:
     print(f"[dollhouse] FAILED IMPORT  {', '.join(sorted(set(failed)))}")
+
 
 bpy.ops.render.render(write_still=True)
 
