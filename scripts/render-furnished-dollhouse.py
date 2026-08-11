@@ -277,10 +277,10 @@ ACCENT_OVERRIDE = {
 
 # See ROTATION_OVERRIDE's use at the instance-placement site for the reason.
 ROTATION_OVERRIDE = {
-    # sofa_1sitzer's override history: annotation said 315, an earlier
-    # session forced 0, Rainer asked for turns, 90 and 270 both missed.
-    # After the chirality fixes the ANNOTATION is authoritative again --
-    # no override. Kept as the documented mechanism for real cases.
+    # In-situ contact sheet 2026-08-11 (tmp/chair-picker.png): Rainer
+    # picked Bild 2 = 135. Never eyeball chair facing from a perspective
+    # render — sheet only.
+    "sofa_1sitzer": 135,
 }
 
 # (dx_mm, dy_mm) shift applied to the annotated position_mm. Rainer gave an
@@ -1497,6 +1497,91 @@ def _towards_centre(a, b, distance):
     return nx * distance * sign, ny * distance * sign
 
 
+def _snap_segment_to_walls(a, b, depth_m):
+    """Fitted-kitchen rule (Rainer: 'wir sagten snap to walls'): a counter
+    segment drawn NEAR a wall goes flush against it — back face on the
+    wall face — and its ends extend to touching side walls, so no crumb
+    gap survives. Free-standing segments (no wall within 600mm) stay
+    exactly where they were drawn."""
+    ax, ay = a
+    bx, by = b
+    length = math.hypot(bx - ax, by - ay)
+    if length < 0.05:
+        return a, b
+    ux, uy = (bx - ax) / length, (by - ay) / length
+    seg_angle = math.atan2(uy, ux)
+    mid_mm = ((ax + bx) / 2 / MM, (ay + by) / 2 / MM)
+
+    best = None
+    for wall in floor["walls"]:
+        sx, sy = wall["start_mm"]
+        ex, ey = wall["end_mm"]
+        seg_sq = (ex - sx) ** 2 + (ey - sy) ** 2
+        if not seg_sq:
+            continue
+        wall_angle = math.atan2(ey - sy, ex - sx)
+        diff = abs((seg_angle - wall_angle + math.pi / 2) % math.pi - math.pi / 2)
+        if diff > math.radians(20):
+            continue
+        t = max(0.0, min(1.0, ((mid_mm[0] - sx) * (ex - sx) + (mid_mm[1] - sy) * (ey - sy)) / seg_sq))
+        px, py = sx + t * (ex - sx), sy + t * (ey - sy)
+        dist = math.hypot(mid_mm[0] - px, mid_mm[1] - py)
+        face = dist - wall["thickness_mm"] / 2
+        if face > 600:
+            continue
+        if best is None or face < best[0]:
+            direction = ((px - mid_mm[0]) / dist, (py - mid_mm[1]) / dist)
+            best = (face, direction)
+    if best is not None:
+        face, direction = best
+        if os.environ.get("DMH_DEBUG_SNAP"):
+            print(f"[snap] seg mid={mid_mm[0]:.0f},{mid_mm[1]:.0f} "
+                  f"face={face:.0f}mm dir={direction[0]:.2f},{direction[1]:.2f}")
+        # Drawn line = FRONT edge? No: the drawn line is the wall-side
+        # edge (the offset code pushes the body inward by depth/2), so
+        # the line itself must land ON the wall face.
+        shift_m = face * MM
+        if abs(shift_m) > 0.002:
+            ax += direction[0] * shift_m
+            ay += direction[1] * shift_m
+            bx += direction[0] * shift_m
+            by += direction[1] * shift_m
+
+    # End extension: reach a roughly perpendicular wall within 450mm.
+    def extend(px_m, py_m, out_dir):
+        best_reach = None
+        for wall in floor["walls"]:
+            sx, sy = wall["start_mm"]
+            ex, ey = wall["end_mm"]
+            seg_len = math.hypot(ex - sx, ey - sy)
+            if not seg_len:
+                continue
+            wall_angle = math.atan2(ey - sy, ex - sx)
+            diff = abs((seg_angle - wall_angle + math.pi / 2) % math.pi - math.pi / 2)
+            if diff < math.radians(65):
+                continue
+            nx, ny = -(ey - sy) / seg_len, (ex - sx) / seg_len
+            side = ((px_m / MM - sx) * nx + (py_m / MM - sy) * ny)
+            approach = -(out_dir[0] * nx + out_dir[1] * ny)
+            if abs(approach) < 0.3:
+                continue
+            if approach < 0:
+                nx, ny, side, approach = -nx, -ny, -side, -approach
+            reach = (side - wall["thickness_mm"] / 2) / approach
+            if reach < -50 or reach > 450:
+                continue
+            if best_reach is None or reach < best_reach:
+                best_reach = reach
+        if best_reach is None or best_reach <= 2:
+            return px_m, py_m
+        return px_m + out_dir[0] * best_reach * MM, py_m + out_dir[1] * best_reach * MM
+
+    ax, ay = extend(ax, ay, (-ux, -uy))
+    bx, by = extend(bx, by, (ux, uy))
+    wall_dir = best[1] if best is not None else None
+    return (ax, ay), (bx, by), wall_dir
+
+
 def build_path_run(name, item, material, worktop):
     """A counter run or a Vorwandinstallation, following the drawn path."""
     points = [(q[0] * MM, q[1] * MM) for q in item["points_mm"]]
@@ -1505,11 +1590,22 @@ def build_path_run(name, item, material, worktop):
     built = []
     for index in range(len(points) - 1):
         a, b = points[index], points[index + 1]
+        snapped_wall_dir = None
+        if item.get("type") == "counter":
+            a, b, snapped_wall_dir = _snap_segment_to_walls(a, b, depth)
         length = math.hypot(b[0] - a[0], b[1] - a[1])
         if length < 0.05:
             continue
         angle = math.atan2(b[1] - a[1], b[0] - a[0])
-        ox, oy = _towards_centre(a, b, depth / 2)
+        if snapped_wall_dir is not None:
+            # The snapped line sits exactly ON the room boundary, where
+            # room_at() can land in the NEIGHBOUR room and flip the body
+            # to the wrong side (it did: the run vanished into the Diele).
+            # The correct side is simply AWAY from the snapped wall.
+            ox = -snapped_wall_dir[0] * depth / 2
+            oy = -snapped_wall_dir[1] * depth / 2
+        else:
+            ox, oy = _towards_centre(a, b, depth / 2)
         centre = ((a[0] + b[0]) / 2 + ox, (a[1] + b[1]) / 2 + oy, height / 2)
         built.append(box(name + "-" + str(index), centre, (length, depth, height),
                          angle, material, into="Furniture"))
@@ -1659,11 +1755,15 @@ def build_box(name, item, material):
             oven = import_model(oven_path, 1.0, [560, 550, 880])
             if oven is not None and direction is not None:
                 fx, fy = -direction[0], -direction[1]
-                scale = min(1.0, (width * 0.9) / max(oven.dimensions.x, 1e-6))
+                scale = min(1.0,
+                            (width * 0.9) / max(oven.dimensions.x, 1e-6),
+                            (depth * 0.95) / max(oven.dimensions.y, 1e-6))
                 oven.scale = (scale, scale, scale)
                 oven_depth = oven.dimensions.y * scale
-                oven.location = (cx + fx * (depth / 2 - oven_depth / 2 + 0.02),
-                                 cy + fy * (depth / 2 - oven_depth / 2 + 0.02),
+                # Front of the appliance FLUSH with the cabinet front
+                # (5mm reveal) — 'steht zu weit raus' at +20mm proud.
+                oven.location = (cx + fx * (depth / 2 - oven_depth / 2 - 0.005),
+                                 cy + fy * (depth / 2 - oven_depth / 2 - 0.005),
                                  0.60)
                 oven.rotation_euler = (0, 0, math.atan2(fy, fx) + math.pi / 2)
                 for coll in list(oven.users_collection):
@@ -1957,7 +2057,7 @@ for item in floor["placements"]:
             # so only the rim + faucet rise above the worktop (Rainer:
             # 'floating above the countertop'). The matching rectangle is
             # boolean-cut out of the worktop slab right below.
-            z = (worktop_top_mm - 180) * MM
+            z = (worktop_top_mm - 80) * MM
             # Cut the sink opening out of every worktop slab under it.
             sink_w = max(proto.dimensions.x, 0.2)
             sink_d = max(proto.dimensions.y, 0.2)
