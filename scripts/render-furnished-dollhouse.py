@@ -1651,14 +1651,14 @@ def build_box(name, item, material):
         oven_path = (r"E:/_models_hub/_extracted/Built_in_Double_Oven_BLEND"
                      r"/Built in Double Oven.blend")
         if os.path.exists(oven_path):
-            # Front comes from the ANNOTATED rotation: the Simplifier's
-            # wall snap set the symbol's rotation from the wall it sits
-            # against, so local -Y is the room-facing side. Wall inference
-            # (both nearest-wall and snap-direction) picked flank walls at
-            # the counter junction twice.
+            # Rainer settled the facing question (2026-08-11): the ovens
+            # face AWAY FROM THE WALL THE UNIT STANDS AGAINST — which is
+            # exactly the flush-snap direction. (The annotated-rotation
+            # attempt pointed them at the hallway instead.)
+            direction = back_direction or _nearest_wall_direction((cx, cy))
             oven = import_model(oven_path, 1.0, [560, 550, 880])
-            if oven is not None:
-                fx, fy = math.sin(angle), -math.cos(angle)
+            if oven is not None and direction is not None:
+                fx, fy = -direction[0], -direction[1]
                 scale = min(1.0, (width * 0.9) / max(oven.dimensions.x, 1e-6))
                 oven.scale = (scale, scale, scale)
                 oven_depth = oven.dimensions.y * scale
@@ -1953,7 +1953,32 @@ for item in floor["placements"]:
             # sink a further half-height above the worktop -- caught before
             # rendering, not after.)
             worktop_top_mm = mount_mm + 40
-            z = worktop_top_mm * MM
+            # A drop-in sink sits IN the counter, not on it: sink the body
+            # so only the rim + faucet rise above the worktop (Rainer:
+            # 'floating above the countertop'). The matching rectangle is
+            # boolean-cut out of the worktop slab right below.
+            z = (worktop_top_mm - 180) * MM
+            # Cut the sink opening out of every worktop slab under it.
+            sink_w = max(proto.dimensions.x, 0.2)
+            sink_d = max(proto.dimensions.y, 0.2)
+            sx_m = item["position_mm"][0] * MM
+            sy_m = item["position_mm"][1] * MM
+            for candidate in bpy.data.objects:
+                if candidate.type != "MESH" or "-top-" not in candidate.name:
+                    continue
+                lo_x = min(v[0] for v in candidate.bound_box) + candidate.location.x
+                hi_x = max(v[0] for v in candidate.bound_box) + candidate.location.x
+                lo_y = min(v[1] for v in candidate.bound_box) + candidate.location.y
+                hi_y = max(v[1] for v in candidate.bound_box) + candidate.location.y
+                if not (lo_x - 0.05 <= sx_m <= hi_x + 0.05
+                        and lo_y - 0.05 <= sy_m <= hi_y + 0.05):
+                    continue
+                cutter = box(f"sink-cut-{placed}",
+                             (sx_m, sy_m, worktop_top_mm * MM - 0.02),
+                             (sink_w * 0.86, sink_d * 0.86, 0.2),
+                             math.radians(item.get("rotation_deg", 0.0)), None)
+                cut_opening(candidate, cutter)
+                break
     else:
         z = 0.0
 
@@ -1974,7 +1999,11 @@ for item in floor["placements"]:
     # touching the Simplifier annotation file -- that stays his to correct
     # at the source. 0 degrees matches "upright, arms left/right, back at
     # top" as measured against the source drawing earlier this session.
-    rotation_deg = ROTATION_OVERRIDE.get(asset_id, item.get("rotation_deg", 0.0))
+    rotation_env = os.environ.get("DMH_ROT_" + asset_id.upper())
+    if rotation_env is not None:
+        rotation_deg = float(rotation_env)
+    else:
+        rotation_deg = ROTATION_OVERRIDE.get(asset_id, item.get("rotation_deg", 0.0))
     instance.rotation_euler[2] = math.radians(rotation_deg)
     placed += 1
 
