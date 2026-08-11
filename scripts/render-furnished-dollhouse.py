@@ -2014,6 +2014,7 @@ for item in floor["placements"]:
 
     instance = bpy.data.objects.new(f"{asset_id}-{placed}", proto.data)
     collection("Furniture").objects.link(instance)
+    pending_sink_cut = None
 
     # `height_mm` is a MOUNT height — where the centre of a wall-mounted item
     # sits — but prototypes are re-origined with their base at z=0. Placing a
@@ -2058,27 +2059,12 @@ for item in floor["placements"]:
             # 'floating above the countertop'). The matching rectangle is
             # boolean-cut out of the worktop slab right below.
             z = (worktop_top_mm - 80) * MM
-            # Cut the sink opening out of every worktop slab under it.
-            sink_w = max(proto.dimensions.x, 0.2)
-            sink_d = max(proto.dimensions.y, 0.2)
-            sx_m = item["position_mm"][0] * MM
-            sy_m = item["position_mm"][1] * MM
-            for candidate in bpy.data.objects:
-                if candidate.type != "MESH" or "-top-" not in candidate.name:
-                    continue
-                lo_x = min(v[0] for v in candidate.bound_box) + candidate.location.x
-                hi_x = max(v[0] for v in candidate.bound_box) + candidate.location.x
-                lo_y = min(v[1] for v in candidate.bound_box) + candidate.location.y
-                hi_y = max(v[1] for v in candidate.bound_box) + candidate.location.y
-                if not (lo_x - 0.05 <= sx_m <= hi_x + 0.05
-                        and lo_y - 0.05 <= sy_m <= hi_y + 0.05):
-                    continue
-                cutter = box(f"sink-cut-{placed}",
-                             (sx_m, sy_m, worktop_top_mm * MM - 0.02),
-                             (sink_w * 0.86, sink_d * 0.86, 0.2),
-                             math.radians(item.get("rotation_deg", 0.0)), None)
-                cut_opening(candidate, cutter)
-                break
+            # The cutout is deferred until the instance rotation is set
+            # (below): the cutter must be centred ON the sink and share
+            # its rotation, per Rainer's spec.
+            pending_sink_cut = (max(proto.dimensions.x, 0.2),
+                                max(proto.dimensions.y, 0.2),
+                                worktop_top_mm)
     else:
         z = 0.0
 
@@ -2105,6 +2091,36 @@ for item in floor["placements"]:
     else:
         rotation_deg = ROTATION_OVERRIDE.get(asset_id, item.get("rotation_deg", 0.0))
     instance.rotation_euler[2] = math.radians(rotation_deg)
+
+    if item["type"] == "sink" and item.get("mesh_path") and "pending_sink_cut" in dir():
+        if pending_sink_cut is not None:
+            sink_w, sink_d, worktop_top_mm = pending_sink_cut
+            pending_sink_cut = None
+            # Faucet belongs at the WALL side of a counter sink (Rainer):
+            # rendered check showed it facing the aisle, so flip 180.
+            instance.rotation_euler[2] = math.radians(rotation_deg + 180)
+            sx_m, sy_m = instance.location.x, instance.location.y
+            for candidate in bpy.data.objects:
+                if candidate.type != "MESH" or "-top-" not in candidate.name:
+                    continue
+                # Containment tested in the WORKTOP'S LOCAL frame — the
+                # axis-aligned world test missed every rotated run, so the
+                # sink sat on the granite with no opening.
+                local = candidate.matrix_world.inverted() @ mathutils.Vector(
+                    (sx_m, sy_m, worktop_top_mm * MM))
+                lo = [min(v[i] for v in candidate.bound_box) for i in range(2)]
+                hi = [max(v[i] for v in candidate.bound_box) for i in range(2)]
+                if not (lo[0] - 0.05 <= local.x <= hi[0] + 0.05
+                        and lo[1] - 0.05 <= local.y <= hi[1] + 0.05):
+                    continue
+                # Slightly smaller than the sink, centred on it, same
+                # rotation — subtracted from the countertop.
+                cutter = box(f"sink-cut-{placed}",
+                             (sx_m, sy_m, worktop_top_mm * MM - 0.02),
+                             (sink_w * 0.88, sink_d * 0.88, 0.25),
+                             instance.rotation_euler.z, None)
+                cut_opening(candidate, cutter)
+                break
     placed += 1
 
 # ---------------------------------------------------------------- underlay
