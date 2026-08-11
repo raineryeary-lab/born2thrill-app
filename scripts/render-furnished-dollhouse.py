@@ -1759,7 +1759,10 @@ def build_box(name, item, material):
                             (width * 0.9) / max(oven.dimensions.x, 1e-6),
                             (depth * 0.95) / max(oven.dimensions.y, 1e-6))
                 oven.scale = (scale, scale, scale)
-                oven_depth = oven.dimensions.y * scale
+                bpy.context.view_layer.update()
+                # dimensions now reflects the scale — the old *scale factor
+                # double-counted it and pushed the front out too far.
+                oven_depth = oven.dimensions.y
                 # Front of the appliance FLUSH with the cabinet front
                 # (5mm reveal) — 'steht zu weit raus' at +20mm proud.
                 oven.location = (cx + fx * (depth / 2 - oven_depth / 2 - 0.005),
@@ -1857,6 +1860,7 @@ placed = 0
 built_procedurally = 0
 failed = []
 
+sink_cut_queue = []
 for item in floor["placements"]:
     asset_id = item["asset_id"]
 
@@ -1915,6 +1919,35 @@ for item in floor["placements"]:
             own_height_mm = (item.get("target_bbox_mm") or {}).get("height_mm", 0)
             on_worktop = dict(item, **{"height_mm": item.get("height_mm", 0) + 40 + own_height_mm / 2})
             pieces = build_box(asset_id + "-" + str(placed), on_worktop, hob_material)
+            if item["type"] == "hob" and pieces:
+                # Induction zone rings: four thin light rings in a 2x2 grid
+                # on the glass — without them the hob read as a blank slab
+                # (Rainer). Geometry, not texture: survives every finish.
+                ring_mat = flat("hob-ring", (0.55, 0.55, 0.58), roughness=0.4)
+                hob_obj = pieces[0]
+                bpy.context.view_layer.update()
+                hw, hd = hob_obj.dimensions.x, hob_obj.dimensions.y
+                top_z = hob_obj.location.z + hob_obj.dimensions.z / 2 + 0.001
+                a = hob_obj.rotation_euler.z
+                cos_a, sin_a = math.cos(a), math.sin(a)
+                radius = min(hw, hd) * 0.16
+                for ix in (-1, 1):
+                    for iy in (-1, 1):
+                        lx, ly = ix * hw * 0.22, iy * hd * 0.22
+                        wx = hob_obj.location.x + lx * cos_a - ly * sin_a
+                        wy = hob_obj.location.y + lx * sin_a + ly * cos_a
+                        bpy.ops.mesh.primitive_torus_add(
+                            major_radius=radius, minor_radius=0.004,
+                            major_segments=32, minor_segments=6,
+                            location=(wx, wy, top_z))
+                        ring = bpy.context.active_object
+                        ring.name = f"{asset_id}-ring-{placed}-{ix}-{iy}"
+                        ring.scale = (1, 1, 0.25)
+                        ring.data.materials.append(ring_mat)
+                        for coll in list(ring.users_collection):
+                            coll.objects.unlink(ring)
+                        collection("Furniture").objects.link(ring)
+                        pieces.append(ring)
         elif kind == "plant":
             pieces = build_plant(asset_id + "-" + str(placed), item)
         elif kind == "box":
@@ -2054,17 +2087,20 @@ for item in floor["placements"]:
             # sink a further half-height above the worktop -- caught before
             # rendering, not after.)
             worktop_top_mm = mount_mm + 40
-            # A drop-in sink sits IN the counter, not on it: sink the body
-            # so only the rim + faucet rise above the worktop (Rainer:
-            # 'floating above the countertop'). The matching rectangle is
-            # boolean-cut out of the worktop slab right below.
-            z = (worktop_top_mm - 80) * MM
-            # The cutout is deferred until the instance rotation is set
-            # (below): the cutter must be centred ON the sink and share
-            # its rotation, per Rainer's spec.
-            pending_sink_cut = (max(proto.dimensions.x, 0.2),
-                                max(proto.dimensions.y, 0.2),
-                                worktop_top_mm)
+            if asset_id == "spuele":
+                # Drop-in KITCHEN sink sits IN the counter: body sunk so
+                # rim + faucet rise above the worktop; the cutout is
+                # queued until AFTER the whole placement loop, because the
+                # counter run is often built later than the sink that
+                # sits in it (proven: 0 '-top-' objects existed at this
+                # sink's placement time). Bathroom basins (same type)
+                # stay ON their vanity tops, unrotated.
+                z = (worktop_top_mm - 80) * MM
+                pending_sink_cut = (max(proto.dimensions.x, 0.2),
+                                    max(proto.dimensions.y, 0.2),
+                                    worktop_top_mm)
+            else:
+                z = worktop_top_mm * MM
     else:
         z = 0.0
 
@@ -2092,36 +2128,38 @@ for item in floor["placements"]:
         rotation_deg = ROTATION_OVERRIDE.get(asset_id, item.get("rotation_deg", 0.0))
     instance.rotation_euler[2] = math.radians(rotation_deg)
 
-    if item["type"] == "sink" and item.get("mesh_path") and "pending_sink_cut" in dir():
-        if pending_sink_cut is not None:
-            sink_w, sink_d, worktop_top_mm = pending_sink_cut
-            pending_sink_cut = None
-            # Faucet belongs at the WALL side of a counter sink (Rainer):
-            # rendered check showed it facing the aisle, so flip 180.
-            instance.rotation_euler[2] = math.radians(rotation_deg + 180)
-            sx_m, sy_m = instance.location.x, instance.location.y
-            for candidate in bpy.data.objects:
-                if candidate.type != "MESH" or "-top-" not in candidate.name:
-                    continue
-                # Containment tested in the WORKTOP'S LOCAL frame — the
-                # axis-aligned world test missed every rotated run, so the
-                # sink sat on the granite with no opening.
-                local = candidate.matrix_world.inverted() @ mathutils.Vector(
-                    (sx_m, sy_m, worktop_top_mm * MM))
-                lo = [min(v[i] for v in candidate.bound_box) for i in range(2)]
-                hi = [max(v[i] for v in candidate.bound_box) for i in range(2)]
-                if not (lo[0] - 0.05 <= local.x <= hi[0] + 0.05
-                        and lo[1] - 0.05 <= local.y <= hi[1] + 0.05):
-                    continue
-                # Slightly smaller than the sink, centred on it, same
-                # rotation — subtracted from the countertop.
-                cutter = box(f"sink-cut-{placed}",
-                             (sx_m, sy_m, worktop_top_mm * MM - 0.02),
-                             (sink_w * 0.88, sink_d * 0.88, 0.25),
-                             instance.rotation_euler.z, None)
-                cut_opening(candidate, cutter)
-                break
+    if pending_sink_cut is not None:
+        sink_w, sink_d, worktop_top_mm = pending_sink_cut
+        # Faucet belongs at the WALL side of a counter sink (Rainer).
+        instance.rotation_euler[2] = math.radians(rotation_deg + 180)
+        sink_cut_queue.append((instance.location.x, instance.location.y,
+                               sink_w, sink_d, worktop_top_mm,
+                               instance.rotation_euler.z, placed))
     placed += 1
+
+# Kitchen-sink cutouts, AFTER every placement exists (the counter run is
+# often built later in the loop than the sink that sits in it).
+if sink_cut_queue:
+    bpy.context.view_layer.update()
+    for sx_m, sy_m, sink_w, sink_d, worktop_top_mm, rot_z, index in sink_cut_queue:
+        for candidate in bpy.data.objects:
+            if candidate.type != "MESH" or "-top-" not in candidate.name:
+                continue
+            local = candidate.matrix_world.inverted() @ mathutils.Vector(
+                (sx_m, sy_m, worktop_top_mm * MM))
+            lo = [min(v[i] for v in candidate.bound_box) for i in range(2)]
+            hi = [max(v[i] for v in candidate.bound_box) for i in range(2)]
+            if not (lo[0] - 0.1 <= local.x <= hi[0] + 0.1
+                    and lo[1] - 0.1 <= local.y <= hi[1] + 0.1):
+                continue
+            cutter = box(f"sink-cut-{index}",
+                         (sx_m, sy_m, worktop_top_mm * MM - 0.02),
+                         (sink_w * 0.88, sink_d * 0.88, 0.25), rot_z, None)
+            cut_opening(candidate, cutter)
+            print(f"[dollhouse] sink cutout    {candidate.name}")
+            break
+        else:
+            print(f"[dollhouse] sink cutout    NO WORKTOP at {sx_m:.2f},{sy_m:.2f}")
 
 # ---------------------------------------------------------------- underlay
 #
