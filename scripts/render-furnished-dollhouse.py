@@ -1604,6 +1604,11 @@ def build_path_run(name, item, material, worktop):
             # The correct side is simply AWAY from the snapped wall.
             ox = -snapped_wall_dir[0] * depth / 2
             oy = -snapped_wall_dir[1] * depth / 2
+            if item.get("type") == "counter":
+                # Remember which way the fitted kitchen faces: the tall
+                # oven unit at the end of the run must face the SAME way.
+                KITCHEN_RUN_FRONTS.append((-snapped_wall_dir[0],
+                                           -snapped_wall_dir[1]))
         else:
             ox, oy = _towards_centre(a, b, depth / 2)
         centre = ((a[0] + b[0]) / 2 + ox, (a[1] + b[1]) / 2 + oy, height / 2)
@@ -1740,39 +1745,12 @@ def build_box(name, item, material):
     pieces = [box(name, (cx, cy, z), (width, depth, height), angle,
                   material, into="Furniture")]
 
-    # The tall oven housing gets Rainer's Built-in Double Oven model set
-    # INTO its front at proper height (2026-08-11) — a fitted appliance,
-    # not a box with a colour. Front = away from the nearest wall.
+    # The tall oven housing gets the Built-in Double Oven — but the
+    # counter run that defines the kitchen's facing may not be built yet
+    # (same placement-order trap as the sink cutout), so the actual
+    # embedding runs AFTER the placement loop via OVEN_QUEUE.
     if item.get("type") == "oven_housing":
-        oven_path = (r"E:/_models_hub/_extracted/Built_in_Double_Oven_BLEND"
-                     r"/Built in Double Oven.blend")
-        if os.path.exists(oven_path):
-            # Rainer settled the facing question (2026-08-11): the ovens
-            # face AWAY FROM THE WALL THE UNIT STANDS AGAINST — which is
-            # exactly the flush-snap direction. (The annotated-rotation
-            # attempt pointed them at the hallway instead.)
-            direction = back_direction or _nearest_wall_direction((cx, cy))
-            oven = import_model(oven_path, 1.0, [560, 550, 880])
-            if oven is not None and direction is not None:
-                fx, fy = -direction[0], -direction[1]
-                scale = min(1.0,
-                            (width * 0.9) / max(oven.dimensions.x, 1e-6),
-                            (depth * 0.95) / max(oven.dimensions.y, 1e-6))
-                oven.scale = (scale, scale, scale)
-                bpy.context.view_layer.update()
-                # dimensions now reflects the scale — the old *scale factor
-                # double-counted it and pushed the front out too far.
-                oven_depth = oven.dimensions.y
-                # Front of the appliance FLUSH with the cabinet front
-                # (5mm reveal) — 'steht zu weit raus' at +20mm proud.
-                oven.location = (cx + fx * (depth / 2 - oven_depth / 2 - 0.005),
-                                 cy + fy * (depth / 2 - oven_depth / 2 - 0.005),
-                                 0.60)
-                oven.rotation_euler = (0, 0, math.atan2(fy, fx) + math.pi / 2)
-                for coll in list(oven.users_collection):
-                    coll.objects.unlink(oven)
-                collection("Furniture").objects.link(oven)
-                pieces.append(oven)
+        OVEN_QUEUE.append((cx, cy, width, depth, angle))
 
     # A featureless slab at wardrobe size reads as a construction error, not
     # as furniture (confirmed on render: every carcass looked like a blank
@@ -1861,6 +1839,8 @@ built_procedurally = 0
 failed = []
 
 sink_cut_queue = []
+KITCHEN_RUN_FRONTS = []
+OVEN_QUEUE = []
 for item in floor["placements"]:
     asset_id = item["asset_id"]
 
@@ -2095,7 +2075,7 @@ for item in floor["placements"]:
                 # sits in it (proven: 0 '-top-' objects existed at this
                 # sink's placement time). Bathroom basins (same type)
                 # stay ON their vanity tops, unrotated.
-                z = (worktop_top_mm - 80) * MM
+                z = (worktop_top_mm - 55) * MM
                 pending_sink_cut = (max(proto.dimensions.x, 0.2),
                                     max(proto.dimensions.y, 0.2),
                                     worktop_top_mm)
@@ -2137,6 +2117,46 @@ for item in floor["placements"]:
                                instance.rotation_euler.z, placed))
     placed += 1
 
+# Built-in double ovens, AFTER the loop so the kitchen run's facing is
+# known (fitted-kitchen rule: the tall unit fronts like its counter run).
+oven_path = (r"E:/_models_hub/_extracted/Built_in_Double_Oven_BLEND"
+             r"/Built in Double Oven.blend")
+for cx, cy, width, depth, angle in OVEN_QUEUE:
+    if not os.path.exists(oven_path):
+        break
+    if KITCHEN_RUN_FRONTS:
+        fx, fy = KITCHEN_RUN_FRONTS[0]
+    else:
+        direction = _nearest_wall_direction((cx, cy))
+        if direction is None:
+            continue
+        fx, fy = -direction[0], -direction[1]
+    oven = import_model(oven_path, 1.0, [560, 550, 880])
+    if oven is None:
+        continue
+    scale = min(1.0,
+                (width * 0.9) / max(oven.dimensions.x, 1e-6),
+                (depth * 0.95) / max(oven.dimensions.y, 1e-6))
+    oven.scale = (scale, scale, scale)
+    oven.location = (cx, cy, 0.60)
+    oven.rotation_euler = (0, 0, math.atan2(fy, fx) + math.pi / 2)
+    bpy.context.view_layer.update()
+    # Exact flush, measured: foremost bbox corner along the front axis
+    # lands 5mm proud of the cabinet front.
+    front_plane = cx * fx + cy * fy + depth / 2
+    corners = [oven.matrix_world @ mathutils.Vector(c) for c in oven.bound_box]
+    foremost = max(c.x * fx + c.y * fy for c in corners)
+    # 25mm proud: a built-in oven's fascia/handles stand slightly out of
+    # the carcass — at 5mm the dark glass front vanished optically into
+    # the dark cabinet (probe confirmed it was THERE, z 0.60-1.62).
+    shift = foremost - (front_plane + 0.025)
+    oven.location.x -= fx * shift
+    oven.location.y -= fy * shift
+    for coll in list(oven.users_collection):
+        coll.objects.unlink(oven)
+    collection("Furniture").objects.link(oven)
+    print(f"[dollhouse] oven embedded   front=({fx:.1f},{fy:.1f})")
+
 # Kitchen-sink cutouts, AFTER every placement exists (the counter run is
 # often built later in the loop than the sink that sits in it).
 if sink_cut_queue:
@@ -2154,9 +2174,21 @@ if sink_cut_queue:
                 continue
             cutter = box(f"sink-cut-{index}",
                          (sx_m, sy_m, worktop_top_mm * MM - 0.02),
-                         (sink_w * 0.88, sink_d * 0.88, 0.25), rot_z, None)
+                         # 78%: tight enough that the sink body fills the
+                         # opening completely — at 88% a sliver of the black
+                         # carcass showed through around the basin.
+                         (sink_w * 0.78, sink_d * 0.78, 0.25), rot_z, None)
             cut_opening(candidate, cutter)
             print(f"[dollhouse] sink cutout    {candidate.name}")
+            # Steel floor plate inside the basin: the sink model is open
+            # underneath, so the cutout showed the black carcass through
+            # the bowl ('some black area inside of it').
+            liner_mat = flat("sink-liner", (0.62, 0.63, 0.65),
+                             roughness=0.35, metallic=0.7)
+            box(f"sink-liner-{index}",
+                (sx_m, sy_m, (worktop_top_mm - 110) * MM),
+                (sink_w * 0.74, sink_d * 0.74, 0.012), rot_z,
+                liner_mat, into="Furniture")
             break
         else:
             print(f"[dollhouse] sink cutout    NO WORKTOP at {sx_m:.2f},{sy_m:.2f}")
