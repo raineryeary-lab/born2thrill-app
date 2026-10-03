@@ -50,7 +50,13 @@ TYPES = [
     ("rouded toilet",     "wc",            (380, 600, 800)),
     ("rounded toilet",    "wc",            (380, 600, 800)),
     ("bidet",             "bidet",         (380, 550, 400)),
-    ("double bathroom sink", "double_basin", (1200, 500, 250)),
+    # 2026-09-03 korrigiert: das Sollmass 1200 x 500 x 250 beschrieb ein
+    # BECKEN, das Modell ist aber ein kompletter Doppelwaschtisch MIT
+    # Unterschrank. Gegen ein Beckenmass gewann darum der Divisor 10 und
+    # machte daraus 576 x 187 x 226 mm -- einen Waschtisch fuer Puppen. Mit
+    # dem Mass eines echten Doppelwaschtisches gewinnt 2,54 und liefert
+    # 2269 x 737 x 888, was das Modell tatsaechlich IST.
+    ("double bathroom sink", "double_basin", (1600, 600, 850)),
     ("washbasin",         "basin",         (600, 450, 250)),
     ("bathroom sink",     "basin",         (600, 450, 250)),
     ("batroom sink",      "basin",         (600, 450, 250)),
@@ -100,6 +106,23 @@ TYPES = [
     ("door",              "door",          (1000, 200, 2100)),
     ("tv flatscreen",     "tv",            (1230, 300, 750)),
     ("kitchen furniture set", "kitchen_set", None),   # a scene, not one object
+
+    # Kuechengeraete, ergaenzt 2026-09-03. Sie fehlten hier vollstaendig --
+    # deshalb war KEIN einziges Modell vom Typ fridge oder hob im Katalog,
+    # obwohl Refrigerator_2 seit Wochen entpackt danebenlag. Ohne Sollmass
+    # kann `classify` nichts zuordnen und `resolve` nichts pruefen, und der
+    # Planbauer setzte kuehlschrank und kochfeld darum immer prozedural.
+    # Die Masse sind europaeische Norm-Einbaumasse.
+    ("refrigerator",      "fridge",        (600, 650, 1800)),
+    ("fridge",            "fridge",        (600, 650, 1800)),
+    ("induction hob",     "hob",           (600, 520, 60)),
+    ("hob",               "hob",           (600, 520, 60)),
+    ("built in oven",     "oven",          (600, 570, 600)),
+    ("built in double oven", "oven",       (600, 570, 900)),
+    ("oven",              "oven",          (600, 570, 600)),
+    ("built in microwave", "microwave",    (600, 400, 390)),
+    ("electric cooker",   "cooker",        (600, 600, 900)),
+    ("kitchen utensils",  "utensils",      (400, 300, 300)),
 ]
 
 # How far a model may sit from its type's nominal size and still be accepted.

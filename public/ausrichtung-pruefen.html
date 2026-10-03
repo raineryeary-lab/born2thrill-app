@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ausrichtung stimmt nicht</title>
+<style>
+ :root{--bg:#faf9f7;--ink:#23282c;--soft:#6b7280;--rule:#dcd8d2;--warn:#b45309;
+       --schlimm:#d32f2f;--panel:#ffffff;--link:#0f6656}
+ @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#17191c;--ink:#e8e6e3;
+   --soft:#9aa0a6;--rule:#33373c;--panel:#1f2226;--link:#5eead4}}
+ :root[data-theme=dark]{--bg:#17191c;--ink:#e8e6e3;--soft:#9aa0a6;--rule:#33373c;
+   --panel:#1f2226;--link:#5eead4}
+ body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif;margin:0;padding:2rem}
+ h1{font-size:1.5rem;margin:0 0 .3rem}
+ .lead{color:var(--soft);max-width:66ch;margin:0 0 1.4rem}
+ .k{background:var(--panel);border:1px solid var(--rule);border-radius:8px;
+    padding:.8rem 1rem;margin-bottom:.6rem;display:flex;gap:1.2rem;
+    align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+ .k a{color:var(--link);text-decoration:none;font:600 .95rem ui-monospace,Consolas,monospace;
+      overflow-wrap:anywhere}
+ .k a:hover{text-decoration:underline}
+ .zahlen{color:var(--soft);font-size:.85rem;font-variant-numeric:tabular-nums}
+ .abw{font-weight:600;font-variant-numeric:tabular-nums}
+ .warn{color:var(--warn)} .schlimm{color:var(--schlimm)}
+ .leer{color:var(--soft);padding:2.5rem;text-align:center;background:var(--panel);
+       border:1px solid var(--rule);border-radius:8px;max-width:64ch}
+</style>
+<h1>Ausrichtung stimmt nicht</h1>
+<p class="lead">5 Häuser, deren Ausrichtmarken auf den beiden Geschossen <b>verschieden lange</b> Strecken beschreiben. Die Marken sollen dieselben zwei Ecken bezeichnen &mdash; die, die oben und unten gleich sind. Ihre Diagonale muss also dieselbe Meterzahl ergeben. Tut sie das nicht, sitzt mindestens eine Marke falsch, und das Obergeschoss stapelt sich versetzt aufs Erdgeschoss.</p>
+<div class="k">
+  <a href="http://localhost:8765/annotate.html?project=twostorey_007" target="_blank">twostorey_007 &nearr;</a>
+  <span class="zahlen">groundfloor 12.46 m · upperfloor 16.42 m</span>
+  <span class="abw schlimm">31.7 %</span>
+</div>
+<div class="k">
+  <a href="http://localhost:8765/annotate.html?project=onehalfstorey_007" target="_blank">onehalfstorey_007 &nearr;</a>
+  <span class="zahlen">groundfloor 14.76 m · upperfloor 12.65 m</span>
+  <span class="abw schlimm">16.7 %</span>
+</div>
+<div class="k">
+  <a href="http://localhost:8765/annotate.html?project=twostorey_030" target="_blank">twostorey_030 &nearr;</a>
+  <span class="zahlen">groundfloor 16.51 m · upperfloor 18.42 m</span>
+  <span class="abw schlimm">11.6 %</span>
+</div>
+<div class="k">
+  <a href="http://localhost:8765/annotate.html?project=onehalfstorey_029" target="_blank">onehalfstorey_029 &nearr;</a>
+  <span class="zahlen">groundfloor 13.18 m · upperfloor 12.28 m</span>
+  <span class="abw warn">7.4 %</span>
+</div>
+<div class="k">
+  <a href="http://localhost:8765/annotate.html?project=onehalfstorey_020" target="_blank">onehalfstorey_020 &nearr;</a>
+  <span class="zahlen">groundfloor 14.12 m · upperfloor 13.27 m</span>
+  <span class="abw warn">6.4 %</span>
+</div>
