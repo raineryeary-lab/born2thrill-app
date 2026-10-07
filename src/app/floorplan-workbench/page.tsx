@@ -1,7 +1,12 @@
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-img-element, react-hooks/refs */
 
+import { sichtKasten, zoomUmZeiger, ZOOM_MIN, ZOOM_MAX, ZOOM_SCHRITT } from "@/lib/floorplan-workbench/sicht.mjs";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CorrectionFurnitureLayer, FurniturePalette, useFurniture, richtePunkteAus, schiebePunkte, punktSchrittMm, loeschePunkt } from "./furniture";
+import { furnitureViewDocument } from "@/lib/generator/furniture-live-bootstrap.mjs";
+import { getSymbol } from "@/lib/generator/symbol-catalog.mjs";
+import { worldDeltaToLocalMm } from "@/lib/generator/furniture-document.mjs";
 import {
   commitEditorHistory,
   CORRECTION_DEFAULTS,
@@ -240,15 +245,107 @@ function GeometryEditor({
   setSelection,
   grid,
   showHandles,
+  furnitureDocument,
+  activeSymbolKey,
+  selectedFurnitureId,
+  onFurniturePlace,
+  onFurnitureSelect,
+  onFurnitureMove,
+  onFurniturePlaceDrawn,
+  onFurnitureResize,
+  onFurnitureSetPoints,
+  onFurnitureMoveDrawn,
+  sicht,
+  setSicht,
+  punktAuswahl,
+  onPunktWaehlen,
+  onPunktRechtsklick,
+  onPunktMenue,
+  overrideFloor,
+  projectId,
 }: any) {
+  const furnitureDrag = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const furnitureResize = useRef<{ id: string; centre: Point; rotationDeg: number } | null>(null);
+  const rectCorner = useRef<{ id: string; points: Point[]; corner: number } | null>(null);
+  // Einzelne Punkte an einem gezeichneten Lauf (Rainer, 2026-08-28: "make the
+  // points selectable and moveable"). Die Auswahl gilt fuer das gerade
+  // gewaehlte Moebel und faellt weg, sobald ein anderes gewaehlt wird.
+  const pathPointDrag = useRef<{ id: string; punkt: number } | null>(null);
+  const drawnDrag = useRef<{ id: string; last: Point } | null>(null);
+  const [furnitureDraft, setFurnitureDraft] = useState<Point[]>([]);
+  // Aufziehen eines Rechtecks (Kücheninsel): gedrückt gehaltener Zeiger.
+  const rectDraw = useRef<{ start: Point } | null>(null);
+  const drawingFurniture = activeSymbolKey
+    ? getSymbol(activeSymbolKey)?.placement !== "stamp"
+    : false;
+  useEffect(() => { setFurnitureDraft([]); }, [activeSymbolKey, floorIndex]);
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setFurnitureDraft([]);
+      if (event.key === "Enter" && furnitureDraft.length >= 2) {
+        onFurniturePlaceDrawn(activeSymbolKey, furnitureDraft);
+        setFurnitureDraft([]);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [furnitureDraft, activeSymbolKey, onFurniturePlaceDrawn]);
+  // A kitchen run turns square corners; Shift draws free.
+  function squaredPoint(previous: Point | undefined, point: Point): Point {
+    if (!previous) return point;
+    return Math.abs(point[0] - previous[0]) >= Math.abs(point[1] - previous[1])
+      ? [point[0], previous[1]]
+      : [previous[0], point[1]];
+  }
   const document = history.present;
-  const floor = document.floors[floorIndex];
-  const box = documentBounds(document, floorIndex);
+  // Im Moebel-Schritt der Hausakte zeigt der Editor die Geometrie, DIE
+  // GEBAUT WIRD (render_geometry aus build-simplifier-render-plan.py
+  // --geometry-only), nicht den Korrektur-Kandidaten. Gemessen an
+  // bungalow_036 am 2026-08-21: Editor-Haus bis x=12050, gebautes Haus bis
+  // x=10047 -- fuenf korrekt platzierte Moebel (Ecksofa, Kochfeld, Spuele,
+  // Lowboard, Fernseher) standen im Render ausserhalb der Bodenplatte.
+  // geometry_only existierte genau dafuer und wurde nie aufgerufen.
+  const floor = overrideFloor || document.floors[floorIndex];
+  const box = overrideFloor
+    ? (() => {
+        const pts = overrideFloor.rooms.flatMap((room: any) => room.polygon);
+        const xs = pts.map((pt: any) => pt[0]);
+        const ys = pts.map((pt: any) => pt[1]);
+        return { minX: Math.min(...xs) - 550, minY: Math.min(...ys) - 550,
+                 width: Math.max(...xs) - Math.min(...xs) + 1100,
+                 height: Math.max(...ys) - Math.min(...ys) + 1100 };
+      })()
+    : documentBounds(document, floorIndex);
+  // Zoom kommt von der Seite -- dort stehen die Knoepfe. Zwei Zustaende ueber
+  // denselben Zoom waeren zwei Wahrheiten.
+  const sichtbar = sichtKasten(box, sicht);
   const svgRef = useRef<SVGSVGElement>(null);
   const dragSource = useRef<any>(null);
   const marqueeDrag = useRef<{ start: Point } | null>(null);
   const [marqueeBox, setMarqueeBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [marqueeSelection, setMarqueeSelection] = useState<Selection[]>([]);
+
+  // Strg+Rad zoomt um den Zeiger -- dieselbe Geste wie im Annotator, damit
+  // man sie nur einmal lernen muss. Nicht ueber React onWheel: der Handler
+  // muss `preventDefault` rufen duerfen, und dafuer muss er nicht-passiv
+  // angemeldet sein.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    function amRad(event: WheelEvent) {
+      if (!event.ctrlKey && !event.metaKey) return;   // ohne Strg scrollt die Seite
+      event.preventDefault();
+      const rect = svg!.getBoundingClientRect();
+      const anteil = { x: (event.clientX - rect.left) / rect.width,
+                       y: (event.clientY - rect.top) / rect.height };
+      setSicht((jetzt: { zoom: number; cx: number; cy: number } | null) => zoomUmZeiger(
+        box, jetzt,
+        (jetzt?.zoom || ZOOM_MIN) * (event.deltaY < 0 ? ZOOM_SCHRITT : 1 / ZOOM_SCHRITT),
+        anteil));
+    }
+    svg.addEventListener("wheel", amRad, { passive: false });
+    return () => svg.removeEventListener("wheel", amRad);
+  }, [box.minX, box.minY, box.width, box.height]);
 
   function coordinate(event: React.PointerEvent): Point {
     const svg = svgRef.current!;
@@ -379,18 +476,204 @@ function GeometryEditor({
   }
   return <svg
     ref={svgRef}
-    viewBox={`${box.minX} ${box.minY} ${box.width} ${box.height}`}
+    // Gezoomt wird ueber den viewBox, NICHT ueber eine CSS-Transformation:
+    // `coordinate()` rechnet mit getScreenCTM(), und die kennt den viewBox
+    // von selbst. So kann sich der Zeiger nicht von der Zeichnung loesen.
+    viewBox={`${sichtbar.minX} ${sichtbar.minY} ${sichtbar.width} ${sichtbar.height}`}
     className="h-[680px] w-full touch-none rounded-2xl border bg-white"
-    onPointerDown={startMarquee}
-    onPointerMove={(event) => { if (dragSource.current) { update(coordinate(event)); } else { updateMarquee(event); } }}
-    onPointerUp={() => { finish(); finishMarquee(); }}
+    onPointerDown={(event) => {
+      // Placement takes the click before the marquee claims it.
+      if (activeSymbolKey) {
+        const point = coordinate(event);
+        if (drawingFurniture) {
+          // Squaring is for PATH runs (Küchenzeile, Vorwandinstallation) which
+          // turn right angles. A rect tool (Kücheninsel, Abstellschrank) is two
+          // opposite corners — squaring it collapses the rectangle to a line.
+          const placement = getSymbol(activeSymbolKey)?.placement;
+          const square = !event.shiftKey && placement === "path";
+          // Aufziehen als zweiter Weg: druecken, ziehen, loslassen. Die zwei
+          // Klicks bleiben, aber ohne Vorschau war das Rechteck blind zu
+          // setzen -- wer eng klickte, bekam eine winzige Insel und musste sie
+          // hinterher am Griff aufziehen (Rainer, 2026-08-25: "it is very hard
+          // to just click pull and thus create it").
+          if (placement === "rect") rectDraw.current = { start: point };
+          setFurnitureDraft((current) => {
+            const next = [...current, square ? squaredPoint(current[current.length - 1], point) : point];
+            // A rectangle IS two opposite corners — the second click finishes
+            // it. No Enter, and no dashed line in between.
+            if (placement === "rect" && next.length === 2) {
+              onFurniturePlaceDrawn(activeSymbolKey, next);
+              return [];
+            }
+            return next;
+          });
+        } else {
+          onFurniturePlace(point);
+        }
+        return;
+      }
+      startMarquee(event);
+    }}
+    onPointerMove={(event) => {
+      // Waehrend des Aufziehens zeigt der Entwurf schon das ganze Rechteck.
+      if (rectDraw.current && drawingFurniture) {
+        setFurnitureDraft([rectDraw.current.start, coordinate(event)]);
+        return;
+      }
+      const corner = rectCorner.current;
+      if (corner) {
+        const [x, y] = coordinate(event);
+        // Two opposite corners define the rectangle: move the dragged corner,
+        // keep the one diagonally across from it.
+        const [a, b] = [corner.points[0], corner.points[corner.points.length - 1]];
+        const x0 = Math.min(a[0], b[0]); const x1 = Math.max(a[0], b[0]);
+        const y0 = Math.min(a[1], b[1]); const y1 = Math.max(a[1], b[1]);
+        const fixed: Point = [
+          corner.corner === 0 || corner.corner === 3 ? x1 : x0,
+          corner.corner === 0 || corner.corner === 1 ? y1 : y0,
+        ];
+        onFurnitureSetPoints(corner.id, [fixed, [x, y]]);
+        return;
+      }
+      const punktZug = pathPointDrag.current;
+      if (punktZug) {
+        const item = (furnitureDocument?.symbols || []).find((x: any) => x.id === punktZug.id);
+        if (item?.points_mm) {
+          const [x, y] = coordinate(event);
+          const neu = item.points_mm.map((p: Point, i: number) =>
+            (i === punktZug.punkt ? [Math.round(x), Math.round(y)] as Point : p));
+          onFurnitureSetPoints(punktZug.id, neu);
+        }
+        return;
+      }
+      const dragging = drawnDrag.current;
+      if (dragging) {
+        const point = coordinate(event);
+        onFurnitureMoveDrawn(dragging.id, [point[0] - dragging.last[0], point[1] - dragging.last[1]]);
+        dragging.last = point;
+        return;
+      }
+      const sizing = furnitureResize.current;
+      if (sizing) {
+        const [x, y] = coordinate(event);
+        // Symmetric about the centre: the handle is a corner, so the pointer
+        // describes half-extents. The handles themselves sit INSIDE the
+        // item's rotated group (local ±width/2, ±depth/2), so the world-space
+        // pointer delta has to be turned into that same local frame first --
+        // otherwise a piece rotated ~90°/270° gets width/depth swapped.
+        const local = worldDeltaToLocalMm(
+          x - sizing.centre[0], y - sizing.centre[1], sizing.rotationDeg);
+        onFurnitureResize(sizing.id, Math.abs(local.x) * 2, Math.abs(local.y) * 2);
+        return;
+      }
+      const drag = furnitureDrag.current;
+      if (drag) {
+        const [x, y] = coordinate(event);
+        onFurnitureMove(drag.id, [x - drag.dx, y - drag.dy]);
+        return;
+      }
+      if (dragSource.current) { update(coordinate(event)); } else { updateMarquee(event); }
+    }}
+    onPointerUp={(event) => {
+      const ziehen = rectDraw.current;
+      rectDraw.current = null;
+      if (ziehen && drawingFurniture && activeSymbolKey) {
+        const ende = coordinate(event);
+        // Weit genug gezogen heisst: fertig. Ein Klick auf der Stelle bleibt
+        // ein Klick -- dann setzt der zweite die Gegenecke, wie bisher.
+        if (Math.abs(ende[0] - ziehen.start[0]) > 300
+            || Math.abs(ende[1] - ziehen.start[1]) > 300) {
+          onFurniturePlaceDrawn(activeSymbolKey, [ziehen.start, ende]);
+          setFurnitureDraft([]);
+        } else {
+          setFurnitureDraft([ziehen.start]);
+        }
+      }
+      furnitureDrag.current = null; furnitureResize.current = null;
+      rectCorner.current = null; drawnDrag.current = null; pathPointDrag.current = null;
+      finish(); finishMarquee();
+    }}
+    onDoubleClick={() => {
+      if (drawingFurniture && furnitureDraft.length >= 2) {
+        onFurniturePlaceDrawn(activeSymbolKey, furnitureDraft);
+        setFurnitureDraft([]);
+      }
+    }}
   >
     {marqueeSelection.length > 0 && <text x={box.minX + 40} y={box.minY + 90} fontSize="130" fontWeight="700" fill="#b45309">{marqueeSelection.length} points selected · arrow keys to move · Esc to clear</text>}
     {marqueeBox && <rect x={marqueeBox.x} y={marqueeBox.y} width={marqueeBox.w} height={marqueeBox.h} fill="rgba(37,99,235,0.12)" stroke="#2563eb" strokeWidth="10" strokeDasharray="40 20" />}
-    {floor.rooms.map((room: any) => {
-      const label = roomLabelPoint(room, document.shared_stair_core);
-      return <g key={room.id}>
-      <polygon points={room.polygon.map((point: Point) => point.join(",")).join(" ")} fill={ROOM_COLORS[room.kind] || ROOM_COLORS.flex} stroke="none" />
+    {/* Rainer, 2026-09-17: "could you leave my images that i use to
+        annotate the images also in the Möbel part?" -- the source photo
+        the rooms were drawn against, faint behind the furniture canvas.
+        Registered through the real Frame/RegisteredFrame corner transform
+        (floor.imageCorners, from geometry_only()'s image_corners_mm) --
+        the same maths that places rooms/walls/stairs, not a room-bounding-
+        box guess. Rainer, follow-up: "scale is off but it is all from the
+        same data how can it be off" -- the bbox guess put the photo at
+        the wrong scale/offset whenever the image extended past the drawn
+        rooms (garden, roof overhang); this reads the real corners instead.
+        Falls back to the old bbox approximation only if a stale cached
+        geometry response predates this field.
+        No onError hiding: it mutates style.display directly on the DOM
+        node, and since React reuses that same node across renders (stable
+        position in the tree) and never manages `display` itself, one
+        failed load early on left it hidden FOREVER even once a later
+        render would have loaded fine (confirmed live). An SVG <image>
+        with a 404/failed href already renders nothing by itself, so
+        there is nothing to guard against. */}
+    {(() => {
+      const zeigeReferenz = Boolean(projectId && floor.name && floor.rooms.length > 0);
+      return <>
+        {zeigeReferenz && (() => {
+          const ecken = floor.imageCorners as [number, number][] | null;
+          let x0: number, x1: number, y0: number, y1: number;
+          if (ecken && ecken.length === 4) {
+            const xs = ecken.map((p) => p[0]);
+            const ys = ecken.map((p) => p[1]);
+            x0 = Math.min(...xs); x1 = Math.max(...xs);
+            y0 = Math.min(...ys); y1 = Math.max(...ys);
+          } else {
+            const pts = floor.rooms.flatMap((room: any) => room.polygon);
+            const xs = pts.map((pt: any) => pt[0]);
+            const ys = pts.map((pt: any) => pt[1]);
+            const pad = 400;
+            x0 = Math.min(...xs) - pad; x1 = Math.max(...xs) + pad;
+            y0 = Math.min(...ys) - pad; y1 = Math.max(...ys) + pad;
+          }
+          return <image
+            key={`${projectId}-${floor.name}`}
+            href={`http://127.0.0.1:8765/projects/${encodeURIComponent(projectId)}/${floor.name}_original_preview.png`}
+            x={x0} y={y0} width={x1 - x0} height={y1 - y0}
+            // Full opacity on the image itself now that the room fill
+            // above it multiplies instead of alpha-blending: multiplying
+            // room colour against an already-washed-out (low-opacity,
+            // blended-toward-white) image barely tints it at all, since
+            // multiply-by-near-white is close to a no-op. The image needs
+            // real contrast for the multiply to have anything to work
+            // with; the ROOM layer is what stays soft, not this one.
+            opacity={1}
+            preserveAspectRatio="none"
+            style={{ pointerEvents: "none" }}
+          />;
+        })()}
+        {floor.rooms.map((room: any) => {
+          const label = roomLabelPoint(room, document.shared_stair_core);
+          return <g key={room.id}>
+          {/* Rainer, 2026-09-17: "why are the uploaded floorplans not
+              visible on the möble tab?" -- they WERE drawn, just fully
+              hidden: an opaque room fill painted on top of the reference
+              image blocks it completely everywhere except the thin gaps
+              between rooms. Rainer, follow-up: "well just make the rooms
+              multiply thier colors" -- mix-blend-mode:multiply instead of
+              lowering fillOpacity: the fill stays full-strength colour
+              (doesn't wash out on its own) while still letting the
+              photo's own lines/furniture show through underneath, rather
+              than both layers going muddy-transparent together. Only
+              while a reference image is actually behind it, so a project
+              without one keeps its normal flat fill (multiply against
+              nothing but the white canvas would just darken it for no
+              reason). */}
+          <polygon points={room.polygon.map((point: Point) => point.join(",")).join(" ")} fill={ROOM_COLORS[room.kind] || ROOM_COLORS.flex} style={zeigeReferenz ? { mixBlendMode: "multiply" } : undefined} stroke="none" />
       <text
         x={label[0]}
         y={label[1] - 80}
@@ -408,12 +691,14 @@ function GeometryEditor({
           fill="#64748b"
         >ca. {Number(room.area_m2).toFixed(1)} mÂ²</tspan>
       </text>
-      {showHandles && room.polygon.map((point: Point, index: number) => { const selected = marqueeSelection.some((sel) => sameSelection(sel, { type: "room", id: room.id, point: index })); return <circle key={index} cx={point[0]} cy={point[1]} r={selected ? 125 : 95} fill="#16a34a" stroke={selected ? "#f59e0b" : "#fff"} strokeWidth={selected ? 55 : 35} onPointerDown={(event) => begin(event, { type: "room", id: room.id, point: index })} />; })}
+      {showHandles && !overrideFloor && room.polygon.map((point: Point, index: number) => { const selected = marqueeSelection.some((sel) => sameSelection(sel, { type: "room", id: room.id, point: index })); return <circle key={index} cx={point[0]} cy={point[1]} r={selected ? 125 : 95} fill="#16a34a" stroke={selected ? "#f59e0b" : "#fff"} strokeWidth={selected ? 55 : 35} onPointerDown={(event) => begin(event, { type: "room", id: room.id, point: index })} />; })}
     </g>;
     })}
+      </>;
+    })()}
     {floor.walls.map((wall: any) => <g key={wall.id}>
       <line x1={wall.start[0]} y1={wall.start[1]} x2={wall.end[0]} y2={wall.end[1]} stroke="#1c1917" strokeWidth={wall.thickness} strokeLinecap="square" />
-      {showHandles && [wall.start, wall.end].map((point: Point, index: number) => { const selected = marqueeSelection.some((sel) => sameSelection(sel, { type: "wall", id: wall.id, point: index as 0 | 1 })); const size = selected ? 240 : 180; return <rect key={index} x={point[0] - size / 2} y={point[1] - size / 2} width={size} height={size} fill="#2563eb" stroke={selected ? "#f59e0b" : "#fff"} strokeWidth={selected ? 50 : 30} onPointerDown={(event) => begin(event, { type: "wall", id: wall.id, point: index as 0 | 1 })} />; })}
+      {showHandles && !overrideFloor && [wall.start, wall.end].map((point: Point, index: number) => { const selected = marqueeSelection.some((sel) => sameSelection(sel, { type: "wall", id: wall.id, point: index as 0 | 1 })); const size = selected ? 240 : 180; return <rect key={index} x={point[0] - size / 2} y={point[1] - size / 2} width={size} height={size} fill="#2563eb" stroke={selected ? "#f59e0b" : "#fff"} strokeWidth={selected ? 50 : 30} onPointerDown={(event) => begin(event, { type: "wall", id: wall.id, point: index as 0 | 1 })} />; })}
     </g>)}
     {floor.openings.map((opening: any) => {
       const wall = floor.walls.find((candidate: any) => candidate.id === opening.wall_id);
@@ -425,24 +710,85 @@ function GeometryEditor({
         {opening.opening_type === "window" && <line x1={first[0]} y1={first[1]} x2={second[0]} y2={second[1]} stroke="#12aee2" strokeWidth="48" />}
         {opening.opening_type === "passage" && <line x1={first[0]} y1={first[1]} x2={second[0]} y2={second[1]} stroke={FLOORPLAN_RULES.doors.colours.openPassage} strokeWidth="42" />}
         {opening.opening_type === "door" && <line x1={first[0]} y1={first[1]} x2={second[0]} y2={second[1]} stroke={doorColour(opening)} strokeWidth="72" strokeLinecap="square" />}
-        {showHandles && <circle cx={point[0]} cy={point[1]} r="105" fill={opening.opening_type === "window" ? "#06b6d4" : "#f97316"} stroke="#fff" strokeWidth="35" onPointerDown={(event) => begin(event, { type: "opening", id: opening.id })} />}
+        {showHandles && !overrideFloor && <circle cx={point[0]} cy={point[1]} r="105" fill={opening.opening_type === "window" ? "#06b6d4" : "#f97316"} stroke="#fff" strokeWidth="35" onPointerDown={(event) => begin(event, { type: "opening", id: opening.id })} />}
       </g>;
     })}
-    {document.shared_stair_core?.polygon && <g>
-      <polygon points={document.shared_stair_core.polygon.map((point: Point) => point.join(",")).join(" ")} fill="#fafaf9" fillOpacity=".9" stroke="#57534e" strokeWidth="100" />
-      <line x1={reviewStairPath(document.shared_stair_core)[0][0]} y1={reviewStairPath(document.shared_stair_core)[0][1]} x2={reviewStairPath(document.shared_stair_core)[1][0]} y2={reviewStairPath(document.shared_stair_core)[1][1]} stroke="#1d5b4a" strokeWidth="45" />
-      <polygon points={stairArrow(reviewStairPath(document.shared_stair_core))} fill="#1d5b4a" />
+    {(() => {
+      // Im Moebel-Embed (overrideFloor) kommt die Treppe aus der ZEICHNUNG
+      // (geometry_only -> annotation_stair_core), im Korrektur-Editor aus dem
+      // Dokument. Vorher stand hier IMMER document.shared_stair_core -- die
+      // generierte Treppe des Korrektur-Kandidaten mitten in einer sonst
+      // zeichnungstreuen Ansicht (onehalfstorey_029, 2026-08-22).
+      const stairShown = overrideFloor
+        ? (overrideFloor.stair
+            ? { polygon: overrideFloor.stair.polygon, path: overrideFloor.stair.path }
+            : null)
+        : (document.shared_stair_core?.polygon
+            ? { polygon: document.shared_stair_core.polygon,
+                path: reviewStairPath(document.shared_stair_core) }
+            : null);
+      if (!stairShown?.polygon?.length) return null;
+      const arrowPath = (stairShown.path && stairShown.path.length >= 2)
+        ? [stairShown.path[0], stairShown.path[stairShown.path.length - 1]]
+        : reviewStairPath({ polygon: stairShown.polygon });
+      return <g>
+      <polygon points={stairShown.polygon.map((point: Point) => point.join(",")).join(" ")} fill="#fafaf9" fillOpacity=".9" stroke="#57534e" strokeWidth="100" />
+      {(stairShown.path || arrowPath).length >= 2 && (stairShown.path || arrowPath).slice(0, -1).map((p: Point, i: number) => {
+        const q = (stairShown.path || arrowPath)[i + 1];
+        return <line key={i} x1={p[0]} y1={p[1]} x2={q[0]} y2={q[1]} stroke="#1d5b4a" strokeWidth="45" />;
+      })}
+      <polygon points={stairArrow(arrowPath)} fill="#1d5b4a" />
       <text
-        x={(polygonBox(document.shared_stair_core.polygon).minX + polygonBox(document.shared_stair_core.polygon).maxX) / 2}
-        y={(polygonBox(document.shared_stair_core.polygon).minY + polygonBox(document.shared_stair_core.polygon).maxY) / 2}
+        x={(polygonBox(stairShown.polygon).minX + polygonBox(stairShown.polygon).maxX) / 2}
+        y={(polygonBox(stairShown.polygon).minY + polygonBox(stairShown.polygon).maxY) / 2}
         textAnchor="middle"
         fontSize="155"
         fontWeight="700"
         fill="#1d5b4a"
         style={{ paintOrder: "stroke", stroke: "#fff", strokeWidth: 38 }}
       >TREPPE â†‘</text>
-      {showHandles && document.shared_stair_core.polygon.map((point: Point, index: number) => { const selected = marqueeSelection.some((sel) => sameSelection(sel, { type: "stair", point: index })); return <circle key={index} cx={point[0]} cy={point[1]} r={selected ? 130 : 100} fill="#7c3aed" stroke={selected ? "#f59e0b" : "#fff"} strokeWidth={selected ? 55 : 35} onPointerDown={(event) => begin(event, { type: "stair", point: index })} />; })}
-    </g>}
+      {showHandles && !overrideFloor && document.shared_stair_core?.polygon?.map((point: Point, index: number) => { const selected = marqueeSelection.some((sel) => sameSelection(sel, { type: "stair", point: index })); return <circle key={index} cx={point[0]} cy={point[1]} r={selected ? 130 : 100} fill="#7c3aed" stroke={selected ? "#f59e0b" : "#fff"} strokeWidth={selected ? 55 : 35} onPointerDown={(event) => begin(event, { type: "stair", point: index })} />; })}
+    </g>;
+    })()}
+    <CorrectionFurnitureLayer
+      document={furnitureDocument}
+      selectedId={selectedFurnitureId}
+      draft={furnitureDraft}
+      draftKey={activeSymbolKey}
+      onRectCornerGrab={(event: React.PointerEvent, item: any, corner: number) => {
+        onFurnitureSelect(item.id);
+        rectCorner.current = { id: item.id, points: item.points_mm, corner };
+      }}
+      selectedPoints={punktAuswahl}
+      onPathMenu={(event: React.MouseEvent, item: any, punkt: number | null) => {
+        onFurnitureSelect(item.id);
+        // Ein Rechtsklick raeumt die Auswahl NICHT ab. Rainer, 2026-08-28:
+        // "the second point gets deselected when i right click" -- er rief
+        // dieselbe Regel wie der Linksklick, und die ersetzt ohne Shift die
+        // Auswahl durch den einen Punkt.
+        if (punkt !== null) onPunktRechtsklick(punkt);
+        onPunktMenue({ x: event.clientX, y: event.clientY, id: item.id, punkt });
+      }}
+      onPathPointGrab={(event: React.PointerEvent, item: any, punkt: number) => {
+        onFurnitureSelect(item.id);
+        onPunktWaehlen(punkt, event.shiftKey);
+        pathPointDrag.current = { id: item.id, punkt };
+      }}
+      onResizeGrab={(event: React.PointerEvent, item: any) => {
+        onFurnitureSelect(item.id);
+        furnitureResize.current = { id: item.id, centre: item.position_mm, rotationDeg: item.rotation_deg };
+      }}
+      onGrab={(event: React.PointerEvent, item: any) => {
+        event.stopPropagation();
+        onFurnitureSelect(item.id);
+        if (!item.position_mm) {
+          drawnDrag.current = { id: item.id, last: coordinate(event) };
+          return;
+        }
+        const [x, y] = coordinate(event);
+        furnitureDrag.current = { id: item.id, dx: x - item.position_mm[0], dy: y - item.position_mm[1] };
+      }}
+    />
   </svg>;
 }
 
@@ -504,6 +850,152 @@ export default function FloorplanWorkbenchPage() {
   const [selection, setSelection] = useState<Selection | null>(null);
   const [grid, setGrid] = useState<number>(CORRECTION_DEFAULTS.editSnapMm);
   const [showHandles, setShowHandles] = useState(false);
+  const [activeSymbolKey, setActiveSymbolKey] = useState<string | null>(null);
+  const [selectedFurnitureId, setSelectedFurnitureId] = useState<string | null>(null);
+  // Gewaehlte Punktindizes am gerade gewaehlten gezeichneten Lauf.
+  const [punktAuswahl, setPunktAuswahl] = useState<number[]>([]);
+  // Rechtsklick am gezeichneten Lauf: ausrichten, und am einzelnen Punkt
+  // zusaetzlich loeschen (Rainer, 2026-08-28: "right click delete one point?
+  // Because when i doubleclick to end the creation many times there are 2
+  // points created at the end").
+  const [punktMenue, setPunktMenue] = useState<
+    { x: number; y: number; id: string; punkt: number | null } | null>(null);
+  const [furnitureRoomFilter, setFurnitureRoomFilter] = useState("");
+  // One plan at a time in the same place: two stacked plans meant scrolling
+  // between them to do one job.
+  // Die Hausakte laedt diese Seite als Moebel-Schritt im iframe. Dort ist alles
+  // ausser Plan und Palette Ballast -- Review-Kopf, Referenzsuche,
+  // Geometriewerkzeuge, Rechtehinweise, 3D. Codex, 2026-08-20: "Diese Ansicht
+  // rendert ausschliesslich: Geschossauswahl, Plan, Moebelpalette, Speichern,
+  // gut sichtbares Weiter zu Bauen."
+  const [planView, setPlanView] = useState<"geometry" | "furniture">("geometry");
+  // Zoom im Grundriss. null heisst "alles zeigen". Rainer, 2026-08-31:
+  // "can we add a zoom to the furniture setting? it would be easier to
+  // place the furniture." Ein Haus von 15 m auf 680 Bildpunkten sind rund
+  // 19 mm je Punkt -- ein Wand-WC ist damit 19 Punkte breit.
+  const [sicht, setSicht] = useState<{ zoom: number; cx: number; cy: number } | null>(null);
+  const [embed, setEmbed] = useState(false);
+  useEffect(() => {
+    const modus = new URLSearchParams(window.location.search).get("mode");
+    if (modus === "furniture-embed") {
+      setEmbed(true);
+      setPlanView("furniture");
+    }
+  }, []);
+  const furnitureDrag = useRef<{ id: string; dx: number; dy: number } | null>(null);
+  const furnitureReference = history?.source?.source_reference_id
+    || history?.present?.source_reference_id || "";
+  // Keyed by the CORRECTION floor id, because that is the geometry furniture
+  // is now placed on and the id the corrected render plan looks it up by.
+  // `groundfloor`/`upperfloor` came from the annotation-derived geometry the
+  // editor no longer draws.
+  const furnitureFloorId = history?.present?.floors?.[floorIndex]?.id || "";
+  const furniture = useFurniture(furnitureReference, furnitureFloorId);
+
+  // Pfeiltasten schieben die gewaehlten Punkte, Strg+Z nimmt zurueck --
+  // dieselben Schrittweiten wie im Zeichner, damit die Hand nicht umlernt.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const ziel = event.target as HTMLElement | null;
+      if (ziel && /input|select|textarea/i.test(ziel.tagName)) return;
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+        event.preventDefault();
+        furniture.zurueck();
+        setPunktAuswahl([]);
+        return;
+      }
+      const richtung: Record<string, [number, number]> = {
+        ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+      };
+      const schritt = richtung[event.key];
+      if (!schritt || !selectedFurnitureId) return;
+      const item = (furniture.document.symbols || []).find((x: any) => x.id === selectedFurnitureId);
+      if (!item) return;
+      const mm = punktSchrittMm(event);
+      if (item.points_mm) {
+        // Drawn symbols (Kuechenzeile etc.): nudging moves the SELECTED
+        // points along the path, not the whole run.
+        if (!punktAuswahl.length) return;
+        event.preventDefault();
+        furniture.setPoints(item.id,
+          schiebePunkte(item.points_mm, punktAuswahl, schritt[0] * mm, schritt[1] * mm));
+      } else if (item.position_mm) {
+        // Stamp-placed symbols (bed, sofa, appliances, ...) have one position
+        // and no sub-points to select -- selecting the item is enough.
+        event.preventDefault();
+        furniture.move(item.id,
+          [item.position_mm[0] + schritt[0] * mm, item.position_mm[1] + schritt[1] * mm]);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [furniture, selectedFurnitureId, punktAuswahl]);
+  // Die Bau-Geometrie fuer den Moebel-Schritt. null = (noch) nicht geladen;
+  // dann zeichnet der Editor wie bisher den Korrektur-Kandidaten und sagt
+  // das im Statustext, statt stillschweigend im falschen Haus zu moeblieren.
+  const [renderGeo, setRenderGeo] = useState<any>(null);
+  useEffect(() => {
+    // Im Moebel-Fenster (Embed) IMMER laden, nicht nur in der Moebel-Ansicht:
+    // sonst zeigt der Umschalter auf "Geometrie" den Korrektur-Kandidaten,
+    // also ein anderes Koordinatensystem -- Waende springen, Moebel stehen
+    // daneben (Rainer, 2026-08-23: "if i switch off moebel to edit the
+    // geometry then the walls get totally displaced and all of the furniture").
+    if ((!embed && planView !== "furniture") || !furnitureReference) return;
+    let stehengeblieben = false;
+    fetch("/api/floorplan-workbench/corrections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "render_geometry", reference: furnitureReference }),
+    }).then((r) => r.json()).then((d) => {
+      if (!stehengeblieben) setRenderGeo(d?.ok === false ? { fehler: d.error } : d.geometry || null);
+    }).catch((e) => { if (!stehengeblieben) setRenderGeo({ fehler: String(e) }); });
+    return () => { stehengeblieben = true; };
+  }, [planView, furnitureReference, embed]);
+  // Rainer, 2026-09-18, twostorey_047: 21 of 21 placed items found reflected
+  // into the wrong room -- the save API always re-stamped the CURRENT room
+  // geometry's identity, even when this tab had loaded an OLDER one, so a
+  // stale save looked freshly valid. `furniture.save()` needs to know which
+  // identity THIS TAB is actually showing right now, not the one the API
+  // recomputes at save time -- handed through a ref (see furniture.tsx)
+  // rather than a save()-time argument, since onSave() is called with no
+  // arguments several components away in the toolbar.
+  useEffect(() => {
+    furniture.setDisplayedGeometryIdentity(renderGeo?.floors?.[floorIndex]?.geometry_identity);
+  }, [furniture, renderGeo, floorIndex]);
+  // Geschoss-Zuordnung ueber die REIHENFOLGE: beide Seiten sortieren die
+  // Geschosse gleich (floor-0 <-> erstes Level).
+  const renderFloor = (() => {
+    const fl = renderGeo?.floors?.[floorIndex];
+    // EINE Geometrie im ganzen Moebel-Fenster: die der Zeichnung, aus der
+    // auch gebaut wird. Der Umschalter blendet nur die Moebel ein und aus.
+    if (!fl || (!embed && planView !== "furniture")) return null;
+    return {
+      id: furnitureFloorId,
+      name: fl.floor_level,
+      rooms: (fl.rooms || []).map((r: any) => ({
+        id: r.id, name: r.name, kind: r.kind, polygon: r.polygon_mm, area_m2: r.area_m2,
+      })),
+      walls: fl.walls || [], openings: fl.openings || [],
+      // Die GEZEICHNETE Treppe (annotation_stair_core), nicht die generierte
+      // aus dem Korrektur-Dokument -- siehe geometry_only().
+      stair: fl.stair || null,
+      // Echte Frame/RegisteredFrame-Registrierung des Referenzfotos, aus
+      // geometry_only() -- keine Bounding-Box-Naeherung mehr (Rainer,
+      // 2026-09-17: "scale is off but it is all from the same data").
+      imageCorners: fl.image_corners_mm || null,
+    };
+  })();
+  // Codex-Review, 2026-09-18 (Koordinatenraeume): waehrend renderGeo noch
+  // laedt oder fehlgeschlagen ist, zeichnet die Flaeche wie gehabt den
+  // Korrektur-Kandidaten (siehe Fallback bei roomNames/rooms unten) -- ein
+  // ANDERES Koordinatensystem als das, worin Moebel gespeichert werden. Ohne
+  // diese Sperre blieb "Speichern" in genau diesem Fenster anklickbar und
+  // haette Moebel unter dem Korrektur-Layout platziert, aber als Render-mm
+  // abgespeichert. Die Stale-Save-Pruefung oben greift hier NICHT, weil es
+  // noch gar keine geladene geometry_identity gibt, mit der sie vergleichen
+  // koennte.
+  const moebelGeometrieFehltNoch = (embed || planView === "furniture")
+    && !!furnitureReference && !renderGeo?.floors?.[floorIndex];
   const [validation, setValidation] = useState<any>(null);
   const [preview, setPreview] = useState<any>(null);
   const [blenderPreview, setBlenderPreview] = useState<any>(null);
@@ -531,6 +1023,22 @@ export default function FloorplanWorkbenchPage() {
     const search = new URLSearchParams(window.location.search);
     const requestedReference = search.get("reference") || undefined;
     const requestedTransform = search.get("transform") || "identity";
+    if (search.get("mode") === "furniture-embed" && requestedReference) {
+      let cancelled = false;
+      fetch("/api/floorplan-workbench/corrections", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "render_geometry", reference: requestedReference }),
+      }).then(async response => {
+        const body = await response.json();
+        if (!response.ok || !body.ok) throw new Error(body.error || "Furniture geometry unavailable.");
+        const source = furnitureViewDocument(requestedReference, body.geometry);
+        if (cancelled) return;
+        setRenderGeo(body.geometry);
+        setHistory(createEditorHistory(source));
+        notify("Live annotation loaded for furniture placement.", "info");
+      }).catch(error => { if (!cancelled) notify(String(error), "error"); });
+      return () => { cancelled = true; };
+    }
     fetchReferenceCandidate(requestedReference, requestedTransform).then(({ proof: loadedProof, revisions }) => {
       const source = correctionSourceFromProof(loadedProof);
       const initial = revisions.latest?.schema === source.schema ? revisions.latest : source;
@@ -595,6 +1103,22 @@ export default function FloorplanWorkbenchPage() {
   }
 
   const document = history?.present;
+  // Der Kasten, auf den sich der Zoom bezieht -- derselbe, den der Editor
+  // zeichnet. `documentBounds` ist rein rechnend, also kein zweiter Weg.
+  // Beim ersten Rendern gibt es noch kein Dokument -- `documentBounds` liest
+  // dann `.floors` von undefined und die ganze Seite faellt mit 500 aus.
+  const zoomKasten = useMemo(
+    () => (document ? documentBounds(document, floorIndex)
+                    : { minX: 0, minY: 0, width: 1, height: 1 }),
+    [document, floorIndex]);
+
+  function zoomStufe(richtung: number) {
+    // Um die Bildmitte, wenn niemand zeigt. Das Rad zoomt um den Zeiger.
+    setSicht((jetzt: { zoom: number; cx: number; cy: number } | null) => zoomUmZeiger(
+      zoomKasten, jetzt,
+      (jetzt?.zoom || ZOOM_MIN) * (richtung > 0 ? ZOOM_SCHRITT : 1 / ZOOM_SCHRITT),
+      { x: 0.5, y: 0.5 }));
+  }
   const selected = useMemo(() => {
     if (!document || !selection) return null;
     const floor = document.floors[floorIndex];
@@ -717,7 +1241,40 @@ export default function FloorplanWorkbenchPage() {
     info: "bg-slate-800 text-white",
   };
   const bannerIcon: Record<string, string> = { success: "✅", error: "❌", warning: "⚠️", info: "ℹ️" };
-  return <main className="mx-auto max-w-[1500px] space-y-6 p-5">
+  const EMBED_CSS = `
+    .wb-embed { height:100dvh; overflow:hidden; display:flex; flex-direction:column;
+                padding:10px 12px; margin:0; max-width:none; }
+    /* Alles ausser dem Plan-Abschnitt bleibt draussen -- im Moebel-Schritt ist
+       nichts davon gemeint, und jeder Knopf mehr ist ein Umweg.
+       AUSSER dem Speichern. Rainer, 2026-08-30, zum dritten Mal derselbe
+       Abbruch: "die RAEUME dieses Geschosses wurden umgezeichnet, seit diese
+       Moebel gesetzt wurden". Der Handgriff lautet "einmal speichern" -- und
+       genau der Knopf fiel hier mit heraus. Im Browser nachgemessen: 52
+       sichtbare Bedienelemente, alle aus der Palette, "Save draft" nicht
+       darunter. Der Schritt liess sich also gar nicht abschliessen. */
+    .wb-embed > *:not(.wb-plan):not(.wb-aktionen) { display:none !important; }
+    .wb-embed .wb-plan { flex:1 1 auto; min-height:0; display:grid;
+                         grid-template-columns:1fr 330px; gap:12px; }
+    /* Rainer, 2026-09-19: "the doulbe scrollbar is still in the moebel part"
+       -- beide Spalten bekamen unterschiedslos overflow:auto. Die linke
+       Spalte ist die Zeichenflaeche mit ihrem EIGENEN Zoom/Pan (sicht,
+       zoomStufe oben) -- ein zusaetzlicher Seiten-Scrollbalken daneben ist
+       nur die zweite, ueberfluessige Bedienung fuer dieselbe Sache. Nur die
+       RECHTE Spalte (die Moebelpalette, eine tatsaechlich lange Liste) soll
+       fuer sich scrollen. min-height:0 bleibt auf beiden -- das ist die
+       CSS-Grid-Untergrenze, die das Schrumpfen unter die Inhaltsgroesse
+       ueberhaupt erst erlaubt, unabhaengig vom Scroll-Verhalten. */
+    .wb-embed .wb-plan > :first-child { min-height:0; overflow:hidden; }
+    .wb-embed .wb-plan > :last-child { min-height:0; overflow:auto; }
+    /* Nur Speichern. Validate, Approve, Reject und Export gehoeren in die
+       volle Ansicht -- hier waere jeder davon ein Umweg oder ein Unfall. */
+    .wb-embed .wb-aktionen { flex:0 0 auto; margin-top:10px; padding:10px 14px;
+                             border-radius:14px; }
+    .wb-embed .wb-aktionen button:not(.wb-speichern) { display:none !important; }
+  `;
+
+  return <main className={embed ? "wb-embed" : "mx-auto max-w-[1500px] space-y-6 p-5"}>
+    {embed && <style dangerouslySetInnerHTML={{ __html: EMBED_CSS }} />}
     {message && <div
       key={messageAt}
       className={`sticky top-2 z-50 flex items-start gap-3 rounded-2xl px-5 py-4 text-base font-semibold shadow-lg ring-2 ring-black/10 ${bannerStyles[messageKind]}`}
@@ -728,9 +1285,14 @@ export default function FloorplanWorkbenchPage() {
     <header className="rounded-3xl bg-amber-100 p-6 ring-2 ring-amber-600">
       <p className="font-black tracking-widest text-amber-950">INTERNAL REVIEW â€“ NOT FOR CUSTOMER DELIVERY</p>
       <h1 className="mt-2 text-3xl font-semibold">Manual floorplan correction Â· {document.source_reference_id}</h1>
+      {document.source_reference_id ? <a href={"http://127.0.0.1:8765/annotate.html?project=" + encodeURIComponent(document.source_reference_id)} target="_blank" rel="noreferrer" title="Annotator (eigene App auf Port 8765) - dasselbe Projekt" className="ml-3 rounded-full bg-stone-200 px-3 py-1 align-middle text-xs font-semibold text-stone-800 hover:bg-stone-300">Im Annotator &#8599;</a> : null}
       <p className="mt-2">The same cleaned millimetre geometry drives the editor, JPEG and 3D guide. Source annotation remains read-only.</p>
       <p className="mt-1 text-sm">Geometry hash: <span className="break-all font-mono text-xs">{document.geometry_hash}</span></p>
       <p className="mt-1 text-xs">Transform: {proof?.transform || "identity"} · revision {document.revision} · approval {document.status} · Rulebook: {FLOORPLAN_RULEBOOK_VERSION}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <span className="rounded-full bg-violet-700 px-4 py-2 text-sm font-semibold text-white">Correction editor</span>
+        <a href="/floorplan-workbench/overview" className="rounded-full bg-white px-4 py-2 text-sm font-semibold">Overview of everything produced</a>
+      </div>
       <div className="mt-3 flex flex-wrap gap-2">{["identity", "mirror_horizontal", "mirror_vertical"].map((transform) => <a key={transform} href={`/floorplan-workbench?reference=${encodeURIComponent(document.source_reference_id)}&transform=${transform}`} className={`rounded-full px-3 py-2 text-sm ${proof?.transform === transform ? "bg-violet-700 text-white" : "bg-white"}`}>{transform}</a>)}</div>
       <div className="mt-4 flex flex-wrap items-center gap-2 rounded-2xl bg-white/70 p-3 text-sm">
         <button
@@ -796,18 +1358,198 @@ export default function FloorplanWorkbenchPage() {
         >{result.project_id}</button>)}
       </div>}
     </section>
-    <section className="grid gap-5 xl:grid-cols-[1fr_330px]">
+    <section className="wb-plan grid gap-5 xl:grid-cols-[1fr_330px]">
       <div className="space-y-3">
         <div className="flex flex-wrap gap-2">
           {document.floors.map((floor: any, index: number) => <button key={floor.id} onClick={() => { setFloorIndex(index); setSelection(null); }} className={`rounded-full px-4 py-2 ${index === floorIndex ? "bg-slate-900 text-white" : "bg-white"}`}>{floor.name}</button>)}
-          <button onClick={() => { setShowHandles((value) => !value); setSelection(null); }} className={`rounded-full px-4 py-2 ${showHandles ? "bg-blue-700 text-white" : "bg-white"}`}>{showHandles ? "Hide edit handles" : "Edit geometry"}</button>
+          {/* In der Moebel-Ansicht zeigt der Plan die Geometrie der ZEICHNUNG
+              (geometry_only), die Griffe wuerden aber das Korrektur-Dokument
+              verschieben -- man zog an einem Griff und nichts bewegte sich
+              (Rainer, 2026-08-23: "the edit in furniture mode isn't working").
+              Geometrie wird im Zeichnen-Schritt geaendert, hier nicht. */}
+          <button
+            onClick={() => { setShowHandles((value) => !value); setSelection(null); }}
+            disabled={planView === "furniture"}
+            title={planView === "furniture"
+              ? "Geometrie wird im Zeichnen-Schritt geändert, nicht in der Möbel-Ansicht"
+              : undefined}
+            className={`rounded-full px-4 py-2 ${planView === "furniture"
+              ? "bg-white text-slate-400 cursor-not-allowed"
+              : showHandles ? "bg-blue-700 text-white" : "bg-white"}`}
+          >{showHandles && planView !== "furniture" ? "Hide edit handles" : "Edit geometry"}</button>
+          {/* Zoom. Rainer, 2026-08-31: "can we add a zoom to the furniture
+              setting?" Strg+Rad zoomt um den Zeiger; die Knoepfe zoomen um
+              die Bildmitte, fuer alle, die kein Rad haben. */}
+          <span className="ml-2 inline-flex items-center gap-1 rounded-full border bg-white px-2 py-1">
+            <button
+              type="button"
+              title="Verkleinern"
+              disabled={!sicht}
+              onClick={() => zoomStufe(-1)}
+              className="px-2 text-lg leading-none disabled:opacity-30"
+            >&minus;</button>
+            <span className="w-12 text-center text-xs tabular-nums text-stone-600">
+              {Math.round((sicht?.zoom || ZOOM_MIN) * 100)}%
+            </span>
+            <button
+              type="button"
+              title="Vergroessern (oder Strg + Mausrad)"
+              disabled={(sicht?.zoom || ZOOM_MIN) >= ZOOM_MAX}
+              onClick={() => zoomStufe(1)}
+              className="px-2 text-lg leading-none disabled:opacity-30"
+            >+</button>
+            <button
+              type="button"
+              title="Ganzen Grundriss zeigen"
+              disabled={!sicht}
+              onClick={() => setSicht(null)}
+              className="ml-1 rounded px-2 py-0.5 text-xs hover:bg-stone-100 disabled:opacity-30"
+            >Einpassen</button>
+          </span>
+          <button
+            onClick={() => setPlanView((view: "geometry" | "furniture") => view === "furniture" ? "geometry" : "furniture")}
+            className={`rounded-full px-4 py-2 ${planView === "furniture" ? "bg-amber-700 text-white" : "bg-white"}`}
+          >Möbel</button>
           <label className="ml-auto rounded-full bg-white px-4 py-2">Snap <input type="number" min="10" step="10" value={grid} onChange={(event) => setGrid(Number(event.target.value))} className="w-20 border-b text-right" /> mm</label>
         </div>
-        <GeometryEditor history={history} setHistory={setHistory} floorIndex={floorIndex} selection={selection} setSelection={setSelection} grid={grid} showHandles={showHandles} />
+        <GeometryEditor
+          sicht={sicht}
+          setSicht={setSicht}
+          history={history} setHistory={setHistory} floorIndex={floorIndex}
+          selection={selection} setSelection={setSelection} grid={grid} showHandles={showHandles}
+          furnitureDocument={furniture.document}
+          overrideFloor={renderFloor}
+          projectId={document.source_reference_id}
+          activeSymbolKey={activeSymbolKey}
+          selectedFurnitureId={selectedFurnitureId}
+          onFurniturePlace={(point: [number, number]) => { if (!moebelGeometrieFehltNoch && activeSymbolKey) furniture.place(activeSymbolKey, point); }}
+          onFurnitureSelect={(id: string) => {
+            if (id !== selectedFurnitureId) setPunktAuswahl([]);
+            setSelectedFurnitureId(id); setActiveSymbolKey(null);
+          }}
+          // Codex-Review, 2026-09-18: die fruehere Fassung sperrte nur den
+          // Speichern-Knopf. Waehrend renderGeo noch laedt, blieb Platzieren/
+          // Verschieben/Umformen aber weiter moeglich -- eine WAEHREND dieses
+          // Fensters gezogene Aenderung blieb im Dokument stehen, und sobald
+          // die Geometrie fertig geladen war, entsperrte sich Speichern
+          // wieder und nahm die laengst (gegen die falsche/Fallback-Ansicht)
+          // gezogene Aenderung klaglos mit. Jede Mutation jetzt selbst
+          // gesperrt, nicht nur das Speichern.
+          onFurnitureMove={(id: string, point: [number, number]) => { if (!moebelGeometrieFehltNoch) furniture.move(id, point); }}
+          onFurniturePlaceDrawn={(key: string, points: [number, number][]) => { if (!moebelGeometrieFehltNoch) furniture.placeDrawn(key, points); }}
+          onFurnitureResize={(id: string, width: number, depth: number) => { if (!moebelGeometrieFehltNoch) furniture.resize(id, width, depth); }}
+          onFurnitureSetPoints={(id: string, points: [number, number][]) => { if (!moebelGeometrieFehltNoch) furniture.setPoints(id, points); }}
+          onFurnitureMoveDrawn={(id: string, delta: [number, number]) => { if (!moebelGeometrieFehltNoch) furniture.moveDrawn(id, delta); }}
+          punktAuswahl={punktAuswahl}
+          onPunktWaehlen={(punkt: number, dazu: boolean) => setPunktAuswahl((alt) =>
+            dazu ? (alt.includes(punkt) ? alt.filter((i) => i !== punkt) : [...alt, punkt]) : [punkt])}
+          onPunktRechtsklick={(punkt: number) => setPunktAuswahl((alt) =>
+            alt.includes(punkt) ? alt : [punkt])}
+          onPunktMenue={setPunktMenue}
+        />
       </div>
+      {punktMenue && (() => {
+        const item = (furniture.document.symbols || []).find((x: any) => x.id === punktMenue.id);
+        if (!item?.points_mm) return null;
+        // Ausrichten bezieht sich auf die Auswahl -- und ohne Auswahl auf den
+        // ganzen Lauf. Rainer, 2026-08-28: "why no align waagrecht and
+        // senkrecht? Im just trying to make it easier for the Bauen part."
+        // Der erste Anlauf zeigte die Befehle nur bei zwei gewaehlten Punkten
+        // und antwortete sonst mit einem Hinweis -- ein Menue, das erklaert
+        // statt zu tun. Der haeufigste Fall ist ohnehin "die ganze Zeile soll
+        // gerade sein".
+        const eintraege: [string, boolean, () => void][] = [];
+        const ziel = punktAuswahl.length > 1
+          ? punktAuswahl
+          : item.points_mm.map((_: any, i: number) => i);
+        const worauf = punktAuswahl.length > 1
+          ? `${punktAuswahl.length} Punkte`
+          : `alle ${item.points_mm.length}`;
+        eintraege.push([`Waagerecht ausrichten (${worauf})`, ziel.length > 1, () =>
+          furniture.setPoints(item.id, richtePunkteAus(item.points_mm, ziel, 1))]);
+        eintraege.push([`Senkrecht ausrichten (${worauf})`, ziel.length > 1, () =>
+          furniture.setPoints(item.id, richtePunkteAus(item.points_mm, ziel, 0))]);
+        if (punktMenue.punkt !== null) {
+          eintraege.push([
+            item.points_mm.length > 2 ? "Diesen Punkt löschen" : "Punkt löschen (mindestens zwei nötig)",
+            item.points_mm.length > 2,
+            () => {
+              furniture.setPoints(item.id, loeschePunkt(item.points_mm, punktMenue.punkt as number));
+              setPunktAuswahl([]);
+            },
+          ]);
+        }
+        return <>
+          <div className="fixed inset-0 z-40" onPointerDown={() => setPunktMenue(null)} />
+          <div className="fixed z-50 min-w-[210px] rounded-md border border-stone-300 bg-white p-1 text-sm text-stone-800 shadow-lg"
+            style={{ left: punktMenue.x, top: punktMenue.y }}>
+            <div className="px-3 py-1 text-[11px] text-stone-500">
+              {item.points_mm.length} Punkte{punktAuswahl.length ? ` · ${punktAuswahl.length} gewählt` : ""}
+            </div>
+            {eintraege.map(([text, aktiv, tun], index) => <button
+              key={index}
+              type="button"
+              disabled={!aktiv}
+              className="block w-full rounded px-3 py-1.5 text-left hover:bg-emerald-50 disabled:text-stone-400 disabled:hover:bg-transparent"
+              onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); setPunktMenue(null); tun(); }}
+            >{text}</button>)}
+          </div>
+        </>;
+      })()}
       <aside className="space-y-4 rounded-3xl bg-white p-5 shadow-sm">
-        <h2 className="text-xl font-semibold">Selected geometry</h2>
-        {!selection && <p className="text-sm text-stone-600">The clean view is the default. Select â€œEdit geometryâ€ to show room points, wall endpoints, wall-linked openings and the shared stair core. Drag on empty space (not on a handle) to draw a selection box around several points at once, then use the arrow keys to move all of them together; Shift+arrow moves in bigger steps, Esc clears the selection.</p>}
+        <FurniturePalette
+          activeKey={activeSymbolKey}
+          onPick={(key: string | null) => { setActiveSymbolKey(key); setSelectedFurnitureId(null); setPunktAuswahl([]); }}
+          selected={(furniture.document.symbols || []).find((item: any) => item.id === selectedFurnitureId) || null}
+          onRotate={(delta: number) => selectedFurnitureId && furniture.rotate(selectedFurnitureId, delta)}
+          onMirror={() => selectedFurnitureId && furniture.mirror(selectedFurnitureId)}
+          onRemove={() => { if (selectedFurnitureId) { furniture.remove(selectedFurnitureId); setSelectedFurnitureId(null); } }}
+          onSave={furniture.save}
+          onSendToRender={furniture.sendToRender}
+          dirty={furniture.dirty}
+          status={furniture.status}
+          geometryReady={!moebelGeometrieFehltNoch}
+          geometryWarning={moebelGeometrieFehltNoch
+            ? (renderGeo?.fehler
+                ? `Baugeometrie nicht geladen (${renderGeo.fehler}) — Speichern gesperrt, um nicht im falschen Koordinatensystem abzuspeichern.`
+                : "Baugeometrie lädt noch — Speichern gesperrt, um nicht im falschen Koordinatensystem abzuspeichern.")
+            : null}
+          roomFilter={furnitureRoomFilter}
+          onRoomFilter={setFurnitureRoomFilter}
+          roomNames={((renderFloor || document.floors?.[floorIndex])?.rooms || []).map((room: any) => room.name)}
+          count={(furniture.document.symbols || []).length}
+          // DASSELBE Geschoss wie die Zeichenflaeche (Zeile 303:
+          // `overrideFloor || document.floors[floorIndex]`). Rainer,
+          // 2026-08-29: das Panel meldete elf Moebel "ausserhalb der Raeume"
+          // bei einem fertigen Haus -- alle elf lagen in einem gezeichneten
+          // Raum. Es mass gegen das Korrekturdokument (x bis 10600), die
+          // Zeichenflaeche gegen das Rendergeschoss (x bis 15234).
+          rooms={(renderFloor || document.floors?.[floorIndex])?.rooms || []}
+          symbols={furniture.document.symbols || []}
+          punktAuswahl={punktAuswahl}
+          onPunkteAusrichten={(achse: 0 | 1) => {
+            const item = (furniture.document.symbols || []).find((x: any) => x.id === selectedFurnitureId);
+            if (!item?.points_mm || punktAuswahl.length < 2) return;
+            furniture.setPoints(item.id, richtePunkteAus(item.points_mm, punktAuswahl, achse));
+          }}
+          onZurueck={() => { furniture.zurueck(); setPunktAuswahl([]); }}
+          zurueckMoeglich={furniture.kannZurueck()}
+          onSelect={(id: string) => { setSelectedFurnitureId(id); setPunktAuswahl([]); }}
+          onRemoveById={(id: string) => {
+            furniture.remove(id);
+            if (selectedFurnitureId === id) setSelectedFurnitureId(null);
+          }}
+        />
+        {/* Der Erklaertext ist weg. Rainer, 2026-08-30: "get rid of that
+            text i would rather see more furniture" -- vier Zeilen Anleitung
+            standen dauerhaft ueber der Moebelliste, obwohl sie nur beim
+            ERSTEN Mal etwas sagen. Die Ueberschrift erscheint jetzt nur,
+            wenn wirklich etwas ausgewaehlt ist; ohne Auswahl gibt es unter
+            ihr ohnehin nichts zu sehen. */}
+        {selection && <>
+          <hr className="border-stone-200" />
+          <h2 className="text-xl font-semibold">Selected geometry</h2>
+        </>}
         {selected?.coordinates && <div className="grid grid-cols-2 gap-3">
           <label className="text-sm">X (mm)<input type="number" value={selected.coordinates[0]} onChange={(event) => setCoordinate(0, Number(event.target.value))} className="mt-1 w-full rounded border p-2" /></label>
           <label className="text-sm">Y (mm)<input type="number" value={selected.coordinates[1]} onChange={(event) => setCoordinate(1, Number(event.target.value))} className="mt-1 w-full rounded border p-2" /></label>
@@ -818,21 +1560,24 @@ export default function FloorplanWorkbenchPage() {
           <label className="block text-sm">Opening width (mm)<input type="number" min="300" step="10" value={selected.item.width} onChange={(event) => commitMutation((next) => { next.floors[floorIndex].openings.find((item: any) => item.id === selection.id).width = Number(event.target.value); })} className="mt-1 w-full rounded border p-2" /></label>
           {selected.item.opening_type === "window" && <label className="block text-sm">Window height (mm)<input type="number" min="300" step="10" value={selected.item.height_mm || FLOORPLAN_RULES.windows.defaultHeightMm} onChange={(event) => commitMutation((next) => { next.floors[floorIndex].openings.find((item: any) => item.id === selection.id).height_mm = Number(event.target.value); })} className="mt-1 w-full rounded border p-2" /></label>}
         </>}
-        <div className="space-y-2 border-t pt-4 text-xs">
+        {/* Die Farblegende gehoert zur Geometrie. Im Moebel-Schritt sagt sie
+            nichts und nimmt sieben Zeilen weg. */}
+        {planView !== "furniture" && <div className="space-y-2 border-t pt-4 text-xs">
           <p className="font-semibold">Closed opening legend</p>
           <p><span className="mr-2 inline-block h-2.5 w-6 bg-emerald-700" />Entrance 1100 mm</p>
           <p><span className="mr-2 inline-block h-2.5 w-6 bg-cyan-600" />Glazed terrace door 1800 mm</p>
           <p><span className="mr-2 inline-block h-2.5 w-6 bg-blue-600" />Internal door 880 mm</p>
           <p><span className="mr-2 inline-block h-2.5 w-6 bg-amber-600" />Small-WC door 760 mm</p>
           <p><span className="mr-2 inline-block h-2.5 w-6 bg-cyan-500" />Window</p>
-        </div>
-        <div className="space-y-1 border-t pt-4 text-xs text-stone-600">
+        </div>}
+        {/* Das Treppen-Regelwerk ebenso: es gehoert zur Geometrie. */}
+        {planView !== "furniture" && <div className="space-y-1 border-t pt-4 text-xs text-stone-600">
           <p className="font-semibold text-stone-900">Stair rulebook</p>
           <p>900 mm usable width Â· arrow always upward Â· identical core on both floors.</p>
           <p>Bastian forms: straight, quarter-turn, double-quarter-turn. Walking zone: middle 20% of usable width.</p>
           <p>No tread lines until a valid straight or fan-shaped tread layout exists.</p>
           <a className="text-blue-700 underline" href={FLOORPLAN_RULES.stairs.reference.url} target="_blank" rel="noreferrer">Official System Bastian reference</a>
-        </div>
+        </div>}
         <div className="grid grid-cols-2 gap-2 border-t pt-4">
           <button disabled={!history.past.length} onClick={() => setHistory(undoEditorHistory(history))} className="rounded bg-stone-200 p-2 disabled:opacity-40">Undo</button>
           <button disabled={!history.future.length} onClick={() => setHistory(redoEditorHistory(history))} className="rounded bg-stone-200 p-2 disabled:opacity-40">Redo</button>
@@ -841,7 +1586,7 @@ export default function FloorplanWorkbenchPage() {
         <p className="text-xs break-words text-stone-600">{message}</p>
       </aside>
     </section>
-    <section className="grid gap-5 lg:grid-cols-2">
+    {!embed && <><section className="grid gap-5 lg:grid-cols-2">
       <article className="rounded-3xl bg-white p-5"><h2 className="text-xl font-semibold">Corrected safe JPEG</h2>{preview ? <><img src={`data:image/jpeg;base64,${preview.file_base64}`} alt="Corrected raster floorplan" className="mt-3 w-full rounded border" /><p className="mt-2 break-all text-xs">JPEG SHA-256 {preview.sha256} Â· geometry {preview.geometry_hash}</p></> : <p className="mt-3 text-sm">Select Validate to render from the corrected canonical JSON.</p>}</article>
       <article className="rounded-3xl bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -867,15 +1612,14 @@ export default function FloorplanWorkbenchPage() {
       <p className="mt-3 text-sm">Geometry approval and commercial-output approval are separate. WordPress eligibility is enabled only after geometry validation, local approval and the applicable explicit output decision. Exported packages contain the cleaned canonical plan and JPEG, never the original reference asset.</p>
     </section>
     {validation && <section className={`rounded-3xl p-5 ${validation.valid ? "bg-emerald-100" : "bg-red-100"}`}><h2 className="font-semibold">Hard validation: {validation.valid ? "PASS" : "BLOCKED"}</h2><p className="mt-2 text-sm">{validation.errors.join(" Â· ") || "Source preserved; openings wall-linked; stair shared and â‰¥ 900 mm; hashes match."}</p><p className="mt-1 text-xs">{validation.warnings.join(" Â· ")}</p></section>}
-    <section className="flex flex-wrap gap-3 rounded-3xl bg-slate-900 p-5 text-white">
-      <button onClick={() => action("save_draft")} className="rounded-full bg-sky-600 px-5 py-3">Save draft</button>
+    <section className="wb-aktionen flex flex-wrap gap-3 rounded-3xl bg-slate-900 p-5 text-white">
+      <button onClick={() => action("save_draft")} className="wb-speichern rounded-full bg-sky-600 px-5 py-3">Save draft</button>
       <button onClick={() => action("validate")} className="rounded-full bg-violet-600 px-5 py-3">Validate + re-render</button>
       <button onClick={() => action("approve")} className="rounded-full bg-emerald-600 px-5 py-3">Approve locally</button>
       <button onClick={() => action("reject")} className="rounded-full bg-red-600 px-5 py-3">Reject</button>
       <button onClick={() => action("export")} className="rounded-full bg-amber-500 px-5 py-3 text-black">Export approved package</button>
     </section>
+    </>}
   </main>;
 }
-
-
 

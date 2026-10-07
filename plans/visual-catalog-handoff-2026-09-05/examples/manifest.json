@@ -1,0 +1,14 @@
+{
+  "schema": "visual-catalog-example-manifest-v1",
+  "created": "2026-09-05",
+  "purpose": "Quality and style examples only; never geometry references for another house.",
+  "plan_id": "german_catalog_review_bungalow_3_5_1_b_145",
+  "images": [
+    {"file": "01-exterior-classic-review.png", "kind": "exterior", "style": "classic", "width": 1920, "height": 1080, "sha256": "FC31658647FA74F2D4047A225A2EA4494E870783FCDFC4C2AE0156CB10CA9177"},
+    {"file": "02-exterior-modern-review.png", "kind": "exterior", "style": "modern", "width": 1920, "height": 1080, "sha256": "6CB4C367E90A2EBE41C5F6D3BD06788FD875433C8FC0CB7A050A9DEE4F2AF038"},
+    {"file": "03-floorplan-warm-modern-review.png", "kind": "interior", "style": "warm-modern", "width": 2000, "height": 1500, "sha256": "7A2D8FF8949C3BA8C6B7CA4E36161DD6C8A74D3129036CEC4DB681BB532A3C70"},
+    {"file": "04-floorplan-dark-modern-review.png", "kind": "interior", "style": "dark-modern", "width": 2000, "height": 1500, "sha256": "AB712EB5129422A5CBE5923ECA61725A4799BD81BC88E74E4834FD953198CDFF"},
+    {"file": "05-floorplan-soft-scandinavian-review.png", "kind": "interior", "style": "soft-scandinavian", "width": 2000, "height": 1500, "sha256": "2D337DE8C08168A7D8166895CDB315A7F663440389140759DE607C86E1989B92"},
+    {"file": "06-floorplan-classic-review.png", "kind": "interior", "style": "classic", "width": 2000, "height": 1500, "sha256": "B861FA35C7A5DE9854359552DF8F8FF9612266F01F8A18B8AAD312B92CC26821"}
+  ]
+}

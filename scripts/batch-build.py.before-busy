@@ -1,0 +1,215 @@
+#!/usr/bin/env python3
+"""Run many houses through the build, resumably, without babysitting.
+
+Codex, 2026-08-19, on throughput for ~100 houses: "Batch queue for prepare,
+Blender, Codex intake and publishing; stop running houses individually."
+
+What this does per house, in order, and why:
+
+  1. SKIP if the annotation cannot support a build. A missing ground-floor
+     scale means the surroundings get discarded and the render plan refuses the
+     level outright -- better to say so in one line than to fail four minutes
+     into Blender.
+  2. SKIP if the delivery is already current. "Current" is the annotation hash
+     stamped in the built plan matching the hash the annotator last saved --
+     not file timestamps, which lie the moment anything is copied.
+  3. BUILD otherwise, and keep going when one house fails. A batch that stops
+     on the first error is a batch you have to babysit.
+
+    python batch-build.py --all              every house that can build
+    python batch-build.py --all --dry-run    say what it would do, touch nothing
+    python batch-build.py twostorey_030 onehalfstorey_029
+    python batch-build.py --all --limit 10   the first ten that need work
+
+Exit code is the number of houses that failed, so a wrapper can act on it.
+"""
+
+import argparse
+import hashlib
+import json
+import os
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SUITE = os.path.dirname(os.path.dirname(HERE))
+PROJECTS = os.path.join(SUITE, "floorplan-simplifier", "projects")
+DATA = os.environ.get("FLOORPLAN_WORKBENCH_DATA_DIR") \
+    or os.path.join(SUITE, "born2thrill-local-workbench-data")
+
+
+def read_json(path):
+    try:
+        with open(path, encoding="utf-8-sig") as handle:
+            return json.load(handle)
+    except Exception:
+        return None
+
+
+def annotation_state(plan):
+    """(annotation_hash, blocking reason or None) for one house."""
+    annotations = read_json(os.path.join(PROJECTS, plan, "annotations.json"))
+    if annotations is None:
+        return None, "keine annotations.json"
+
+    levels = sorted({a.get("floor_level") for a in (annotations.get("annotations") or [])
+                     if a.get("floor_level")})
+    if not levels:
+        return None, "keine annotierten Geschosse"
+    scale = annotations.get("floor_scale") or {}
+    # The render plan refuses ANY level without a scale, so check them all --
+    # this is the single most common reason a build dies four minutes in.
+    missing = [level for level in levels if not scale.get(level)]
+    if missing:
+        return None, "kein Massstab fuer " + ", ".join(missing)
+
+    # source-state.json is the annotator's cache of this hash. Houses not saved
+    # since that hook existed have none -- and treating that as "unknown" made
+    # every one of them rebuild on every batch, forever, because the comparison
+    # below was against None. Fall back to hashing the annotation itself, the
+    # authority the cache copies. Verified identical: onehalfstorey_029 has both
+    # and they agree (f04ed2d7cd).
+    state = read_json(os.path.join(PROJECTS, plan, "source-state.json")) or {}
+    current = state.get("annotation_hash")
+    if not current:
+        canonical = json.dumps(annotations, sort_keys=True, ensure_ascii=False,
+                               separators=(",", ":")).encode("utf-8")
+        current = hashlib.sha256(canonical).hexdigest()
+    return current, None
+
+
+def toolchain_now():
+    """sha256 prefix per pipeline script, exactly as run_project stamps them."""
+    revision = {}
+    for script in ("run_project.py", "build-simplifier-render-plan.py",
+                   "render-furnished-dollhouse.py", "render-exterior.py"):
+        path = os.path.join(HERE, script)
+        if not os.path.exists(path):
+            continue
+        digest = hashlib.sha256()
+        with open(path, "rb") as handle:
+            for chunk in iter(lambda: handle.read(1 << 20), b""):
+                digest.update(chunk)
+        revision[script] = digest.hexdigest()[:16]
+    return revision
+
+
+def built_hash(plan):
+    """The annotation hash of the CERTIFIED delivery, or None.
+
+    Reads delivery-manifest.json and nothing else. Codex: "One plan-modern.json
+    represents neither four .blend artifacts nor their verification. Missing,
+    partial, corrupt, classic, or old .blend files can be declared current ...
+    Batch 'current' must consult only that manifest."
+
+    The manifest is written by run_project.py only after every expected .blend
+    exists and every style verified, and is deleted when a build fails -- so
+    its mere presence is the certificate. It is re-checked here anyway: every
+    artifact it names must still exist at the size it recorded, because a
+    manifest describes the delivery as it was, not as the folder is now.
+    """
+    folder = os.path.join(DATA, "corrections", plan, "renders", "go-baseline")
+    manifest = read_json(os.path.join(folder, "delivery-manifest.json"))
+    if not manifest or manifest.get("schema") != "zf-delivery-manifest-v1":
+        return None
+    artifacts = manifest.get("artifacts") or []
+    if len(artifacts) != manifest.get("expected_blends"):
+        return None
+    for artifact in artifacts:
+        path = os.path.join(folder, artifact.get("file", ""))
+        if not os.path.exists(path) or os.path.getsize(path) != artifact.get("bytes"):
+            return None            # the delivery changed under its own certificate
+
+    # A renderer change invalidates a delivery as surely as an annotation
+    # change. The manifest has always RECORDED the toolchain; until now nothing
+    # COMPARED it, so an edit to the compiler or the renderer left every
+    # existing delivery still counting as current -- exactly the "silently
+    # delivering a renderer-obsolete artifact set" Codex called the highest
+    # remaining risk. Claiming it in the manifest docstring while not enforcing
+    # it was the worse half of the bug.
+    if manifest.get("toolchain") != toolchain_now():
+        return None
+    return manifest.get("annotation_hash")
+
+
+def storeys(plan):
+    annotations = read_json(os.path.join(PROJECTS, plan, "annotations.json")) or {}
+    levels = {a.get("floor_level") for a in (annotations.get("annotations") or [])
+              if a.get("floor_level")}
+    return max(1, len(levels))
+
+
+def build(plan, quiet):
+    floors = ",".join(str(i) for i in range(storeys(plan)))
+    command = [sys.executable, os.path.join(HERE, "run_project.py"), plan,
+               "--styles", "modern,classic", "--floors", floors]
+    log_dir = os.path.join(DATA, "corrections", plan, "renders", "go-baseline")
+    os.makedirs(log_dir, exist_ok=True)
+    log_path = os.path.join(log_dir, "batch-build.log")
+    with open(log_path, "w", encoding="utf-8") as log:
+        result = subprocess.call(command, stdout=log, stderr=subprocess.STDOUT,
+                                 cwd=HERE)
+    return result, log_path
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("plans", nargs="*")
+    parser.add_argument("--all", action="store_true")
+    parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--force", action="store_true",
+                        help="rebuild even when the delivery is already current")
+    args = parser.parse_args()
+
+    plans = args.plans
+    if args.all:
+        plans = sorted(name for name in os.listdir(PROJECTS)
+                       if os.path.exists(os.path.join(PROJECTS, name, "annotations.json")))
+    if not plans:
+        sys.exit("nothing to do: name some plans or pass --all")
+
+    todo, skipped, blocked = [], [], []
+    for plan in plans:
+        current, reason = annotation_state(plan)
+        if reason:
+            blocked.append((plan, reason))
+            continue
+        if not args.force and current and built_hash(plan) == current:
+            skipped.append(plan)
+            continue
+        todo.append(plan)
+
+    if args.limit:
+        todo = todo[:args.limit]
+
+    print("%d bereit zum Bauen, %d schon aktuell, %d blockiert\n"
+          % (len(todo), len(skipped), len(blocked)))
+    for plan, reason in blocked[:20]:
+        print("  blockiert  %-34s %s" % (plan, reason))
+    if len(blocked) > 20:
+        print("  blockiert  ... und %d weitere" % (len(blocked) - 20))
+    if blocked:
+        print()
+
+    failed = 0
+    for index, plan in enumerate(todo, start=1):
+        if args.dry_run:
+            print("  wuerde bauen  %s" % plan)
+            continue
+        print("  [%d/%d] baue %-30s " % (index, len(todo), plan), end="", flush=True)
+        code, log_path = build(plan, quiet=True)
+        if code == 0:
+            print("ok")
+        else:
+            failed += 1
+            print("FEHLER (exit %d) -> %s" % (code, log_path))
+
+    if not args.dry_run:
+        print("\n%d gebaut, %d fehlgeschlagen" % (len(todo) - failed, failed))
+    sys.exit(failed)
+
+
+if __name__ == "__main__":
+    main()

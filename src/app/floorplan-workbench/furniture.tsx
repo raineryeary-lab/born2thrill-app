@@ -1,0 +1,998 @@
+"use client";
+import * as React from "react";
+
+// Furniture editing for the workbench plan view.
+// See plans/move-furniture-to-workbench.md, step 3.
+//
+// This replaces the annotator's Ausstattung tab. Same catalogue, same symbol
+// keys, same measured footprints — the difference is that it edits the
+// canonical millimetre geometry the renderer already uses, instead of
+// normalized 0-1 coordinates that stop meaning anything once the source image
+// is deleted.
+//
+// Furniture is presentation data: it is stored per floor beside the revisions,
+// never inside the correction document, so nothing here can move
+// geometry_hash.
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  SYMBOL_CATEGORIES,
+  getSymbol,
+  symbolsForRoomLabel,
+  SYMBOL_CATALOG,
+} from "@/lib/generator/symbol-catalog.mjs";
+import { emptyFurnitureDocument, symbolBoundsMm } from "@/lib/generator/furniture-document.mjs";
+
+const API = "/api/floorplan-workbench/corrections";
+
+export type PlacedSymbol = {
+  id: string;
+  symbol: string;
+  position_mm?: [number, number];
+  points_mm?: [number, number][];
+  rotation_deg: number;
+  mirrored?: boolean;
+  footprint_mm?: { width_mm: number; depth_mm: number };
+};
+
+/**
+ * Punkte an einem gezeichneten Lauf -- Auswahl, Ausrichten, Schieben.
+ *
+ * Rainer, 2026-08-28: "can we also edit the Kuechenzeile and
+ * vorwandinstallation, make the points selectable and moveable? its almost
+ * impossible to get them right on the first try -- you know, select point,
+ * align and nudge?"
+ *
+ * Dieselben Schrittweiten wie im Zeichner, damit die Hand nicht umlernen muss.
+ * Geprueft in `scripts/moebel-punkte.test.mjs`.
+ */
+/**
+ * Aufeinanderfolgende Punkte, die praktisch aufeinander liegen, zusammenziehen.
+ *
+ * Rainer, 2026-08-28: "when i doubleclick to end the creation many times there
+ * are 2 points created at the end."
+ *
+ * Die Ursache steht im Ereignis: ein Doppelklick feuert erst ZWEI click-
+ * Ereignisse -- jedes haengt einen Punkt an den Entwurf -- und erst danach
+ * `dblclick`, das den Lauf abschliesst. Der letzte Punkt ist also zweimal
+ * drin. 60 mm Toleranz: zwei Klicks derselben Hand treffen nicht denselben
+ * Millimeter, eine bewusst gesetzte kurze Strecke ist laenger.
+ */
+export const DOPPELT_MM = 60;
+
+export function entdoppelt(punkte: [number, number][]): [number, number][] {
+  const raus: [number, number][] = [];
+  for (const punkt of punkte) {
+    const letzter = raus[raus.length - 1];
+    if (letzter && Math.hypot(punkt[0] - letzter[0], punkt[1] - letzter[1]) <= DOPPELT_MM) continue;
+    raus.push(punkt);
+  }
+  return raus;
+}
+
+/** Einen Punkt entfernen. Unter zwei Punkten ist es kein Lauf mehr. */
+export function loeschePunkt(punkte: [number, number][], index: number): [number, number][] {
+  if (punkte.length <= 2) return punkte;
+  if (index < 0 || index >= punkte.length) return punkte;
+  return punkte.filter((_, i) => i !== index);
+}
+
+export const PUNKT_SCHRITT_MM = 10;
+export const PUNKT_SCHRITT_FEIN_MM = 1;
+export const PUNKT_SCHRITT_GROB_MM = 100;
+
+export function punktSchrittMm(event: { shiftKey?: boolean; altKey?: boolean }) {
+  if (event.shiftKey) return PUNKT_SCHRITT_GROB_MM;
+  if (event.altKey) return PUNKT_SCHRITT_FEIN_MM;
+  return PUNKT_SCHRITT_MM;
+}
+
+function medianVon(werte: number[]) {
+  if (!werte.length) return 0;
+  const sortiert = [...werte].sort((a, b) => a - b);
+  const mitte = Math.floor(sortiert.length / 2);
+  return sortiert.length % 2
+    ? sortiert[mitte]
+    : (sortiert[mitte - 1] + sortiert[mitte]) / 2;
+}
+
+/** Die gewaehlten Punkte um dx/dy verschieben. */
+export function schiebePunkte(punkte: [number, number][], indices: number[],
+                              dx: number, dy: number): [number, number][] {
+  const gewaehlt = new Set(indices);
+  return punkte.map(([x, y], index) => (gewaehlt.has(index)
+    ? [Math.round(x + dx), Math.round(y + dy)] as [number, number]
+    : [x, y] as [number, number]));
+}
+
+/**
+ * Die gewaehlten Punkte auf eine Linie bringen. `achse` 0 = x, 1 = y.
+ *
+ * Der Median, nicht der Mittelwert: liegen drei Punkte auf 800 und einer auf
+ * 1600, gewinnt die Linie, auf der die Mehrheit schon sitzt.
+ */
+export function richtePunkteAus(punkte: [number, number][], indices: number[],
+                                achse: 0 | 1): [number, number][] {
+  if (indices.length < 2) return punkte;
+  const ziel = Math.round(medianVon(indices.map((i) => punkte[i][achse])));
+  const gewaehlt = new Set(indices);
+  return punkte.map((punkt, index) => {
+    if (!gewaehlt.has(index)) return punkt;
+    const neu: [number, number] = [punkt[0], punkt[1]];
+    neu[achse] = ziel;
+    return neu;
+  });
+}
+
+export function useFurniture(reference: string, floorId: string) {
+  const [document, setDocument] = useState<any>(() => emptyFurnitureDocument(reference, floorId));
+  const [dirty, setDirty] = useState(false);
+  const [status, setStatus] = useState<string>("");
+
+  const [loading, setLoading] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    // Clear first, load second. Anything else leaves the previous floor's
+    // furniture on screen and saveable under the new floor's name.
+    setDocument(emptyFurnitureDocument(reference, floorId));
+    setDirty(false);
+    if (!reference || !floorId) return () => { cancelled = true; };
+    setLoading(true);
+    (async () => {
+      try {
+        const response = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "load_furniture", reference, floor_id: floorId }),
+        });
+        const payload = await response.json();
+        if (cancelled) return;
+        setDocument(payload.furniture || emptyFurnitureDocument(reference, floorId));
+        setDirty(false);
+        setStatus("");
+      } catch (error) {
+        if (!cancelled) setStatus(`Konnte Möbel nicht laden: ${error}`);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [reference, floorId]);
+
+  // Rainer, 2026-08-28, ueber dasselbe Problem im Zeichner: "if i align them
+  // accidentally waagrecht instead of senkrecht then its over, the drawing is
+  // kaputt." Hier gilt es genauso, also legt jede Aenderung vorher einen
+  // Abzug weg. Der Abzug kopiert die Punktreihen -- ein Verweis zeigte auf
+  // dieselben Reihen, die gerade veraendert werden.
+  const verlauf = useRef<PlacedSymbol[][]>([]);
+  const VERLAUF_TIEFE = 50;
+
+  // Der Abzug entsteht AUSSERHALB des Updaters. React ruft den Updater im
+  // Entwicklungsmodus zweimal auf; eine Nebenwirkung darin landete doppelt im
+  // Stapel, und ein Strg+Z bewegte dann nichts (gemessen 2026-08-28: sechs
+  // Eintraege fuer drei Aenderungen).
+  const stand = useRef<PlacedSymbol[]>([]);
+  useEffect(() => { stand.current = (document?.symbols || []) as PlacedSymbol[]; }, [document]);
+
+  const mutate = useCallback((updater: (symbols: PlacedSymbol[]) => PlacedSymbol[]) => {
+    verlauf.current.push(stand.current.map((item) => ({
+      ...item,
+      points_mm: item.points_mm
+        ? item.points_mm.map(([x, y]) => [x, y] as [number, number])
+        : undefined,
+    })));
+    if (verlauf.current.length > VERLAUF_TIEFE) verlauf.current.shift();
+    setDocument((current: any) => ({ ...current, symbols: updater(current.symbols || []) }));
+    setDirty(true);
+  }, []);
+
+  const zurueck = useCallback(() => {
+    const gemerkt = verlauf.current.pop();
+    if (!gemerkt) return false;
+    setDocument((current: any) => ({ ...current, symbols: gemerkt }));
+    setDirty(true);
+    return true;
+  }, []);
+
+  const kannZurueck = () => verlauf.current.length;
+
+  const place = useCallback((key: string, point: [number, number], snapped?: { position_mm: [number, number]; rotation_deg: number } | null) => {
+    const symbol = getSymbol(key);
+    if (!symbol || symbol.placement !== "stamp") return;
+    const footprint = symbol.footprint_mm;
+    if (!footprint) return;
+    mutate((symbols) => [...symbols, {
+      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      symbol: key,
+      position_mm: snapped ? snapped.position_mm : [Math.round(point[0]), Math.round(point[1])],
+      rotation_deg: snapped ? snapped.rotation_deg : 0,
+      mirrored: false,
+      footprint_mm: {
+        width_mm: Number(footprint.width_mm),
+        depth_mm: Number(footprint.depth_mm),
+      },
+    }]);
+  }, [mutate]);
+
+  // Küchenzeile, Vorwandinstallation, Kücheninsel, Abstellschrank: drawn along
+  // the wall rather than stamped. The catalogue carries the depth; the drawing
+  // carries the run.
+  const placeDrawn = useCallback((key: string, points: [number, number][]) => {
+    const symbol = getSymbol(key);
+    if (!symbol || symbol.placement === "stamp" || points.length < 2) return;
+    const sauber = entdoppelt(points.map((point) =>
+      [Math.round(point[0]), Math.round(point[1])] as [number, number]));
+    if (sauber.length < 2) return;
+    mutate((symbols) => [...symbols, {
+      id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      symbol: key,
+      points_mm: sauber,
+      rotation_deg: 0,
+      mirrored: false,
+    }]);
+  }, [mutate]);
+
+  const move = useCallback((id: string, point: [number, number]) => {
+    mutate((symbols) => symbols.map((item) => item.id === id
+      ? { ...item, position_mm: [Math.round(point[0]), Math.round(point[1])] as [number, number] }
+      : item));
+  }, [mutate]);
+
+  const moveDrawn = useCallback((id: string, delta: [number, number]) => {
+    mutate((symbols) => symbols.map((item) => (item.id === id && item.points_mm)
+      ? {
+        ...item,
+        points_mm: item.points_mm.map(([x, y]) =>
+          [Math.round(x + delta[0]), Math.round(y + delta[1])] as [number, number]),
+      }
+      : item));
+  }, [mutate]);
+
+  // A footprint measured on the plan beats the catalogue's nominal size — the
+  // annotator's rule, and the reason a symbol carries footprint_mm at all.
+  const resize = useCallback((id: string, width: number, depth: number) => {
+    mutate((symbols) => symbols.map((item) => item.id === id
+      ? { ...item, footprint_mm: { width_mm: Math.max(50, Math.round(width)), depth_mm: Math.max(50, Math.round(depth)) } }
+      : item));
+  }, [mutate]);
+
+  // A drawn rectangle IS its points; resizing one moves a corner.
+  const setPoints = useCallback((id: string, points: [number, number][]) => {
+    mutate((symbols) => symbols.map((item) => item.id === id
+      ? { ...item, points_mm: points.map(([x, y]) => [Math.round(x), Math.round(y)] as [number, number]) }
+      : item));
+  }, [mutate]);
+
+  const rotate = useCallback((id: string, delta: number) => {
+    mutate((symbols) => symbols.map((item) => item.id === id
+      ? { ...item, rotation_deg: (((item.rotation_deg + delta) % 360) + 360) % 360 }
+      : item));
+  }, [mutate]);
+
+  const mirror = useCallback((id: string) => {
+    mutate((symbols) => symbols.map((item) => item.id === id
+      ? { ...item, mirrored: !item.mirrored }
+      : item));
+  }, [mutate]);
+
+  const remove = useCallback((id: string) => {
+    mutate((symbols) => symbols.filter((item) => item.id !== id));
+  }, [mutate]);
+
+  // Rainer, 2026-09-18, twostorey_047: 21 of 21 placed items found reflected
+  // into the wrong room. Root cause (Codex): the API always re-stamped
+  // whatever the CURRENT room geometry's identity is at save time, even if
+  // the annotation had changed since this tab loaded its geometry -- so a
+  // save against a now-stale display looked freshly valid forever after.
+  // A ref, not state: `save` (a useCallback closing over render-time values)
+  // must see the LATEST identity even when it wasn't the render that created
+  // this closure, exactly the same problem `stand`/`verlauf` above solve for
+  // undo history. `page.tsx` calls `setDisplayedGeometryIdentity` whenever
+  // `render_geometry`'s per-floor `geometry_identity` changes.
+  const angezeigteIdentitaet = useRef<string | undefined>(undefined);
+  const setDisplayedGeometryIdentity = useCallback((value?: string) => {
+    angezeigteIdentitaet.current = value;
+  }, []);
+
+  // Gibt zurueck, OB gespeichert wurde. Der Weiter-Knopf unten schaltete
+  // vorher auch nach einem gescheiterten Save zur Hausakte weiter -- gebaut
+  // wurde dann mit dem alten Moebelstand (Codex, 2026-08-20: "der
+  // gefaehrlichste sichtbare Happy-Path-Fehler").
+  const save = useCallback(async (): Promise<boolean> => {
+    if (loading) { setStatus("Noch am Laden — bitte kurz warten."); return false; }
+    setStatus("Speichern …");
+    try {
+      const response = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "save_furniture", reference, floor_id: floorId, furniture: document,
+          displayed_geometry_identity: angezeigteIdentitaet.current,
+        }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Speichern fehlgeschlagen.");
+      setDocument(payload.furniture);
+      setDirty(false);
+      setStatus(`${payload.furniture.symbols.length} Möbel gespeichert.`);
+      return true;
+    } catch (error) {
+      setStatus(`${error}`);
+      return false;
+    }
+  }, [document, reference, floorId, loading]);
+
+  /**
+   * The saved state is not a dead end. Rainer, 2026-08-18: the button says
+   * "Möbel speichern" while there are unsaved changes, and once there are
+   * none it becomes "An Render senden" — furnishing and handing off are the
+   * same button at two points in time, so there is never a saved-but-forgotten
+   * floor sitting there.
+   */
+  const sendToRender = useCallback(async () => {
+    if (dirty) { setStatus("Erst speichern — es gibt ungesicherte Änderungen."); return; }
+    setStatus("Render wird gestartet …");
+    try {
+      const response = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send_to_render", reference }),
+      });
+      const payload = await response.json();
+      if (!response.ok || !payload.ok) throw new Error(payload.error || "Render konnte nicht gestartet werden.");
+      setStatus(`Render läuft (${payload.floors} Geschoss(e)). Ergebnis: ${payload.out_dir}`);
+    } catch (error) {
+      setStatus(`${error}`);
+    }
+  }, [dirty, reference]);
+
+  return { document, dirty, loading, status, place, placeDrawn, move, moveDrawn, resize, setPoints, rotate, mirror, remove, save, sendToRender, zurueck, kannZurueck, setDisplayedGeometryIdentity };
+}
+
+
+/**
+ * Pull a stamp onto the nearest wall, respecting its clearance — ported from
+ * the annotator's snapStampToWall(), now in millimetres instead of canvas
+ * pixels, which makes it simpler: no scale conversion, the catalogue is
+ * already in mm.
+ *
+ * The piece goes against the wall with its BACK, so the offset is half its
+ * depth plus whatever gap it needs: flush for fitted things (a Wand-WC touches
+ * the wall), a real clearance for upholstery (a sofa cannot be jammed into
+ * plaster), nothing at all for things that belong in the middle of a room or
+ * on a worktop.
+ *
+ * Rotation comes from the wall too. A bath on a north wall and the same bath
+ * on an east wall are one object turned 90 degrees, and making someone set
+ * that by hand every time is busywork.
+ */
+export function snapStampToWalls(symbolKey: string, point: [number, number], rooms: any[]) {
+  const symbol = getSymbol(symbolKey);
+  const behaviour = symbol?.wall;
+  if (!symbol || !behaviour || behaviour.mode === "free" || !symbol.footprint_mm) return null;
+
+  const depth = symbol.footprint_mm.depth_mm;
+  const gap = behaviour.gap_mm || 0;
+  // "You clicked near this wall": one depth's reach, as in the annotator.
+  const reach = depth * 1.5 + gap;
+
+  let best: { distance: number; point: [number, number]; a: number[]; b: number[] } | null = null;
+  for (const room of rooms || []) {
+    const polygon = room.polygon_mm || [];
+    for (let index = 0; index < polygon.length; index += 1) {
+      const a = polygon[index];
+      const b = polygon[(index + 1) % polygon.length];
+      const dx = b[0] - a[0];
+      const dy = b[1] - a[1];
+      const lengthSquared = dx * dx + dy * dy;
+      if (!lengthSquared) continue;
+      let t = ((point[0] - a[0]) * dx + (point[1] - a[1]) * dy) / lengthSquared;
+      t = Math.max(0, Math.min(1, t));
+      const projected: [number, number] = [a[0] + dx * t, a[1] + dy * t];
+      const distance = Math.hypot(point[0] - projected[0], point[1] - projected[1]);
+      if (distance <= reach && (!best || distance < best.distance)) {
+        best = { distance, point: projected, a, b };
+      }
+    }
+  }
+  if (!best) return null;
+
+  const angle = Math.atan2(best.b[1] - best.a[1], best.b[0] - best.a[0]);
+  // Normal pointing away from the wall towards where the click came from, so
+  // the piece lands inside the room rather than through the plaster.
+  let nx = -Math.sin(angle);
+  let ny = Math.cos(angle);
+  if ((point[0] - best.point[0]) * nx + (point[1] - best.point[1]) * ny < 0) {
+    nx = -nx;
+    ny = -ny;
+  }
+  const offset = depth / 2 + gap;
+  // Die Drehung kommt aus der NORMALEN, nicht aus der Wandrichtung.
+  //
+  // Vorher stand hier `angle`, also die Richtung der Wand. Das Vorzeichen der
+  // Normalen wurde vier Zeilen darueber korrekt bestimmt, aber nur auf die
+  // Position angewendet -- zwei Raeume links und rechts derselben Wand bekamen
+  // dieselbe Drehung. Gemessen am 2026-08-28 ueber 62 platzierte Stuecke mit
+  // Vorderseite: 36 zeigten in den Raum, 26 in die Wand. Das ist exakt diese
+  // weggeworfene Haelfte.
+  //
+  // Konvention bleibt: lokales +y ist vorn. Gesucht ist also die Drehung, nach
+  // der (-sin, cos) auf die Raumnormale (nx, ny) faellt.
+  const facing = Math.atan2(-nx, ny);
+  return {
+    position_mm: [Math.round(best.point[0] + nx * offset), Math.round(best.point[1] + ny * offset)] as [number, number],
+    rotation_deg: Math.round((((facing * 180) / Math.PI) + 360) % 360),
+  };
+}
+
+/**
+ * Wo ist vorn?
+ *
+ * Rainer, 2026-08-28: "there are some symbols where it is hard to see where
+ * the front is -- like kuehlschrank, hochschrank herd, waschbecken, wandwc.
+ * could you add like an arrow on top, back to front?"
+ *
+ * Ein Kuehlschrank ist im Grundriss ein Quadrat von 600 x 600 mm; ob seine
+ * Tuer zum Raum oder zur Wand zeigt, steht nur in `rotation_deg`.
+ *
+ * Gemessen an den 62 platzierten Stuecken dieser Art (zwoelf Moebeldateien,
+ * 2026-08-28): die Vorderseite zeigt 36-mal in den Raum und 26-mal in die
+ * Wand. Es gibt heute also keine verlaessliche Ausrichtung. Der Pfeil
+ * behauptet auch keine -- er zeigt, wie das Stueck steht, damit die falsch
+ * stehenden auffallen und mit den Drehknoepfen zu richten sind.
+ *
+ * Die Konvention ist die aus `snapStampToWalls`: die Rueckseite liegt an der
+ * Wand, also ist lokales +y die Vorderseite.
+ */
+/**
+ * Umgedreht am 2026-09-03: der Pfeil gilt jetzt fuer ALLE Moebel, und die
+ * Liste zaehlt die Ausnahmen.
+ *
+ * Rainer: "mach doch die Pfeile bei allen Moebeln immer von der Wand weg
+ * ausser Esstisch und Couchtisch."
+ *
+ * Vorher war es eine Liste von neun Stuecken, bei denen man die Vorderseite im
+ * Grundriss schlecht sieht. Der Grund gilt aber weiter: ein Kleiderschrank,
+ * ein Lowboard und eine Garderobe stehen genauso an der Wand und hatten
+ * keinen Pfeil, obwohl ihre Drehung genauso falsch sein kann.
+ *
+ * Ein Tisch hat keine Vorderseite -- er steht frei im Raum und wird von allen
+ * Seiten benutzt. Dasselbe gilt fuer den Couchtisch. Alles andere hat eine.
+ *
+ * Gezeichnete Zuege (Kuechenzeile, Stuff, Vorwandinstallation) fallen von
+ * selbst heraus: sie haben `points_mm` statt Breite und Tiefe, und
+ * Vorderseitenpfeil steigt ohne beides aus.
+ */
+const OHNE_VORDERSEITE = new Set([
+  "esstisch", "couchtisch", "essgruppe_6", "essgruppe_4", "essgruppe_8",
+]);
+
+export function zeigtVorderseite(symbolKey: string) {
+  return !OHNE_VORDERSEITE.has(symbolKey);
+}
+
+/** Der Pfeil im lokalen Rahmen. Gedreht wird er vom `transform` des Symbols. */
+export function pfeilLokal(width: number, depth: number) {
+  const laenge = Math.min(depth * 0.55, 420);
+  const spitzeY = depth / 2;
+  const fussY = spitzeY - laenge;
+  const breite = Math.min(width * 0.30, 220);
+  return {
+    schaft: [[0, fussY], [0, spitzeY - breite * 0.8]] as [number, number][],
+    spitze: [[0, spitzeY], [-breite / 2, spitzeY - breite * 0.9],
+             [breite / 2, spitzeY - breite * 0.9]] as [number, number][],
+  };
+}
+
+/** Der Pfeil als SVG, im lokalen Rahmen des Symbols. */
+function Vorderseitenpfeil({ symbolKey, width, depth }:
+                           { symbolKey: string; width: number; depth: number }) {
+  if (!zeigtVorderseite(symbolKey) || !width || !depth) return null;
+  const { schaft, spitze } = pfeilLokal(width, depth);
+  return <g style={{ pointerEvents: "none" }}>
+    <line x1={schaft[0][0]} y1={schaft[0][1]} x2={schaft[1][0]} y2={schaft[1][1]}
+      stroke="#1c1917" strokeWidth={45} strokeLinecap="round" opacity={0.75} />
+    <polygon points={spitze.map((p) => p.join(",")).join(" ")}
+      fill="#1c1917" opacity={0.75} />
+  </g>;
+}
+
+/** Placed furniture, drawn into the plan's own millimetre SVG. */
+export function FurnitureSvg({
+  document,
+  selectedId,
+  onGrab,
+}: {
+  document: any;
+  selectedId: string | null;
+  onGrab: (event: React.PointerEvent, item: PlacedSymbol) => void;
+}) {
+  return <g>
+    {(document?.symbols || []).map((item: PlacedSymbol) => {
+      const symbol = getSymbol(item.symbol);
+      if (!symbol || !item.position_mm) return null;
+      const width = item.footprint_mm?.width_mm ?? symbol.footprint_mm?.width_mm ?? 0;
+      const depth = item.footprint_mm?.depth_mm ?? symbol.footprint_mm?.depth_mm ?? 0;
+      if (!width || !depth) return null;
+      const [x, y] = item.position_mm;
+      const selected = item.id === selectedId;
+      const box = symbolBoundsMm(item);
+      return <g
+        key={item.id}
+        onPointerDown={(event) => onGrab(event, item)}
+        style={{ cursor: "move" }}
+      >
+        {selected && box && <rect
+          x={box.x} y={box.y} width={box.width} height={box.height}
+          fill="none" stroke="#f59e0b" strokeWidth="45" strokeDasharray="90 60"
+        />}
+        <g transform={`translate(${x} ${y}) rotate(${item.rotation_deg}) scale(${item.mirrored ? -1 : 1} 1)`}>
+          <rect
+            x={-width / 2} y={-depth / 2} width={width} height={depth}
+            fill={selected ? "rgba(217,119,6,0.22)" : "rgba(120,113,108,0.20)"}
+            stroke={selected ? "#b45309" : "#57534e"}
+            strokeWidth="40"
+            rx="60"
+          />
+          {/* Front edge, so a rotated piece reads which way it faces. */}
+          <line
+            x1={-width / 2} y1={depth / 2} x2={width / 2} y2={depth / 2}
+            stroke={selected ? "#b45309" : "#57534e"} strokeWidth="90"
+          />
+          <Vorderseitenpfeil symbolKey={item.symbol} width={width} depth={depth} />
+        </g>
+        <text
+          x={x} y={y + 60}
+          textAnchor="middle" fontSize="150" fontWeight="600" fill="#44403c"
+          style={{ paintOrder: "stroke", stroke: "#fff", strokeWidth: 40, pointerEvents: "none" }}
+        >{symbol.label}</text>
+      </g>;
+    })}
+  </g>;
+}
+
+export function FurniturePalette({
+  activeKey,
+  onPick,
+  selected,
+  onRotate,
+  onMirror,
+  onRemove,
+  onSave,
+  onSendToRender,
+  dirty,
+  status,
+  roomFilter,
+  onRoomFilter,
+  roomNames,
+  count,
+  rooms,
+  symbols,
+  onSelect,
+  onRemoveById,
+  punktAuswahl,
+  onPunkteAusrichten,
+  onZurueck,
+  zurueckMoeglich,
+  geometryReady = true,
+  geometryWarning,
+}: any) {
+  // Ausdruecklich am Modus, nicht an "steckt in irgendeinem iframe": Codex,
+  // 2026-08-20, "unterscheidet nicht zwischen Hausworkflow und irgendeiner
+  // anderen Einbettung". Im Moebel-Schritt der Hausakte gilt der
+  // Annotationsweg -- "An Render senden" verlangt dort eine freigegebene
+  // Revision, die es nicht gibt, und antwortet nur mit einer Fehlermeldung.
+  const [eingebettet, setEingebettet] = React.useState(false);
+  React.useEffect(() => {
+    setEingebettet(new URLSearchParams(window.location.search).get("mode") === "furniture-embed");
+  }, []);
+  const allowed = roomFilter ? symbolsForRoomLabel(roomFilter) : null;
+  const visible = (category: string) => SYMBOL_CATALOG
+    .filter((item: any) => item.category === category)
+    .filter((item: any) => !allowed || allowed.includes(item.key));
+
+  return <div className="space-y-3">
+    <div className="flex items-center justify-between">
+      <h2 className="font-semibold">Möbel</h2>
+      <span className="text-xs text-stone-500">{count} platziert</span>
+    </div>
+
+    <label className="block text-xs text-stone-600">
+      Raum
+      <select
+        className="mt-1 w-full rounded border px-2 py-1 text-sm"
+        value={roomFilter || ""}
+        onChange={(event) => onRoomFilter(event.target.value)}
+      >
+        <option value="">Alle Symbole</option>
+        {/* Two rooms can share a label (e.g. two "Kind" bedrooms) -- dedupe
+            so React doesn't choke on repeated keys; the filter already
+            matches by name, so a repeated name would just show the same
+            symbols twice for no benefit anyway. */}
+        {[...new Set<string>(roomNames)].map((name: string) => <option key={name} value={name}>{name}</option>)}
+      </select>
+    </label>
+
+    {selected && <div className="rounded-lg bg-amber-50 p-2 text-xs">
+      <div className="font-semibold">
+        {getSymbol(selected.symbol)?.label}
+        {selected.points_mm ? ` · ${selected.points_mm.length} Punkte` : ` · ${selected.rotation_deg}°`}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1">
+        {!selected.points_mm && <>
+          <button type="button" className="rounded bg-stone-800 px-2 py-1 text-white" onClick={() => onRotate(-45)}>↶ 45°</button>
+          <button type="button" className="rounded bg-stone-800 px-2 py-1 text-white" onClick={() => onRotate(45)}>45° ↷</button>
+          <button type="button" className="rounded bg-stone-800 px-2 py-1 text-white" onClick={() => onRotate(90)}>90° ↷</button>
+          <button type="button" className="rounded bg-stone-800 px-2 py-1 text-white" onClick={onMirror}>Spiegeln</button>
+        </>}
+        <button type="button" className="rounded bg-red-700 px-2 py-1 text-white" onClick={onRemove}>Löschen</button>
+        <button type="button" disabled={!zurueckMoeglich}
+          className="rounded bg-stone-600 px-2 py-1 text-white disabled:bg-stone-300"
+          title="Letzte Änderung zurücknehmen (Strg+Z)"
+          onClick={() => onZurueck?.()}>↶ Zurück{zurueckMoeglich ? ` (${zurueckMoeglich})` : ""}</button>
+      </div>
+      {selected.points_mm && <>
+        {/* Rainer, 2026-08-28: "select point, align and nudge". Die Griffe
+            sitzen am Lauf selbst; hier stehen die Befehle dazu. */}
+        <div className="mt-2 flex flex-wrap items-center gap-1">
+          <span className="text-[10px] text-stone-600">
+            {punktAuswahl?.length ? `${punktAuswahl.length} Punkt(e) gewählt` : "Punkt anklicken, Shift für mehrere"}
+          </span>
+          <button type="button" disabled={!(punktAuswahl?.length > 1)}
+            className="rounded bg-stone-800 px-2 py-1 text-white disabled:bg-stone-300"
+            onClick={() => onPunkteAusrichten?.(1)}>Waagerecht</button>
+          <button type="button" disabled={!(punktAuswahl?.length > 1)}
+            className="rounded bg-stone-800 px-2 py-1 text-white disabled:bg-stone-300"
+            onClick={() => onPunkteAusrichten?.(0)}>Senkrecht</button>
+        </div>
+        <p className="mt-1 text-[10px] text-stone-600">
+          Pfeiltasten schieben um 10 mm, mit Shift 100 mm, mit Alt 1 mm.
+          Ohne gewählten Punkt wandert der ganze Lauf.
+        </p>
+      </>}
+    </div>}
+
+    <VerlorenePlatzierungen rooms={rooms} symbols={symbols}
+                            onSelect={onSelect} onRemoveById={onRemoveById} />
+
+    {/* Die Moebelauswahl bekommt die Hoehe, die da ist, statt fester 320 px.
+        Rainer, 2026-08-30: "it doesn't help, the part with the furniture on
+        the top is still so small" -- nachgemessen lagen UNTER der Liste
+        562 px frei, waehrend sie ihre 444 px Inhalt auf 320 zusammenpresste
+        und scrollte. Erklaertexte darunter wegzunehmen half deshalb nichts:
+        die Kappe war das Problem, nicht der Platz.
+
+        70vh und nicht 100%: die Spalte ist hoeher als die Zeichenflaeche
+        daneben, und eine Liste, die ueber das Bild hinauswaechst, macht die
+        ganze Seite scrollbar -- dann sucht man die Zeichnung. In der
+        Hausakte ist vh die Hoehe des eingebetteten Rahmens, waechst also
+        mit ihm. */}
+    <div className="max-h-[70vh] min-h-[180px] space-y-2 overflow-auto pr-1">
+      {SYMBOL_CATEGORIES.map((category: any) => {
+        const items = visible(category.key);
+        if (!items.length) return null;
+        return <div key={category.key}>
+          <div className="text-[11px] font-semibold uppercase text-stone-500">{category.label}</div>
+          <div className="mt-1 flex flex-wrap gap-1">
+            {items.map((item: any) => <button
+              key={item.key}
+              type="button"
+              onClick={() => onPick(activeKey === item.key ? null : item.key)}
+              className={`rounded border px-2 py-1 text-[11px] ${activeKey === item.key ? "border-amber-600 bg-amber-100 font-semibold" : "border-stone-300 bg-white"}`}
+              title={item.placement === "stamp"
+                ? `${item.footprint_mm.width_mm} × ${item.footprint_mm.depth_mm} mm`
+                : `${item.placement === "path" ? "Pfad" : "Rechteck"} · ${item.depth_mm ?? "frei"} mm tief`}
+            >{item.placement === "stamp" ? item.label : `✎ ${item.label}`}</button>)}
+          </div>
+        </div>;
+      })}
+    </div>
+
+    <p className="text-[11px] text-stone-500">
+      {activeKey
+        ? (getSymbol(activeKey)?.placement === "stamp"
+            ? `„${getSymbol(activeKey)?.label}" gewählt — in den Plan klicken zum Platzieren.`
+            : `„${getSymbol(activeKey)?.label}" wird gezeichnet — Ecken klicken, Doppelklick beendet, Esc bricht ab.`)
+        : "Symbol wählen, dann in den Plan klicken. Platziertes Möbel ziehen zum Verschieben."}
+    </p>
+
+    {/* In der Hausakte (eingebettet) gibt es nur SPEICHERN. "An Render senden"
+        gehoert zum Korrekturweg und verlangt eine freigegebene Revision -- ein
+        Haus, das direkt aus seiner Annotation gebaut wird, hat keine, und der
+        Knopf antwortete dort nur mit "Keine freigegebene Revision". Gebaut wird
+        in der Hausakte einen Schritt weiter. Rainer, 2026-08-20: "take out the
+        buttons they dont work". */}
+    {eingebettet && (
+      // Reines Speichern ohne Sprung zu "Bauen" -- Rainer, 2026-09-05: "ein
+      // Speicherknopf der nur speichert und nicht weiterhuepft". Ruft
+      // denselben onSave() wie der kombinierte Knopf unten auf, aber ohne
+      // das postMessage("moebel-gespeichert"), das die Hausakte weiterschaltet.
+      <button
+        type="button"
+        disabled={!dirty || !geometryReady}
+        title={!geometryReady ? geometryWarning : undefined}
+        onClick={() => { void onSave(); }}
+        className={`w-full rounded-xl px-3 py-2 text-sm font-semibold ${
+          dirty && geometryReady ? "bg-emerald-800 text-white" : "bg-stone-200 text-stone-400"}`}
+      >Speichern</button>
+    )}
+    <button
+      type="button"
+      disabled={dirty && !geometryReady}
+      title={dirty && !geometryReady ? geometryWarning : undefined}
+      onClick={async () => {
+        if (eingebettet) {
+          // Speichern UND weitermelden: ein grauer "gespeichert"-Knopf waere
+          // eine Sackgasse statt eines naechsten Schritts. Die Hausakte
+          // schaltet auf ihren Bauen-Schritt, sobald diese Meldung kommt --
+          // aber NUR, wenn wirklich gespeichert ist. Sonst bleibt sie hier
+          // und die Fehlermeldung ist lesbar.
+          if (dirty) {
+            if (!geometryReady) return;
+            const ok = await onSave();
+            if (!ok) return;
+          }
+          window.parent?.postMessage({ typ: "moebel-gespeichert" }, window.location.origin);
+          return;
+        }
+        if (!dirty) return onSendToRender();
+        if (!geometryReady) return;
+        return onSave();
+      }}
+      className={`w-full rounded-xl px-3 py-2 text-sm font-semibold ${
+        dirty && !geometryReady ? "bg-stone-200 text-stone-400"
+          : dirty || eingebettet ? "bg-emerald-700 text-white" : "bg-violet-700 text-white"}`}
+    >{eingebettet ? (dirty ? "Speichern und weiter" : "Weiter zu Bauen")
+                  : (dirty ? "Möbel speichern" : "An Render senden")}</button>
+    {!geometryReady && geometryWarning && (
+      <p className="text-[11px] text-amber-700">{geometryWarning}</p>
+    )}
+    {status && <p className="text-[11px] text-stone-600">{status}</p>}
+  </div>;
+}
+
+/**
+ * Furniture is placed against the RENDERER's geometry, in the renderer's
+ * millimetres, so what you place is what renders. The correction document the
+ * geometry editor edits is a cleaned, snapped, differently-scaled space —
+ * converting between the two afterwards cannot be made correct (measured on
+ * onehalfstorey_020: x span ratio 1.123, y 1.249, opposite Y), so the editor
+ * draws furniture onto the correction plan itself.
+ *
+ * The only conversion is at the view boundary: plan Y grows north, SVG Y grows
+ * down.
+ */
+export function CorrectionFurnitureLayer({
+  document: furnitureDoc,
+  selectedId,
+  onGrab,
+  draft,
+  draftKey,
+  onResizeGrab,
+  onRectCornerGrab,
+  onPathPointGrab,
+  onPathMenu,
+  selectedPoints,
+}: {
+  document: any;
+  selectedId: string | null;
+  onGrab: (event: React.PointerEvent, item: PlacedSymbol) => void;
+  draft?: [number, number][];
+  draftKey?: string | null;
+  onResizeGrab?: (event: React.PointerEvent, item: PlacedSymbol) => void;
+  onRectCornerGrab?: (event: React.PointerEvent, item: PlacedSymbol, corner: number) => void;
+  onPathPointGrab?: (event: React.PointerEvent, item: PlacedSymbol, punkt: number) => void;
+  onPathMenu?: (event: React.MouseEvent, item: PlacedSymbol, punkt: number | null) => void;
+  selectedPoints?: number[];
+}) {
+  return <g>
+    {/* Drawn runs: Küchenzeile and Vorwandinstallation (path), Kücheninsel and
+        Abstellschrank (rect). They carry geometry, not a centre point. */}
+    {(furnitureDoc?.symbols || []).filter((item: PlacedSymbol) => item.points_mm?.length).map((item: PlacedSymbol) => {
+      const symbol = getSymbol(item.symbol);
+      if (!symbol) return null;
+      const points = item.points_mm!;
+      const selected = item.id === selectedId;
+      if (symbol.placement === "rect" && points.length >= 2) {
+        const [a, b] = [points[0], points[points.length - 1]];
+        const x0 = Math.min(a[0], b[0]);
+        const y0 = Math.min(a[1], b[1]);
+        const w = Math.abs(b[0] - a[0]);
+        const h = Math.abs(b[1] - a[1]);
+        return <g key={item.id}>
+          <rect x={x0} y={y0} width={w} height={h}
+            fill={selected ? "rgba(217,119,6,0.25)" : "rgba(120,113,108,0.30)"}
+            stroke={selected ? "#b45309" : "#44403c"} strokeWidth={selected ? 70 : 50}
+            style={{ cursor: "move" }} onPointerDown={(event) => onGrab(event, item)} />
+          {selected && onRectCornerGrab && [[x0, y0], [x0 + w, y0], [x0 + w, y0 + h], [x0, y0 + h]]
+            .map((corner, index) => <circle
+              key={index}
+              cx={corner[0]} cy={corner[1]} r={140}
+              fill="#b45309" stroke="#fff" strokeWidth="40"
+              style={{ cursor: "nwse-resize" }}
+              onPointerDown={(event) => { event.stopPropagation(); onRectCornerGrab(event, item, index); }}
+            />)}
+        </g>;
+      }
+      // Rainer, 2026-08-28: "make the points selectable and moveable -- its
+      // almost impossible to get them right on the first try." Rechtecke
+      // hatten seit jeher Eckgriffe, gezeichnete Laeufe nicht: ein Knick war
+      // nicht zu erreichen, und ein Lauf, der nicht sofort sass, musste neu
+      // gezeichnet werden.
+      return <g key={item.id}>
+        <polyline points={points.map((p) => p.join(",")).join(" ")}
+          fill="none" stroke={selected ? "rgba(180,83,9,0.55)" : "rgba(68,64,60,0.45)"}
+          strokeWidth={symbol.depth_mm || 600} strokeLinecap="butt" strokeLinejoin="miter"
+          style={{ cursor: "move" }} onPointerDown={(event) => onGrab(event, item)}
+          onContextMenu={(event) => { if (onPathMenu) { event.preventDefault(); onPathMenu(event, item, null); } }} />
+        {selected && onPathPointGrab && points.map((punkt, index) => {
+          const gewaehlt = selectedPoints?.includes(index);
+          return <circle
+            key={index}
+            cx={punkt[0]} cy={punkt[1]} r={gewaehlt ? 190 : 140}
+            fill={gewaehlt ? "#f59e0b" : "#b45309"} stroke="#fff" strokeWidth="40"
+            style={{ cursor: "move" }}
+            onPointerDown={(event) => { event.stopPropagation(); onPathPointGrab(event, item, index); }}
+            onContextMenu={(event) => {
+              if (!onPathMenu) return;
+              event.preventDefault(); event.stopPropagation();
+              onPathMenu(event, item, index);
+            }}
+          />;
+        })}
+      </g>;
+    })}
+    {draft && draft.length > 0 && getSymbol(draftKey || "")?.placement !== "rect" && <polyline
+      points={draft.map((p) => p.join(",")).join(" ")}
+      fill="none" stroke="#b45309" strokeOpacity="0.5"
+      strokeWidth={(draftKey ? getSymbol(draftKey)?.depth_mm : 0) || 300}
+      strokeDasharray="200 120" />}
+    {/* Rechteck-Vorschau (Kücheninsel): bis hierher zeigte das Zeichnen eines
+        Rechtecks NICHTS an -- zwischen erstem und zweitem Klick war die Fläche
+        unsichtbar, und man setzte sie blind (Rainer, 2026-08-25). */}
+    {draft && draft.length === 2 && getSymbol(draftKey || "")?.placement === "rect" && (() => {
+      const [a, b] = draft;
+      return <rect
+        x={Math.min(a[0], b[0])} y={Math.min(a[1], b[1])}
+        width={Math.abs(b[0] - a[0])} height={Math.abs(b[1] - a[1])}
+        fill="rgba(217,119,6,0.18)" stroke="#b45309" strokeWidth={70}
+        strokeDasharray="200 120" />;
+    })()}
+    {(furnitureDoc?.symbols || []).filter((item: PlacedSymbol) => item.position_mm).map((item: PlacedSymbol) => {
+      const symbol = getSymbol(item.symbol);
+      if (!symbol || !item.position_mm) return null;
+      const width = item.footprint_mm?.width_mm ?? symbol.footprint_mm?.width_mm ?? 0;
+      const depth = item.footprint_mm?.depth_mm ?? symbol.footprint_mm?.depth_mm ?? 0;
+      if (!width || !depth) return null;
+      const [x, y] = item.position_mm;
+      const selected = item.id === selectedId;
+      return <g key={item.id} style={{ cursor: "move" }} onPointerDown={(event) => onGrab(event, item)}>
+        <g transform={`translate(${x} ${y}) rotate(${item.rotation_deg}) scale(${item.mirrored ? -1 : 1} 1)`}>
+          <image
+            href={`/symbols/${item.symbol}.png`}
+            x={-width / 2} y={-depth / 2} width={width} height={depth}
+            preserveAspectRatio="none"
+            style={{ pointerEvents: "none" }}
+          />
+          <rect x={-width / 2} y={-depth / 2} width={width} height={depth}
+            fill={selected ? "rgba(217,119,6,0.18)" : "transparent"}
+            stroke={selected ? "#b45309" : "#57534e"} strokeWidth={selected ? 70 : 40} />
+          {/* Rainer, 2026-08-28: "hard to see where the front is". Das PNG
+              zeigt es nicht, und die Moebel-Ansicht ist die, in der gearbeitet
+              wird. */}
+          <Vorderseitenpfeil symbolKey={item.symbol} width={width} depth={depth} />
+          {/* Corner handles: drag to set the real measured size. */}
+          {selected && onResizeGrab && [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([sx, sy], index) =>
+            <circle
+              key={index}
+              cx={(sx * width) / 2} cy={(sy * depth) / 2} r={140}
+              fill="#b45309" stroke="#fff" strokeWidth="40"
+              style={{ cursor: "nwse-resize" }}
+              onPointerDown={(event) => { event.stopPropagation(); onResizeGrab(event, item); }}
+            />)}
+        </g>
+      </g>;
+    })}
+  </g>;
+}
+
+
+/**
+ * Moebel, die ausserhalb jedes Raums liegen -- und die man deshalb nicht
+ * anklicken kann.
+ *
+ * Rainer, 2026-08-28: "the one you are reffering to i cant see and not
+ * delete". In onehalfstorey_020 lag ein `stuff`-Rechteck bei y 11400..12050,
+ * waehrend der Grundriss bei rund 11000 endet: unterhalb der Zeichenflaeche,
+ * also weder sichtbar noch waehlbar. Der Bau brach daran ab
+ * (R6_furniture_inside), und im Editor gab es keinen Weg, es loszuwerden --
+ * geloescht werden konnte es nur von Hand in der JSON.
+ *
+ * Dieselbe Toleranz wie im Verifier: 300 mm, damit eine an die Wand
+ * geschobene Kommode nicht als verloren gilt.
+ */
+const AUSSERHALB_TOLERANZ_MM = 300;
+
+function punktInPolygon(x: number, y: number, poly: number[][]) {
+  let drin = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y)
+        && x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-9) + xi) drin = !drin;
+  }
+  return drin;
+}
+
+function abstandZumPolygon(x: number, y: number, poly: number[][]) {
+  let kuerzester = Infinity;
+  for (let i = 0; i < poly.length; i += 1) {
+    const [ax, ay] = poly[i];
+    const [bx, by] = poly[(i + 1) % poly.length];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const laenge = dx * dx + dy * dy;
+    const t = laenge === 0 ? 0 : Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / laenge));
+    kuerzester = Math.min(kuerzester, Math.hypot(x - (ax + t * dx), y - (ay + t * dy)));
+  }
+  return kuerzester;
+}
+
+export function mitteVon(item: any): [number, number] | null {
+  if (item?.position_mm) return [item.position_mm[0], item.position_mm[1]];
+  const punkte = item?.points_mm;
+  if (!punkte?.length) return null;
+  return [punkte.reduce((s: number, p: number[]) => s + p[0], 0) / punkte.length,
+          punkte.reduce((s: number, p: number[]) => s + p[1], 0) / punkte.length];
+}
+
+export function verlorene(symbols: any[], rooms: any[]) {
+  const polygone = (rooms || [])
+    .map((raum: any) => raum.polygon || raum.polygon_mm)
+    .filter((poly: any) => poly && poly.length >= 3);
+  if (!polygone.length) return [];
+  return (symbols || []).filter((item: any) => {
+    const mitte = mitteVon(item);
+    if (!mitte) return false;
+    const [x, y] = mitte;
+    return !polygone.some((poly: number[][]) =>
+      punktInPolygon(x, y, poly) || abstandZumPolygon(x, y, poly) <= AUSSERHALB_TOLERANZ_MM);
+  });
+}
+
+function VerlorenePlatzierungen({ rooms, symbols, onSelect, onRemoveById }: any) {
+  const draussen = verlorene(symbols || [], rooms || []);
+  if (!draussen.length) return null;
+  return <div className="rounded-lg bg-red-50 p-2 text-xs">
+    <div className="font-semibold text-red-800">
+      {draussen.length} Möbel außerhalb der Räume
+    </div>
+    <p className="mt-1 text-[10px] text-stone-700">
+      Sie liegen neben dem Grundriss und lassen sich dort nicht anklicken.
+      Der Bau bricht daran ab.
+    </p>
+    <ul className="mt-2 space-y-1">
+      {draussen.map((item: any) => {
+        const mitte = mitteVon(item);
+        return <li key={item.id} className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            className="truncate text-left underline"
+            title="Auswählen"
+            onClick={() => onSelect?.(item.id)}
+          >
+            {getSymbol(item.symbol)?.label || item.symbol}
+            {mitte && <span className="text-stone-600">
+              {" "}bei {Math.round(mitte[0])}, {Math.round(mitte[1])}
+            </span>}
+          </button>
+          <button
+            type="button"
+            className="shrink-0 rounded bg-red-700 px-2 py-1 text-white"
+            onClick={() => onRemoveById?.(item.id)}
+          >Löschen</button>
+        </li>;
+      })}
+    </ul>
+  </div>;
+}
