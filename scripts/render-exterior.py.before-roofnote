@@ -1,0 +1,1377 @@
+"""Exterior render: solid facade, real roof (concealed flat / true-pitch hip),
+real CG Axis door+window assets, site areas, a hero camera angle. Companion to
+render-furnished-dollhouse.py (interior cutaway). Reads the same plan schema,
+extended with roof_type and exterior_areas (see build-simplifier-render-plan.py).
+
+Roof construction, per corrections from Rainer (2026-08-12):
+  - Flachdach = innenliegendes Flachdach: the exterior walls run 800mm above
+    the ceiling line as a solid parapet; the actual flat roof deck sits
+    recessed behind that parapet, invisible from outside; the parapet top
+    is capped with a thin dark-metal Blechabdeckung strip.
+  - Walmdach/Satteldach: a true symmetric hip/gable at a fixed 22 degree
+    pitch on every slope (rise = half the short span * tan(22 deg), which
+    is also what keeps the hip corners a clean 45 degree mitre).
+  - Door/window openings get real CG Axis Hub-library models, not boxes.
+
+Usage:
+  blender --background --python render-exterior.py -- <plan.json> <out.png>
+"""
+import bmesh
+import bpy
+import json
+import math
+import mathutils
+import os
+import sys
+
+MM = 0.001
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+# bpypolyskel (github.com/prochitecture/bpypolyskel, cloned locally into
+# scripts/bpypolyskel by Rainer): a straight-skeleton implementation that
+# turns an arbitrary building footprint polygon straight into a correct
+# hipped/gabled roof mesh, valleys and all. Replaces the earlier rectangle-
+# decomposition roof (independent ridge heights per piece -> looked like
+# stacked separate roofs at every wing boundary).
+sys.path.insert(0, os.path.join(HERE, "bpypolyskel"))
+from bpypolyskel import bpypolyskel as polyskel  # noqa: E402
+
+plan_path = sys.argv[sys.argv.index("--") + 1]
+out_path = sys.argv[sys.argv.index("--") + 2]
+plan = json.load(open(plan_path, encoding="utf-8-sig"))
+# Every storey, not just the ground floor. `plan["floors"][0]` was written
+# against bungalow_040_66 — a bungalow, where floor zero IS the house — so a
+# two-storey came out as a bungalow with the upper floor missing entirely
+# (Rainer, 2026-08-16: "it is actually 2 story").
+#
+# The ground floor still defines the footprint and the wall loop; each
+# additional storey raises the eave by one storey height and contributes its
+# own openings at its own level.
+floors = plan["floors"] or []
+floor = floors[0]
+STOREY_COUNT = max(1, len(floors))
+roof_type = plan.get("roof_type") or "flachdach"
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+scene = bpy.context.scene
+
+
+def collection(name):
+    if name in bpy.data.collections:
+        return bpy.data.collections[name]
+    coll = bpy.data.collections.new(name)
+    scene.collection.children.link(coll)
+    return coll
+
+
+def flat(name, color, roughness=0.6, metallic=0.0):
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (*color, 1.0)
+    bsdf.inputs["Roughness"].default_value = roughness
+    if "Metallic" in bsdf.inputs:
+        bsdf.inputs["Metallic"].default_value = metallic
+    return mat
+
+
+def box(name, location, dimensions, angle, material, into="Exterior"):
+    mesh = bpy.data.meshes.new(f"{name}-mesh")
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(name, mesh)
+    collection(into).objects.link(obj)
+    obj.scale = (dimensions[0], dimensions[1], dimensions[2])
+    obj.location = location
+    obj.rotation_euler = (0, 0, angle)
+    if material:
+        obj.data.materials.append(material)
+    return obj
+
+
+def bake_modifiers(obj):
+    """Evaluate obj's modifier stack via the depsgraph and swap the result
+    straight into its mesh, without bpy.ops.object.modifier_apply — that
+    operator's poll fails outside a live 3D viewport context (confirmed: it
+    throws when this script runs under a plain GUI launch, not just
+    --background)."""
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    eval_obj = obj.evaluated_get(depsgraph)
+    mesh = bpy.data.meshes.new_from_object(eval_obj)
+    old_mesh = obj.data
+    obj.modifiers.clear()
+    obj.data = mesh
+    bpy.data.meshes.remove(old_mesh)
+
+
+def end_extension_mm(endpoint, outward, own, all_walls):
+    """How far one wall END may extend ALONG ITS OWN AXIS: to the far face
+    of whatever wall it meets there, and not a millimetre further. Ported
+    verbatim from render-furnished-dollhouse.py's _end_extension_mm -- that
+    function is what fixed the exact same "boxes just butt together at the
+    corner" problem for the interior walls (task: outer wall corners
+    missing/wrong). Building each exterior wall as an independent box with a
+    flat +thickness pad at both ends (the previous approach here) never
+    mitres the corner; this extends each end exactly to the far face of
+    whatever wall it meets, so adjacent wall bodies properly overlap instead
+    of leaning against each other."""
+    ex, ey = endpoint
+    best = 0.0
+    for other in all_walls:
+        if other is own:
+            continue
+        sx, sy = other["start_mm"]
+        tx, ty = other["end_mm"]
+        seg = math.hypot(tx - sx, ty - sy)
+        if not seg:
+            continue
+        t = max(0.0, min(1.0, ((ex - sx) * (tx - sx) + (ey - sy) * (ty - sy)) / seg ** 2))
+        px, py = sx + t * (tx - sx), sy + t * (ty - sy)
+        dist = math.hypot(ex - px, ey - py)
+        touch = (own["thickness_mm"] + other["thickness_mm"]) / 2 + 5
+        if dist > touch:
+            continue
+        nx, ny = -(ty - sy) / seg, (tx - sx) / seg
+        side = (ex - sx) * nx + (ey - sy) * ny
+        if side < 0:
+            nx, ny, side = -nx, -ny, -side
+        approach = -(outward[0] * nx + outward[1] * ny)
+        if approach < 0.2:
+            continue
+        reach = (side + other["thickness_mm"] / 2) / approach + 10
+        best = max(best, min(reach, other["thickness_mm"] + own["thickness_mm"]))
+    if best:
+        return best
+
+    # COLLINEAR continuation. The loop above only handles walls that MEET at
+    # an angle: for a neighbour running along the same line, its normal is
+    # perpendicular to `outward`, so `approach` is ~0 and the wall is skipped
+    # -- the two boxes then butt edge-to-edge with exactly coincident faces.
+    # Joined and booleaned, the EXACT solver leaves a seam there, which reads
+    # as a full-height slot down the facade (Rainer, 2026-08-17: "why is
+    # there a hole in the wall") -- the same coincident-face failure family
+    # as the window cutters and the sink cutout. Overlapping by half the wall
+    # thickness removes the coincidence entirely.
+    own_len = math.hypot(own["end_mm"][0] - own["start_mm"][0],
+                         own["end_mm"][1] - own["start_mm"][1]) or 1.0
+    own_dir = ((own["end_mm"][0] - own["start_mm"][0]) / own_len,
+               (own["end_mm"][1] - own["start_mm"][1]) / own_len)
+    for other in all_walls:
+        if other is own:
+            continue
+        seg = math.hypot(other["end_mm"][0] - other["start_mm"][0],
+                         other["end_mm"][1] - other["start_mm"][1])
+        if not seg:
+            continue
+        other_dir = ((other["end_mm"][0] - other["start_mm"][0]) / seg,
+                     (other["end_mm"][1] - other["start_mm"][1]) / seg)
+        if abs(own_dir[0] * other_dir[0] + own_dir[1] * other_dir[1]) < 0.98:
+            continue
+        for corner in (other["start_mm"], other["end_mm"]):
+            if math.hypot(corner[0] - endpoint[0], corner[1] - endpoint[1]) <= 50:
+                return own["thickness_mm"] / 2
+    return 0.0
+
+
+def apply_boolean_difference(obj, cutter):
+    modifier = obj.modifiers.new("cut", "BOOLEAN")
+    modifier.operation = "DIFFERENCE"
+    modifier.solver = "EXACT"
+    modifier.object = cutter
+    bake_modifiers(obj)
+
+
+def union_objects(objects, name):
+    """Boolean-union a list of solids into one object, so a multi-wing roof
+    reads as one continuous mass instead of overlapping shells."""
+    if not objects:
+        return None
+    base = objects[0]
+    base.name = name
+    for other in objects[1:]:
+        modifier = base.modifiers.new("union", "BOOLEAN")
+        modifier.operation = "UNION"
+        modifier.solver = "EXACT"
+        modifier.object = other
+        bake_modifiers(base)
+        bpy.data.objects.remove(other, do_unlink=True)
+    return base
+
+
+# ------------------------------------------------------- footprint massing
+# The exterior wall list is an unordered bag of segments -- real footprints
+# are rarely a single rectangle (this one is a main wing + a corridor + two
+# smaller wings flanking an open carport notch), so a roof built from the
+# overall bounding box floats over voids and collapses hips into a false
+# pyramid on anything close to square. Trace the real wall loop, then chop
+# it into the rectangles that actually have a wall underneath, and roof each
+# one on its own.
+
+def trace_wall_loops(walls, tol=0.4):
+    segments = [((w["start_mm"][0] * MM, w["start_mm"][1] * MM),
+                 (w["end_mm"][0] * MM, w["end_mm"][1] * MM)) for w in walls]
+    n = len(segments)
+    endpoints = []
+    for i, (a, b) in enumerate(segments):
+        endpoints.append((i, 0, a))
+        endpoints.append((i, 1, b))
+
+    def find_match(point, exclude):
+        best, best_d = None, tol
+        for (i, e, p) in endpoints:
+            if i == exclude:
+                continue
+            d = math.hypot(point[0] - p[0], point[1] - p[1])
+            if d < best_d:
+                best_d, best = d, (i, e)
+        return best
+
+    visited = set()
+    loops = []
+    for start in range(n):
+        if start in visited:
+            continue
+        loop_pts, chain = [], []
+        cur, cur_end = start, 1
+        for _ in range(n + 2):
+            a, b = segments[cur]
+            far_point = b if cur_end == 1 else a
+            near_point = a if cur_end == 1 else b
+            loop_pts.append(near_point)
+            chain.append(cur)
+            match = find_match(far_point, cur)
+            if match is None:
+                loop_pts.append(far_point)
+                break
+            nxt, nxt_end = match
+            if nxt == start and len(chain) > 1:
+                loop_pts.append(far_point)
+                break
+            cur, cur_end = nxt, 1 - nxt_end
+        for i in chain:
+            visited.add(i)
+        if len(loop_pts) >= 3:
+            loops.append(loop_pts)
+    return loops
+
+
+def polygon_area(poly):
+    total = 0.0
+    for i in range(len(poly)):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % len(poly)]
+        total += x1 * y2 - x2 * y1
+    return abs(total) / 2
+
+
+def point_in_polygon(x, y, poly):
+    inside = False
+    n = len(poly)
+    j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]
+        xj, yj = poly[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def cluster_coords(values, tol):
+    values = sorted(values)
+    groups = [[values[0]]]
+    for v in values[1:]:
+        if v - groups[-1][-1] <= tol:
+            groups[-1].append(v)
+        else:
+            groups.append([v])
+    return [sum(g) / len(g) for g in groups]
+
+
+def decompose_rectangles(poly, tol=0.3):
+    """Grid/scanline decomposition of an (approximately) orthogonal polygon
+    into its maximal axis-aligned rectangles."""
+    xs = cluster_coords([p[0] for p in poly], tol)
+    ys = cluster_coords([p[1] for p in poly], tol)
+    cells = []
+    for i in range(len(xs) - 1):
+        for j in range(len(ys) - 1):
+            cx, cy = (xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2
+            if point_in_polygon(cx, cy, poly):
+                cells.append((xs[i], xs[i + 1], ys[j], ys[j + 1]))
+    rows = {}
+    for x0, x1, y0, y1 in cells:
+        rows.setdefault((y0, y1), []).append((x0, x1))
+    row_rects = []
+    for (y0, y1), xr in rows.items():
+        xr.sort()
+        merged = []
+        for x0, x1 in xr:
+            if merged and abs(merged[-1][1] - x0) < 1e-6:
+                merged[-1] = (merged[-1][0], x1)
+            else:
+                merged.append((x0, x1))
+        for x0, x1 in merged:
+            row_rects.append([x0, x1, y0, y1])
+    used = [False] * len(row_rects)
+    final = []
+    for i, r in enumerate(row_rects):
+        if used[i]:
+            continue
+        x0, x1, y0, y1 = r
+        used[i] = True
+        changed = True
+        while changed:
+            changed = False
+            for j, r2 in enumerate(row_rects):
+                if used[j]:
+                    continue
+                x0b, x1b, y0b, y1b = r2
+                if abs(x0b - x0) < 1e-6 and abs(x1b - x1) < 1e-6 and abs(y0b - y1) < 1e-6:
+                    y1, used[j], changed = y1b, True, True
+        final.append((x0, x1, y0, y1))
+    return final
+
+
+def signed_polygon_area(poly):
+    total = 0.0
+    for i in range(len(poly)):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % len(poly)]
+        total += x1 * y2 - x2 * y1
+    return total / 2
+
+
+def offset_orthogonal_polygon(poly, offset):
+    """Outward offset for a rectilinear (axis-aligned-edges) CCW polygon --
+    every edge here is horizontal or vertical, so each vertex just moves
+    diagonally by the sum of its two adjacent edges' outward unit normals,
+    which is exact at a 90 degree corner (convex or reflex)."""
+    n = len(poly)
+
+    def outward_normal(i):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        dx, dy = x2 - x1, y2 - y1
+        length = math.hypot(dx, dy) or 1.0
+        return dy / length, -dx / length
+
+    result = []
+    for i in range(n):
+        nx1, ny1 = outward_normal((i - 1) % n)
+        nx2, ny2 = outward_normal(i)
+        x, y = poly[i]
+        result.append((x + (nx1 + nx2) * offset, y + (ny1 + ny2) * offset))
+    return result
+
+
+def merge_roof_massing(rects, waste_ratio=0.35):
+    """The grid decomposition is exact but over-eager: a single simple wing
+    routinely comes back as two or three slightly different-width strips
+    because some UNRELATED coordinate elsewhere in the polygon added a grid
+    line through it -- each strip then gets its own independently-pitched
+    hip roof at a different ridge height, and the union reads as a stepped
+    stack of separate roofs instead of one wing. Greedily re-merge any two
+    pieces whose combined bounding box only adds a small sliver of area
+    neither piece actually covers (a real gap -- the carport notch, a
+    corridor -- adds a lot; a stray grid line adds almost none)."""
+    rects = list(rects)
+    while True:
+        best = None
+        best_waste = waste_ratio
+        for i in range(len(rects)):
+            for j in range(i + 1, len(rects)):
+                x0a, x1a, y0a, y1a = rects[i]
+                x0b, x1b, y0b, y1b = rects[j]
+                area_a = (x1a - x0a) * (y1a - y0a)
+                area_b = (x1b - x0b) * (y1b - y0b)
+                ux0, ux1 = min(x0a, x0b), max(x1a, x1b)
+                uy0, uy1 = min(y0a, y0b), max(y1a, y1b)
+                union_area = (ux1 - ux0) * (uy1 - uy0)
+                waste = (union_area - area_a - area_b) / min(area_a, area_b)
+                if waste < best_waste:
+                    best_waste, best = waste, (i, j, (ux0, ux1, uy0, uy1))
+        if best is None:
+            return rects
+        i, j, merged = best
+        rects = [r for k, r in enumerate(rects) if k not in (i, j)] + [merged]
+
+
+def recalc_normals(mesh):
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+
+
+def polygon_prism(name, points_mm, z0, z1, material, into="Exterior"):
+    """A vertical-walled solid from a 2D polygon, extruded z0..z1."""
+    verts_bottom = [(p[0] * MM, p[1] * MM, z0) for p in points_mm]
+    verts_top = [(p[0] * MM, p[1] * MM, z1) for p in points_mm]
+    verts = verts_bottom + verts_top
+    n = len(points_mm)
+    faces = [list(range(n)), [n + i for i in reversed(range(n))]]
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append([i, j, n + j, n + i])
+    mesh = bpy.data.meshes.new(f"{name}-mesh")
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    recalc_normals(mesh)
+    obj = bpy.data.objects.new(name, mesh)
+    collection(into).objects.link(obj)
+    if material:
+        obj.data.materials.append(material)
+    return obj
+
+
+def flat_polygon(name, points_mm, z, material, into="Exterior"):
+    verts = [(p[0] * MM, p[1] * MM, z) for p in points_mm]
+    mesh = bpy.data.meshes.new(f"{name}-mesh")
+    mesh.from_pydata(verts, [], [list(range(len(verts)))])
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    collection(into).objects.link(obj)
+    if material:
+        obj.data.materials.append(material)
+    return obj
+
+
+# ------------------------------------------------------- Hub asset import
+# Ported from render-furnished-dollhouse.py's import_model/rest_on_floor:
+# the Hub .blend library holds assets at three different authoring scales
+# (mostly 2.54x, i.e. inches read as Blender units), and a handful bundle a
+# leftover reference "Cube" with a bare "Material" that must not be joined
+# into the real mesh.
+
+def _object_extent(obj):
+    lo = [math.inf] * 3
+    hi = [-math.inf] * 3
+    for corner in obj.bound_box:
+        world = obj.matrix_world @ mathutils.Vector(corner)
+        for axis in range(3):
+            lo[axis] = min(lo[axis], world[axis])
+            hi[axis] = max(hi[axis], world[axis])
+    return [hi[a] - lo[a] for a in range(3)]
+
+
+def import_model(filepath, divisor=1.0, target_mm=None):
+    before = set(bpy.data.objects.keys())
+    lowered = filepath.lower()
+    if lowered.endswith(".blend"):
+        with bpy.data.libraries.load(filepath, link=False) as (source, target):
+            target.objects = list(source.objects)
+        for obj in target.objects:
+            if obj is not None:
+                bpy.context.scene.collection.objects.link(obj)
+        bpy.context.view_layer.update()
+    elif lowered.endswith(".fbx"):
+        bpy.ops.import_scene.fbx(filepath=filepath)
+    else:
+        bpy.ops.import_scene.gltf(filepath=filepath)
+    imported_names = set(bpy.data.objects.keys()) - before
+
+    mesh_names = [n for n in imported_names if bpy.data.objects[n].type == "MESH"]
+
+    junk_names = []
+    for name in mesh_names:
+        obj = bpy.data.objects[name]
+        mats = [m.name if m else None for m in obj.data.materials]
+        if obj.name.split(".")[0] == "Cube" and mats == ["Material"]:
+            junk_names.append(name)
+    if junk_names:
+        for name in junk_names:
+            bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+        mesh_names = [n for n in mesh_names if n not in junk_names]
+        imported_names = imported_names - set(junk_names)
+
+    if lowered.endswith(".blend") and divisor and target_mm:
+        limit = (max(target_mm) / 1000.0) * 2.0
+        kept = []
+        for name in mesh_names:
+            extent = [v / divisor for v in _object_extent(bpy.data.objects[name])]
+            if max(extent) > limit:
+                continue
+            kept.append(name)
+        if kept:
+            for name in set(mesh_names) - set(kept):
+                if name in bpy.data.objects:
+                    bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+            imported_names = imported_names - (set(mesh_names) - set(kept))
+            mesh_names = kept
+    if not mesh_names:
+        for name in imported_names:
+            if name in bpy.data.objects:
+                bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+        return None
+
+    bpy.ops.object.select_all(action="DESELECT")
+    for name in mesh_names:
+        bpy.data.objects[name].select_set(True)
+    bpy.context.view_layer.objects.active = bpy.data.objects[mesh_names[0]]
+    if len(mesh_names) > 1:
+        bpy.ops.object.join()
+    obj = bpy.context.active_object
+
+    for name in imported_names:
+        if name in bpy.data.objects and bpy.data.objects[name] is not obj:
+            bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    if divisor and divisor != 1.0:
+        obj.scale = (1.0 / divisor, 1.0 / divisor, 1.0 / divisor)
+        bpy.context.view_layer.update()
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return obj
+
+
+def local_dimensions(obj):
+    coords = [mathutils.Vector(c) for c in obj.bound_box]
+    mins = mathutils.Vector((min(c.x for c in coords), min(c.y for c in coords), min(c.z for c in coords)))
+    maxs = mathutils.Vector((max(c.x for c in coords), max(c.y for c in coords), max(c.z for c in coords)))
+    return mins, maxs, (maxs - mins)
+
+
+def rest_on_floor(obj):
+    mins, maxs, _ = local_dimensions(obj)
+    offset = mathutils.Vector(((mins.x + maxs.x) / 2, (mins.y + maxs.y) / 2, mins.z))
+    for vertex in obj.data.vertices:
+        vertex.co -= offset
+    obj.data.update()
+    return obj
+
+
+DOOR_ASSET = {
+    "path": r"E:\_models_hub\_extracted\Metal_Front_Door_3D_Model_7961_BLEND\Metal Front Door 3D Model (7961).blend",
+    "divisor": 2.54,
+    "size_mm": (1120, 296, 2100),
+}
+WINDOW_ASSET_SMALL = {
+    "path": r"E:\_models_hub\_extracted\Metal_Window_1180mm_x_1260mm_BLEND\Metal Window 1180mm x 1260mm.blend",
+    "divisor": 2.54,
+    "size_mm": (1184, 109, 1260),
+}
+WINDOW_ASSET_LARGE = {
+    "path": r"E:\_models_hub\_extracted\Metal_Window_1770mm_x_1800mm_BLEND\Metal Window 1770mm x 1800mm.blend",
+    "divisor": 2.54,
+    "size_mm": (1774, 109, 1800),
+}
+
+# Every "Metal Window" model in the Hub library (checked all 5, both
+# extracted and unextracted: 1140x2100, 1180x1260, 1770x1800, 2214x2100,
+# 2824x2360) turned out to be a door-style sliding or hinged patio unit --
+# double leaves, door-style handles, offset overlapping tracks -- not a
+# plain window. Rainer, 2026-08-16, after comparing against a reference
+# photo of a plain equal-pane tilt-turn window: "your 3d version looks like
+# a front door with 2 seitenteile" / confirmed no real asset matches, build
+# one instead of forcing a wrong-but-real model into the opening.
+WINDOW_FRAME_MAT = flat("window-frame", (0.14, 0.15, 0.16), roughness=0.4, metallic=0.6)
+WINDOW_GLASS_MAT = flat("window-glass", (0.78, 0.86, 0.90), roughness=0.15, metallic=0.1)
+
+
+def window_pane_count(width_mm):
+    if width_mm < 900:
+        return 1
+    if width_mm < 1800:
+        return 2
+    return 3
+
+
+def build_window(name, cx, cy, base_z, angle, width_mm, height_mm, into="Exterior"):
+    """Plain frame + N equal glass panes (see WINDOW_FRAME_MAT comment for
+    why this is procedural, not a Hub asset). Pane count by width: narrow
+    openings get one fixed pane, mid-width two, wide openings three --
+    matches the equal-pane look of the reference, not the CG Axis door
+    units' off-centre split."""
+    panes = window_pane_count(width_mm)
+    frame_depth = 0.12
+    ft = 0.06  # outer frame bar thickness
+    mt = 0.05  # mullion thickness between panes
+    w = width_mm * MM
+    h = height_mm * MM
+    cz = base_z + h / 2
+    ux, uy = math.cos(angle), math.sin(angle)
+    objs = []
+
+    def place(local_x, world_z, dim_w, dim_h, material):
+        wx = cx + local_x * ux
+        wy = cy + local_x * uy
+        objs.append(box(f"{name}-{len(objs)}", (wx, wy, world_z),
+                        (dim_w, frame_depth, dim_h), angle, material, into))
+
+    place(0.0, cz + h / 2 - ft / 2, w, ft, WINDOW_FRAME_MAT)
+    place(0.0, cz - h / 2 + ft / 2, w, ft, WINDOW_FRAME_MAT)
+    place(-w / 2 + ft / 2, cz, ft, h, WINDOW_FRAME_MAT)
+    place(w / 2 - ft / 2, cz, ft, h, WINDOW_FRAME_MAT)
+
+    pane_w = (w - 2 * ft - (panes - 1) * mt) / panes
+    glass_h = h - 2 * ft
+    x0 = -w / 2 + ft
+    for i in range(panes):
+        pane_cx = x0 + pane_w / 2 + i * (pane_w + mt)
+        place(pane_cx, cz, pane_w, glass_h, WINDOW_GLASS_MAT)
+        if i < panes - 1:
+            mullion_cx = x0 + pane_w + mt / 2 + i * (pane_w + mt)
+            place(mullion_cx, cz, mt, glass_h, WINDOW_FRAME_MAT)
+    return objs
+
+
+_asset_templates = {}
+
+
+def get_asset_template(asset):
+    key = asset["path"]
+    if key not in _asset_templates:
+        if not os.path.exists(asset["path"]):
+            print(f"[exterior] WARNING missing asset: {asset['path']}")
+            _asset_templates[key] = None
+        else:
+            obj = import_model(asset["path"], asset["divisor"], asset["size_mm"])
+            if obj is not None:
+                # These Hub materials carry Specular IOR Level 1.0 on a
+                # near-black base -- under this scene's flat, uniform-strength
+                # sky that Fresnel edge lights up as a solid white smear
+                # (confirmed: base colour alone was near-black, only the
+                # specular slider was maxed). Clamped back to Blender's own
+                # default so the near-black base actually reads as the frame
+                # colour instead of being drowned out by reflection.
+                for mat in obj.data.materials:
+                    if not mat or not mat.use_nodes:
+                        continue
+                    bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+                    if not bsdf:
+                        continue
+                    for key in ("Specular IOR Level", "Specular"):
+                        if key in bsdf.inputs and bsdf.inputs[key].default_value > 0.5:
+                            bsdf.inputs[key].default_value = 0.5
+                rest_on_floor(obj)
+                for coll in list(obj.users_collection):
+                    coll.objects.unlink(obj)
+                collection("AssetTemplates").objects.link(obj)
+                obj.hide_render = True
+                obj.hide_viewport = True
+            _asset_templates[key] = obj
+    return _asset_templates[key]
+
+
+def place_asset(asset, cx, cy, base_z, angle, width_mm, height_mm, name, into="Exterior"):
+    template = get_asset_template(asset)
+    if template is None:
+        return None
+    dup = template.copy()
+    dup.data = template.data
+    dup.name = name
+    collection(into).objects.link(dup)
+    dup.hide_render = False
+    dup.hide_viewport = False
+    native_width, _, native_height = asset["size_mm"]
+    sx = max(0.75, min(1.35, width_mm / native_width)) if native_width else 1.0
+    sz = max(0.75, min(1.35, height_mm / native_height)) if native_height else 1.0
+    dup.scale = (sx, 1.0, sz)
+    dup.rotation_euler = (0, 0, angle)
+    dup.location = (cx, cy, base_z)
+    return dup
+
+
+# ---------------------------------------------------------------- materials
+
+FACADE_MODERN = flat("facade-modern", (0.92, 0.91, 0.88), roughness=0.75)
+FACADE_CLASSIC = flat("facade-classic", (0.88, 0.82, 0.70), roughness=0.85)
+FACADE = FACADE_MODERN if plan["style"] == "modern" else FACADE_CLASSIC
+ROOF_MODERN = flat("roof-modern", (0.20, 0.20, 0.22), roughness=0.85)
+ROOF_CLASSIC = flat("roof-classic", (0.35, 0.18, 0.14), roughness=0.7)
+ROOF_MAT = ROOF_MODERN if plan["style"] == "modern" else ROOF_CLASSIC
+COPING_MAT = flat("ext-coping", (0.14, 0.14, 0.15), roughness=0.35, metallic=0.6)
+FOUNDATION_MAT = flat("foundation", (0.42, 0.41, 0.40), roughness=0.9)
+
+SITE_MATERIALS = {
+    "einfahrt": flat("site-einfahrt", (0.45, 0.44, 0.43), roughness=0.9),
+    "gehweg": flat("site-gehweg", (0.62, 0.58, 0.52), roughness=0.85),
+    "terrasse": (flat("site-terrasse-modern", (0.55, 0.53, 0.50), roughness=0.6)
+                if plan["style"] == "modern"
+                else flat("site-terrasse-classic", (0.55, 0.38, 0.24), roughness=0.7)),
+    # Garten = explicitly drawn planted beds/borders -- distinct earthy,
+    # mixed-planting tone. Was nearly identical to RASEN_MAT (0.30,0.42,0.22
+    # vs 0.33,0.45,0.24), invisible against the lawn fallback it now needs
+    # to read as different FROM (Rainer, 2026-08-13).
+    "garten": flat("site-garten", (0.24, 0.20, 0.12), roughness=1.0),
+}
+# The automatic ground fallback -- anything NOT covered by a drawn site
+# area (terrasse/einfahrt/gehweg/garten) is mown lawn, nothing to draw for
+# it.
+RASEN_MAT = flat("site-rasen", (0.33, 0.45, 0.24), roughness=1.0)
+
+# ---------------------------------------------------------------- geometry
+
+CEILING_Z = 2.400  # matches render-furnished-dollhouse.py's interior wall_height (lichte Raumhoehe)
+# Traufhoehe (eave height, ground to where the wall meets the roof) is NOT
+# the bare clear ceiling height -- it also carries the floor/ceiling slab
+# buildup and a small foundation upstand above grade. Real-world reference
+# (fertighaus.de/bungalow.de): a 2.625m Rohbauhoehe nets ~2.50m lichte
+# Raumhoehe, i.e. roughly 0.2-0.3m of structure on top of the clear height,
+# plus a plinth -- 0.35m total buildup lands a single-storey eave around
+# 2.75m, in the normal range instead of the bare-ceiling 2.4m this was
+# using before (Rainer: "roofs look way too low").
+STRUCTURE_BUILDUP = 0.350
+STOREY_Z = CEILING_Z + STRUCTURE_BUILDUP
+EAVE_Z = STOREY_Z * STOREY_COUNT
+PARAPET_HEIGHT = 0.800  # innenliegendes Flachdach: walls run this far above the eave line
+WALL_TOP_Z = EAVE_Z + PARAPET_HEIGHT if roof_type == "flachdach" else EAVE_Z
+PITCH_DEG = 22.0
+
+exterior_walls = [w for w in floor["walls"] if w["wall_type"] == "exterior"]
+exterior_wall_ids = {w.get("id") for w in exterior_walls}
+# Openings from every storey, assigned to the wall they physically sit on.
+#
+# An upper-floor opening references its OWN floor's wall id, and the walls
+# being built here are the ground floor's envelope, so matching by id drops
+# every upstairs window on the floor (first attempt did exactly that: the
+# house grew to two storeys with no upper windows). Match by geometry
+# instead: take the opening's world point on its own wall, and give it to the
+# exterior wall it lies on.
+def _opening_world_point(opening, storey):
+    for wall in storey.get("walls", []):
+        if wall.get("id") != opening.get("wall_id"):
+            continue
+        sx, sy = wall["start_mm"]
+        ex, ey = wall["end_mm"]
+        t = opening.get("position", 0.5)
+        return (sx + t * (ex - sx), sy + t * (ey - sy))
+    return None
+
+
+def _assign_to_exterior_wall(point, tolerance_mm=900.0):
+    """The exterior wall this point sits on, and where along it."""
+    best = None
+    for wall in exterior_walls:
+        sx, sy = wall["start_mm"]
+        ex, ey = wall["end_mm"]
+        dx, dy = ex - sx, ey - sy
+        length_squared = dx * dx + dy * dy
+        if not length_squared:
+            continue
+        t = ((point[0] - sx) * dx + (point[1] - sy) * dy) / length_squared
+        t = max(0.0, min(1.0, t))
+        px, py = sx + t * dx, sy + t * dy
+        distance = math.hypot(point[0] - px, point[1] - py)
+        if distance <= tolerance_mm and (best is None or distance < best[0]):
+            best = (distance, wall.get("id"), t)
+    return best
+
+
+openings_by_wall = {}
+for level, storey in enumerate(floors):
+    for opening in storey.get("openings", []):
+        if level == 0:
+            openings_by_wall.setdefault(opening["wall_id"], []).append(
+                {**opening, "_storey_base_mm": 0.0})
+            continue
+        # Only an opening that is itself in an EXTERIOR wall belongs on the
+        # facade. Without this test, _assign_to_exterior_wall's 900mm
+        # tolerance grabs interior doors that merely happen to end near the
+        # envelope: the Obergeschoss bedroom door on partition f1-wall-014
+        # lands at (5813, 744), i.e. 744mm from the front wall, and was being
+        # rendered as a DOOR IN THE FIRST-FLOOR FACADE (Rainer, 2026-08-17:
+        # "you can see the stupid door on the second floor").
+        own_wall = next((w for w in storey.get("walls", [])
+                         if w.get("id") == opening.get("wall_id")), None)
+        if own_wall is None or own_wall.get("wall_type") != "exterior":
+            continue
+        point = _opening_world_point(opening, storey)
+        if point is None:
+            continue
+        match = _assign_to_exterior_wall(point)
+        if match is None:
+            continue
+        _, wall_id, position = match
+        openings_by_wall.setdefault(wall_id, []).append(
+            {**opening, "position": position, "_storey_base_mm": level * STOREY_Z * 1000})
+
+# Every exterior opening shares one lintel line (top of window/door), the
+# real-architecture convention Rainer pointed out -- annotated sill/height
+# pairs vary per opening and left tops scattered. Sills move to hit a common
+# top; opening heights themselves are kept as annotated.
+exterior_openings = [o for o in floor.get("openings", [])
+                     if o["wall_id"] in exterior_wall_ids]
+LINTEL_Z_MM = max((o["sill_height_mm"] + o["height_mm"] for o in exterior_openings),
+                  default=2100)
+
+min_x = min(min(w["start_mm"][0], w["end_mm"][0]) for w in exterior_walls)
+max_x = max(max(w["start_mm"][0], w["end_mm"][0]) for w in exterior_walls)
+min_y = min(min(w["start_mm"][1], w["end_mm"][1]) for w in exterior_walls)
+max_y = max(max(w["start_mm"][1], w["end_mm"][1]) for w in exterior_walls)
+centre_x = (min_x + max_x) / 2 * MM
+centre_y = (min_y + max_y) / 2 * MM
+span_x = (max_x - min_x) * MM
+span_y = (max_y - min_y) * MM
+
+print(f"[exterior] walls={len(exterior_walls)} bbox=({min_x:.0f}..{max_x:.0f}, "
+      f"{min_y:.0f}..{max_y:.0f}) roof={roof_type} style={plan['style']}")
+
+# The footprint is not one rectangle -- trace the real wall loop and chop it
+# into the pieces that actually have wall beneath them, so the roof follows
+# the real massing (wings + corridor + carport notch) instead of the overall
+# bounding box.
+loops = trace_wall_loops(exterior_walls)
+footprint = max(loops, key=polygon_area) if loops else None
+if footprint and signed_polygon_area(footprint) < 0:
+    footprint = list(reversed(footprint))  # bpypolyskel requires CCW
+if footprint:
+    massing_rects = [r for r in decompose_rectangles(footprint)
+                      if (r[1] - r[0]) > 1.0 and (r[3] - r[2]) > 1.0]
+else:
+    massing_rects = []
+if not massing_rects:
+    massing_rects = [(min_x * MM, max_x * MM, min_y * MM, max_y * MM)]
+print(f"[exterior] footprint massing: {len(massing_rects)} rectangle(s)")
+for x0, x1, y0, y1 in massing_rects:
+    print(f"  [{x0:.2f}..{x1:.2f}] x [{y0:.2f}..{y1:.2f}]  ({x1 - x0:.2f} x {y1 - y0:.2f} m)")
+
+wall_bodies = []
+coping_bodies = []
+for index, wall in enumerate(exterior_walls):
+    sx, sy = wall["start_mm"][0] * MM, wall["start_mm"][1] * MM
+    ex, ey = wall["end_mm"][0] * MM, wall["end_mm"][1] * MM
+    length = math.hypot(ex - sx, ey - sy)
+    if length < 0.05:
+        continue
+    thickness = wall["thickness_mm"] * MM
+    angle = math.atan2(ey - sy, ex - sx)
+    # Junction-aware extension: each end reaches exactly to the far face of
+    # whatever wall it meets there, so adjacent wall bodies overlap into a
+    # clean mitred corner instead of two boxes just touching edge-to-edge.
+    ux, uy = (ex - sx) / length, (ey - sy) / length
+    e1 = end_extension_mm(wall["start_mm"], (-ux, -uy), wall, exterior_walls) * MM
+    e2 = end_extension_mm(wall["end_mm"], (ux, uy), wall, exterior_walls) * MM
+    cx = (sx + ex) / 2 + ux * (e2 - e1) / 2
+    cy = (sy + ey) / 2 + uy * (e2 - e1) / 2
+    obj = box(f"extwall-{index}", (cx, cy, WALL_TOP_Z / 2),
+              (length + e1 + e2, thickness, WALL_TOP_Z), angle, FACADE)
+
+    for opening in openings_by_wall.get(wall.get("id"), []):
+        # Sill moves to put this opening's top on the shared LINTEL_Z_MM
+        # line; the opening's own annotated height is kept as-is.
+        storey_base_mm = opening.get("_storey_base_mm", 0.0)
+        sill_mm = storey_base_mm + max(0.0, LINTEL_Z_MM - opening["height_mm"])
+        available = storey_base_mm + CEILING_Z * 1000 - sill_mm
+        if available <= 0:
+            continue
+        cut_height = min(opening["height_mm"], available)
+        centre_local = opening["position"]
+        cx = sx + centre_local * (ex - sx)
+        cy = sy + centre_local * (ey - sy)
+        cz = (sill_mm + cut_height / 2) * MM
+        cutter = box(f"extwall-{index}-cut", (cx, cy, cz),
+                     (opening["width_mm"] * MM, thickness * 3.0, cut_height * MM + 0.04),
+                     angle, None, into="Cutters")
+        apply_boolean_difference(obj, cutter)
+        bpy.data.objects.remove(cutter, do_unlink=True)
+
+        base_z = sill_mm * MM
+        if opening["opening_type"] == "door":
+            place_asset(DOOR_ASSET, cx, cy, base_z, angle,
+                        opening["width_mm"], cut_height, f"extwall-{index}-door")
+        elif opening["opening_type"] == "window":
+            build_window(f"extwall-{index}-window", cx, cy, base_z, angle,
+                         opening["width_mm"], cut_height)
+
+    if roof_type == "flachdach":
+        # Blechabdeckung: thin metal coping capping the parapet top edge,
+        # a touch proud of the render on both faces.
+        coping_overhang = 0.03
+        coping_bodies.append(box(f"extwall-{index}-coping", ((sx + ex) / 2, (sy + ey) / 2, WALL_TOP_Z + 0.02),
+            (length + thickness, thickness + coping_overhang * 2, 0.04), angle, COPING_MAT))
+
+    wall_bodies.append(obj)
+
+# Corner posts: end_extension_mm mitres each wall end to the far face of
+# whatever it meets, but that's trigonometry on the wall's own angle -- at
+# anything off a clean 90, the two mitred boxes can still leave a sliver
+# gap or a visible seam right at the corner (Rainer, 2026-08-16: "not one
+# single outer corner is correct... or just add real corner elements in
+# every corner then merge them"). A square post at every traced footprint
+# vertex, unioned in with everything else below, physically fills that
+# point regardless of the angle -- the corner is solid by construction,
+# not by getting the mitre trigonometry exactly right.
+if footprint:
+    # Oversized by 20mm in plan and 10mm in height so its faces never sit
+    # exactly coincident with a wall box's face -- Blender's EXACT boolean
+    # solver goes unstable (drops geometry instead of erroring) on unions
+    # between objects that share a perfectly coplanar face, which a
+    # corner-thickness-for-corner-thickness post guarantees against every
+    # wall it touches.
+    corner_thickness = max((w["thickness_mm"] for w in exterior_walls), default=240) * MM + 0.02
+    corner_height = WALL_TOP_Z + 0.01
+    for corner_index, (cx, cy) in enumerate(footprint):
+        wall_bodies.append(box(f"extwall-corner-{corner_index}", (cx, cy, corner_height / 2),
+                                (corner_thickness, corner_thickness, corner_height), 0.0, FACADE))
+
+# One continuous wall shell, not 19 separate boxes: even with clean mitred
+# corners (end_extension_mm), collinear wall segments along a straight run
+# still meet at a real internal edge -- invisible in Blender's own shading,
+# but the ComfyUI canny pass picks it up as a genuine line and paints a
+# visible seam into the facade (Rainer, 2026-08-13: "you do see the wall
+# segments right?"). Union removes that internal edge entirely.
+union_objects(wall_bodies, "walls")
+if coping_bodies:
+    union_objects(coping_bodies, "coping")
+
+# Foundation plinth, slightly proud of the facade at the base.
+polygon_prism("foundation",
+             [(min_x - 100, min_y - 100), (max_x + 100, min_y - 100),
+              (max_x + 100, max_y + 100), (min_x - 100, max_y + 100)],
+             -0.15, 0.0, FOUNDATION_MAT)
+
+# ---------------------------------------------------------------- roof
+overhang = (plan.get("roof_overhang_mm") if plan.get("roof_overhang_mm") is not None else 500) * MM
+pitch = math.radians(PITCH_DEG)
+ridge_z = WALL_TOP_Z
+
+if roof_type == "flachdach":
+    deck_inset = 0.20
+    deck_z0 = CEILING_Z + 0.05
+    deck_z1 = CEILING_Z + 0.30
+    deck_pieces = []
+    for i, (x0, x1, y0, y1) in enumerate(massing_rects):
+        piece = polygon_prism(f"roof-deck-{i}",
+                     [((x0 + deck_inset) / MM, (y0 + deck_inset) / MM),
+                      ((x1 - deck_inset) / MM, (y0 + deck_inset) / MM),
+                      ((x1 - deck_inset) / MM, (y1 - deck_inset) / MM),
+                      ((x0 + deck_inset) / MM, (y1 - deck_inset) / MM)],
+                     deck_z0, deck_z1, ROOF_MAT)
+        deck_pieces.append(piece)
+    union_objects(deck_pieces, "roof-deck")
+else:
+    # walmdach/satteldach: bpypolyskel computes the real straight skeleton
+    # of the actual footprint -- correct valleys where wings meet, one
+    # continuous roof mass, no independent per-piece ridge heights. Only
+    # walmdach is asked for a hip; bpypolyskel builds hips everywhere, which
+    # is what "22 degrees every side" already meant for a true hip roof, so
+    # the same call serves satteldach too (a hip is the general case).
+    roof_poly = offset_orthogonal_polygon(footprint, overhang)
+
+    # A rectangular footprint gets its hip built directly, not through the
+    # straight-skeleton solver. The skeleton is the right tool for L- and
+    # T-shaped houses with valleys; on a plain rectangle it was returning a
+    # near-flat cap once the walls went two storeys up, and a hip on a
+    # rectangle is four faces and a ridge — there is nothing to solve.
+    xs = sorted({round(x, 3) for x, _ in roof_poly})
+    ys = sorted({round(y, 3) for _, y in roof_poly})
+    is_rectangle = len(roof_poly) == 4 and len(xs) == 2 and len(ys) == 2
+
+    if is_rectangle:
+        x0, x1 = xs[0], xs[1]
+        y0, y1 = ys[0], ys[1]
+        width = x1 - x0
+        depth = y1 - y0
+        # The hip runs up from every eave at the same pitch, so the ridge sits
+        # half the SHORT span in from the short ends, at that rise.
+        inset = min(width, depth) / 2.0
+        rise = inset * math.tan(pitch)
+        cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        if width >= depth:
+            ridge_a = (x0 + inset, cy, WALL_TOP_Z + rise)
+            ridge_b = (x1 - inset, cy, WALL_TOP_Z + rise)
+        else:
+            ridge_a = (cx, y0 + inset, WALL_TOP_Z + rise)
+            ridge_b = (cx, y1 - inset, WALL_TOP_Z + rise)
+        corners = [(x0, y0, WALL_TOP_Z), (x1, y0, WALL_TOP_Z),
+                   (x1, y1, WALL_TOP_Z), (x0, y1, WALL_TOP_Z)]
+        verts = [mathutils.Vector(c) for c in corners] + [
+            mathutils.Vector(ridge_a), mathutils.Vector(ridge_b)]
+        if width >= depth:
+            faces = [(0, 1, 5, 4), (2, 3, 4, 5), (1, 2, 5), (3, 0, 4)]
+        else:
+            faces = [(0, 1, 4), (2, 3, 5), (1, 2, 5, 4), (3, 0, 4, 5)]
+    else:
+        # bpypolyskel computes the real straight skeleton of the footprint —
+        # correct valleys where wings meet, one continuous roof mass.
+        verts = [mathutils.Vector((x, y, WALL_TOP_Z)) for x, y in roof_poly]
+        faces = polyskel.polygonize(verts, 0, len(roof_poly), None, 0.0, math.tan(pitch), None, None)
+
+    pitch_mesh = bpy.data.meshes.new("roof-pitch-mesh")
+    pitch_mesh.from_pydata([tuple(v) for v in verts], [], faces)
+    pitch_mesh.update()
+    recalc_normals(pitch_mesh)
+    roof_obj = bpy.data.objects.new("roof-pitch", pitch_mesh)
+    collection("Exterior").objects.link(roof_obj)
+    roof_obj.data.materials.append(ROOF_MAT)
+    solidify = roof_obj.modifiers.new("thickness", "SOLIDIFY")
+    solidify.thickness = 0.22
+    solidify.offset = -1.0
+    bake_modifiers(roof_obj)
+    # Prove the roof by its geometry, not by squinting at one camera angle.
+    _roof_world_z = [(roof_obj.matrix_world @ v.co).z for v in roof_obj.data.vertices]
+    print(f"[exterior] roof rise={max(_roof_world_z) - WALL_TOP_Z:.3f}m "
+          f"eave={WALL_TOP_Z:.3f}m ridge={max(_roof_world_z):.3f}m")
+    ridge_z = max(v.z for v in verts)
+
+# ---------------------------------------------------------------- ground
+ground_pad = max(span_x, span_y) * 1.4
+flat_polygon("ground",
+            [(min_x - ground_pad / MM, min_y - ground_pad / MM),
+             (max_x + ground_pad / MM, min_y - ground_pad / MM),
+             (max_x + ground_pad / MM, max_y + ground_pad / MM),
+             (min_x - ground_pad / MM, max_y + ground_pad / MM)],
+            -0.16, RASEN_MAT)
+
+# Draw broad/background area types (garten) low, specific-use surfaces
+# (einfahrt, gehweg, terrasse) higher, so a garden polygon that spans the
+# whole plot doesn't z-fight the driveway/walkway/terrace sitting inside it.
+#
+# Must sit ABOVE the foundation plinth's top face (z=0, solid from -0.15 to
+# 0), not below it: any site area whose footprint falls inside the
+# foundation's bbox+100mm margin -- which driveway/walkway/terrace always
+# do, being right against the building -- was getting entombed inside that
+# solid block and never rendering (Rainer, 2026-08-13: "there is just
+# grass, all of the garden portions are gone"). Small positive offsets keep
+# them clearly above both the foundation top and the general ground plane
+# (z=-0.16) while still avoiding z-fighting each other.
+AREA_STACK_Z = {"garten": 0.001, "einfahrt": 0.006, "gehweg": 0.011, "terrasse": 0.016}
+for area in sorted(plan.get("exterior_areas") or [], key=lambda a: AREA_STACK_Z.get(a["type"], -0.14)):
+    material = SITE_MATERIALS.get(area["type"], RASEN_MAT)
+    flat_polygon(f"site-{area['id']}", area["points_mm"], AREA_STACK_Z.get(area["type"], -0.14), material)
+
+# ---------------------------------------------------------------- camera + light
+span = max(span_x, span_y, 6.0)
+key = bpy.data.objects.new("key-sun", bpy.data.lights.new("key-sun", "SUN"))
+key.data.energy = 4.5
+key.data.angle = math.radians(3.0)
+# RULE: early or late DIRECTIONAL light on the chosen facade, never harsh
+# midday. 55 degrees was near-noon and flattened the elevation; 26 degrees is
+# a low sun that rakes the facade and gives the massing its shadows.
+key.location = (centre_x + span, centre_y - span, span * 0.6)
+key.rotation_euler = (math.radians(26), 0, math.radians(135))
+collection("Exterior").objects.link(key)
+
+world = bpy.data.worlds.new("ext-world")
+world.use_nodes = True
+bg = world.node_tree.nodes["Background"]
+bg.inputs["Color"].default_value = (0.55, 0.68, 0.85, 1.0)
+bg.inputs["Strength"].default_value = 1.1
+scene.world = world
+
+# ------------------------------------------- hero shot, to Rainer's spec
+#
+# HARD RULES (Rainer, 2026-08-18), enforced here, not approximated:
+#   Full frame - 24-35mm - tripod - ISO 100 - f/8-f/11 - LEVEL camera -
+#   3/4 view - STRAIGHT VERTICALS - best facade - COMPLETE building.
+#
+# What that changes versus what was here before: the old camera aimed with
+# `look.to_track_quat(...)`, which TILTS it. A tilted camera converges the
+# vertical lines of the building -- the single thing an architectural
+# photographer will not do. This camera is level and frames with SHIFT, which
+# is what a 24mm tilt-shift lens is for.
+SENSOR_WIDTH_MM = 36.0          # full frame
+HERO_LENS_MM = 28.0             # inside the 24-35 band; 24 is the wide limit
+HERO_MARGIN = 1.18              # the whole building, comfortably, never cropped
+TRIPOD_HEIGHT_M = 1.6
+
+camera_data = bpy.data.cameras.new("ext-camera")
+camera_data.type = "PERSP"
+camera_data.sensor_fit = "HORIZONTAL"
+camera_data.sensor_width = SENSOR_WIDTH_MM
+camera_data.lens = HERO_LENS_MM
+# f/8-f/11 on a real camera means EVERYTHING sharp at this distance. The
+# faithful equivalent is no defocus at all, with the aperture recorded.
+camera_data.dof.use_dof = False
+camera_data.dof.aperture_fstop = 9.0
+camera = bpy.data.objects.new("ext-camera", camera_data)
+collection("Exterior").objects.link(camera)
+
+# --- Schokoladenseite: chosen, not assumed --------------------------------
+# The best face is the one with the most glazing, measured off the exterior
+# openings. The 3/4 view then pairs it with whichever perpendicular face has
+# the most glazing of its own, so the second face earns its place too.
+glazing = {"+x": 0.0, "-x": 0.0, "+y": 0.0, "-y": 0.0}
+for wall in exterior_walls:
+    sx, sy = wall["start_mm"]
+    ex, ey = wall["end_mm"]
+    length = math.hypot(ex - sx, ey - sy)
+    if length < 1:
+        continue
+    # Outward normal: away from the building centre.
+    nx, ny = -(ey - sy) / length, (ex - sx) / length
+    mx, my = (sx + ex) / 2, (sy + ey) / 2
+    if (mx - centre_x / MM) * nx + (my - centre_y / MM) * ny < 0:
+        nx, ny = -nx, -ny
+    side = ("+x" if nx > 0 else "-x") if abs(nx) > abs(ny) else ("+y" if ny > 0 else "-y")
+    for opening in openings_by_wall.get(wall.get("id"), []):
+        glazing[side] += (opening.get("width_mm", 0) or 0) * (opening.get("height_mm", 0) or 0)
+
+primary = max(glazing, key=glazing.get)
+perpendicular = ("+y", "-y") if primary in ("+x", "-x") else ("+x", "-x")
+secondary = max(perpendicular, key=lambda s: glazing[s])
+AXIS = {"+x": (1.0, 0.0), "-x": (-1.0, 0.0), "+y": (0.0, 1.0), "-y": (0.0, -1.0)}
+px, py = AXIS[primary]
+sx_, sy_ = AXIS[secondary]
+# Two-point perspective: stand off the corner, but weighted toward the
+# primary facade so it stays visually DOMINANT and the side only gives depth.
+dir_x, dir_y = px * 1.0 + sx_ * 0.52, py * 1.0 + sy_ * 0.52
+d_len = math.hypot(dir_x, dir_y) or 1.0
+direction_xy = mathutils.Vector((dir_x / d_len, dir_y / d_len, 0.0))
+print(f"[exterior] Schokoladenseite {primary} "
+      f"({glazing[primary] / 1e6:.1f} m2 glazing), side {secondary} "
+      f"({glazing[secondary] / 1e6:.1f} m2)")
+
+# --- distance: move BACK rather than go wider ------------------------------
+# RULE: the whole building fits comfortably -- no cropped roof edge, corner,
+# facade edge or ground line -- and if it does not fit, the camera retreats
+# rather than the lens widening.
+#
+# The first version solved for distance from the building's CENTRE and framed
+# a wall at 11m: the camera was inside the building's own footprint radius.
+# Distance is now solved by PROJECTING the eight corners of the building box
+# and stepping back until every one of them is inside the frame, which is the
+# rule itself expressed as the test.
+building_top = STOREY_Z * STOREY_COUNT + 1.6
+half_fov_h = math.atan(SENSOR_WIDTH_MM / 2.0 / HERO_LENS_MM)
+render_aspect = scene.render.resolution_x / float(scene.render.resolution_y)
+half_fov_v = math.atan(math.tan(half_fov_h) / render_aspect)
+
+corners = [mathutils.Vector((x, y, z))
+           for x in (min_x * MM, max_x * MM)
+           for y in (min_y * MM, max_y * MM)
+           for z in (0.0, building_top)]
+right = mathutils.Vector((direction_xy.y, -direction_xy.x, 0.0))
+
+
+def frames_everything(distance, shift):
+    """Every corner inside the frame, with HERO_MARGIN of air around it."""
+    eye = mathutils.Vector((centre_x, centre_y, TRIPOD_HEIGHT_M)) + direction_xy * distance
+    for corner in corners:
+        offset = corner - eye
+        forward = -offset.dot(direction_xy)
+        if forward < 1.0:
+            return False
+        u = offset.dot(right) / forward
+        v = (offset.z) / forward
+        if abs(u) > math.tan(half_fov_h) / HERO_MARGIN:
+            return False
+        if not (-math.tan(half_fov_v) / HERO_MARGIN
+                < v - shift * 2.0 * math.tan(half_fov_h)
+                < math.tan(half_fov_v) / HERO_MARGIN):
+            return False
+    return True
+
+
+cam_distance = math.hypot(span_x, span_y) / 2.0 + 4.0
+shift_y = 0.0
+for _ in range(240):
+    # Frame the building with SHIFT, the way a tilt-shift lens does, so the
+    # roof is included without tilting and the verticals stay vertical.
+    shift_y = ((building_top / 2.0) - TRIPOD_HEIGHT_M) / (2.0 * cam_distance
+                                                          * math.tan(half_fov_h))
+    if frames_everything(cam_distance, shift_y):
+        break
+    cam_distance += 0.5
+
+camera.location = (mathutils.Vector((centre_x, centre_y, TRIPOD_HEIGHT_M))
+                   + direction_xy * cam_distance)
+# LEVEL. X = 90 degrees puts the optical axis horizontal; yaw only.
+# At rotation_euler.x = 90 deg the camera looks along +Y; a yaw of `a` turns
+# that to (-sin a, cos a). The camera stands at centre + direction and must
+# look back at the building, i.e. along -direction:
+#     -sin a = -dx,  cos a = -dy   ->   a = atan2(dx, -dy)
+# The first version used atan2(dy, dx) - 90 deg, which is exactly 180 deg out
+# and pointed the hero shot at empty sky.
+yaw = math.atan2(direction_xy.x, -direction_xy.y)
+camera.rotation_euler = (math.pi / 2.0, 0.0, yaw)
+camera_data.shift_y = shift_y
+print(f"[exterior] hero camera: {HERO_LENS_MM:.0f}mm full-frame, level "
+      f"(verticals straight), shift_y {shift_y:+.3f}, {cam_distance:.1f}m back, "
+      f"f/{camera_data.dof.aperture_fstop:.0f}, tripod {TRIPOD_HEIGHT_M}m, "
+      f"whole building framed: {frames_everything(cam_distance, shift_y)}")
+scene.camera = camera
+
+for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
+    try:
+        scene.render.engine = engine
+        break
+    except TypeError:
+        continue
+try:
+    scene.eevee.use_raytracing = True
+except AttributeError:
+    pass
+try:
+    scene.eevee.use_shadows = True
+    scene.eevee.taa_render_samples = 64
+except AttributeError:
+    pass
+try:
+    scene.view_settings.view_transform = "AgX"
+except TypeError:
+    pass
+scene.view_settings.exposure = 0.1
+
+scene.render.resolution_x = 1920
+scene.render.resolution_y = 1280
+scene.render.film_transparent = False
+scene.render.image_settings.file_format = "PNG"
+scene.render.filepath = os.path.abspath(out_path)
+bpy.ops.render.render(write_still=True)
+print(f"[exterior] wrote {out_path}")
+
+# --------------------------------------------- depth + edge passes
+# Same technique as render-furnished-dollhouse.py's Stage 5: a second cheap
+# render with every material replaced by a camera-depth emission shader (no
+# lights, few samples), then a numpy Sobel on that depth for the edge map.
+# Feeds the ComfyUI canny+depth ControlNet polish pass. DMH_NO_PASSES=1 skips.
+if os.environ.get("DMH_NO_PASSES") != "1":
+    base = os.path.splitext(os.path.abspath(out_path))[0]
+
+    depth_mat = bpy.data.materials.new("depth-emission")
+    depth_mat.use_nodes = True
+    nodes = depth_mat.node_tree.nodes
+    nodes.clear()
+    cam_data = nodes.new("ShaderNodeCameraData")
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = span * 3.0
+    map_range.inputs["To Min"].default_value = 1.0
+    map_range.inputs["To Max"].default_value = 0.0
+    emission = nodes.new("ShaderNodeEmission")
+    output = nodes.new("ShaderNodeOutputMaterial")
+    links = depth_mat.node_tree.links
+    links.new(cam_data.outputs["View Z Depth"], map_range.inputs["Value"])
+    links.new(map_range.outputs["Result"], emission.inputs["Color"])
+    links.new(emission.outputs["Emission"], output.inputs["Surface"])
+
+    overridden = []
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        overridden.append((obj, list(obj.data.materials)))
+        obj.data.materials.clear()
+        obj.data.materials.append(depth_mat)
+
+    old_world_nodes = world.use_nodes
+    world.use_nodes = False
+    world.color = (0.0, 0.0, 0.0)
+    try:
+        scene.view_settings.view_transform = "Standard"
+    except TypeError:
+        pass
+    scene.view_settings.exposure = 0.0
+    try:
+        scene.eevee.taa_render_samples = 8
+    except AttributeError:
+        pass
+    scene.render.filepath = base + "-depth.png"
+    bpy.ops.render.render(write_still=True)
+
+    for obj, mats in overridden:
+        obj.data.materials.clear()
+        for m in mats:
+            obj.data.materials.append(m)
+    world.use_nodes = old_world_nodes
+
+    try:
+        import numpy as np
+        img = bpy.data.images.load(base + "-depth.png")
+        w, h = img.size
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
+        grey = px[:, :, 0]
+        background = grey[0, 0]
+        fg = np.abs(grey - background) > 0.02
+        core = fg.copy()
+        core[1:, :] &= fg[:-1, :]; core[:-1, :] &= fg[1:, :]
+        core[:, 1:] &= fg[:, :-1]; core[:, :-1] &= fg[:, 1:]
+        grown = core.copy()
+        grown[1:, :] |= core[:-1, :]; grown[:-1, :] |= core[1:, :]
+        grown[:, 1:] |= core[:, :-1]; grown[:, :-1] |= core[:, 1:]
+        fg = grown
+        if fg.any():
+            lo = np.percentile(grey[fg], 1.0)
+            hi = np.percentile(grey[fg], 99.0)
+            if hi > lo:
+                grey = np.clip((grey - lo) / (hi - lo), 0.0, 1.0)
+                grey[~fg] = 0.0
+        px[:, :, 0] = px[:, :, 1] = px[:, :, 2] = grey
+        img.pixels = px.ravel().tolist()
+        img.filepath_raw = base + "-depth.png"
+        img.file_format = "PNG"
+        img.save()
+        gx = np.zeros_like(grey); gy = np.zeros_like(grey)
+        gx[:, 1:-1] = grey[:, 2:] - grey[:, :-2]
+        gy[1:-1, :] = grey[2:, :] - grey[:-2, :]
+        mag = np.sqrt(gx ** 2 + gy ** 2)
+        top = np.percentile(mag, 99.5) or 1.0
+        mag = np.clip(mag / top, 0.0, 1.0)
+        out = np.zeros((h, w, 4), dtype=np.float32)
+        out[:, :, 0] = out[:, :, 1] = out[:, :, 2] = mag
+        out[:, :, 3] = 1.0
+        img.pixels = out.ravel().tolist()
+        img.filepath_raw = base + "-edge.png"
+        img.file_format = "PNG"
+        img.save()
+        print(f"[exterior] passes          {base}-depth.png / -edge.png")
+    except Exception as error:  # noqa: BLE001
+        print(f"[exterior] edge pass FAILED: {error}")
+
+    # --------------------------------------------- structure mask pass
+    # White = the built structure (walls, roof, coping, foundation, door/
+    # window assets) -- must never be repainted by the ComfyUI polish pass,
+    # since that has hallucinated different window/door layouts at high
+    # denoise (Rainer, 2026-08-13: "the renderer can't add windows and
+    # walls"). Black = sky/ground/site dressing, free for the polish pass to
+    # reinvent as photographic atmosphere. Named-prefix split, not
+    # collection: ground/site polygons share the "Exterior" collection with
+    # the real structure.
+    mask_white = bpy.data.materials.new("mask-white")
+    mask_white.use_nodes = True
+    mask_white.node_tree.nodes.clear()
+    mw_emission = mask_white.node_tree.nodes.new("ShaderNodeEmission")
+    mw_emission.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+    mw_output = mask_white.node_tree.nodes.new("ShaderNodeOutputMaterial")
+    mask_white.node_tree.links.new(mw_emission.outputs["Emission"], mw_output.inputs["Surface"])
+    FREE_PREFIXES = ("ground", "site-")
+
+    mask_overridden = []
+    mask_hidden = []
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        if obj.name.startswith(FREE_PREFIXES):
+            mask_hidden.append(obj)
+            obj.hide_render = True
+        else:
+            mask_overridden.append((obj, list(obj.data.materials)))
+            obj.data.materials.clear()
+            obj.data.materials.append(mask_white)
+
+    # world.use_nodes = False is silently ignored by EEVEE Next (confirmed:
+    # inspecting the saved .blend showed use_nodes still True, original sky
+    # colour still on the Background node) -- set the node's own Color/
+    # Strength directly instead, the same mechanism the main colour render
+    # already uses reliably.
+    mask_bg_node = world.node_tree.nodes["Background"]
+    old_bg_color = tuple(mask_bg_node.inputs["Color"].default_value)
+    old_bg_strength = mask_bg_node.inputs["Strength"].default_value
+    mask_bg_node.inputs["Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+    mask_bg_node.inputs["Strength"].default_value = 0.0
+    scene.render.filepath = base + "-mask.png"
+    bpy.ops.render.render(write_still=True)
+    mask_bg_node.inputs["Color"].default_value = old_bg_color
+    mask_bg_node.inputs["Strength"].default_value = old_bg_strength
+
+    for obj, mats in mask_overridden:
+        obj.data.materials.clear()
+        for m in mats:
+            obj.data.materials.append(m)
+    for obj in mask_hidden:
+        obj.hide_render = False
+    print(f"[exterior] structure mask   {base}-mask.png")
+
+blend_out = os.path.splitext(out_path)[0] + ".blend"
+bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(blend_out))
+print(f"[exterior] saved {blend_out}")

@@ -23,10 +23,16 @@ function enabled(request: Request) {
 }
 
 function dataRoot() {
+  // Nicht raten. 2026-08-21: kein stiller Rueckfall auf ein
+  // Temp-/LocalAppData-Verzeichnis -- das waere eine DRITTE, komplett
+  // eigene Datenwurzel gewesen, unabhaengig vom root-merge-Vorfall vom
+  // 18.08., aber genauso still (Codex-Review, 2026-08-21).
   const configured = process.env.FLOORPLAN_WORKBENCH_DATA_DIR?.trim();
-  return configured
-    ? resolve(configured)
-    : join(process.env.LOCALAPPDATA || process.env.TEMP || ".", "Born2Thrill", "floorplan-workbench");
+  if (!configured) {
+    throw new Error("FLOORPLAN_WORKBENCH_DATA_DIR ist nicht gesetzt -- "
+      + "verweigere, den Datenordner zu erraten. Siehe .env.local.");
+  }
+  return resolve(configured);
 }
 
 function safeReference(value: unknown) {

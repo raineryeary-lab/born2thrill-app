@@ -1,0 +1,373 @@
+"""The "Go" button: takes one annotated project and produces verified
+baseline renders (interior + exterior, both roof styles) plus a per-project
+handoff pointer for Codex to take over from.
+
+This does NOT produce final customer-style images. It produces the
+CORRECTED, VERIFIED raw geometry baseline -- real walls, real openings,
+real furniture as annotated, real roof. Style/mood variants and photoreal
+polish are Codex's job from here (see docs/CODEX-HANDOFF.md and the
+per-project handoff.json this script writes).
+
+Usage:
+  python scripts/run_project.py <project_id> [--styles modern,classic]
+
+What it does, in order:
+  1. Build the proof render plan per style (build-simplifier-render-plan.py)
+     -- this is the ONLY plan builder that uses your real annotated
+     furniture placements, not an algorithmic guess (verified 2026-08-16).
+  2. Render exterior for each style (render-exterior.py).
+  3. Render interior once (same for every style since interior furniture
+     doesn't depend on roof style) with DMH_SAVE_BLEND set so a scene file
+     is actually kept, not just a PNG.
+  4. Run verify_render.py against every plan, capturing each render's log.
+  5. Write renders/<project_id>/handoff.json: exact paths to the verified
+     .blend files, where to write images, where to write catalog.json.
+
+Exits non-zero if verification fails for a style; still writes handoff.json
+for the styles that passed, with an EXCLUDED entry per failure -- one bad
+style should not block the others.
+"""
+import argparse
+import hashlib
+import json
+import datetime
+import os
+import shutil
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
+SUITE_ROOT = os.path.dirname(REPO)
+SIMPLIFIER = os.path.join(SUITE_ROOT, "floorplan-simplifier")
+DATA_REPO = os.path.join(SUITE_ROOT, "born2thrill-local-workbench-data")
+PYTHON = sys.executable
+# The plan builder refuses to guess which workbench tree holds the furniture
+# (workbench_data_root()), so the Go button states it. Without this every
+# project stops at the plan step, furnished or not.
+PLAN_ENV = dict(os.environ, FLOORPLAN_WORKBENCH_DATA_DIR=os.environ.get(
+    "FLOORPLAN_WORKBENCH_DATA_DIR", DATA_REPO))
+BLENDER = r"C:\Program Files\Blender Foundation\Blender 5.0\blender.exe"
+
+
+def run(cmd, log_path=None, env=None):
+    print(f"[go] $ {' '.join(str(c) for c in cmd)}")
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    output = result.stdout + result.stderr
+    if log_path:
+        with open(log_path, "w", encoding="utf-8") as handle:
+            handle.write(output)
+    if result.returncode != 0:
+        print(output[-4000:])
+    return result.returncode == 0, output
+
+
+def trim_to_delivery(out_dir, primary_style, floors):
+    """HARD RULE: a two-storey house delivers exactly 4 .blend files, a
+    single-storey exactly 3 -- two exteriors plus one interior per storey.
+
+    The build necessarily makes more than that: every style times every finish
+    times every storey. Leaving the surplus in the delivery folder is how the
+    wrong upper floor got handed over once already, and how a "4 files please"
+    delivery arrived as ten. So the surplus is MOVED ASIDE at the end of every
+    build, by the build itself -- not by whoever remembers to do it afterwards.
+
+    Moved, never deleted: this tree is not a git repo.
+    """
+    keep = {f"exterior-{style}-baseline" for style in ("modern", "classic")}
+    for index, _floor in enumerate(floors):
+        tag = "" if index == 0 else f"-{'upper' if index == 1 else f'floor{index}'}"
+        keep.add(f"interior-{primary_style}{tag}-baseline")
+
+    attic = os.path.join(out_dir, f"superseded-{datetime.date.today().isoformat()}")
+    moved = []
+    for name in sorted(os.listdir(out_dir)):
+        if not name.endswith(".blend"):
+            continue
+        stem = name[:-len(".blend")]
+        if stem in keep:
+            continue
+        os.makedirs(attic, exist_ok=True)
+        for sibling in sorted(os.listdir(out_dir)):
+            if sibling.startswith(stem) and os.path.isfile(os.path.join(out_dir, sibling)):
+                shutil.move(os.path.join(out_dir, sibling), os.path.join(attic, sibling))
+                moved.append(sibling)
+
+    kept = [n for n in sorted(os.listdir(out_dir)) if n.endswith(".blend")]
+    expected = 2 + len(floors)
+    print(f"[go] delivery: {len(kept)} .blend (expected {expected}), "
+          f"{len(moved)} file(s) moved to {os.path.basename(attic) if moved else '-'}")
+    for name in kept:
+        print(f"[go]   {name}")
+    if len(kept) != expected:
+        print(f"[go] WARNING: delivery folder holds {len(kept)} .blend, the rule says {expected}")
+    return kept
+
+
+def _sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def write_delivery_manifest(out_dir, project_id, floors, verified, expected):
+    """The delivery is what this file says it is, or there is no delivery.
+
+    Codex, 2026-08-19, asked for exactly one thing next: "an atomic delivery
+    manifest written only after all expected .blend files pass verification.
+    It should record normalized annotation hash, correction hash,
+    compiler/renderer revision, asset fingerprints and each artifact's hash.
+    Batch 'current' must consult only that manifest."
+
+    The reason is the failure it prevents: until now "is this house current?"
+    was answered from plan-modern.json alone, so a delivery with a missing,
+    stale or half-written .blend could be declared current. Codex called that
+    "the highest remaining risk: silently delivering a mixed, incomplete or
+    renderer-obsolete artifact set that passes the single-plan hash check."
+
+    Written ONLY when every expected artifact exists and every style verified.
+    On failure the old manifest is REMOVED rather than left behind, because a
+    stale manifest claiming success is worse than none. Written atomically
+    (temp + replace) so a crash mid-write cannot leave a half-file that reads
+    as valid JSON.
+    """
+    manifest_path = os.path.join(out_dir, "delivery-manifest.json")
+    blends = sorted(n for n in os.listdir(out_dir) if n.endswith(".blend"))
+
+    if not verified or len(blends) != expected:
+        # Refuse to certify, and take any previous certificate with it.
+        if os.path.exists(manifest_path):
+            os.remove(manifest_path)
+        print("[go] delivery-manifest: NOT written (%d/%d .blend, verified=%s)"
+              % (len(blends), expected, bool(verified)))
+        return None
+
+    provenance = {}
+    for style_plan in ("plan-modern.json", "plan-classic.json"):
+        candidate = os.path.join(out_dir, style_plan)
+        if os.path.exists(candidate):
+            with open(candidate, encoding="utf-8-sig") as handle:
+                document = json.load(handle)
+            provenance = document.get("source_provenance") or {}
+            geometry_hash = document.get("source_geometry_hash")
+            break
+    else:
+        geometry_hash = None
+
+    # The code that produced this. A renderer change invalidates a delivery
+    # just as surely as an annotation change; hashing the scripts is the
+    # cheapest honest way to notice.
+    revision = {}
+    for script in ("run_project.py", "build-simplifier-render-plan.py",
+                   "render-furnished-dollhouse.py", "render-exterior.py"):
+        path = os.path.join(HERE, script)
+        if os.path.exists(path):
+            revision[script] = _sha256(path)[:16]
+
+    manifest = {
+        "schema": "zf-delivery-manifest-v1",
+        "plan_id": project_id,
+        "written_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "storeys": len(floors),
+        "expected_blends": expected,
+        "annotation_hash": provenance.get("annotation_hash"),
+        "geometry_hash": geometry_hash,
+        "toolchain": revision,
+        "artifacts": [{"file": name, "sha256": _sha256(os.path.join(out_dir, name)),
+                       "bytes": os.path.getsize(os.path.join(out_dir, name))}
+                      for name in blends],
+        "verified_styles": sorted(verified),
+    }
+    temporary = manifest_path + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as handle:
+        json.dump(manifest, handle, indent=2, ensure_ascii=False)
+    os.replace(temporary, manifest_path)
+    print("[go] delivery-manifest: %d artifact(s) certified" % len(blends))
+    return manifest
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project_id")
+    parser.add_argument("--styles", default="modern,classic")
+    parser.add_argument("--corrected", metavar="REVISION.json",
+                        help="build from a corrected revision instead of the "
+                             "annotation proof path (step 10 of "
+                             "plans/renderer-switch-execution-order.md). "
+                             "Explicit: no project is switched by accident.")
+    # The package is 4 interiors + 2 exteriors: each furniture style
+    # (modern/classic model picks) rendered in two FINISH sets (wall tone,
+    # floor tint, kitchen fronts, upholstery -- FINISH_SETS in
+    # render-furnished-dollhouse.py, selected with DMH_FINISH). The exterior
+    # does not depend on the interior finish, so it is still rendered once
+    # per style, giving 2.
+    parser.add_argument("--finishes", default="",
+                        help="comma list of DMH_FINISH sets to render per "
+                             "style; default <style>-a,<style>-b")
+    # onehalfstorey_020 is a full TWO-storey house (its metadata claiming
+    # 1.5-storey is a known wrong record). Everything before 2026-08-17
+    # rendered floors[0] only, so the upper storey's 18 furniture items had
+    # never appeared in any deliverable.
+    parser.add_argument("--floors", default="0",
+                        help="comma list of storeys to render as interiors: "
+                             "indices (0,1) or floor ids (floor-0,floor-1)")
+    args = parser.parse_args()
+    styles = [s.strip() for s in args.styles.split(",") if s.strip()]
+    requested_finishes = [f.strip() for f in args.finishes.split(",") if f.strip()]
+    floors = [f.strip() for f in args.floors.split(",") if f.strip()] or ["0"]
+
+    annotations_path = os.path.join(SIMPLIFIER, "projects", args.project_id, "annotations.json")
+    if not os.path.exists(annotations_path):
+        print(f"[go] FATAL: no annotations at {annotations_path}")
+        sys.exit(1)
+
+    out_dir = os.path.join(DATA_REPO, "corrections", args.project_id, "renders", "go-baseline")
+    os.makedirs(out_dir, exist_ok=True)
+
+    handoff = {
+        "schema": "codex-handoff-v1",
+        "project_id": args.project_id,
+        "annotations_source": annotations_path,
+        "output_dir_for_images_and_catalog": out_dir,
+        "catalog_json_path": os.path.join(out_dir, "catalog.json"),
+        "styles": {},
+        "excluded": [],
+        "instructions": (
+            "Produce style/mood variants FROM these verified baselines. "
+            "Structure (walls, windows, doors, room layout) must not "
+            "change -- material, lighting, atmosphere only. Write images "
+            "plus a catalog.json (schema visual-catalog-v1, one entry per "
+            "image, each with geometry_source pointing at the matching "
+            "*_baseline.blend below and geometry_reference_render pointing "
+            "at the matching *_baseline.png) to output_dir_for_images_and_catalog."
+        ),
+    }
+
+    any_style_ok = False
+    for style in styles:
+        print(f"\n[go] === {style} ===")
+        plan_path = os.path.join(out_dir, f"plan-{style}.json")
+        if args.corrected:
+            plan_cmd = [PYTHON, os.path.join(HERE, "build-simplifier-render-plan.py"),
+                        "--correction-revision", args.corrected, style, plan_path]
+        else:
+            plan_cmd = [PYTHON, os.path.join(HERE, "build-simplifier-render-plan.py"),
+                        args.project_id, style, plan_path]
+        ok, _ = run(plan_cmd, env=PLAN_ENV)
+        if not ok:
+            handoff["excluded"].append({"style": style, "reason": "plan_build_failed"})
+            continue
+
+        exterior_png = os.path.join(out_dir, f"exterior-{style}-baseline.png")
+        exterior_log = os.path.join(out_dir, f"exterior-{style}-baseline.log")
+        ok, _ = run([BLENDER, "--background", "--python",
+                     os.path.join(HERE, "render-exterior.py"), "--", plan_path, exterior_png],
+                    log_path=exterior_log)
+        if not ok:
+            handoff["excluded"].append({"style": style, "reason": "exterior_render_failed"})
+            continue
+
+        finishes = requested_finishes or [f"{style}-a", f"{style}-b"]
+        # The first finish keeps the historic filenames, so the overview tab,
+        # verify_render and every existing catalog.json entry still resolve.
+        # Further finishes are named after the finish itself.
+        finish_outputs = {}
+        interior_png = interior_blend = None
+        for floor_index, floor_key in enumerate(floors):
+            # Storey 0 keeps the historic names; further storeys are tagged,
+            # so nothing that already resolves an existing path breaks.
+            floor_tag = "" if floor_index == 0 else (
+                "-upper" if floor_index == 1 else f"-floor{floor_index}")
+            for index, finish in enumerate(finishes):
+                base = f"interior-{style}" if index == 0 else f"interior-{finish}"
+                stem = f"{base}{floor_tag}-baseline"
+                png = os.path.join(out_dir, f"{stem}.png")
+                log = os.path.join(out_dir, f"{stem}.log")
+                blend = os.path.join(out_dir, f"{stem}.blend")
+                env = dict(os.environ, DMH_SAVE_BLEND=blend, DMH_FINISH=finish,
+                           DMH_FLOOR=floor_key)
+                ok, _ = run([BLENDER, "--background", "--python",
+                             os.path.join(HERE, "render-furnished-dollhouse.py"),
+                             "--", plan_path, png],
+                            log_path=log, env=env)
+                if not ok:
+                    handoff["excluded"].append({"style": style, "finish": finish,
+                                                "floor": floor_key,
+                                                "reason": "interior_render_failed"})
+                    if index == 0 and floor_index == 0:
+                        break
+                    continue
+                key = finish if floor_index == 0 else f"{finish}@{floor_key}"
+                finish_outputs[key] = {"png": png, "blend": blend, "log": log,
+                                       "floor": floor_key}
+                if index == 0 and floor_index == 0:
+                    interior_png, interior_blend = png, blend
+            if interior_png is None:
+                break
+        if interior_png is None:
+            continue
+
+        # The interior log carries the evidence for Rainer's rules (R0-R5),
+        # so verification fails the style if any of them was broken.
+        scene_rules_ok = True
+        # HARD RULE gate. verify_render.py reads the plan and the logs;
+        # verify_render_blend.py opens the SCENE and answers from geometry,
+        # which is the only check that could not be fooled by a renderer that
+        # reports a Treppenloch it never cut. Every interior scene goes
+        # through it, and a failure excludes the style.
+        for finish_key, outputs in finish_outputs.items():
+            blend_ok, blend_output = run(
+                [BLENDER, "--background", "--python",
+                 os.path.join(HERE, "verify_render_blend.py"), "--",
+                 outputs["blend"], plan_path])
+            for line in blend_output.splitlines():
+                if line.startswith(("PASS", "FAIL", "  -", "[verify-blend]")):
+                    print(line)
+            if not blend_ok:
+                handoff["excluded"].append({"style": style, "finish": finish_key,
+                                            "reason": "scene_rules_failed"})
+                scene_rules_ok = False
+
+        verify_ok, verify_output = run([PYTHON, os.path.join(HERE, "verify_render.py"), plan_path,
+                                        "--annotations", annotations_path, "--log", exterior_log,
+                                        "--interior-log",
+                                        os.path.join(out_dir, f"interior-{style}-baseline.log")])
+        print(verify_output)
+        if not verify_ok or not scene_rules_ok:
+            if not verify_ok:
+                handoff["excluded"].append({"style": style, "reason": "verify_render_failed",
+                                            "detail": verify_output})
+            continue
+
+        any_style_ok = True
+        handoff["styles"][style] = {
+            "plan": plan_path,
+            "exterior_baseline_blend": os.path.join(out_dir, f"exterior-{style}-baseline.blend"),
+            "exterior_baseline_png": exterior_png,
+            "interior_baseline_blend": interior_blend,
+            "interior_baseline_png": interior_png,
+            "interior_finishes": finish_outputs,
+            "verified": True,
+        }
+
+    # The rule is enforced by the build, so a delivery folder is never left
+    # holding a surplus for someone to trim by hand.
+    trim_to_delivery(out_dir, styles[0] if styles else "modern", floors)
+
+    # Certify the delivery only if everything expected is present and verified.
+    write_delivery_manifest(out_dir, args.project_id, floors,
+                            sorted(handoff["styles"].keys()), 2 + len(floors))
+
+    handoff_path = os.path.join(out_dir, "handoff.json")
+    with open(handoff_path, "w", encoding="utf-8") as f:
+        json.dump(handoff, f, indent=2)
+    print(f"\n[go] wrote {handoff_path}")
+    print(f"[go] {len(handoff['styles'])} style(s) verified and ready, {len(handoff['excluded'])} excluded")
+
+    sys.exit(0 if any_style_ok else 1)
+
+
+if __name__ == "__main__":
+    main()

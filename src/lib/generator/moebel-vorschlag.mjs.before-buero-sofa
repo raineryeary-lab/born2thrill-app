@@ -1,0 +1,717 @@
+// Bereich einrichten: ein Moebel-VORSCHLAG fuer einen markierten Bereich.
+// MOEBEL-BEREICH-EINRICHTEN-001, plans/moebel-bereich-einrichten-v1.md.
+//
+// Rainer, 2026-10-09: "i click on a room or mark an area and you
+// automatically furnish this area, if something is wrong i can grab it and
+// move it or rotate". Antworten: Nachttisch = Stuff-Kasten, Dusche vor Wanne,
+// bei schon vorhandenen Moebeln vorher fragen (das macht der Aufrufer).
+//
+// Reine Rechnung, kein React, kein DOM. Ergebnis sind gewoehnliche
+// Palettenmoebel (dieselbe Form wie von Hand gesetzte), damit danach alles
+// greift, was der Editor schon kann. Gespeichert wird hier nichts.
+//
+// Konventionen des Editors:
+//  - Millimeter, y nach unten.
+//  - Vorn ist lokales +y (Vorderseitenpfeil). rotation_deg dreht wie SVG
+//    rotate(): 0 -> vorn zeigt nach +y, 90 -> nach -x, 180 -> -y, 270 -> +x.
+//  - "stuff" ist ein Rechteck-Moebel: points_mm = zwei Gegenecken.
+//
+// Was NICHT passt, wird weggelassen und gemeldet -- nie gequetscht.
+
+import { getSymbol, wallBehaviour } from "./symbol-catalog.mjs";
+
+export const TUER_FREIRAUM_MM = 900;
+export const FENSTER_FREIRAUM_MM = 600;
+const SCHRITT_MM = 50;
+const TOLERANZ_MM = 5;
+
+/** Die drei Raumtypen des Prototyps (Rainer: erst fuehlen, dann alle elf). */
+// Reihenfolge wie Rainers Liste (2026-10-09): "wohnzimmer esszimmer küche
+// diele hwr kinderzimmer gast schlafzimmer du/bad wc bad".
+export const RAUMTYPEN = Object.freeze([
+  { key: "wohnzimmer", label: "Wohnzimmer" },
+  { key: "esszimmer", label: "Esszimmer" },
+  { key: "kueche", label: "Küche" },
+  { key: "diele", label: "Diele" },
+  { key: "hwr", label: "HWR" },
+  { key: "kinderzimmer", label: "Kinderzimmer" },
+  { key: "gast", label: "Gast" },
+  // Rainer, 2026-10-09: "büro fehlt".
+  { key: "buero", label: "Büro" },
+  { key: "schlafzimmer", label: "Schlafzimmer" },
+  { key: "duschbad", label: "Du/Bad" },
+  { key: "wc", label: "WC" },
+  { key: "bad", label: "Bad" },
+]);
+
+/** Raumname -> Raumtyp, wenn er eindeutig einer der drei ist. */
+export function raumtypAusName(name) {
+  const text = `${name || ""}`.toLocaleLowerCase("de-DE");
+  if (/dusch|du\/bad|du-bad/.test(text)) return "duschbad";
+  if (/bad/.test(text)) return "bad";
+  if (/(^|[^a-z])wc\b/.test(text)) return "wc";
+  if (/schlaf|eltern/.test(text)) return "schlafzimmer";
+  if (/kind/.test(text)) return "kinderzimmer";
+  if (/gast|gäste|gaeste/.test(text)) return "gast";
+  if (/diele|flur|garderobe/.test(text)) return "diele";
+  if (/hwr|htr|hauswirtschaft|technik/.test(text)) return "hwr";
+  if (/büro|buero|arbeit|office/.test(text)) return "buero";
+  // Ein kombinierter Raum ("Wohnen / Essen / Kochen") hat KEINEN eindeutigen
+  // Typ -- dort zeichnet Rainer die Bereiche selbst (2026-10-09: "this
+  // bereich can be wohnzimmer and esszimmer and kitchen").
+  const teile = [/wohn/, /ess(en|zimmer)/, /k(ü|ue)che|kochen/].filter((re) => re.test(text)).length;
+  if (teile > 1) return null;
+  if (/wohn/.test(text)) return "wohnzimmer";
+  if (/ess(en|zimmer)/.test(text)) return "esszimmer";
+  if (/k(ü|ue)che|kochen/.test(text)) return "kueche";
+  return null;
+}
+
+// --- Geometrie -------------------------------------------------------------
+
+export function punktImPolygon(x, y, poly) {
+  let drin = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i];
+    const [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y)
+        && x < ((xj - xi) * (y - yi)) / ((yj - yi) || 1e-9) + xi) drin = !drin;
+  }
+  return drin;
+}
+
+function abstandZurStrecke(x, y, a, b) {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const l2 = dx * dx + dy * dy;
+  let t = l2 ? ((x - a[0]) * dx + (y - a[1]) * dy) / l2 : 0;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(x - (a[0] + dx * t), y - (a[1] + dy * t));
+}
+
+/** Drinnen oder auf dem Rand (Moebel stehen buendig an der Wand). */
+function imOderAufPolygon(x, y, poly) {
+  if (punktImPolygon(x, y, poly)) return true;
+  for (let i = 0; i < poly.length; i += 1) {
+    if (abstandZurStrecke(x, y, poly[i], poly[(i + 1) % poly.length]) <= TOLERANZ_MM) return true;
+  }
+  return false;
+}
+
+/** Achsparalleles Rechteck {x0,y0,x1,y1} liegt ganz im Polygon. */
+function rechteckImPolygon(r, poly) {
+  const ecken = [[r.x0, r.y0], [r.x1, r.y0], [r.x1, r.y1], [r.x0, r.y1],
+                 [(r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2]];
+  if (!ecken.every(([x, y]) => imOderAufPolygon(x, y, poly))) return false;
+  // Eine einspringende Ecke des Raums darf nicht im Rechteck stecken (L-Raum).
+  return !poly.some(([x, y]) => x > r.x0 + TOLERANZ_MM && x < r.x1 - TOLERANZ_MM
+                             && y > r.y0 + TOLERANZ_MM && y < r.y1 - TOLERANZ_MM);
+}
+
+function ueberlappen(a, b) {
+  return a.x0 < b.x1 - TOLERANZ_MM && b.x0 < a.x1 - TOLERANZ_MM
+      && a.y0 < b.y1 - TOLERANZ_MM && b.y0 < a.y1 - TOLERANZ_MM;
+}
+
+function rechteckAusPunkten(punkte) {
+  const xs = punkte.map((p) => p[0]);
+  const ys = punkte.map((p) => p[1]);
+  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+}
+
+/** Kanten des Bereichs, jede mit Laenge, Richtung und Normale nach innen. */
+export function kantenNachInnen(poly) {
+  const kanten = [];
+  for (let i = 0; i < poly.length; i += 1) {
+    const a = poly[i];
+    const b = poly[(i + 1) % poly.length];
+    const laenge = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (laenge < 300) continue;
+    const u = [(b[0] - a[0]) / laenge, (b[1] - a[1]) / laenge];
+    // Nur achsparallele Kanten: alle Moebel stehen in 90-Grad-Schritten.
+    if (Math.abs(u[0]) > 0.02 && Math.abs(u[1]) > 0.02) continue;
+    const mitte = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    let n = [-u[1], u[0]];
+    if (!punktImPolygon(mitte[0] + n[0] * 50, mitte[1] + n[1] * 50, poly)) n = [u[1], -u[0]];
+    if (!punktImPolygon(mitte[0] + n[0] * 50, mitte[1] + n[1] * 50, poly)) continue;
+    kanten.push({ a, b, u, n: [Math.round(n[0]), Math.round(n[1])], laenge, index: i });
+  }
+  return kanten;
+}
+
+function drehungFuerNormale(n) {
+  if (n[1] === 1) return 0;
+  if (n[0] === -1) return 90;
+  if (n[1] === -1) return 180;
+  return 270;
+}
+
+/**
+ * Freiraum vor einer Oeffnung, als Rechteck. Liegt die Oeffnung auf dem
+ * Bereichsrand, nur nach innen; sonst (gezogenes Rechteck neben einer Tuer)
+ * nach beiden Seiten -- lieber zu vorsichtig.
+ */
+function freiraumVor(oeffnung, poly, tiefe) {
+  const [a, b] = [oeffnung.a, oeffnung.b];
+  const laenge = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+  const u = [(b[0] - a[0]) / laenge, (b[1] - a[1]) / laenge];
+  const mitte = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const normalen = [[-u[1], u[0]], [u[1], -u[0]]];
+  const nachInnen = normalen.filter((n) => punktImPolygon(mitte[0] + n[0] * 150, mitte[1] + n[1] * 150, poly));
+  const richtungen = nachInnen.length === 1 ? nachInnen : normalen;
+  // 300 mm HINTER der Oeffnung beginnen: in den Daten sitzt die Oeffnung auf
+  // der Wandmitte, die Raumkante auf der Innenseite -- mal davor, mal dahinter
+  // (onehalfstorey_020 Buero: Fenster 120 mm INNERHALB der Raumkante, die
+  // Fensterwand galt deshalb als fensterlos).
+  const R = 300;
+  return richtungen.map((n) => rechteckAusPunkten([
+    [a[0] - n[0] * R, a[1] - n[1] * R], [b[0] - n[0] * R, b[1] - n[1] * R],
+    [a[0] + n[0] * tiefe, a[1] + n[1] * tiefe], [b[0] + n[0] * tiefe, b[1] + n[1] * tiefe],
+  ]));
+}
+
+// --- Platzieren ------------------------------------------------------------
+
+/** Hohe Moebel duerfen nicht vor ein Fenster. */
+const HOCH = new Set(["kleiderschrank", "schrank_40", "schrank_60", "hochschrank_herd",
+  "kuehlschrank", "abstellschrank"]);
+
+/** Ueber dem Lowboard haengt der Fernseher -- er darf es ueberlappen. */
+const DARF_UEBERLAPPEN = {
+  fernseher: ["lowboard"], spuele: ["kuechenzeile"], kochfeld: ["kuechenzeile"],
+  // Der Stuhl schiebt sich ein Stueck unter die Platte.
+  schreibtischstuhl: ["schreibtisch", "schreibtisch_kind"],
+  // Der Rahmen des Ecksofas ist neben der Liege leer -- dort steht der Tisch.
+  couchtisch: ["ecksofa"],
+};
+
+function masse(key) {
+  const s = getSymbol(key);
+  return { w: s?.footprint_mm?.width_mm || 0, d: s?.footprint_mm?.depth_mm || 0 };
+}
+
+/**
+ * Ein Moebel an Kante `kante`, Mitte bei Laufposition t (mm ab kante.a).
+ * Liefert das Weltrechteck und das PlacedSymbol, ohne zu pruefen.
+ */
+function anKante(key, kante, t, abstand = null) {
+  const { w, d } = masse(key);
+  const gap = abstand ?? (wallBehaviour(key).gap_mm || 0);
+  const mx = kante.a[0] + kante.u[0] * t + kante.n[0] * (gap + d / 2);
+  const my = kante.a[1] + kante.u[1] * t + kante.n[1] * (gap + d / 2);
+  const quer = Math.abs(kante.u[0]) > 0.5; // Kante laeuft in x
+  const halbX = quer ? w / 2 : d / 2;
+  const halbY = quer ? d / 2 : w / 2;
+  return {
+    rechteck: { x0: mx - halbX, y0: my - halbY, x1: mx + halbX, y1: my + halbY },
+    moebel: {
+      symbol: key,
+      position_mm: [Math.round(mx), Math.round(my)],
+      rotation_deg: drehungFuerNormale(kante.n),
+      mirrored: false,
+      footprint_mm: { width_mm: w, depth_mm: d },
+    },
+  };
+}
+
+/** Liegt die Kante auf einer echten Wand (Raumkante des Geschosses)? */
+function kanteAnWand(kante, raumKanten) {
+  if (!raumKanten?.length) return true; // ohne Angabe: jede Kante ist Wand
+  const proben = [0.25, 0.5, 0.75].map((f) => [kante.a[0] + (kante.b[0] - kante.a[0]) * f,
+                                              kante.a[1] + (kante.b[1] - kante.a[1]) * f]);
+  return proben.every(([x, y]) => raumKanten.some(([a, b]) => abstandZurStrecke(x, y, a, b) <= 150));
+}
+
+function erzeugeKontext({ polygon, oeffnungen = [], vorhandene = [], raumKanten = [] }) {
+  const poly = polygon;
+  const tuerZonen = oeffnungen
+    .filter((o) => o.typ === "door" || o.typ === "passage")
+    .flatMap((o) => freiraumVor(o, poly, TUER_FREIRAUM_MM));
+  const fensterZonen = oeffnungen
+    .filter((o) => o.typ === "window")
+    .flatMap((o) => freiraumVor(o, poly, FENSTER_FREIRAUM_MM));
+  return {
+    poly,
+    kanten: kantenNachInnen(poly).map((k) => ({ ...k, anWand: kanteAnWand(k, raumKanten) })),
+    tuerZonen,
+    fensterZonen,
+    belegt: [...vorhandene.map((r) => ({ ...r, key: "vorhanden" }))],
+    gesetzt: [],
+    weggelassen: [],
+  };
+}
+
+function frei(ctx, key, rechteck) {
+  if (!rechteckImPolygon(rechteck, ctx.poly)) return false;
+  if (ctx.tuerZonen.some((z) => ueberlappen(z, rechteck))) return false;
+  if (HOCH.has(key) && ctx.fensterZonen.some((z) => ueberlappen(z, rechteck))) return false;
+  return !ctx.belegt.some((r) => ueberlappen(r, rechteck) && !(DARF_UEBERLAPPEN[key] || []).includes(r.key));
+}
+
+/** Wieviel einer Kante von Tueren beruehrt wird -- weniger ist besser. */
+function tuerAnKante(ctx, kante) {
+  const streifen = rechteckAusPunkten([kante.a, kante.b,
+    [kante.a[0] + kante.n[0] * 100, kante.a[1] + kante.n[1] * 100]]);
+  return ctx.tuerZonen.some((z) => ueberlappen(z, streifen)) ? 1 : 0;
+}
+
+function fensterAnKante(ctx, kante) {
+  const streifen = rechteckAusPunkten([kante.a, kante.b,
+    [kante.a[0] + kante.n[0] * 100, kante.a[1] + kante.n[1] * 100]]);
+  return ctx.fensterZonen.some((z) => ueberlappen(z, streifen)) ? 1 : 0;
+}
+
+/**
+ * Laufpositionen auf einer Kante, sortiert nach Naehe zum Wunsch.
+ * wunsch: "mitte" | "ecke" | Zahl (t in mm).
+ */
+function positionen(kante, w, wunsch) {
+  const min = w / 2;
+  const max = kante.laenge - w / 2;
+  if (max < min - TOLERANZ_MM) return [];
+  const alle = [];
+  for (let t = min; t <= max + 1e-6; t += SCHRITT_MM) alle.push(t);
+  if (!alle.length || Math.abs(alle[alle.length - 1] - max) > 1) alle.push(max);
+  if (wunsch === "ecke") {
+    return alle.sort((p, q) => Math.min(p - min, max - p) - Math.min(q - min, max - q));
+  }
+  const ziel = typeof wunsch === "number" ? wunsch : kante.laenge / 2;
+  return alle.sort((p, q) => Math.abs(p - ziel) - Math.abs(q - ziel));
+}
+
+/**
+ * Setzt `key` an die erste passende Stelle. kanten: Reihenfolge der Wahl.
+ * Gibt das gesetzte Ergebnis (mit Kante) zurueck oder null.
+ */
+function setze(ctx, key, kanten, wunsch = "mitte", abstand = null) {
+  const { w } = masse(key);
+  for (const kante of kanten) {
+    const wunschHier = typeof wunsch === "function" ? wunsch(kante) : wunsch;
+    for (const t of positionen(kante, w, wunschHier)) {
+      const versuch = anKante(key, kante, t, abstand);
+      if (!frei(ctx, key, versuch.rechteck)) continue;
+      ctx.belegt.push({ ...versuch.rechteck, key });
+      ctx.gesetzt.push(versuch.moebel);
+      return { ...versuch, kante, t };
+    }
+  }
+  return null;
+}
+
+/** Ein freistehendes Moebel mit festem Mittelpunkt (Couchtisch). */
+function setzeFrei(ctx, key, mitte, drehung) {
+  const { w, d } = masse(key);
+  const quer = drehung % 180 === 0;
+  const hx = (quer ? w : d) / 2;
+  const hy = (quer ? d : w) / 2;
+  const rechteck = { x0: mitte[0] - hx, y0: mitte[1] - hy, x1: mitte[0] + hx, y1: mitte[1] + hy };
+  if (!frei(ctx, key, rechteck)) return null;
+  ctx.belegt.push({ ...rechteck, key });
+  const moebel = {
+    symbol: key, position_mm: [Math.round(mitte[0]), Math.round(mitte[1])],
+    rotation_deg: drehung, mirrored: false, footprint_mm: { width_mm: w, depth_mm: d },
+  };
+  ctx.gesetzt.push(moebel);
+  return { rechteck, moebel };
+}
+
+/** Rechteck-Moebel "stuff" (Nachttisch-Platzhalter) an festem Ort. */
+function setzeKasten(ctx, rechteck) {
+  if (!frei(ctx, "stuff", rechteck)) return false;
+  ctx.belegt.push({ ...rechteck, key: "stuff" });
+  ctx.gesetzt.push({
+    symbol: "stuff",
+    points_mm: [[Math.round(rechteck.x0), Math.round(rechteck.y0)],
+                [Math.round(rechteck.x1), Math.round(rechteck.y1)]],
+    rotation_deg: 0, mirrored: false,
+  });
+  return true;
+}
+
+function weg(ctx, label) { ctx.weggelassen.push(label); }
+
+// Kanten-Reihenfolgen.
+const laengsteZuerst = (kanten) => [...kanten].sort((a, b) =>
+  (Number(b.anWand) - Number(a.anWand)) || (b.laenge - a.laenge));
+function ruhigsteZuerst(ctx) {
+  // Echte Wand vor offener Bereichsgrenze: ein selbst gezeichneter Bereich
+  // in einem grossen Raum hat Kanten, die nur Luft sind.
+  return [...ctx.kanten].sort((a, b) =>
+    (Number(b.anWand) - Number(a.anWand))
+    || (tuerAnKante(ctx, a) - tuerAnKante(ctx, b))
+    || (fensterAnKante(ctx, a) - fensterAnKante(ctx, b))
+    || (b.laenge - a.laenge));
+}
+const gegenueber = (kante) => (k) => k.n[0] === -kante.n[0] && k.n[1] === -kante.n[1];
+
+// --- Regeln je Raumtyp -----------------------------------------------------
+
+const NACHTTISCH_B = 450;
+const NACHTTISCH_T = 400;
+
+function schlafzimmer(ctx) {
+  const bett = setze(ctx, "doppelbett", ruhigsteZuerst(ctx), "mitte")
+    || setze(ctx, "einzelbett", ruhigsteZuerst(ctx), "mitte");
+  if (!bett) weg(ctx, "Bett");
+  if (bett) {
+    // Nachttische links und rechts am Kopfteil (Rainer: Stuff-Kasten nehmen).
+    const { kante, t } = bett;
+    const { w } = masse(bett.moebel.symbol);
+    let gesetzt = 0;
+    for (const seite of [-1, 1]) {
+      const tMitte = t + seite * (w / 2 + 30 + NACHTTISCH_B / 2);
+      const p = (lauf, tief) => [kante.a[0] + kante.u[0] * lauf + kante.n[0] * tief,
+                                 kante.a[1] + kante.u[1] * lauf + kante.n[1] * tief];
+      const r = rechteckAusPunkten([p(tMitte - NACHTTISCH_B / 2, 0), p(tMitte + NACHTTISCH_B / 2, NACHTTISCH_T)]);
+      if (setzeKasten(ctx, r)) gesetzt += 1;
+    }
+    if (gesetzt < 2) weg(ctx, gesetzt ? "ein Nachttisch" : "Nachttische");
+    const andere = ruhigsteZuerst(ctx).filter((k) => k !== kante);
+    if (!setze(ctx, "kleiderschrank", [...andere, kante], "ecke")) weg(ctx, "Kleiderschrank");
+  }
+}
+
+function dusche(ctx) {
+  const dusche = setze(ctx, "dusche", laengsteZuerst(ctx.kanten), "ecke")
+    || setze(ctx, "dusche_gross", laengsteZuerst(ctx.kanten), "ecke")
+    || setze(ctx, "dusche_klein", laengsteZuerst(ctx.kanten), "ecke");
+  if (!dusche) weg(ctx, "Dusche");
+  return dusche;
+}
+
+function waschtischUndWc(ctx) {
+  if (!setze(ctx, "waschtisch", ruhigsteZuerst(ctx), "mitte")
+      && !setze(ctx, "handwaschbecken", ruhigsteZuerst(ctx), "mitte")) weg(ctx, "Waschtisch");
+  if (!setze(ctx, "wand_wc", ruhigsteZuerst(ctx), "mitte")) weg(ctx, "WC");
+}
+
+function bad(ctx) {
+  // Rainer, 2026-10-09: "the bathroom was missing the badewanne". Ein Bad
+  // bekommt Dusche UND Wanne; die Dusche zuerst (seine Antwort "2 Dusche"),
+  // die Wanne in eine andere Ecke, wenn sie noch passt -- sonst gemeldet.
+  dusche(ctx);
+  waschtischUndWc(ctx);
+  if (!setze(ctx, "badewanne", laengsteZuerst(ctx.kanten), "ecke")) weg(ctx, "Badewanne");
+}
+
+function duschbad(ctx) {
+  dusche(ctx);
+  waschtischUndWc(ctx);
+}
+
+function wc(ctx) {
+  if (!setze(ctx, "wand_wc", ruhigsteZuerst(ctx), "mitte")) weg(ctx, "WC");
+  if (!setze(ctx, "handwaschbecken", ruhigsteZuerst(ctx), "mitte")) weg(ctx, "Handwaschbecken");
+}
+
+/** Zwei Moebel nebeneinander an derselben Wand (Waschmaschine + Trockner). */
+function setzeDaneben(ctx, key, neben) {
+  const { w } = masse(key);
+  const { w: wNeben } = masse(neben.moebel.symbol);
+  for (const seite of [1, -1]) {
+    const t = neben.t + seite * (wNeben / 2 + w / 2);
+    const versuch = anKante(key, neben.kante, t, 0);
+    if (t - w / 2 < -TOLERANZ_MM || t + w / 2 > neben.kante.laenge + TOLERANZ_MM) continue;
+    if (!frei(ctx, key, versuch.rechteck)) continue;
+    ctx.belegt.push({ ...versuch.rechteck, key });
+    ctx.gesetzt.push(versuch.moebel);
+    return { ...versuch, kante: neben.kante, t };
+  }
+  return null;
+}
+
+function diele(ctx) {
+  // Nur an die Wand -- die Mitte bleibt Laufweg.
+  const garderobe = setze(ctx, "garderobe", ruhigsteZuerst(ctx), "mitte");
+  if (!garderobe) weg(ctx, "Garderobe");
+  const schrank = (garderobe && setzeDaneben(ctx, "schrank_40", garderobe))
+    || setze(ctx, "schrank_40", ruhigsteZuerst(ctx), "ecke");
+  if (!schrank) weg(ctx, "Schrank");
+}
+
+function hwr(ctx) {
+  const wm = setze(ctx, "waschmaschine", ruhigsteZuerst(ctx), "ecke");
+  if (!wm) weg(ctx, "Waschmaschine");
+  if (!(wm && setzeDaneben(ctx, "trockner", wm)) && !setze(ctx, "trockner", ruhigsteZuerst(ctx), "ecke")) {
+    weg(ctx, "Trockner");
+  }
+  if (!setze(ctx, "schrank_60", ruhigsteZuerst(ctx), "ecke")) weg(ctx, "Regal/Schrank");
+}
+
+/** Fensterkanten zuerst (Schreibtisch unters Fenster), sonst wie ruhigsteZuerst. */
+function fensterZuerst(ctx) {
+  return [...ctx.kanten].sort((a, b) =>
+    (Number(b.anWand) - Number(a.anWand))
+    || (fensterAnKante(ctx, b) - fensterAnKante(ctx, a))
+    || (tuerAnKante(ctx, a) - tuerAnKante(ctx, b))
+    || (b.laenge - a.laenge));
+}
+
+function kinderzimmer(ctx) {
+  // Einzelbett in eine Ecke, Kopfteil an die Wand; ein Nachttisch daneben.
+  const bett = setze(ctx, "einzelbett", ruhigsteZuerst(ctx), "ecke");
+  if (!bett) weg(ctx, "Bett");
+  if (bett) {
+    const { kante, t } = bett;
+    const { w } = masse("einzelbett");
+    const p = (lauf, tief) => [kante.a[0] + kante.u[0] * lauf + kante.n[0] * tief,
+                               kante.a[1] + kante.u[1] * lauf + kante.n[1] * tief];
+    // Auf die Seite, die NICHT an der Nachbarwand liegt.
+    const seite = t < kante.laenge / 2 ? 1 : -1;
+    const tMitte = t + seite * (w / 2 + 30 + NACHTTISCH_B / 2);
+    const r = rechteckAusPunkten([p(tMitte - NACHTTISCH_B / 2, 0), p(tMitte + NACHTTISCH_B / 2, NACHTTISCH_T)]);
+    if (!setzeKasten(ctx, r)) weg(ctx, "Nachttisch");
+  }
+  if (!setze(ctx, "schreibtisch_kind", fensterZuerst(ctx), "mitte")) weg(ctx, "Schreibtisch");
+  if (!setze(ctx, "kleiderschrank", ruhigsteZuerst(ctx), "ecke")) weg(ctx, "Kleiderschrank");
+}
+
+// Ecksofa: im Symbol (ecksofa.png) sitzt die Liege links, also bei lokal -x.
+// Breite der Liege und Tiefe des Sitzteils, aus dem Symbol abgegriffen.
+const ECKSOFA_LIEGE_B = 700;
+const ECKSOFA_SITZ_T = 950;
+
+function wohnzimmer(ctx) {
+  // Rainer, 2026-10-09: "please use the eckcouch for wohnzimmer". Das
+  // Ecksofa kommt in eine Ecke, Ruecken an die Wand, die Liege zur Ecke --
+  // so umarmt das L die Ecke. Passt es nicht, wie bisher 3- oder 2-Sitzer.
+  let sofa = setze(ctx, "ecksofa", ruhigsteZuerst(ctx), "ecke");
+  let tSitz = sofa?.t;
+  let sitzTiefe = sofa ? ECKSOFA_SITZ_T : 0;
+  if (sofa) {
+    const { kante, t } = sofa;
+    const { w } = masse("ecksofa");
+    // Das Ecksofa-Symbol ist andersherum gezeichnet als alle anderen: seine
+    // Vorderseite ist lokal -y. Rainer setzt es von Hand entsprechend --
+    // onehalfstorey_020 EG: an der Oberwand mit 180 Grad (+ gespiegelt),
+    // Lowboard, Bett, Schreibtisch dort mit der ueblichen Drehung. Also hier
+    // um 180 Grad weiter drehen, sonst schaut die Lehne in den Raum.
+    sofa.moebel.rotation_deg = (sofa.moebel.rotation_deg + 180) % 360;
+    // Zur naeheren Ecke zeigt -u (Anfang der Kante) oder +u (Ende).
+    const zurEcke = t < kante.laenge / 2 ? -1 : 1;
+    const winkel = (sofa.moebel.rotation_deg * Math.PI) / 180;
+    const lokalX = [Math.round(Math.cos(winkel)), Math.round(Math.sin(winkel))];
+    const xEntlangU = lokalX[0] * kante.u[0] + lokalX[1] * kante.u[1]; // +1 oder -1
+    // Ungespiegelt liegt die Liege bei lokal -x, also bei -xEntlangU entlang u.
+    sofa.moebel.mirrored = -xEntlangU !== zurEcke;
+    // Sitzteil = der Teil neben der Liege; dorthin zielen Tisch und Fernseher.
+    tSitz = t - zurEcke * (ECKSOFA_LIEGE_B / 2);
+    void w;
+  }
+  if (!sofa) {
+    sofa = setze(ctx, "sofa_3sitzer", ruhigsteZuerst(ctx), "mitte")
+      || setze(ctx, "sofa_2sitzer", ruhigsteZuerst(ctx), "mitte");
+    tSitz = sofa?.t;
+    sitzTiefe = sofa ? masse(sofa.moebel.symbol).d : 0;
+  }
+  if (!sofa) { weg(ctx, "Sofa"); return; }
+  // Lowboard + Fernseher gegenueber, auf Hoehe des Sitzteils.
+  const mitteSofa = [sofa.kante.a[0] + sofa.kante.u[0] * tSitz, sofa.kante.a[1] + sofa.kante.u[1] * tSitz];
+  const gegen = ctx.kanten.filter(gegenueber(sofa.kante));
+  const aufHoehe = (k) => (mitteSofa[0] - k.a[0]) * k.u[0] + (mitteSofa[1] - k.a[1]) * k.u[1];
+  const board = setze(ctx, "lowboard", gegen, aufHoehe);
+  if (!board) weg(ctx, "Lowboard + Fernseher");
+  if (board && !setze(ctx, "fernseher", [board.kante], board.t)) weg(ctx, "Fernseher");
+  // Couchtisch: 400 mm vor dem Sitzteil, quer wie das Sofa.
+  const tisch = masse("couchtisch");
+  const vor = (wallBehaviour(sofa.moebel.symbol).gap_mm || 0) + sitzTiefe + 400 + tisch.d / 2;
+  const mitte = [sofa.kante.a[0] + sofa.kante.u[0] * tSitz + sofa.kante.n[0] * vor,
+                 sofa.kante.a[1] + sofa.kante.u[1] * tSitz + sofa.kante.n[1] * vor];
+  if (!setzeFrei(ctx, "couchtisch", mitte, sofa.moebel.rotation_deg)) weg(ctx, "Couchtisch");
+}
+
+/** Freistehend nahe einem Zielpunkt suchen (Tisch mitten im Bereich). */
+function setzeFreiNahe(ctx, key, ziel, drehungen) {
+  const xs = ctx.poly.map((p) => p[0]);
+  const ys = ctx.poly.map((p) => p[1]);
+  const kandidaten = [];
+  for (let x = Math.min(...xs); x <= Math.max(...xs); x += 100) {
+    for (let y = Math.min(...ys); y <= Math.max(...ys); y += 100) kandidaten.push([x, y]);
+  }
+  kandidaten.sort((p, q) => Math.hypot(p[0] - ziel[0], p[1] - ziel[1]) - Math.hypot(q[0] - ziel[0], q[1] - ziel[1]));
+  for (const mitte of [ziel, ...kandidaten]) {
+    for (const drehung of drehungen) {
+      const r = setzeFrei(ctx, key, mitte, drehung);
+      if (r) return r;
+    }
+  }
+  return null;
+}
+
+function bereichsMitte(poly) {
+  const xs = poly.map((p) => p[0]);
+  const ys = poly.map((p) => p[1]);
+  return { mitte: [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...ys) + Math.max(...ys)) / 2],
+           breit: Math.max(...xs) - Math.min(...xs) >= Math.max(...ys) - Math.min(...ys) };
+}
+
+function esszimmer(ctx) {
+  // Der Tisch steht frei in der Mitte, die lange Seite laengs des Bereichs.
+  const { mitte, breit } = bereichsMitte(ctx.poly);
+  const quer = breit ? [0, 90] : [90, 0];
+  if (setzeFreiNahe(ctx, "essgruppe_6", mitte, quer)) return;
+  const tisch = setzeFreiNahe(ctx, "esstisch", mitte, quer);
+  if (!tisch) { weg(ctx, "Esstisch"); return; }
+  // Kleiner Bereich: Tisch einzeln, Stuehle an die langen Seiten, so viele passen.
+  const r = tisch.rechteck;
+  const stuhl = masse("esszimmerstuhl");
+  const laengsX = r.x1 - r.x0 >= r.y1 - r.y0;
+  let stuehle = 0;
+  for (const f of [0.25, 0.75]) {
+    for (const seite of [-1, 1]) {
+      const mitteStuhl = laengsX
+        ? [r.x0 + (r.x1 - r.x0) * f, seite < 0 ? r.y0 - stuhl.d / 2 + 100 : r.y1 + stuhl.d / 2 - 100]
+        : [seite < 0 ? r.x0 - stuhl.d / 2 + 100 : r.x1 + stuhl.d / 2 - 100, r.y0 + (r.y1 - r.y0) * f];
+      // Vorn (+y lokal) zeigt zum Tisch.
+      const drehung = laengsX ? (seite < 0 ? 0 : 180) : (seite < 0 ? 270 : 90);
+      if (setzeFrei(ctx, "esszimmerstuhl", mitteStuhl, drehung)) stuehle += 1;
+    }
+  }
+  if (stuehle < 4) weg(ctx, `${4 - stuehle} Stühle`);
+}
+
+/**
+ * Freie Abschnitte einer Kante fuer einen Streifen der Tiefe `tiefe`:
+ * Tueren, schon Gesetztes und der Bereichsrand sperren, Fenster nicht (eine
+ * Arbeitsplatte darf unter dem Fenster laufen).
+ */
+function freieAbschnitte(ctx, kante, tiefe) {
+  const p = (lauf, tief) => [kante.a[0] + kante.u[0] * lauf + kante.n[0] * tief,
+                             kante.a[1] + kante.u[1] * lauf + kante.n[1] * tief];
+  const abschnitte = [];
+  let start = null;
+  for (let t = 0; t < kante.laenge - 1; t += SCHRITT_MM) {
+    const ende = Math.min(t + SCHRITT_MM, kante.laenge);
+    const stueck = rechteckAusPunkten([p(t, 0), p(ende, tiefe)]);
+    const ok = rechteckImPolygon(stueck, ctx.poly)
+      && !ctx.tuerZonen.some((z) => ueberlappen(z, stueck))
+      && !ctx.belegt.some((r) => ueberlappen(r, stueck));
+    if (ok && start === null) start = t;
+    if (!ok && start !== null) { abschnitte.push([start, t]); start = null; }
+    if (ok && ende >= kante.laenge - 1) { abschnitte.push([start, kante.laenge]); start = null; }
+  }
+  return abschnitte;
+}
+
+function kueche(ctx) {
+  const TIEFE = getSymbol("kuechenzeile")?.depth_mm || 600;
+  // Laengster freier Abschnitt, echte Waende zuerst.
+  let best = null;
+  for (const kante of ctx.kanten) {
+    for (const [a, b] of freieAbschnitte(ctx, kante, TIEFE)) {
+      const wert = (kante.anWand ? 1e6 : 0) + (b - a);
+      if (!best || wert > best.wert) best = { kante, a, b, wert };
+    }
+  }
+  if (!best || best.b - best.a < 1200) { weg(ctx, "Küchenzeile"); return; }
+  const { kante } = best;
+  let { a, b } = best;
+  const p = (lauf, tief) => [kante.a[0] + kante.u[0] * lauf + kante.n[0] * tief,
+                             kante.a[1] + kante.u[1] * lauf + kante.n[1] * tief];
+  // Hohe Geraete ans Ende der Zeile -- an das Ende, das nicht vor einem
+  // Fenster liegt. Aber erst, wenn fuer die Arbeitsplatte mit Spuele UND
+  // Kochfeld 1,8 m bleiben (Rainer, 2026-10-09: "the kitchen was missing the
+  // spüle the kochstelle").
+  const PLATTE_MIN = 1800;
+  const hohe = b - a >= PLATTE_MIN + 1200 ? ["kuehlschrank", "hochschrank_herd"]
+    : b - a >= PLATTE_MIN + 600 ? ["hochschrank_herd"] : [];
+  if (hohe.length) {
+    const breite = hohe.length * 600;
+    const start = [b - breite, a].find((s0) => {
+      const r = rechteckAusPunkten([p(s0, 0), p(s0 + breite, 600)]);
+      return !ctx.fensterZonen.some((z) => ueberlappen(z, r));
+    });
+    if (start === undefined) {
+      weg(ctx, hohe.length > 1 ? "Kühlschrank und Hochschrank (Fenster)" : "Hochschrank (Fenster)");
+    } else {
+      // Kuehlschrank ganz aussen, der Hochschrank zur Arbeitsplatte hin.
+      const reihe = start === a ? hohe : [...hohe].reverse();
+      reihe.forEach((key, i) => {
+        if (!setze(ctx, key, [kante], start + 300 + i * 600, 0)) weg(ctx, getSymbol(key)?.label || key);
+      });
+      if (start === a) a += breite; else b -= breite;
+    }
+  }
+  // Arbeitsplatte hoechstens 3,6 m, und sie schliesst an die hohen Geraete an.
+  if (b - a > 3600) {
+    if (hohe.length && best.a === a - hohe.length * 600) b = a + 3600;
+    else a = b - 3600;
+  }
+  // Mittellinie 300 mm vor der Wand: so zeichnet der Editor einen Lauf, und
+  // so rastet der Bau ihn an die Wand.
+  const r = rechteckAusPunkten([p(a, 0), p(b, TIEFE)]);
+  ctx.belegt.push({ ...r, key: "kuechenzeile" });
+  ctx.gesetzt.push({
+    symbol: "kuechenzeile",
+    points_mm: [p(a, TIEFE / 2), p(b, TIEFE / 2)].map(([x, y]) => [Math.round(x), Math.round(y)]),
+    rotation_deg: 0, mirrored: false,
+  });
+  // Spuele und Kochfeld IMMER auf die Platte, mit Abstand, wenn er da ist.
+  const laenge = b - a;
+  const tSpuele = laenge >= PLATTE_MIN ? a + laenge * 0.3 : a + 300;
+  const tKoch = laenge >= PLATTE_MIN ? a + laenge * 0.75 : b - 300;
+  if (!setze(ctx, "spuele", [kante], tSpuele, 0)) weg(ctx, "Spüle");
+  if (!setze(ctx, "kochfeld", [kante], tKoch, 0)) weg(ctx, "Kochfeld");
+}
+
+function buero(ctx) {
+  // Schreibtisch an die Fensterwand (Licht von vorn), Stuhl davor mit dem
+  // Gesicht zum Tisch, ein Sideboard (oder schmaler Schrank) an eine andere Wand.
+  const tisch = setze(ctx, "schreibtisch", fensterZuerst(ctx), "mitte")
+    || setze(ctx, "schreibtisch_kind", fensterZuerst(ctx), "mitte");
+  if (!tisch) weg(ctx, "Schreibtisch");
+  if (tisch) {
+    const { kante, t } = tisch;
+    const { d } = masse(tisch.moebel.symbol);
+    const stuhl = masse("schreibtischstuhl");
+    const gap = wallBehaviour(tisch.moebel.symbol).gap_mm || 0;
+    // Der Stuhl schiebt sich ein Stueck unter die Platte.
+    const vor = gap + d + stuhl.d / 2 - 150;
+    const mitte = [kante.a[0] + kante.u[0] * t + kante.n[0] * vor,
+                   kante.a[1] + kante.u[1] * t + kante.n[1] * vor];
+    const zumTisch = (tisch.moebel.rotation_deg + 180) % 360;
+    const gesetzt = setzeFrei(ctx, "schreibtischstuhl", mitte, zumTisch);
+    if (!gesetzt) weg(ctx, "Schreibtischstuhl");
+  }
+  if (!setze(ctx, "sideboard", ruhigsteZuerst(ctx), "mitte")
+      && !setze(ctx, "schrank_40", ruhigsteZuerst(ctx), "ecke")) weg(ctx, "Sideboard/Schrank");
+}
+
+const REGELN = {
+  wohnzimmer, esszimmer, kueche, diele, hwr, kinderzimmer,
+  gast: schlafzimmer, buero, schlafzimmer, duschbad, wc, bad,
+};
+
+/**
+ * @param bereich { polygon: [x,y][], oeffnungen?: {a,b,typ}[], vorhandene?: {x0,y0,x1,y1}[] }
+ * @param raumtyp "schlafzimmer" | "bad" | "wohnzimmer"
+ * @returns { moebel: PlacedSymbol-artig ohne id, weggelassen: string[] }
+ */
+export function richteBereichEin(bereich, raumtyp) {
+  const regel = REGELN[raumtyp];
+  if (!regel) return { moebel: [], weggelassen: [`Raumtyp ${raumtyp} gibt es noch nicht`] };
+  if (!bereich?.polygon || bereich.polygon.length < 3) return { moebel: [], weggelassen: ["Bereich fehlt"] };
+  const ctx = erzeugeKontext(bereich);
+  regel(ctx);
+  return { moebel: ctx.gesetzt, weggelassen: ctx.weggelassen };
+}
+
+/** Weltrechteck eines gesetzten Moebels -- fuer Tests und Hindernisse. */
+export function rechteckVon(moebel) {
+  if (moebel.points_mm) {
+    const r = rechteckAusPunkten(moebel.points_mm);
+    // Ein Lauf (Kuechenzeile) ist eine Mittellinie mit Tiefe.
+    const symbol = getSymbol(moebel.symbol);
+    const tief = symbol?.placement === "path" ? (symbol.depth_mm || 600) / 2 : 0;
+    // Gerader Lauf: nur quer zur Laufrichtung dicker, nicht an den Enden.
+    const tx = r.x1 - r.x0 < 1 || r.y1 - r.y0 >= 1 ? tief : 0;
+    const ty = r.y1 - r.y0 < 1 || r.x1 - r.x0 >= 1 ? tief : 0;
+    return { x0: r.x0 - tx, y0: r.y0 - ty, x1: r.x1 + tx, y1: r.y1 + ty };
+  }
+  const { width_mm: w, depth_mm: d } = moebel.footprint_mm || masse(moebel.symbol);
+  const quer = (moebel.rotation_deg || 0) % 180 === 0;
+  const hx = (quer ? w : d) / 2;
+  const hy = (quer ? d : w) / 2;
+  const [x, y] = moebel.position_mm;
+  return { x0: x - hx, y0: y - hy, x1: x + hx, y1: y + hy };
+}

@@ -1,0 +1,4962 @@
+[
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791879046,
+  "loc": [
+   -2.118,
+   20.743,
+   1.602
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -145.58
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.49,
+   15.35,
+   0.8,
+   12.28,
+   4.89
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791879066,
+  "loc": [
+   -2.118,
+   20.743,
+   1.602
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -145.58
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.86,
+   14.98,
+   1.17,
+   11.91,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791879084,
+  "loc": [
+   -2.118,
+   20.743,
+   1.602
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -145.58
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.37,
+   15.47,
+   0.68,
+   12.4,
+   4.52
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791879103,
+  "loc": [
+   -2.118,
+   20.743,
+   1.602
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -145.58
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.49,
+   15.35,
+   0.8,
+   12.28,
+   4.49
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791878267,
+  "loc": [
+   22.467,
+   17.456,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.49,
+   15.35,
+   0.8,
+   12.28,
+   4.89
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791878242,
+  "loc": [
+   22.467,
+   17.456,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.86,
+   14.98,
+   1.17,
+   11.91,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791878259,
+  "loc": [
+   22.467,
+   17.456,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.37,
+   15.47,
+   0.68,
+   12.4,
+   4.52
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791878250,
+  "loc": [
+   22.467,
+   17.456,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0246
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.49,
+   15.35,
+   0.8,
+   12.28,
+   4.49
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791870240,
+  "loc": [
+   17.431,
+   -6.138,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.99,
+   14.33,
+   0.86,
+   12.93,
+   5.06
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791870215,
+  "loc": [
+   17.431,
+   -6.138,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.36,
+   13.96,
+   1.23,
+   12.56,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791870231,
+  "loc": [
+   17.431,
+   -6.138,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.87,
+   14.45,
+   0.74,
+   13.05,
+   4.55
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791870223,
+  "loc": [
+   17.431,
+   -6.138,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.99,
+   14.33,
+   0.86,
+   12.93,
+   4.43
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791832175,
+  "loc": [
+   -1.483,
+   -5.726,
+   1.531
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   -36.86
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.99,
+   14.33,
+   0.86,
+   12.93,
+   5.06
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791832193,
+  "loc": [
+   -1.483,
+   -5.726,
+   1.531
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   -36.86
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.36,
+   13.96,
+   1.23,
+   12.56,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791832209,
+  "loc": [
+   -1.483,
+   -5.726,
+   1.531
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   -36.86
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.87,
+   14.45,
+   0.74,
+   13.05,
+   4.55
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791832229,
+  "loc": [
+   -1.483,
+   -5.726,
+   1.531
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   -36.86
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0275
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.99,
+   14.33,
+   0.86,
+   12.93,
+   4.43
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791745828,
+  "loc": [
+   17.113,
+   20.263,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.77,
+   13.84,
+   0.92,
+   13.45,
+   4.9
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791745802,
+  "loc": [
+   17.113,
+   20.263,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.14,
+   13.47,
+   1.29,
+   13.08,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791745819,
+  "loc": [
+   17.113,
+   20.263,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.65,
+   13.96,
+   0.8,
+   13.57,
+   4.41
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791745810,
+  "loc": [
+   17.113,
+   20.263,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.77,
+   13.84,
+   0.92,
+   13.45,
+   4.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791734223,
+  "loc": [
+   -4.218,
+   19.649,
+   1.036
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -134.21
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.77,
+   13.84,
+   0.92,
+   13.45,
+   4.9
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791734253,
+  "loc": [
+   -4.733,
+   19.121,
+   1.09
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -134.21
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.14,
+   13.47,
+   1.29,
+   13.08,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791734268,
+  "loc": [
+   -4.733,
+   19.121,
+   1.09
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -134.21
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.65,
+   13.96,
+   0.8,
+   13.57,
+   4.41
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791734283,
+  "loc": [
+   -4.733,
+   19.121,
+   1.09
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -134.21
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.77,
+   13.84,
+   0.92,
+   13.45,
+   4.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791729944,
+  "loc": [
+   -2.279,
+   19.604,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.79,
+   14.03,
+   0.79,
+   12.57,
+   5.1
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791729919,
+  "loc": [
+   -2.279,
+   19.604,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.16,
+   13.66,
+   1.16,
+   12.2,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791729936,
+  "loc": [
+   -2.279,
+   19.604,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.67,
+   14.15,
+   0.67,
+   12.69,
+   4.22
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791729928,
+  "loc": [
+   -2.279,
+   19.604,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.79,
+   14.03,
+   0.79,
+   12.57,
+   4.4
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791716453,
+  "loc": [
+   15.92,
+   20.937,
+   1.572
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   147.17
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.79,
+   14.03,
+   0.79,
+   12.57,
+   5.1
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791716468,
+  "loc": [
+   15.92,
+   20.937,
+   1.572
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   147.17
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.16,
+   13.66,
+   1.16,
+   12.2,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791716483,
+  "loc": [
+   15.92,
+   20.937,
+   1.572
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   147.17
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.67,
+   14.15,
+   0.67,
+   12.69,
+   4.22
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791716501,
+  "loc": [
+   15.92,
+   20.937,
+   1.572
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   147.17
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0277
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.79,
+   14.03,
+   0.79,
+   12.57,
+   4.4
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791667671,
+  "loc": [
+   -5.894,
+   16.988,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.82,
+   14.38,
+   0.83,
+   12.9,
+   5.04
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791667641,
+  "loc": [
+   -5.894,
+   16.988,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.19,
+   14.01,
+   1.2,
+   12.53,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791667661,
+  "loc": [
+   -5.894,
+   16.988,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.7,
+   14.5,
+   0.71,
+   13.02,
+   4.18
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791667651,
+  "loc": [
+   -5.894,
+   16.988,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.82,
+   14.38,
+   0.83,
+   12.9,
+   4.51
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791633751,
+  "loc": [
+   17.007,
+   20.007,
+   1.704
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.82,
+   14.38,
+   0.83,
+   12.9,
+   5.04
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791633771,
+  "loc": [
+   17.007,
+   20.007,
+   1.704
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.19,
+   14.01,
+   1.2,
+   12.53,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791633786,
+  "loc": [
+   17.007,
+   20.007,
+   1.704
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.7,
+   14.5,
+   0.71,
+   13.02,
+   4.18
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791633803,
+  "loc": [
+   17.007,
+   20.007,
+   1.704
+  ],
+  "rot": [
+   89.14,
+   -0.0,
+   143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0265
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.82,
+   14.38,
+   0.83,
+   12.9,
+   4.51
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791628717,
+  "loc": [
+   -3.65,
+   21.831,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.56,
+   13.32,
+   0.87,
+   14.56,
+   4.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791628691,
+  "loc": [
+   -3.65,
+   21.831,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.93,
+   12.95,
+   1.24,
+   14.19,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791628709,
+  "loc": [
+   -3.65,
+   21.831,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.44,
+   13.44,
+   0.75,
+   14.68,
+   4.31
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791628700,
+  "loc": [
+   -3.65,
+   21.831,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.56,
+   13.32,
+   0.87,
+   14.56,
+   4.91
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791627014,
+  "loc": [
+   17.609,
+   23.476,
+   1.125
+  ],
+  "rot": [
+   91.15,
+   -0.0,
+   143.72
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.56,
+   13.32,
+   0.87,
+   14.56,
+   4.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791626953,
+  "loc": [
+   17.609,
+   23.476,
+   1.125
+  ],
+  "rot": [
+   91.15,
+   -0.0,
+   143.72
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.93,
+   12.95,
+   1.24,
+   14.19,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791626972,
+  "loc": [
+   17.609,
+   23.476,
+   1.125
+  ],
+  "rot": [
+   91.15,
+   -0.0,
+   143.72
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.44,
+   13.44,
+   0.75,
+   14.68,
+   4.31
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791626994,
+  "loc": [
+   17.609,
+   23.476,
+   1.125
+  ],
+  "rot": [
+   91.15,
+   -0.0,
+   143.72
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0253
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.56,
+   13.32,
+   0.87,
+   14.56,
+   4.91
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791627153,
+  "loc": [
+   22.026,
+   17.162,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.68,
+   15.27,
+   0.92,
+   12.34,
+   5.14
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791627128,
+  "loc": [
+   22.026,
+   17.162,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.05,
+   14.9,
+   1.29,
+   11.97,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791627145,
+  "loc": [
+   22.026,
+   17.162,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.56,
+   15.39,
+   0.8,
+   12.46,
+   4.0
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791627136,
+  "loc": [
+   22.026,
+   17.162,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.68,
+   15.27,
+   0.92,
+   12.34,
+   4.35
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791555154,
+  "loc": [
+   -1.128,
+   19.559,
+   1.751
+  ],
+  "rot": [
+   88.27,
+   0.0,
+   -143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.68,
+   15.27,
+   0.92,
+   12.34,
+   5.14
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791555169,
+  "loc": [
+   -1.128,
+   19.559,
+   1.751
+  ],
+  "rot": [
+   88.27,
+   0.0,
+   -143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.05,
+   14.9,
+   1.29,
+   11.97,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791555184,
+  "loc": [
+   -1.128,
+   19.559,
+   1.751
+  ],
+  "rot": [
+   88.27,
+   0.0,
+   -143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.56,
+   15.39,
+   0.8,
+   12.46,
+   4.0
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791555205,
+  "loc": [
+   -1.128,
+   19.559,
+   1.751
+  ],
+  "rot": [
+   88.27,
+   0.0,
+   -143.85
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0255
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.68,
+   15.27,
+   0.92,
+   12.34,
+   4.35
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791553120,
+  "loc": [
+   -2.633,
+   22.346,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.15,
+   15.31,
+   1.07,
+   14.66,
+   5.53
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791553093,
+  "loc": [
+   -2.633,
+   22.346,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.52,
+   14.94,
+   1.44,
+   14.29,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791553111,
+  "loc": [
+   -2.633,
+   22.346,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.03,
+   15.43,
+   0.95,
+   14.78,
+   3.52
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791553101,
+  "loc": [
+   -2.633,
+   22.346,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.15,
+   15.31,
+   1.07,
+   14.66,
+   4.61
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791550254,
+  "loc": [
+   17.92,
+   23.825,
+   1.245
+  ],
+  "rot": [
+   90.58,
+   0.0,
+   143.43
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.15,
+   15.31,
+   1.07,
+   14.66,
+   5.53
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791550270,
+  "loc": [
+   17.92,
+   23.825,
+   1.245
+  ],
+  "rot": [
+   90.58,
+   0.0,
+   143.43
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.52,
+   14.94,
+   1.44,
+   14.29,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791550287,
+  "loc": [
+   17.92,
+   23.825,
+   1.245
+  ],
+  "rot": [
+   90.58,
+   0.0,
+   143.43
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.03,
+   15.43,
+   0.95,
+   14.78,
+   3.52
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791550303,
+  "loc": [
+   17.92,
+   23.825,
+   1.245
+  ],
+  "rot": [
+   90.58,
+   0.0,
+   143.43
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0247
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.15,
+   15.31,
+   1.07,
+   14.66,
+   4.61
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791546193,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.5,
+   11.46,
+   1.37,
+   12.38,
+   7.37
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791546162,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.87,
+   11.09,
+   1.74,
+   12.01,
+   6.31
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791546182,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.5,
+   11.46,
+   1.37,
+   12.38,
+   7.05
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791546171,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.5,
+   11.46,
+   1.37,
+   12.38,
+   7.71
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791538505,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.5,
+   11.46,
+   1.37,
+   12.38,
+   7.37
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791538478,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.87,
+   11.09,
+   1.74,
+   12.01,
+   6.31
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791538496,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.5,
+   11.46,
+   1.37,
+   12.38,
+   7.05
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791538488,
+  "loc": [
+   -6.654,
+   23.719,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.072
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.5,
+   11.46,
+   1.37,
+   12.38,
+   7.71
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791490211,
+  "loc": [
+   16.392,
+   19.646,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   12.89,
+   1.17,
+   13.05,
+   4.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791490184,
+  "loc": [
+   16.392,
+   19.646,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.46,
+   12.52,
+   1.54,
+   12.68,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791490201,
+  "loc": [
+   16.392,
+   19.646,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   12.89,
+   1.17,
+   13.05,
+   3.9
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791490192,
+  "loc": [
+   16.392,
+   19.646,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   12.89,
+   1.17,
+   13.05,
+   4.81
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791488422,
+  "loc": [
+   18.179,
+   18.174,
+   1.471
+  ],
+  "rot": [
+   90.29,
+   -0.0,
+   137.95
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   12.89,
+   1.17,
+   13.05,
+   4.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791488443,
+  "loc": [
+   18.179,
+   18.174,
+   1.471
+  ],
+  "rot": [
+   90.29,
+   -0.0,
+   137.95
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.46,
+   12.52,
+   1.54,
+   12.68,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791488461,
+  "loc": [
+   18.179,
+   18.174,
+   1.471
+  ],
+  "rot": [
+   90.29,
+   -0.0,
+   137.95
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   12.89,
+   1.17,
+   13.05,
+   3.9
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791488481,
+  "loc": [
+   18.179,
+   18.174,
+   1.471
+  ],
+  "rot": [
+   90.29,
+   -0.0,
+   137.95
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0285
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   12.89,
+   1.17,
+   13.05,
+   4.81
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791486591,
+  "loc": [
+   18.992,
+   20.813,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.17,
+   16.47,
+   1.37,
+   13.14,
+   4.63
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791486565,
+  "loc": [
+   18.992,
+   20.813,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.54,
+   16.1,
+   1.74,
+   12.77,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791486582,
+  "loc": [
+   18.992,
+   20.813,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.05,
+   16.59,
+   1.25,
+   13.26,
+   4.18
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791486574,
+  "loc": [
+   18.992,
+   20.813,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.17,
+   16.47,
+   1.37,
+   13.14,
+   4.53
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791484571,
+  "loc": [
+   -2.375,
+   21.887,
+   2.059
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -144.01
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.17,
+   16.47,
+   1.37,
+   13.14,
+   4.63
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791484606,
+  "loc": [
+   -2.375,
+   21.887,
+   2.059
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -144.01
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.54,
+   16.1,
+   1.74,
+   12.77,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791484629,
+  "loc": [
+   -2.375,
+   21.887,
+   2.059
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -144.01
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.05,
+   16.59,
+   1.25,
+   13.26,
+   4.18
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791484649,
+  "loc": [
+   -2.375,
+   21.887,
+   2.059
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -144.01
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.17,
+   16.47,
+   1.37,
+   13.14,
+   4.53
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791478851,
+  "loc": [
+   18.891,
+   -6.159,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.07,
+   15.62,
+   1.36,
+   14.46,
+   5.23
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791478823,
+  "loc": [
+   18.891,
+   -6.159,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.44,
+   15.25,
+   1.73,
+   14.09,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791478841,
+  "loc": [
+   18.891,
+   -6.159,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.95,
+   15.74,
+   1.24,
+   14.58,
+   3.92
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791478832,
+  "loc": [
+   18.891,
+   -6.159,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.07,
+   15.62,
+   1.36,
+   14.46,
+   4.58
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791469946,
+  "loc": [
+   0.579,
+   -6.964,
+   1.541
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -31.1
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.07,
+   15.62,
+   1.36,
+   14.46,
+   5.23
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791469964,
+  "loc": [
+   0.579,
+   -6.964,
+   1.541
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -31.1
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.44,
+   15.25,
+   1.73,
+   14.09,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791469985,
+  "loc": [
+   0.579,
+   -6.964,
+   1.541
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -31.1
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.95,
+   15.74,
+   1.24,
+   14.58,
+   3.92
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791470008,
+  "loc": [
+   0.579,
+   -6.964,
+   1.541
+  ],
+  "rot": [
+   90.86,
+   0.0,
+   -31.1
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0254
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.07,
+   15.62,
+   1.36,
+   14.46,
+   4.58
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-doppelpultdach-baseline.blend",
+  "mtime": 1791467785,
+  "loc": [
+   -2.682,
+   21.222,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.69,
+   14.69,
+   0.98,
+   13.8,
+   4.99
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791467759,
+  "loc": [
+   -2.682,
+   21.222,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.06,
+   14.32,
+   1.35,
+   13.43,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791467776,
+  "loc": [
+   -2.682,
+   21.222,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.57,
+   14.81,
+   0.86,
+   13.92,
+   3.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791467768,
+  "loc": [
+   -2.682,
+   21.222,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.69,
+   14.69,
+   0.98,
+   13.8,
+   4.54
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-doppelpultdach-baseline.blend1",
+  "mtime": 1791465124,
+  "loc": [
+   18.244,
+   22.165,
+   1.703
+  ],
+  "rot": [
+   88.56,
+   0.0,
+   144.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.69,
+   14.69,
+   0.98,
+   13.8,
+   4.99
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791465170,
+  "loc": [
+   17.707,
+   22.542,
+   1.703
+  ],
+  "rot": [
+   88.56,
+   0.0,
+   144.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.06,
+   14.32,
+   1.35,
+   13.43,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791465194,
+  "loc": [
+   17.707,
+   22.542,
+   1.703
+  ],
+  "rot": [
+   88.56,
+   0.0,
+   144.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.57,
+   14.81,
+   0.86,
+   13.92,
+   3.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791465214,
+  "loc": [
+   17.707,
+   22.542,
+   1.703
+  ],
+  "rot": [
+   88.56,
+   0.0,
+   144.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0259
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.69,
+   14.69,
+   0.98,
+   13.8,
+   4.54
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791463616,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.53,
+   14.87,
+   1.69,
+   14.46,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-pultdach-baseline.blend",
+  "mtime": 1791463643,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.13,
+   15.25,
+   1.32,
+   14.83,
+   3.46
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791463634,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.04,
+   15.36,
+   1.2,
+   14.95,
+   3.22
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791463625,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.16,
+   15.24,
+   1.32,
+   14.83,
+   4.59
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791460794,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.53,
+   14.87,
+   1.69,
+   14.46,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-pultdach-baseline.blend1",
+  "mtime": 1791460821,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.13,
+   15.25,
+   1.32,
+   14.83,
+   3.46
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791460812,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.04,
+   15.36,
+   1.2,
+   14.95,
+   3.22
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791460803,
+  "loc": [
+   19.027,
+   22.517,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.16,
+   15.24,
+   1.32,
+   14.83,
+   4.59
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791463388,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.49,
+   15.23,
+   2.02,
+   14.24,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-pultdach-baseline.blend",
+  "mtime": 1791463413,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.1,
+   15.6,
+   1.65,
+   14.61,
+   3.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791463405,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.0,
+   15.72,
+   1.53,
+   14.73,
+   3.19
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791463396,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.12,
+   15.6,
+   1.65,
+   14.61,
+   4.55
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791460567,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.49,
+   15.23,
+   2.02,
+   14.24,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-pultdach-baseline.blend1",
+  "mtime": 1791460593,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.1,
+   15.6,
+   1.65,
+   14.61,
+   3.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791460585,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.0,
+   15.72,
+   1.53,
+   14.73,
+   3.19
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791460576,
+  "loc": [
+   -6.045,
+   18.933,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0248
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.12,
+   15.6,
+   1.65,
+   14.61,
+   4.55
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791463289,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.3,
+   15.9,
+   1.72,
+   13.16,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-pultdach-baseline.blend",
+  "mtime": 1791463315,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.91,
+   16.27,
+   1.35,
+   13.53,
+   3.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791463307,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.81,
+   17.39,
+   0.23,
+   14.65,
+   8.22
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791463297,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.93,
+   16.27,
+   1.0,
+   13.53,
+   4.45
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791460466,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.3,
+   15.9,
+   1.72,
+   13.16,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-pultdach-baseline.blend1",
+  "mtime": 1791460492,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.91,
+   16.27,
+   1.35,
+   13.53,
+   3.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791460483,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.81,
+   17.39,
+   0.23,
+   14.65,
+   8.22
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791460474,
+  "loc": [
+   18.852,
+   21.114,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0262
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.93,
+   16.27,
+   1.0,
+   13.53,
+   4.45
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791463196,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.28,
+   13.71,
+   1.61,
+   13.24,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-pultdach-baseline.blend",
+  "mtime": 1791463221,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.89,
+   14.08,
+   1.24,
+   13.61,
+   3.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791463213,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.79,
+   14.2,
+   1.12,
+   13.73,
+   3.23
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791463204,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.91,
+   14.08,
+   1.24,
+   13.61,
+   4.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791460372,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.28,
+   13.71,
+   1.61,
+   13.24,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-pultdach-baseline.blend1",
+  "mtime": 1791460397,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.89,
+   14.08,
+   1.24,
+   13.61,
+   3.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791460389,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.79,
+   14.2,
+   1.12,
+   13.73,
+   3.23
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791460380,
+  "loc": [
+   -2.3,
+   -5.635,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0274
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.91,
+   14.08,
+   1.24,
+   13.61,
+   4.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791463100,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.23,
+   12.57,
+   1.46,
+   12.92,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-pultdach-baseline.blend",
+  "mtime": 1791463126,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.84,
+   12.94,
+   1.07,
+   13.28,
+   3.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791463117,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.86,
+   12.94,
+   1.09,
+   13.28,
+   3.11
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791463108,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.86,
+   12.94,
+   1.09,
+   13.28,
+   4.6
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791460274,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.23,
+   12.57,
+   1.46,
+   12.92,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-pultdach-baseline.blend1",
+  "mtime": 1791460301,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.84,
+   12.94,
+   1.07,
+   13.28,
+   3.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791460292,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.86,
+   12.94,
+   1.09,
+   13.28,
+   3.11
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791460282,
+  "loc": [
+   16.421,
+   19.885,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   143.13
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0282
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.86,
+   12.94,
+   1.09,
+   13.28,
+   4.6
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791463012,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.58,
+   17.55,
+   1.66,
+   10.63,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-pultdach-baseline.blend",
+  "mtime": 1791463037,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.17,
+   17.92,
+   1.29,
+   11.0,
+   3.98
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791463029,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   18.04,
+   1.17,
+   11.12,
+   3.11
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791463020,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.21,
+   17.92,
+   1.29,
+   11.0,
+   4.71
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791460184,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.58,
+   17.55,
+   1.66,
+   10.63,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-pultdach-baseline.blend1",
+  "mtime": 1791460209,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.17,
+   17.92,
+   1.29,
+   11.0,
+   3.98
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791460201,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.09,
+   18.04,
+   1.17,
+   11.12,
+   3.11
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791460193,
+  "loc": [
+   24.754,
+   17.535,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   126.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0236
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.21,
+   17.92,
+   1.29,
+   11.0,
+   4.71
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-flachdach-baseline.blend",
+  "mtime": 1791462912,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.07,
+   15.09,
+   0.8,
+   12.48,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-pultdach-baseline.blend",
+  "mtime": 1791462937,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.68,
+   15.46,
+   0.42,
+   12.85,
+   3.66
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-satteldach-baseline.blend",
+  "mtime": 1791462929,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.58,
+   15.58,
+   0.31,
+   12.97,
+   3.18
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-walmdach-baseline.blend",
+  "mtime": 1791462920,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.7,
+   15.46,
+   0.43,
+   12.85,
+   4.54
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-flachdach-baseline.blend1",
+  "mtime": 1791460082,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   1.07,
+   15.09,
+   0.8,
+   12.48,
+   3.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-pultdach-baseline.blend1",
+  "mtime": 1791460108,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.68,
+   15.46,
+   0.42,
+   12.85,
+   3.66
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-satteldach-baseline.blend1",
+  "mtime": 1791460099,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.58,
+   15.58,
+   0.31,
+   12.97,
+   3.18
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/exterior-walmdach-baseline.blend1",
+  "mtime": 1791460091,
+  "loc": [
+   -2.086,
+   -6.913,
+   1.6
+  ],
+  "rot": [
+   90.0,
+   -0.0,
+   -36.87
+  ],
+  "lens": 28.0,
+  "type": "PERSP",
+  "shift": [
+   0.0,
+   0.0264
+  ],
+  "res": [
+   1920,
+   1080
+  ],
+  "bbox": [
+   0.7,
+   15.46,
+   0.43,
+   12.85,
+   4.54
+  ]
+ }
+]
