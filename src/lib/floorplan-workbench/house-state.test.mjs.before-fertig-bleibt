@@ -1,0 +1,171 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { deriveHouseState, STATES, ERLEDIGT, istErledigt, FAST_FERTIG, istFastFertig } from "./house-state.mjs";
+
+// A fully healthy, finished house; each case overrides what it breaks.
+const fertig = () => ({
+  raster: true,
+  rooms: 7,
+  levels: ["groundfloor"],
+  scale: { groundfloor: 12.7 },
+  gebaeudemass: true,
+  alignmentComplete: true,
+  zertifikat: true,
+  aktuell: true,
+  aktuellGrund: "",
+  blends: 3,
+  finalsLokal: 6,
+  wordpress: { erreichbar: true, hochgeladen: 6, freigegeben: 6 },
+  catalogue: { images: 6, approved: "ja" },
+});
+
+const state = (overrides) => deriveHouseState({ ...fertig(), ...overrides }).state;
+
+test("every state the derivation can return is in STATES, in gate order", () => {
+  for (const s of ["unbegonnen", "keine_vorlage", "vermessung_noetig", "ausrichtung_noetig",
+                   "baubereit", "bau_veraltet", "wordpress_unerreichbar", "warten_auf_codex",
+                   "bilder_hochladen", "bilder_freigeben", "warten_auf_freigabe", "fertig"]) {
+    assert.ok(STATES.includes(s), `${s} missing from STATES`);
+  }
+});
+
+test("a healthy approved house is fertig", () => {
+  assert.equal(state({}), "fertig");
+});
+
+test("gates in order: vorlage, massstab, ausrichtung, bau", () => {
+  assert.equal(state({ raster: false, rooms: 0 }), "unbegonnen");
+  assert.equal(state({ raster: false }), "keine_vorlage");
+  assert.equal(state({ scale: {}, gebaeudemass: false }), "vermessung_noetig");
+  // gebaeudemass.json is the second Maßstab source -- batch-build accepts it
+  // (Codex audit P2 "Maßstab hat zwei Wahrheiten"), so the list must too.
+  assert.equal(state({ scale: {}, gebaeudemass: true, zertifikat: false, blends: 0 }), "baubereit");
+  assert.equal(state({ levels: ["groundfloor", "upperfloor"], alignmentComplete: false }),
+               "ausrichtung_noetig");
+  assert.equal(state({ zertifikat: false, blends: 0 }), "baubereit");
+});
+
+test("INVARIANT: a stale delivery is never fertig, whatever WordPress says", () => {
+  // Nicht veroeffentlicht + veraltet -> muss neu gebaut werden.
+  assert.equal(state({ aktuell: false, aktuellGrund: "Annotation geaendert",
+                       catalogue: { images: 0, approved: "offen" } }), "bau_veraltet");
+  // .blend files lying around are not a certificate
+  assert.equal(state({ zertifikat: false, blends: 4 }), "baubereit");
+});
+
+test("INVARIANT: WordPress down is its own state, never 'waiting for Codex'", () => {
+  assert.equal(state({ wordpress: { erreichbar: false }, catalogue: null }), "wordpress_unerreichbar");
+});
+
+test("codex -> upload -> freigabe -> fertig chain", () => {
+  assert.equal(state({ finalsLokal: 0, wordpress: { erreichbar: true, hochgeladen: 0, freigegeben: 0 },
+                       catalogue: null }), "warten_auf_codex");
+  assert.equal(state({ finalsLokal: 6, wordpress: { erreichbar: true, hochgeladen: 0, freigegeben: 0 },
+                       catalogue: null }), "bilder_hochladen");
+  assert.equal(state({ wordpress: { erreichbar: true, hochgeladen: 6, freigegeben: 2 },
+                       catalogue: { images: 0, approved: "offen" } }), "bilder_freigeben");
+  assert.equal(state({ catalogue: { images: 6, approved: "offen" } }), "warten_auf_freigabe");
+});
+
+test("blocker and action are filled for every non-fertig state", () => {
+  for (const overrides of [{ raster: false }, { zertifikat: false, blends: 0 }, { aktuell: false },
+                           { wordpress: { erreichbar: false }, catalogue: null },
+                           { catalogue: { images: 6, approved: "offen" } }]) {
+    const r = deriveHouseState({ ...fertig(), ...overrides });
+    assert.ok(r.blocker.length > 0 && r.action.length > 0, `${r.state}: blocker/action missing`);
+  }
+  const done = deriveHouseState(fertig());
+  assert.equal(done.blocker, "");
+  assert.equal(done.action, "");
+});
+
+test("a PUBLISHED house stays published when only our renderer moved on", () => {
+  // Rainer, 2026-08-23: drei ausgelieferte Haeuser standen als "bau_veraltet"
+  // in der Liste, obwohl ihre Bilder beim Kunden sind.
+  const r = deriveHouseState({ ...fertig(), aktuell: false,
+                               aktuellGrund: "Renderer geaendert" });
+  assert.equal(r.state, "veroeffentlicht_build_alt");
+  assert.match(r.blocker, /veröffentlicht/);
+});
+
+/**
+ * Welche Zustaende heissen "nichts zu tun"?
+ *
+ * Rainer, 2026-08-30, in der Hausakte: "the logic here is confusing me, i
+ * really can't tell which one i still have to fix, can we make the ones green
+ * that are accepted and uploaded?"
+ *
+ * Die Seite zaehlte als offen, was nicht GENAU "fertig" war. Damit galten die
+ * 11 veroeffentlichten Haeuser als offen -- obwohl ihre eigene naechste
+ * Handlung "nichts noetig" lautet. `veroeffentlicht_build_alt` heisst: die
+ * Bilder stehen beim Kunden, nur unser Renderer hat sich seither bewegt.
+ *
+ * Die Liste steht HIER und nicht in der Seite: Zaehler und Farbe muessen
+ * dasselbe meinen, sonst steht "11 offen" neben elf gruenen Zeilen.
+ */
+test("erledigt sind genau fertig und veroeffentlicht_build_alt", () => {
+  assert.deepEqual([...ERLEDIGT].sort(),
+                   ["fertig", "veroeffentlicht_build_alt"]);
+});
+
+test("jeder erledigte Zustand ist ein bekannter Zustand", () => {
+  for (const zustand of ERLEDIGT) assert.ok(STATES.includes(zustand), zustand);
+});
+
+test("alles andere ist offen", () => {
+  for (const zustand of STATES) {
+    assert.equal(istErledigt(zustand), ERLEDIGT.has(zustand), zustand);
+  }
+});
+
+test("ein unbekanntes Wort gilt als offen, nicht als erledigt", () => {
+  // Lieber ein Haus zu viel auf der Liste als eines zu wenig.
+  assert.equal(istErledigt("irgendwas"), false);
+  assert.equal(istErledigt(undefined), false);
+});
+
+/**
+ * Und die Stufe davor: gelb.
+ *
+ * Rainer, 2026-08-30: "how about yellow for things that are almost finished
+ * like Bilder Freigeben?"
+ *
+ * "Fast fertig" heisst hier etwas Bestimmtes: gebaut, zertifiziert, die Bilder
+ * sind da -- es fehlt nur noch die Lieferstrecke, und jeder dieser Schritte
+ * ist EIN Knopf. Kein Zeichnen, kein Bauen, kein Warten auf Codex.
+ *
+ * `warten_auf_codex` gehoert ausdruecklich NICHT dazu: da liegt die Arbeit bei
+ * Codex, und wie viele Runden das kostet, hat der 2026-08-30 gezeigt.
+ * `wordpress_unerreichbar` auch nicht -- dort ist der Stand UNBEKANNT, und
+ * unbekannt ist nicht fast fertig.
+ */
+test("fast fertig ist genau die Lieferstrecke", () => {
+  assert.deepEqual([...FAST_FERTIG].sort(),
+                   ["bilder_freigeben", "bilder_hochladen", "warten_auf_freigabe"]);
+});
+
+test("warten_auf_codex und wordpress_unerreichbar zaehlen nicht dazu", () => {
+  assert.equal(FAST_FERTIG.has("warten_auf_codex"), false);
+  assert.equal(FAST_FERTIG.has("wordpress_unerreichbar"), false);
+});
+
+test("kein Zustand ist gleichzeitig gruen und gelb", () => {
+  for (const zustand of FAST_FERTIG) assert.equal(ERLEDIGT.has(zustand), false, zustand);
+});
+
+test("jeder fast-fertige Zustand ist ein bekannter Zustand", () => {
+  for (const zustand of FAST_FERTIG) assert.ok(STATES.includes(zustand), zustand);
+});
+
+test("die drei stehen in STATES direkt hinter den erledigten", () => {
+  // Die Reihenfolge in STATES ist "am weitesten zuerst" und sortiert auch die
+  // Hausliste. Waeren die gelben nicht der naechste Block, stuenden gruen und
+  // gelb nicht beieinander und die Farbe waere kein Fortschrittsbalken mehr.
+  const rang = STATES.map((z) =>
+    ERLEDIGT.has(z) ? 0 : FAST_FERTIG.has(z) ? 1 : 2);
+  assert.deepEqual(rang, [...rang].sort());
+});
+
+test("ein unbekanntes Wort ist auch nicht fast fertig", () => {
+  assert.equal(istFastFertig("irgendwas"), false);
+});

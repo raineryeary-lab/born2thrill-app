@@ -1,0 +1,453 @@
+"""1,5-Geschosser: Kniestock, steiles Dach, Zwerch-/Quergiebel -- die reine Rechnung.
+
+Plan: plans/anderthalbgeschosser-dach-v1.md (+ Nachtrag A1). Rainer, 2026-10-20:
+"the 1,5 story we have to create with kniestock and quergiebel and stuff this
+is just for 1,5 story houses" -- Werte: Kniestock 1,0 m, 40 Grad, Quergiebel
+mittig ein Drittel der Fassade (mind. 2,5 m), Ziergiebel 2,0 m -- und
+Variante A: wo im Obergeschoss Tueren oder Fenster in der niedrigen
+Traufwand stehen, steht ein Zwerchgiebel ueber ihnen, so breit wie sie es
+brauchen.
+
+Kein bpy hier: render-exterior.py baut aus diesen Zahlen die Geometrie.
+Koordinaten in Metern, Plan-System (y nach oben: Nord = groesstes y).
+"""
+
+import math
+
+KNIESTOCK_M = 1.0
+NEIGUNG_GRAD = 40.0
+QUER_ANTEIL = 1.0 / 3.0
+GIEBEL_MIN_M = 2.5
+ZIER_BREITE_M = 2.0
+RAND_M = 0.5            # links und rechts neben den Oeffnungen
+LUECKE_M = 1.0          # naeher beieinander -> ein gemeinsamer Giebel
+
+SEITEN = ("north", "east", "south", "west")
+
+
+def ist_anderthalb(plan):
+    """1,5-Geschosser? house_type aus dem Plan, sonst das Id-Praefix."""
+    typ = str(plan.get("house_type") or "").lower()
+    if typ in ("1.5-storey", "onehalfstorey", "1,5-geschosser"):
+        return True
+    # Ein Wohn-Dachgeschoss als oberstes Geschoss ueber anderen (EG + OG + DG,
+    # other_vito, DG-MIT-KNIESTOCK-001): es sitzt mit Kniestock unter dem Dach,
+    # genau wie das Obergeschoss eines 1,5-Geschossers.
+    floors = plan.get("floors") or []
+    if len(floors) >= 2 and (floors[-1].get("level") or "") == "attic":
+        return True
+    return str(plan.get("plan_id") or "").startswith("onehalfstorey")
+
+
+def spannweite(bbox, along_x):
+    """Die Breite QUER zum First -- daraus kommt die Firsthoehe.
+
+    Frueher stand dort immer die kurze Seite. Bei einer Doppelhaushaelfte
+    laeuft der First quer zur Trennwand, oft ueber die kurze Seite; dann war
+    die Giebelwand 0,9 m zu niedrig (onehalfstorey_046, Rainer 2026-10-23:
+    "the giebel is not quite closed").
+    """
+    x0, x1, y0, y1 = bbox
+    return (y1 - y0) if along_x else (x1 - x0)
+
+
+def traufhoehe(oberstes_geschoss_z, kniestock=KNIESTOCK_M):
+    """Traufe = Fussboden des obersten Geschosses + Kniestock."""
+    return oberstes_geschoss_z + kniestock
+
+
+def traufseiten(bbox, roof_type, along_x=None):
+    """Die Seiten, an denen das Dach bis zur Traufe herunterkommt.
+
+    Satteldach: die beiden Seiten parallel zum First (First laengs der
+    langen Seite, ausser along_x ist vorgegeben). Walmdach: alle vier.
+    bbox = (x0, x1, y0, y1).
+    """
+    if roof_type == "walmdach":
+        return list(SEITEN)
+    x0, x1, y0, y1 = bbox
+    if along_x is None:
+        along_x = (x1 - x0) >= (y1 - y0)
+    return ["north", "south"] if along_x else ["east", "west"]
+
+
+def seite_von_wand(start, end, bbox, tol=0.3):
+    """Welche Fassade eine (achsparallele) Aussenwand ist, oder None."""
+    x0, x1, y0, y1 = bbox
+    (sx, sy), (ex, ey) = start, end
+    if abs(sy - ey) < tol:
+        y = (sy + ey) / 2
+        if abs(y - y1) < tol:
+            return "north"
+        if abs(y - y0) < tol:
+            return "south"
+    if abs(sx - ex) < tol:
+        x = (sx + ex) / 2
+        if abs(x - x1) < tol:
+            return "east"
+        if abs(x - x0) < tol:
+            return "west"
+    return None
+
+
+def _cluster(intervalle):
+    """Intervalle (lo, hi) zusammenfassen, die naeher als LUECKE_M liegen."""
+    out = []
+    for lo, hi in sorted(intervalle):
+        if out and lo - out[-1][1] < LUECKE_M:
+            out[-1][1] = max(out[-1][1], hi)
+        else:
+            out.append([lo, hi])
+    return [tuple(i) for i in out]
+
+
+def _auf_mindestbreite(lo, hi, breite, grenzen):
+    """Mittig auf `breite` erweitern, innerhalb der Fassadengrenzen."""
+    if hi - lo >= breite:
+        return lo, hi
+    mitte = (lo + hi) / 2
+    lo, hi = mitte - breite / 2, mitte + breite / 2
+    g0, g1 = grenzen
+    if lo < g0:
+        hi, lo = hi + (g0 - lo), g0
+    if hi > g1:
+        lo, hi = lo - (hi - g1), g1
+    return max(lo, g0), min(hi, g1)
+
+
+def gezogene_giebel(bbox, gezeichnet, tol=0.6, erker=None):
+    """Im Annotator gezogene Quergiebel -> [{"seite", "lo", "hi", "grund"}].
+
+    gezeichnet: [((ax, ay), (bx, by))] in Metern, Plan-System. Breite und Lage
+    genau wie gezogen -- kein Rand, keine Mindestbreite (quergiebel-ziehen-v1,
+    Rainer 2026-10-21: "we will need to be able to adjust the width").
+    """
+    raus = []
+    for a, b in gezeichnet or []:
+        seite = seite_von_wand(a, b, bbox, tol)
+        if not seite:
+            seite, _vor = seite_mit_erker(a, b, bbox, erker, tol)
+        if not seite:
+            continue
+        i = 0 if seite in ("north", "south") else 1
+        lo, hi = sorted((a[i], b[i]))
+        raus.append({"seite": seite, "lo": lo, "hi": hi, "grund": "gezogen", "vor": 0.0})
+    # Auf einem Erker ist die Erkerfront die Front -- nur wo gezogen wurde.
+    return _auf_erker(raus, erker, neue=False)
+
+
+def giebel(bbox, roof_type, oeffnungen, merkmale, along_x=None, kniestock=KNIESTOCK_M,
+           gezeichnet=None, erker=None):
+    """Die Zwerch-/Quergiebel eines 1,5-Geschossers.
+
+    oeffnungen: [(seite, mitte_entlang_m, breite_m, oberkante_ueber_fussboden_m)]
+    merkmale:   [(subtype, seite)] -- aus architectural_features (gable)
+    Rueckgabe:  [{"seite", "lo", "hi", "grund"}] -- lo/hi entlang der Fassade.
+
+    1. Jede Oeffnung in einer Traufwand, die ueber den Kniestock ragt, braucht
+       Wand bis ueber ihre Oberkante: Oeffnungen naeher als 1 m werden ein
+       Giebel, je 0,5 m Rand, mindestens 2,5 m breit.
+    2. Ein gezeichneter Giebel auf einer Traufseite OHNE solche Oeffnungen:
+       mittig -- Quergiebel ein Drittel der Fassade (mind. 2,5 m),
+       Ziergiebel 2,0 m. Auf einer Giebelseite (Satteldach) gibt es nichts zu
+       bauen: dort steht der Giebel schon.
+    """
+    # Ein Eck-Erker bekommt keinen Zwerch -- das Hauptdach laeuft in seiner
+    # Neigung ueber ihn weiter (other_vito, 2026-10-24).
+    erker = [e for e in (erker or []) if not e.get("ecke")]
+    # Gezogene Quergiebel ersetzen die Automatik ganz (quergiebel-ziehen-v1).
+    if gezeichnet:
+        return gezogene_giebel(bbox, gezeichnet, erker=erker)
+    x0, x1, y0, y1 = bbox
+    traufe = traufseiten(bbox, roof_type, along_x)
+    grenzen = {"north": (x0, x1), "south": (x0, x1), "east": (y0, y1), "west": (y0, y1)}
+    raus = []
+    for seite in traufe:
+        hoch = [(m - b / 2 - RAND_M, m + b / 2 + RAND_M)
+                for s, m, b, oben in oeffnungen if s == seite and oben > kniestock + 1e-6]
+        if hoch:
+            for lo, hi in _cluster(hoch):
+                lo, hi = _auf_mindestbreite(lo, hi, GIEBEL_MIN_M, grenzen[seite])
+                raus.append({"seite": seite, "lo": lo, "hi": hi, "grund": "oeffnungen", "vor": 0.0})
+            continue
+        for subtype, s in merkmale:
+            if s != seite:
+                continue
+            g0, g1 = grenzen[seite]
+            breite = (ZIER_BREITE_M if subtype == "ziergiebel"
+                      else max(GIEBEL_MIN_M, (g1 - g0) * QUER_ANTEIL))
+            lo, hi = _auf_mindestbreite((g0 + g1) / 2, (g0 + g1) / 2, breite, (g0, g1))
+            raus.append({"seite": seite, "lo": lo, "hi": hi, "grund": subtype, "vor": 0.0})
+            break
+    # Jeder Erker auf einer Traufseite bekommt seinen Zwerch (sonst schnitte
+    # das Dach ihn auf Kniestockhoehe ab).
+    return _auf_erker(raus, erker, nur_seiten=traufe)
+
+
+def zwerch_masse(lo, hi, traufe_z, wand_oben_z, neigung_grad=NEIGUNG_GRAD):
+    """Hoehen eines Zwerchgiebels gleicher Neigung.
+
+    wand_oben_z: Oberkante seiner Frontwand (volle Geschosshoehe).
+    first_z:     Firsthoehe des Zwerchdachs.
+    tiefe_first: wie weit hinter der Fassade sein First auf das Hauptdach trifft.
+    tiefe_traufe: wie weit hinter der Fassade seine Traufe aufs Hauptdach trifft.
+    """
+    t = math.tan(math.radians(neigung_grad))
+    first_z = wand_oben_z + (hi - lo) / 2 * t
+    return {"first_z": first_z,
+            "tiefe_first": (first_z - traufe_z) / t,
+            "tiefe_traufe": (wand_oben_z - traufe_z) / t}
+
+
+# --- Zwerchkubus (moderne Variante) -----------------------------------------
+# Plan anderthalb-zwerchkubus-modern-v1, Rainer 2026-10-21: "this would
+# actually be a kind of a modern form for our 1,5 story houses" -- statt des
+# spitzen Zwerchgiebels ein Kasten mit Flachdach, der durch die Traufe stoesst.
+
+ATTIKA_M = 0.30     # Flachdachpaket/Attika ueber der Frontwand-Oberkante
+KUBUS_SUFFIX = "-kubus"
+KUBUS_VOR_M = 0.10   # der Kubus steht so weit vor der Fassade
+
+
+def kubus_masse(lo, hi, traufe_z, wand_oben_z, neigung_grad=NEIGUNG_GRAD):
+    """Hoehen und Tiefen eines Zwerchkubus.
+
+    dach_z:     Oberkante des Flachdachs (Attika).
+    tiefe_wand: wo die Unterkante des Flachdachs (= wand_oben_z) aufs Hauptdach trifft.
+    tiefe_dach: wo die Oberkante (dach_z) aufs Hauptdach trifft -- so weit reicht die Platte.
+    """
+    t = math.tan(math.radians(neigung_grad))
+    dach_z = wand_oben_z + ATTIKA_M
+    return {"dach_z": dach_z,
+            "tiefe_wand": (wand_oben_z - traufe_z) / t,
+            "tiefe_dach": (dach_z - traufe_z) / t,
+            "breite": hi - lo}
+
+
+def dachform_und_zwerch(ext_roof_type):
+    """EXT_ROOF_TYPE -> (Dachform, Zwerchform). "satteldach-kubus" -> ("satteldach", "kubus")."""
+    roof = (ext_roof_type or "").strip().lower()
+    if roof.endswith(KUBUS_SUFFIX):
+        return roof[:-len(KUBUS_SUFFIX)], "kubus"
+    return roof, "giebel"
+
+
+def ueber_dach_profil(z0, tief, wand_oben_z, tan):
+    """Querschnitt (s, z) des Koerpers, der alles UEBER einer Dachflaeche wegschneidet.
+
+    s = Abstand nach innen von der Fassade; die Dachlinie steigt von z0 an der
+    Wand mit `tan`. Die Oberkante muss ueber dem ENDE der Dachlinie liegen,
+    sonst kreuzt sich der Umriss und der Boolesche Schnitt gelingt nur
+    teilweise (onehalfstorey_045, 2026-10-21: Giebelwaende bis 8,7 m stehen
+    geblieben).
+    """
+    ende = z0 + tief * tan
+    oben = max(wand_oben_z, ende) + 5.0
+    return [(-3.0, z0 - 3.0 * tan), (tief, ende), (tief, oben), (-3.0, oben)]
+
+
+# --- Erker (anderthalb-erker-zwerch-v1) --------------------------------------
+# Rainer, 2026-10-22, onehalfstorey_vm2: "it is set as a 1,5 story but the
+# generated roof is totally off". Das Obergeschoss ist ein Rechteck mit einem
+# 0,82 m tiefen Erker -- der Erker ist die Front des Quergiebels.
+
+ERKER_MAX_M = 1.5
+
+
+def rechteck_mit_erkern(walls, tol=0.05):
+    """Obergeschoss = ein Rechteck plus flache Erker?
+
+    walls: [((sx, sy), (ex, ey))] Wandmitten in Metern, achsparallel.
+    Rueckgabe: ((x0, x1, y0, y1), [{"seite", "lo", "hi", "tiefe"}]) oder None.
+    Die Hauptlinie einer Seite ist die Wandflucht mit der groessten Laenge
+    nahe am Rand; was davor liegt (bis ERKER_MAX_M), ist ein Erker.
+    """
+    if not walls:
+        return None
+    senk = [w for w in walls if abs(w[0][0] - w[1][0]) < tol]
+    waag = [w for w in walls if abs(w[0][1] - w[1][1]) < tol]
+    if len(senk) + len(waag) != len(walls):
+        return None
+    xs = [c for w in walls for c in (w[0][0], w[1][0])]
+    ys = [c for w in walls for c in (w[0][1], w[1][1])]
+
+    def fluchten(liste, achse, rand, richtung):
+        """Wandfluchten nahe am Rand, die laengste zuerst."""
+        laengen = []
+        for w in liste:
+            c = w[0][achse]
+            if richtung * (c - rand) > -ERKER_MAX_M - tol:      # nahe am Rand
+                laenge = abs(w[0][1 - achse] - w[1][1 - achse])
+                for eintrag in laengen:
+                    if abs(eintrag[0] - c) < tol:
+                        eintrag[1] += laenge
+                        break
+                else:
+                    laengen.append([c, laenge])
+        return [e[0] for e in sorted(laengen, key=lambda e: -e[1])]
+
+    def nah(a, b):
+        return abs(a - b) < tol
+
+    def pruefe(x0, x1, y0, y1):
+        if x1 - x0 < 2.0 or y1 - y0 < 2.0:
+            return None
+        erker, seiten = [], []
+        for w in walls:
+            if w in senk:
+                x = w[0][0]
+                lo, hi = sorted((w[0][1], w[1][1]))
+                if nah(x, x0) or nah(x, x1):
+                    continue
+                if x > x1:
+                    erker.append({"seite": "east", "lo": lo, "hi": hi, "tiefe": x - x1})
+                elif x < x0:
+                    erker.append({"seite": "west", "lo": lo, "hi": hi, "tiefe": x0 - x})
+                else:
+                    seiten.append(("senk", x, lo, hi))
+            else:
+                y = w[0][1]
+                lo, hi = sorted((w[0][0], w[1][0]))
+                if nah(y, y0) or nah(y, y1):
+                    continue
+                if y > y1:
+                    erker.append({"seite": "north", "lo": lo, "hi": hi, "tiefe": y - y1})
+                elif y < y0:
+                    erker.append({"seite": "south", "lo": lo, "hi": hi, "tiefe": y0 - y})
+                else:
+                    seiten.append(("waag", y, lo, hi))
+        if any(e["tiefe"] > ERKER_MAX_M + tol for e in erker):
+            return None
+        # Jede Seitenwand gehoert zu einem Erker: an seinem Rand, von der
+        # Hauptlinie bis zur Erkerfront.
+        for art, c, lo, hi in seiten:
+            passt = False
+            for e in erker:
+                if art == "waag" and e["seite"] in ("east", "west") and (nah(c, e["lo"]) or nah(c, e["hi"])):
+                    basis = x1 if e["seite"] == "east" else x0 - e["tiefe"]
+                    passt = nah(lo, basis) and nah(hi, basis + e["tiefe"])
+                if art == "senk" and e["seite"] in ("north", "south") and (nah(c, e["lo"]) or nah(c, e["hi"])):
+                    basis = y1 if e["seite"] == "north" else y0 - e["tiefe"]
+                    passt = nah(lo, basis) and nah(hi, basis + e["tiefe"])
+                if passt:
+                    break
+            if not passt:
+                return None
+        # Eck-Erker (DG-MIT-KNIESTOCK-001, other_vito): reicht der Erker bis
+        # an die Hausecke, liegt seine eine Seitenwand in der Giebelflucht und
+        # zaehlt nicht mit -- er hat nur EINE eigene Seitenwand.
+        erwartet = 0
+        for e in erker:
+            enden = (x0, x1) if e["seite"] in ("north", "south") else (y0, y1)
+            buendig = sum(1 for k in (e["lo"], e["hi"]) if any(nah(k, r) for r in enden))
+            erwartet += 2 - buendig
+            if buendig:
+                # Eck-Erker: kein Zwerchgiebel, das Hauptdach laeuft darueber
+                # (other_vito, 2026-10-24: "why is there a quergiebel?").
+                e["ecke"] = True
+        if len(seiten) != erwartet:
+            return None
+        return erker
+
+    kx0 = fluchten(senk, 0, min(xs), -1)
+    kx1 = fluchten(senk, 0, max(xs), 1)
+    ky0 = fluchten(waag, 1, min(ys), -1)
+    ky1 = fluchten(waag, 1, max(ys), 1)
+    if not (kx0 and kx1 and ky0 and ky1):
+        return None
+    # Erst die laengste Flucht je Seite (wie bisher); passt das nicht, die
+    # anderen Fluchten nahe am Rand. Bei other_vito ist die Erkerfront
+    # (3,47 m) laenger als die zurueckliegende Hauswand (3,36 m).
+    for x0 in kx0[:3]:
+        for x1 in kx1[:3]:
+            for y0 in ky0[:3]:
+                for y1 in ky1[:3]:
+                    erker = pruefe(x0, x1, y0, y1)
+                    if erker is not None:
+                        return (x0, x1, y0, y1), erker
+    return None
+
+
+def _erker_front(e, bbox):
+    x0, x1, y0, y1 = bbox
+    return {"east": x1 + e["tiefe"], "west": x0 - e["tiefe"],
+            "north": y1 + e["tiefe"], "south": y0 - e["tiefe"]}[e["seite"]]
+
+
+def seite_mit_erker(start, end, bbox, erker, tol=0.3):
+    """Wie seite_von_wand, kennt aber auch Erkerfronten. -> (seite, vor) oder (None, 0.0)."""
+    seite = seite_von_wand(start, end, bbox, tol)
+    if seite:
+        return seite, 0.0
+    (sx, sy), (ex, ey) = start, end
+    for e in erker or []:
+        quer = e["seite"] in ("east", "west")
+        if quer and abs(sx - ex) < tol and abs((sx + ex) / 2 - _erker_front(e, bbox)) < tol:
+            return e["seite"], e["tiefe"]
+        if not quer and abs(sy - ey) < tol and abs((sy + ey) / 2 - _erker_front(e, bbox)) < tol:
+            return e["seite"], e["tiefe"]
+    return None, 0.0
+
+
+def _auf_erker(giebel_liste, erker, nur_seiten=None, neue=True):
+    """Ein Zwerch ueber einem Erker hat dessen Front: genau so breit, `vor` = Tiefe."""
+    for e in erker or []:
+        if nur_seiten is not None and e["seite"] not in nur_seiten:
+            continue
+        treffer = [g for g in giebel_liste if g["seite"] == e["seite"]
+                   and g["lo"] < e["hi"] and g["hi"] > e["lo"]]
+        if not treffer:
+            if neue:
+                giebel_liste.append({"seite": e["seite"], "lo": e["lo"], "hi": e["hi"],
+                                     "grund": "erker", "vor": e["tiefe"]})
+            continue
+        for g in treffer:
+            g["lo"], g["hi"], g["vor"] = e["lo"], e["hi"], e["tiefe"]
+    return giebel_liste
+
+
+def zwerch_seitenprofil(vorne, erker_vor, z_unten, wall_top_z, tiefe_wand, giebelwand_z):
+    """Querschnitt (s, z) einer Zwerch-Seitenwand.
+
+    Ohne Erker das Dreieck zwischen Hauptdach und Zwerchtraufe (wie bisher).
+    Mit Erker zusaetzlich das Stueck ueber dem Erker, von `z_unten` an --
+    dort hat der Traufschnitt die alte Erkerwand tiefer gekappt.
+    """
+    if erker_vor <= 0:
+        return [(-vorne, round(wall_top_z - 0.05, 6)), (tiefe_wand + 0.05, giebelwand_z),
+                (-vorne, giebelwand_z)]
+    return [(-vorne, z_unten), (-0.02, z_unten), (-0.02, round(wall_top_z - 0.05, 6)),
+            (tiefe_wand + 0.05, giebelwand_z), (-vorne, giebelwand_z)]
+
+
+def dachschraege_keil(seite, bbox, lo, hi, boden_z=0.0, tief=None, kniestock=KNIESTOCK_M,
+                      neigung_grad=NEIGUNG_GRAD):
+    """Keil, der im Dollhouse alles ueber der Dachschraege einer Traufseite wegschneidet.
+
+    dollhouse-dachschraege-v1 (Rainer 2026-10-22: "why are the walls so
+    chopped off?" -> "Slope like the roof"). Die Dachlinie: an der Wandlinie
+    der Traufseite boden_z + Kniestock, nach innen mit der Dachneigung
+    steigend. Entlang der Seite von lo bis hi. -> (verts, faces), Welt-Meter.
+    """
+    t = math.tan(math.radians(neigung_grad))
+    x0, x1, y0, y1 = bbox
+    if tief is None:
+        tief = max(x1 - x0, y1 - y0) + 4.0
+    profil = ueber_dach_profil(boden_z + kniestock, tief, boden_z + kniestock + tief * t, t)
+
+    def welt(e, s_, z_):
+        if seite == "north":
+            return (e, y1 - s_, z_)
+        if seite == "south":
+            return (e, y0 + s_, z_)
+        if seite == "east":
+            return (x1 - s_, e, z_)
+        return (x0 + s_, e, z_)
+    verts = [welt(lo, s_, z_) for s_, z_ in profil] + [welt(hi, s_, z_) for s_, z_ in profil]
+    faces = [[3, 2, 1, 0], [4, 5, 6, 7]] + [[i, (i + 1) % 4, 4 + (i + 1) % 4, 4 + i] for i in range(4)]
+    # Nord und West sind gespiegelt (y1 - s, x0 + s): ohne Umdrehen zeigt der
+    # Keil nach innen, und der Boolean schneidet NICHTS -- die Traufwand blieb
+    # voll hoch (other_vito, 2026-10-24: "the kniestock is missing").
+    if seite in ("north", "west"):
+        faces = [list(reversed(f)) for f in faces]
+    return verts, faces
