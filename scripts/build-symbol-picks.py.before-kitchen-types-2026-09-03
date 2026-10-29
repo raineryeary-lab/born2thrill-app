@@ -1,0 +1,180 @@
+# Map resolved Hub models onto Simplifier symbol keys.
+#
+# This replaces the size-match shortlist entirely. That approach ranked models
+# by measured dimensions against a library whose measurements were wrong, and it
+# put a vanity unit where a bath belonged. Here the type comes from the asset's
+# own name and the size has already been verified by
+# scripts/resolve-hub-scales.py, so nothing is being inferred.
+#
+# Each pick carries its scale divisor. The renderer must apply it on import —
+# the library holds three different authoring scales and a model imported at the
+# wrong one is worse than a missing model, because a missing model is visible
+# and a wrong one merely looks odd.
+#
+# Where a symbol has several candidates, both a modern and a classic choice are
+# recorded. That is how the four variants differ: same layout, same furniture
+# positions, different finish set.
+#
+# Usage:
+#   python scripts/build-symbol-picks.py
+
+import json
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
+RESOLVED = os.path.join(REPO, "tmp", "hub-models-resolved.json")
+OUT = os.path.join(REPO, "data", "symbol-model-picks.json")
+
+# Simplifier symbol key -> resolved type. Several symbols share a type: a
+# Trockner is the same 600 x 600 x 850 box as a Waschmaschine, often stacked on
+# it, so it reuses that model rather than needing its own.
+SYMBOL_TYPES = {
+    "badewanne": "bathtub",
+    "eckbadewanne": "corner_bath",
+    "dusche": "shower",
+    "dusche_gross": "shower",
+    "dusche_klein": "shower",
+    "wand_wc": "wc",
+    "waschtisch": "basin",
+    "handwaschbecken": "basin",
+    "doppelwaschtisch": "double_basin",
+    "badheizkoerper": "towel_radiator",
+    "spuele": "kitchen_sink",
+    "waschmaschine": "washer",
+    "trockner": "washer",
+    "ecksofa": "corner_sofa",
+    "sofa_3sitzer": "sofa_3",
+    "sofa_2sitzer": "sofa_2",
+    "sofa_1sitzer": "armchair",
+    "hocker": "stool",
+    "couchtisch": "coffee_table",
+    "essgruppe_6": "dining_set",
+    "fernseher": "tv",
+    "doppelbett": "bed",
+    "einzelbett": "bed",
+    "kleiderschrank": "wardrobe",
+    "schrank_60": "cupboard",
+    "schrank_40": "cupboard",
+    "abstellschrank": "cupboard",
+    "schreibtisch": "desk",
+    "schreibtisch_kind": "desk",
+}
+
+# Words that mark a model as leaning one way or the other. Used only to split
+# candidates between the modern and classic variants; a symbol with a single
+# candidate uses it for both.
+# What the SYMBOL means, where the type alone is not specific enough. Ranking
+# beds against a generic "bed" size put an 1120 mm single bed under Doppelbett;
+# a Doppelbett is 1800 wide and an Einzelbett 900, and the library has both.
+SYMBOL_EXPECTED_MM = {
+    "doppelbett": (1800, 2000),
+    "einzelbett": (900, 2000),
+    "schrank_40": (400, 600),
+    "schrank_60": (600, 600),
+    "kleiderschrank": (2000, 600),
+    "sofa_3sitzer": (2100, 900),
+    "sofa_2sitzer": (1700, 900),
+    "sofa_1sitzer": (900, 900),
+    "ecksofa": (2800, 2000),
+    "schreibtisch": (1600, 800),
+    "schreibtisch_kind": (1200, 600),
+    # A Waschtisch is a full basin; a Handwaschbecken is the small one. Ranked
+    # against a generic "basin" the 400 x 280 hand basin won both, which is why
+    # the Elternbad had a cloakroom sink in it.
+    "waschtisch": (600, 550),
+    "handwaschbecken": (450, 340),
+    "badewanne": (1700, 750),
+    "eckbadewanne": (1500, 1500),
+    "dusche": (930, 1360),
+    "dusche_gross": (990, 1200),
+    "dusche_klein": (800, 800),
+    "couchtisch": (1200, 600),
+    "essgruppe_6": (1800, 900),
+    "hocker": (600, 600),
+    "fernseher": (1230, 80),
+}
+
+
+def footprint_error(size_mm, expected):
+    got = sorted(size_mm[:2], reverse=True)
+    want = sorted(expected, reverse=True)
+    return sum(abs(a - b) / float(b) for a, b in zip(got, want)) / 2.0
+
+
+CLASSIC_WORDS = ("classic", "leather", "wooden", "wood", "parsons", "rounded", "tufted")
+MODERN_WORDS = ("modern", "grey", "graphite", "glass", "square", "light")
+
+
+def leaning(label):
+    lowered = label.lower()
+    classic = sum(word in lowered for word in CLASSIC_WORDS)
+    modern = sum(word in lowered for word in MODERN_WORDS)
+    if classic > modern:
+        return "classic"
+    if modern > classic:
+        return "modern"
+    return "neutral"
+
+
+def main():
+    with open(RESOLVED, "r", encoding="utf-8") as handle:
+        resolved = json.load(handle)["resolved"]
+
+    by_type = {}
+    for item in resolved:
+        if not item.get("size_mm"):
+            continue
+        by_type.setdefault(item["type"], []).append(item)
+
+    picks = {}
+    missing = []
+    for key, kind in sorted(SYMBOL_TYPES.items()):
+        candidates = by_type.get(kind) or []
+        if not candidates:
+            missing.append((key, kind))
+            continue
+
+        # Closest fit to its nominal size first, so a symbol gets the most
+        # typical example of its type rather than an outlier.
+        # Rank against what THIS symbol is, not against its broad type.
+        expected = SYMBOL_EXPECTED_MM.get(key)
+        if expected:
+            candidates = sorted(candidates,
+                                key=lambda i: footprint_error(i["size_mm"], expected))
+        else:
+            candidates = sorted(candidates, key=lambda i: i.get("fit_error", 1.0))
+        classic = next((c for c in candidates if leaning(c["label"]) == "classic"), candidates[0])
+        modern = next((c for c in candidates if leaning(c["label"]) == "modern"), candidates[0])
+
+        picks[key] = {
+            "type": kind,
+            "modern": {"path": modern["path"], "divisor": modern["divisor"],
+                       "label": modern["label"], "size_mm": modern["size_mm"]},
+            "classic": {"path": classic["path"], "divisor": classic["divisor"],
+                        "label": classic["label"], "size_mm": classic["size_mm"]},
+            "candidates": len(candidates),
+        }
+
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    with open(OUT, "w", encoding="utf-8") as handle:
+        json.dump({
+            "schema": "dmh-symbol-model-picks-v2",
+            "note": "Types come from the assets' own names; sizes verified by "
+                    "resolve-hub-scales.py. Apply `divisor` on import — the "
+                    "library holds three different authoring scales.",
+            "picks": picks,
+        }, handle, indent=1)
+
+    print(f"[picks] {len(picks)} symbols mapped, {len(missing)} without a model")
+    for key, item in sorted(picks.items()):
+        same = item["modern"]["label"] == item["classic"]["label"]
+        note = "same for both" if same else f"classic: {item['classic']['label'][:28]}"
+        print(f"[picks] {key:20} {item['modern']['label'][:32]:32} "
+              f"/{item['modern']['divisor']:<5} {item['modern']['size_mm']}  {note}")
+    for key, kind in missing:
+        print(f"[picks] NO MODEL {key:20} (type {kind}) -> build as a box")
+
+
+if __name__ == "__main__":
+    main()

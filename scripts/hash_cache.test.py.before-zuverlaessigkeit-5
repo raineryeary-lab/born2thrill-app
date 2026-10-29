@@ -1,0 +1,454 @@
+"""ZUVERLAESSIGKEIT-001 (A3/A4): the house list re-read 24.75 GB of .blend on
+every load (23.8 of its 37 seconds), and one checksum warning on stdout broke
+the JSON of haus-zustand.py --alle -- the route then showed EVERY house as
+uncertified. The checksum stays; it is only skipped when path, size and
+mtime are unchanged since it was last computed."""
+import importlib.util
+import io
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+from contextlib import redirect_stderr, redirect_stdout
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+PLAN = "zz_hashcache_testhaus"
+
+
+def lade(data):
+    os.environ["FLOORPLAN_WORKBENCH_DATA_DIR"] = data
+    spec = importlib.util.spec_from_file_location("batch_build_cache_test",
+                                                  os.path.join(HERE, "batch-build.py"))
+    modul = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modul)
+    return modul
+
+
+def lieferung(b, data, inhalt=b"blend-inhalt", sha=None):
+    ordner = os.path.join(data, "corrections", PLAN, "renders", "go-baseline")
+    os.makedirs(ordner, exist_ok=True)
+    pfad = os.path.join(ordner, "a.blend")
+    with open(pfad, "wb") as handle:
+        handle.write(inhalt)
+    manifest = {"schema": "zf-delivery-manifest-v1", "toolchain": b.toolchain_now(),
+                "furniture_fingerprint": None, "expected_blends": 1,
+                "input_hash": "eingang",
+                "artifacts": [{"file": "a.blend", "bytes": len(inhalt),
+                               "sha256": sha or b._sha256(pfad)}]}
+    with open(os.path.join(ordner, "delivery-manifest.json"), "w", encoding="utf-8") as handle:
+        json.dump(manifest, handle)
+    return pfad
+
+
+class HashCache(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.data = self.tmp.name
+        self.b = lade(self.data)
+        self.b.HASH_CACHE_ERLAUBT = True   # wie haus-zustand.py --alle
+        self.zaehler = 0
+        echt = self.b._sha256
+
+        def gezaehlt(pfad):
+            self.zaehler += 1
+            return echt(pfad)
+        self.b._sha256 = gezaehlt
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_zweiter_aufruf_rechnet_nicht_nach(self):
+        lieferung(self.b, self.data)
+        self.zaehler = 0
+        self.assertEqual(self.b.built_hash(PLAN), "eingang")
+        self.assertEqual(self.zaehler, 1)
+        self.assertEqual(self.b.built_hash(PLAN), "eingang")
+        self.assertEqual(self.zaehler, 1)
+
+    def test_cache_ueberlebt_den_prozess(self):
+        lieferung(self.b, self.data)
+        self.b.built_hash(PLAN)
+        self.b.speichere_hash_cache()
+        neu = lade(self.data)
+        neu.HASH_CACHE_ERLAUBT = True
+        aufrufe = []
+        echt = neu._sha256
+        neu._sha256 = lambda p: aufrufe.append(p) or echt(p)
+        self.assertEqual(neu.built_hash(PLAN), "eingang")
+        self.assertEqual(aufrufe, [])
+
+    def test_geaenderte_datei_wird_neu_gerechnet(self):
+        pfad = lieferung(self.b, self.data)
+        self.b.built_hash(PLAN)
+        # gleiche Groesse, anderer Inhalt, neue mtime -> neu rechnen, Abweichung
+        with open(pfad, "wb") as handle:
+            handle.write(b"BLEND-INHALT")
+        st = os.stat(pfad)
+        os.utime(pfad, ns=(st.st_atime_ns, st.st_mtime_ns + 5_000_000_000))
+        self.zaehler = 0
+        with redirect_stderr(io.StringIO()):
+            self.assertIsNone(self.b.built_hash(PLAN))
+        self.assertEqual(self.zaehler, 1)
+
+    def test_falsche_pruefsumme_bleibt_erkannt(self):
+        lieferung(self.b, self.data, sha="0" * 64)
+        with redirect_stderr(io.StringIO()):
+            self.assertIsNone(self.b.built_hash(PLAN))
+            self.assertIsNone(self.b.built_hash(PLAN))   # auch aus dem Cache
+
+    def test_warnung_nicht_auf_stdout(self):
+        lieferung(self.b, self.data, sha="0" * 64)
+        aus, fehler = io.StringIO(), io.StringIO()
+        with redirect_stdout(aus), redirect_stderr(fehler):
+            self.b.built_hash(PLAN)
+        self.assertEqual(aus.getvalue(), "")
+        self.assertIn("Pruefsumme", fehler.getvalue())
+
+    def test_kaputter_cache_wird_ignoriert(self):
+        with open(os.path.join(self.data, "hash-cache.json"), "w") as handle:
+            handle.write("{kaputt")
+        neu = lade(self.data)
+        lieferung(neu, self.data)
+        self.assertEqual(neu.built_hash(PLAN), "eingang")
+
+
+class HausZustandJson(unittest.TestCase):
+    def test_ausgabe_bleibt_json_bei_pruefsummenfehler(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            lieferung(b, data, sha="0" * 64)
+            env = dict(os.environ, FLOORPLAN_WORKBENCH_DATA_DIR=data)
+            lauf = subprocess.run([sys.executable, os.path.join(HERE, "haus-zustand.py"), PLAN],
+                                  capture_output=True, text=True, env=env, encoding="utf-8")
+            self.assertEqual(lauf.returncode, 0, lauf.stderr)
+            daten = json.loads(lauf.stdout)
+            self.assertFalse(daten[PLAN]["aktuell"])
+            self.assertIn("Pruefsumme", lauf.stderr)
+
+
+class StrengerPfadOhneCache(unittest.TestCase):
+    """Runde 2: Groesse + mtime beweisen keine gleichen Bytes. Bau, Upload,
+    Codex-Auftrag (alles ausser der Hausliste) rechnen immer nach."""
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.data = self.tmp.name
+        self.b = lade(self.data)
+        self.zaehler = 0
+        echt = self.b._sha256
+
+        def gezaehlt(pfad):
+            self.zaehler += 1
+            return echt(pfad)
+        self.b._sha256 = gezaehlt
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_voreinstellung_ist_aus(self):
+        self.assertFalse(self.b.HASH_CACHE_ERLAUBT)
+
+    def test_strenger_pfad_rechnet_jedes_mal(self):
+        lieferung(self.b, self.data)
+        self.zaehler = 0
+        self.b.built_hash(PLAN)
+        self.b.built_hash(PLAN)
+        self.assertEqual(self.zaehler, 2)
+        self.assertFalse(os.path.exists(os.path.join(self.data, "hash-cache.json"))
+                         and self.b._hash_cache_geaendert)
+
+    def test_gleiche_metadaten_neuer_inhalt_wird_erkannt(self):
+        # genau der Fall, den der Cache nicht sehen kann
+        pfad = lieferung(self.b, self.data)
+        self.b.HASH_CACHE_ERLAUBT = True
+        self.b.built_hash(PLAN)
+        st = os.stat(pfad)
+        with open(pfad, "wb") as handle:
+            handle.write(b"BLEND-INHALT")          # gleiche Laenge
+        os.utime(pfad, ns=(st.st_atime_ns, st.st_mtime_ns))
+        self.b.HASH_CACHE_ERLAUBT = False
+        with redirect_stderr(io.StringIO()):
+            self.assertIsNone(self.b.built_hash(PLAN))
+
+    def test_haus_zustand_einzeln_ohne_cache_alle_mit(self):
+        with open(os.path.join(HERE, "haus-zustand.py"), encoding="utf-8") as handle:
+            quelle = handle.read()
+        self.assertEqual(quelle.count("HASH_CACHE_ERLAUBT = True"), 1)
+        alle = quelle.index("else:", quelle.index("def main"))
+        self.assertGreater(quelle.index("HASH_CACHE_ERLAUBT = True"), alle)
+
+
+class WackelndeDatei(unittest.TestCase):
+    def test_datei_bewegt_sich_beim_lesen_gilt_nicht_als_verifiziert(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            b.HASH_CACHE_ERLAUBT = True
+            pfad = lieferung(b, data)
+            echt = b._sha256
+
+            def schiebt(p):
+                wert = echt(p)
+                st = os.stat(p)
+                os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000_000))
+                return wert
+            b._sha256 = schiebt
+            self.assertIsNone(b._sha256_gecacht(pfad))
+            self.assertNotIn(os.path.realpath(pfad), b._cache())
+
+
+class CacheZusammenfuehren(unittest.TestCase):
+    def test_paralleler_prozess_verliert_keine_eintraege(self):
+        with tempfile.TemporaryDirectory() as data:
+            a, c = lade(data), lade(data)
+            a._cache(); c._cache()
+            a._hash_cache["x"] = {"size": 1, "mtime_ns": 5, "sha256": "aa"}
+            a._hash_cache_geaendert = True
+            c._hash_cache["y"] = {"size": 1, "mtime_ns": 5, "sha256": "bb"}
+            c._hash_cache["x"] = {"size": 1, "mtime_ns": 3, "sha256": "alt"}
+            c._hash_cache_geaendert = True
+            a.speichere_hash_cache()
+            c.speichere_hash_cache()
+            with open(os.path.join(data, "hash-cache.json"), encoding="utf-8") as handle:
+                platte = json.load(handle)
+            self.assertEqual(platte["y"]["sha256"], "bb")
+            self.assertEqual(platte["x"]["sha256"], "aa")   # neuere mtime gewinnt
+
+
+class StrengerPfadStabilesLesen(unittest.TestCase):
+    """Runde 3 (Codex): auch ohne Cache gilt eine Datei, die sich WAEHREND
+    des Lesens bewegt, nicht als verifiziert."""
+    def test_datei_bewegt_sich_strenger_pfad_nicht_verifiziert(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            self.assertFalse(b.HASH_CACHE_ERLAUBT)
+            pfad = lieferung(b, data)
+            echt = b._sha256
+
+            def schiebt(p):
+                wert = echt(p)
+                st = os.stat(p)
+                os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000_000))
+                return wert
+            b._sha256 = schiebt
+            self.assertIsNone(b._artefakt_sha256(pfad))
+            with redirect_stderr(io.StringIO()):
+                self.assertIsNone(b.built_hash(PLAN))
+
+    def test_einmal_bewegt_dann_ruhig_wird_neu_gelesen(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            pfad = lieferung(b, data)
+            echt = b._sha256
+            aufrufe = []
+
+            def einmal(p):
+                wert = echt(p)
+                if not aufrufe:
+                    st = os.stat(p)
+                    os.utime(p, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000_000))
+                aufrufe.append(p)
+                return wert
+            b._sha256 = einmal
+            self.assertEqual(b._artefakt_sha256(pfad), echt(pfad))
+            self.assertEqual(len(aufrufe), 2)
+
+
+HALTER = r"""
+import os, sys, time
+sys.path.insert(0, sys.argv[1])
+import importlib.util
+os.environ["FLOORPLAN_WORKBENCH_DATA_DIR"] = sys.argv[2]
+spec = importlib.util.spec_from_file_location("bb", os.path.join(sys.argv[1], "batch-build.py"))
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+with m._datei_sperre(m.HASH_CACHE_SPERRE, warten_s=5) as ok:
+    print("gehalten" if ok else "frei?", flush=True)
+    time.sleep(float(sys.argv[3]))
+"""
+
+
+class CacheSpeichernGesperrt(unittest.TestCase):
+    """Runde 3 (Codex): Einlesen-Zusammenfuehren-Ersetzen war ungesperrt."""
+    def test_besetzte_sperre_schreibt_nicht_und_behaelt_aenderung(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            b._cache()
+            b._hash_cache["x"] = {"size": 1, "mtime_ns": 5, "sha256": "aa"}
+            b._hash_cache_geaendert = True
+            b.CACHE_SPERRE_WARTEN_S = 0.3
+            halter = subprocess.Popen([sys.executable, "-c", HALTER, HERE, data, "3"],
+                                      stdout=subprocess.PIPE, text=True)
+            try:
+                self.assertEqual(halter.stdout.readline().strip(), "gehalten")
+                with redirect_stderr(io.StringIO()):
+                    b.speichere_hash_cache()
+                self.assertFalse(os.path.exists(os.path.join(data, "hash-cache.json")))
+                self.assertTrue(b._hash_cache_geaendert)
+            finally:
+                halter.kill()
+                halter.wait()
+                halter.stdout.close()
+            b.speichere_hash_cache()
+            with open(os.path.join(data, "hash-cache.json"), encoding="utf-8") as handle:
+                self.assertEqual(json.load(handle)["x"]["sha256"], "aa")
+            self.assertFalse(b._hash_cache_geaendert)
+
+
+class HausZustandFehlerIstUnbekannt(unittest.TestCase):
+    """Runde 3 (Codex): eine unlesbare Datei ergab einen normal aussehenden
+    Eintrag (zertifikat:false) -> die Liste empfahl Bauen. Jetzt fehler:true."""
+    def lade_zustand(self, data):
+        os.environ["FLOORPLAN_WORKBENCH_DATA_DIR"] = data
+        spec = importlib.util.spec_from_file_location("haus_zustand_r3",
+                                                      os.path.join(HERE, "haus-zustand.py"))
+        modul = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modul)
+        return modul
+
+    def test_permission_error_im_zertifikat(self):
+        with tempfile.TemporaryDirectory() as data:
+            z = self.lade_zustand(data)
+            b = z.batch_build()
+
+            def verweigert(*_a, **_k):
+                raise PermissionError("Zugriff verweigert")
+            b.built_hash = verweigert
+            b.annotation_state = verweigert
+            ergebnis = z.zustand(PLAN)
+            self.assertTrue(ergebnis["fehler"])
+            self.assertFalse(ergebnis["zertifikat"])
+            self.assertFalse(ergebnis["aktuell"])
+            self.assertIn("Zugriff verweigert", ergebnis["grund"])
+
+    def test_permission_error_in_der_annotation(self):
+        with tempfile.TemporaryDirectory() as data:
+            z = self.lade_zustand(data)
+            b = z.batch_build()
+            b.built_hash = lambda *_a, **_k: "eingang"
+
+            def verweigert(*_a, **_k):
+                raise PermissionError("Annotation gesperrt")
+            b.annotation_state = verweigert
+            ergebnis = z.zustand(PLAN)
+            self.assertTrue(ergebnis["fehler"])
+            self.assertFalse(ergebnis["aktuell"])
+
+    def test_unerwarteter_fehler_im_listenlauf_bleibt_json(self):
+        with tempfile.TemporaryDirectory() as data:
+            z = self.lade_zustand(data)
+
+            def kaputt(_plan):
+                raise PermissionError("weg")
+            z.zustand = kaputt
+            puffer = io.StringIO()
+            with redirect_stdout(puffer):
+                z.main([PLAN])
+            daten = json.loads(puffer.getvalue())
+            self.assertTrue(daten[PLAN]["fehler"])
+            self.assertFalse(daten[PLAN]["aktuell"])
+
+    def test_normaler_eintrag_ohne_fehlerfeld(self):
+        with tempfile.TemporaryDirectory() as data:
+            z = self.lade_zustand(data)
+            ergebnis = z.zustand(PLAN)   # nie gebaut
+            self.assertNotIn("fehler", ergebnis)
+
+
+class LesefehlerAnDerDateigrenze(unittest.TestCase):
+    """Runde 4 (Codex R1): read_json() schluckte JEDEN Fehler und gab None --
+    ein gesperrtes Zertifikat sah aus wie "nie gebaut", die fehler:true-Zweige
+    wurden nie erreicht. Der Test der Runde 3 ersetzte built_hash() selbst und
+    sah das nicht. Hier wird am echten open() gesperrt."""
+
+    def lade_zustand(self, data):
+        os.environ["FLOORPLAN_WORKBENCH_DATA_DIR"] = data
+        spec = importlib.util.spec_from_file_location("haus_zustand_r4",
+                                                      os.path.join(HERE, "haus-zustand.py"))
+        modul = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(modul)
+        return modul
+
+    def _sperre_open(self, endung):
+        import builtins
+        echt = builtins.open
+
+        def gesperrt(pfad, *a, **k):
+            if str(pfad).replace("\\", "/").endswith(endung):
+                raise PermissionError(13, "Zugriff verweigert", str(pfad))
+            return echt(pfad, *a, **k)
+        return mock_patch("builtins.open", gesperrt)
+
+    def test_gesperrtes_zertifikat_ist_unbekannt_nicht_nie_gebaut(self):
+        with tempfile.TemporaryDirectory() as data:
+            z = self.lade_zustand(data)
+            lieferung(z.batch_build(), data)
+            with self._sperre_open("go-baseline/delivery-manifest.json"):
+                ergebnis = z.zustand_sicher(PLAN)
+            self.assertTrue(ergebnis.get("fehler"), ergebnis)
+            self.assertFalse(ergebnis["aktuell"])
+            self.assertIn("Zugriff verweigert", ergebnis["grund"])
+
+    def test_kaputtes_zertifikat_ist_unbekannt(self):
+        with tempfile.TemporaryDirectory() as data:
+            z = self.lade_zustand(data)
+            lieferung(z.batch_build(), data)
+            pfad = os.path.join(data, "corrections", PLAN, "renders", "go-baseline",
+                                "delivery-manifest.json")
+            with open(pfad, "w", encoding="utf-8") as handle:
+                handle.write('{"schema": "zf-deliv')
+            ergebnis = z.zustand_sicher(PLAN)
+            self.assertTrue(ergebnis.get("fehler"), ergebnis)
+
+    def test_fehlendes_zertifikat_bleibt_nie_gebaut(self):
+        with tempfile.TemporaryDirectory() as data:
+            z = self.lade_zustand(data)
+            ergebnis = z.zustand_sicher(PLAN)
+            self.assertNotIn("fehler", ergebnis)
+            self.assertFalse(ergebnis["zertifikat"])
+
+    def test_strikter_leser(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            self.assertIsNone(b.read_json_strikt(os.path.join(data, "gibt-es-nicht.json")))
+            kaputt = os.path.join(data, "kaputt.json")
+            with open(kaputt, "w", encoding="utf-8") as handle:
+                handle.write("{")
+            with self.assertRaises(ValueError):
+                b.read_json_strikt(kaputt)
+            with self._sperre_open("gesperrt.json"):
+                with self.assertRaises(PermissionError):
+                    b.read_json_strikt(os.path.join(data, "gesperrt.json"))
+
+    def test_gesperrte_annotation_wirft_statt_keine_annotation(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            projekte = os.path.join(data, "projekte")
+            os.makedirs(os.path.join(projekte, PLAN))
+            with open(os.path.join(projekte, PLAN, "annotations.json"), "w", encoding="utf-8") as h:
+                json.dump({"annotations": []}, h)
+            b.PROJECTS = projekte
+            with self._sperre_open(PLAN + "/annotations.json"):
+                with self.assertRaises(PermissionError):
+                    b.annotation_state(PLAN)
+            # ohne Sperre: normale Antwort, kein Fehler
+            self.assertEqual(b.annotation_state(PLAN), (None, "keine annotierten Geschosse"))
+
+    def test_kaputtes_gebaeudemass_wirft(self):
+        with tempfile.TemporaryDirectory() as data:
+            b = lade(data)
+            projekte = os.path.join(data, "projekte")
+            os.makedirs(os.path.join(projekte, PLAN))
+            with open(os.path.join(projekte, PLAN, "annotations.json"), "w", encoding="utf-8") as h:
+                json.dump({"annotations": []}, h)
+            with open(os.path.join(projekte, PLAN, "gebaeudemass.json"), "w", encoding="utf-8") as h:
+                h.write("{kaputt")
+            b.PROJECTS = projekte
+            with self.assertRaises(ValueError):
+                b.annotation_state(PLAN)
+
+
+from unittest.mock import patch as mock_patch  # noqa: E402
+
+
+if __name__ == "__main__":
+    unittest.main()

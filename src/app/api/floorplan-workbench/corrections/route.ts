@@ -1,13 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
-import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
+import { mkdir, open, readFile, readdir, rename, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import sharp from "sharp";
 import { approvedGeometryHash, validateCorrectionDocument, withUpdatedHash } from "@/lib/generator/correction-editor.mjs";
 import { doorColour, FLOORPLAN_RULES } from "@/lib/generator/floorplan-rulebook.mjs";
 import { buildBlenderSceneManifest } from "@/lib/generator/blender-scene-manifest.mjs";
 import { planRoomFurniture } from "@/lib/generator/furniture-placement.mjs";
+import {
+  emptyFurnitureDocument,
+  normalizeFurnitureDocument,
+} from "@/lib/generator/furniture-document.mjs";
 import { FURNITURE_STYLES } from "@/lib/generator/furniture-catalog.mjs";
 
 export const runtime = "nodejs";
@@ -31,10 +35,16 @@ function enabled(request: Request) {
 }
 
 function dataRoot() {
+  // Nicht raten. 2026-08-21: kein stiller Rueckfall auf ein
+  // Temp-/LocalAppData-Verzeichnis -- das waere eine DRITTE, komplett
+  // eigene Datenwurzel gewesen, unabhaengig vom root-merge-Vorfall vom
+  // 18.08., aber genauso still (Codex-Review, 2026-08-21).
   const configured = process.env.FLOORPLAN_WORKBENCH_DATA_DIR?.trim();
-  return configured
-    ? resolve(configured)
-    : join(process.env.LOCALAPPDATA || process.env.TEMP || ".", "Born2Thrill", "floorplan-workbench");
+  if (!configured) {
+    throw new Error("FLOORPLAN_WORKBENCH_DATA_DIR ist nicht gesetzt -- "
+      + "verweigere, den Datenordner zu erraten. Siehe .env.local.");
+  }
+  return resolve(configured);
 }
 
 function appRepoDir() {
@@ -75,10 +85,25 @@ function safeReference(value: unknown) {
   return reference;
 }
 
+/**
+ * READ ONLY. It used to mkdir the revisions folder, which meant merely OPENING
+ * a project created an empty `revisions/` shell for it -- including in the
+ * wrong data root. That shell then reads as "this project has no approved
+ * revision" rather than "you are looking in the wrong place", which is exactly
+ * how send_to_render refused twostorey_030 on 2026-08-18 while its eight
+ * revisions sat in the other root.
+ *
+ * Looking at something must not change it. The one caller that writes creates
+ * the folder itself.
+ */
 async function revisionFiles(reference: string) {
   const directory = join(dataRoot(), "corrections", reference, "revisions");
-  await mkdir(directory, { recursive: true });
-  const files = (await readdir(directory)).filter((file) => /^revision-\d{4}\.json$/.test(file)).sort();
+  let files: string[] = [];
+  try {
+    files = (await readdir(directory)).filter((file) => /^revision-\d{4}\.json$/.test(file)).sort();
+  } catch {
+    // no revisions folder yet -- that is a fact about the project, not an error
+  }
   return { directory, files };
 }
 
@@ -94,6 +119,8 @@ function commercialApprovalSatisfied(document: any) {
 async function saveRevision(input: any, requestedStatus?: string) {
   const reference = safeReference(input.source_reference_id);
   const { directory, files } = await revisionFiles(reference);
+  // The writer creates the folder, the reader never does.
+  await mkdir(directory, { recursive: true });
   const revision = files.length + 1;
   const document = withUpdatedHash(structuredClone(input));
   document.revision = revision;
@@ -355,6 +382,103 @@ async function preview(document: any) {
 const BLENDER_EXECUTABLE = ["C:", "Program Files", "Blender Foundation", "Blender 5.0", "blender.exe"].join("\\");
 const BLENDER_SCRIPT = join(process.cwd(), "scripts", "export-floorplan-blender.py");
 
+/**
+ * Hand the finished furniture off to the delivery build.
+ *
+ * Rainer, 2026-08-18: the furniture panel's button should say "Möbel
+ * speichern" while there are unsaved changes and "An Render senden" once
+ * there are none. This is what the second state does.
+ *
+ * It refuses without an APPROVED revision: renders may only come from approved
+ * geometry, and a build started from a draft would produce a deliverable that
+ * cannot legitimately be delivered.
+ *
+ * The build takes minutes, so it is detached and this returns straight away
+ * with the folder and log to watch. Nothing here waits on Blender.
+ */
+async function sendToRender(reference: string) {
+  if (!reference) return { ok: false, status: 400, error: "Unknown reference." };
+
+  // EINE Datenwurzel. Bis 2026-08-21 wurde hier zusaetzlich ein fest
+  // verdrahteter Nachbarordner durchsucht (Ueberbleibsel des root-merge vom
+  // 18.08., als zwei Wurzeln gleichzeitig in Benutzung waren). Das war
+  // harmlos, solange beide Pfade zufaellig gleich waren -- Codex, beim naechsten
+  // geplanten Umzug nach E: gefragt: "API durchsucht ausdruecklich zusaetzlich
+  // den alten Root ... erneuter stiller C:-Root realistisch." Nach einem Umzug
+  // waeren beide verschieden gewesen und ein STILLES Ausweichen auf den alten,
+  // moeglicherweise veralteten Ordner haette denselben Fehler wiederholt, nur
+  // umgekehrt. FLOORPLAN_WORKBENCH_DATA_DIR ist die einzige gueltige Quelle.
+  const roots = [dataRoot()];
+  let approved: string | null = null;
+  let projectRoot: string | null = null;
+  const looked: string[] = [];
+  for (const root of roots) {
+    const revisionsDir = join(root, "corrections", reference, "revisions");
+    looked.push(revisionsDir);
+    let names: string[] = [];
+    try {
+      names = (await readdir(revisionsDir)).filter((n) => n.endsWith(".json")).sort().reverse();
+    } catch {
+      continue;
+    }
+    for (const name of names) {
+      try {
+        const parsed = JSON.parse(await readFile(join(revisionsDir, name), "utf8"));
+        if (parsed?.status === "approved") {
+          approved = join(revisionsDir, name);
+          projectRoot = root;
+          break;
+        }
+      } catch {
+        // unreadable revision -- keep looking rather than fail the whole run
+      }
+    }
+    if (approved) break;
+  }
+  if (!approved || !projectRoot) {
+    return {
+      ok: false, status: 409,
+      error: "Keine freigegebene Revision — Renders dürfen nur aus freigegebener Geometrie entstehen. "
+           + `Gesucht in: ${looked.join(" | ")}`,
+    };
+  }
+
+  // How many storeys to render comes from the approved geometry itself, not
+  // from whatever the client happened to send.
+  let floors: string[] = ["0"];
+  try {
+    const parsed = JSON.parse(await readFile(approved, "utf8"));
+    const count = Array.isArray(parsed?.floors) ? parsed.floors.length
+      : Array.isArray(parsed?.source_annotation?.floors) ? parsed.source_annotation.floors.length : 1;
+    floors = Array.from({ length: Math.max(1, count) }, (_, index) => String(index));
+  } catch {
+    // fall back to the ground floor rather than guessing wider
+  }
+  const python = process.env.FLOORPLAN_PYTHON?.trim() || "python";
+  const script = join(process.cwd(), "scripts", "run_project.py");
+  const outDir = join(projectRoot, "corrections", reference, "renders", "go-baseline");
+  await mkdir(outDir, { recursive: true });
+  const logPath = join(outDir, "send-to-render.log");
+  const log = await open(logPath, "a");
+  const child = spawn(
+    python,
+    [script, reference, "--styles", "modern,classic", "--floors", floors.join(",") || "0",
+     "--corrected", approved],
+    { cwd: process.cwd(), detached: true, windowsHide: true, stdio: ["ignore", log.fd, log.fd] },
+  );
+  child.unref();
+  await log.close();
+
+  return {
+    ok: true, status: 202,
+    reference,
+    approved_revision: approved,
+    floors: floors.length || 1,
+    out_dir: outDir,
+    log_path: logPath,
+  };
+}
+
 async function renderBlender(document: any, view: string) {
   const normalized = withUpdatedHash(document);
   const validation = validateCorrectionDocument(normalized);
@@ -404,6 +528,177 @@ function rearrangeRoom(document: any, floorId: string, roomId: string, style: st
   return { ok: true, status: 200, floor_id: floorId, room_id: roomId, style, placement: plan };
 }
 
+
+// --- furniture -------------------------------------------------------------
+// Hand-placed furnishing for one floor, in millimetres. It lives beside the
+// revisions but never inside the correction document: furniture is
+// presentation data and must not move geometry_hash. See
+// plans/move-furniture-to-workbench.md.
+
+function furniturePath(reference: string, floorId: string) {
+  const floor = String(floorId || "").replace(/[^a-zA-Z0-9._-]/g, "") || "groundfloor";
+  return join(dataRoot(), "corrections", reference, "furniture", `${floor}.json`);
+}
+
+async function loadFurniture(reference: string, floorId: string) {
+  const path = furniturePath(reference, floorId);
+  try {
+    return JSON.parse(await readFile(path, "utf8"));
+  } catch {
+    return emptyFurnitureDocument(reference, floorId);
+  }
+}
+
+/** Identitaet der heutigen Zeichnung (Annotation + Gebaeudemass), aus der
+ *  EINEN Quelle -- batch-build.annotation_state via haus-zustand.py. Moebel
+ *  werden damit gestempelt, damit ein Grundriss, der auf einer anderen
+ *  Zeichnung gesetzt wurde, nicht still mitgebaut wird. null = nicht
+ *  ermittelbar; dann bleibt der Stempel weg und der Bau behandelt das
+ *  Dokument wie Altbestand. */
+async function geometrieIdentitaet(reference: string, floorId: string): Promise<string | null> {
+  const suite = resolve(process.cwd(), "..");
+  const script = join(suite, "born2thrill-local-workbench", "scripts",
+                      "build-simplifier-render-plan.py");
+  const python = process.env.FLOORPLAN_PYTHON?.trim() || process.env.PYTHON_EXECUTABLE || "python";
+  return new Promise((fertig) => {
+    let out = "";
+    const kind = spawn(python, [script, "--geometrie-id", reference, floorId],
+                       { cwd: join(suite, "born2thrill-local-workbench") });
+    kind.stdout.on("data", (c) => { if (out.length < 100_000) out += String(c); });
+    kind.on("error", () => fertig(null));
+    kind.on("close", () => {
+      const zeilen = out.trim().split(String.fromCharCode(10))
+        .map((z) => z.trim()).filter(Boolean);
+      const zeile = zeilen.length ? zeilen[zeilen.length - 1] : "";
+      fertig(/^[0-9a-f]{64}$/.test(zeile) ? zeile : null);
+    });
+  });
+}
+
+async function saveFurniture(reference: string, floorId: string, document: any,
+                             allowClear = false, displayedGeometryIdentity?: string) {
+  const heutigeIdentitaet = await geometrieIdentitaet(reference, floorId);
+  // Rainer, 2026-09-18, twostorey_047: 21 of 21 placed items found reflected
+  // into the wrong room. Root cause (Codex, confirmed): this function always
+  // stamped whatever `geometrieIdentitaet()` says RIGHT NOW -- if the
+  // annotation's rooms changed between the Moebel tab loading its geometry
+  // (render_geometry, which now returns that snapshot's OWN identity) and
+  // the user clicking Save, the save re-stamped the NEW identity onto
+  // coordinates the user placed against the OLD layout. The existing
+  // staleness check in workbench_furniture() compares this exact identity
+  // and would have caught a stale file -- but a save like this hands it a
+  // FRESH-looking stamp, so it can never fire again. `_047`'s stored
+  // geometry_identity matched the day's annotation exactly, which is why
+  // that check stayed silent while every item stood in the wrong room.
+  //
+  // Fix: the client now sends back the identity it actually displayed
+  // (`renderGeo`'s own `geometry_identity` for this floor). If it disagrees
+  // with today's, the rooms moved on since the editor loaded -- refuse
+  // instead of silently re-stamping, same "refuse, don't approximate"
+  // policy already used for the empty-overwrite and legacy-space cases
+  // below and in build-simplifier-render-plan.py.
+  if (displayedGeometryIdentity && heutigeIdentitaet
+      && displayedGeometryIdentity !== heutigeIdentitaet) {
+    return {
+      ok: false, status: 409,
+      error: `Die Raeume dieses Geschosses wurden umgezeichnet, seit die Moebel-Ansicht `
+           + `geladen wurde (angezeigt ${displayedGeometryIdentity.slice(0, 12)}, jetzt `
+           + `${heutigeIdentitaet.slice(0, 12)}). Seite neu laden und die Moebel dort `
+           + `pruefen, wo sie jetzt tatsaechlich stehen, bevor gespeichert wird.`,
+    };
+  }
+  let normalized;
+  try {
+    // Was der Editor zeigt, ist die registrierte Geometrie des Compilers --
+    // frisch gespeicherte Koordinaten sind also registrierte Koordinaten.
+    normalized = normalizeFurnitureDocument(document, {
+      projectId: reference,
+      floorId,
+      geometryIdentity: heutigeIdentitaet,
+      floorRegistration: "alignment-marks-v1",
+    });
+  } catch (error) {
+    // A bad symbol key renders as nothing at all and is invisible until
+    // someone looks at a picture — refuse it at the door.
+    return { ok: false, status: 422, error: error instanceof Error ? error.message : String(error) };
+  }
+  const path = furniturePath(reference, floorId);
+
+  // Eine gefuellte Einrichtung wird nicht durch eine leere ueberschrieben.
+  //
+  // Rainer, 2026-08-20: "you are deleting my furniture". Kein Codepfad loescht
+  // diese Dateien -- aber ein Speichern mit null Symbolen tut dasselbe, und
+  // genau das passiert, wenn der Editor die Datei nicht laden konnte und mit
+  // leerem Plan startet. 23 gesetzte Moebel waeren in einem Klick weg, ohne
+  // Rueckfrage und ohne Spur. Codex, 2026-08-20: "Wenn die vorhandene Datei
+  // Symbole enthaelt und der neue Request null Symbole enthaelt, Save mit 409
+  // ablehnen, ausser der Client sendet ausdruecklich allow_clear."
+  if (!allowClear && (normalized.symbols || []).length === 0) {
+    try {
+      const vorhanden = JSON.parse(await readFile(path, "utf8"));
+      const bisher = (vorhanden?.symbols || []).length;
+      if (bisher > 0) {
+        return {
+          ok: false, status: 409,
+          error: `Dort stehen ${bisher} Moebel, gespeichert werden soll eine leere `
+               + `Einrichtung. Abgelehnt. Ist der Plan im Editor leer, wurde die Datei `
+               + `nicht geladen -- Seite neu laden.`,
+        };
+      }
+    } catch (error: any) {
+      // Nur "gibt es noch nicht" ist harmlos. Alles andere -- kaputtes JSON,
+      // keine Rechte, falscher Datenbaum -- darf nicht als "war halt leer"
+      // durchgehen und dann die Datei ueberschreiben.
+      if (error?.code !== "ENOENT") {
+        return { ok: false, status: 500,
+                 error: `Die vorhandene Einrichtung ist nicht lesbar (${error?.code || error}). `
+                      + `Nicht ueberschrieben.` };
+      }
+    }
+  }
+
+  await mkdir(join(path, ".."), { recursive: true });
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  await writeFile(temporary, JSON.stringify(normalized, null, 2), "utf8");
+  await rename(temporary, path);
+  return { ok: true, status: 200, furniture: normalized };
+}
+
+// The room polygons in the RENDERER's millimetres, straight from the one
+// implementation that defines that space. Reimplementing Frame/image_size/
+// floor_scale in TypeScript would create a third coordinate system the first
+// time one of them drifted.
+async function renderGeometry(reference: string) {
+  const script = join(process.cwd(), "scripts", "build-simplifier-render-plan.py");
+  const out = join(dataRoot(), "corrections", reference, "tmp", `geometry-${randomUUID()}.json`);
+  await mkdir(join(out, ".."), { recursive: true });
+  const python = process.env.FLOORPLAN_PYTHON?.trim() || "python";
+  try {
+    const result: { code: number; stderr: string } = await new Promise((done) => {
+      let stderr = "";
+      const child = spawn(python, [script, "--geometry-only", reference, out], { cwd: process.cwd() });
+      child.stderr?.on("data", (chunk) => {
+        if (stderr.length < 4000) stderr += String(chunk);
+      });
+      child.on("error", (error) => done({ code: -1, stderr: String(error) }));
+      child.on("close", (value) => done({ code: value ?? -1, stderr }));
+    });
+    if (result.code !== 0) {
+      return {
+        ok: false, status: 502,
+        error: `geometry build failed (exit ${result.code}): ${result.stderr.trim().slice(-500) || "no output"}`,
+      };
+    }
+    return { ok: true, status: 200, geometry: JSON.parse(await readFile(out, "utf8")) };
+  } catch (error) {
+    return { ok: false, status: 502, error: `geometry unreadable: ${error instanceof Error ? error.message : String(error)}` };
+  } finally {
+    // One temp file per request, otherwise the correction folder fills with
+    // UUIDs nobody ever reads again.
+    await unlink(out).catch(() => {});
+  }
+}
+
 export async function GET(request: Request) {
   if (!enabled(request)) return Response.json({ error: "Local-only endpoint." }, { status: 404 });
   const reference = safeReference(new URL(request.url).searchParams.get("reference") || "onehalfstorey_003");
@@ -421,6 +716,41 @@ export async function POST(request: Request) {
   try { source = JSON.parse(text); } catch { return Response.json({ error: "Invalid JSON." }, { status: 400 }); }
   const action = source.action;
   const document = source.document;
+  if (action === "render_geometry") {
+    const reference = safeReference(source.reference || document?.source_reference_id);
+    const result = await renderGeometry(reference);
+    return Response.json(result, { status: result.status });
+  }
+  if (action === "load_furniture") {
+    const reference = safeReference(source.reference || document?.source_reference_id);
+    const furniture = await loadFurniture(reference, source.floor_id);
+    return Response.json({ ok: true, furniture });
+  }
+  if (action === "save_furniture") {
+    const reference = safeReference(source.reference || document?.source_reference_id);
+    // The floor id must be one the correction document actually has. Without
+    // this a typo or a stale client silently creates a second namespace of
+    // furniture files that no renderer ever looks at.
+    const floorIds = (document?.floors || []).map((floor: any) => floor?.id).filter(Boolean);
+    if (floorIds.length && !floorIds.includes(source.floor_id)) {
+      return Response.json({
+        ok: false,
+        error: `floor_id ${String(source.floor_id)} is not a floor of this correction `
+             + `document (${floorIds.join(", ")})`,
+      }, { status: 422 });
+    }
+    const result = await saveFurniture(reference, source.floor_id, source.furniture,
+                                       source.allow_clear === true,
+                                       source.displayed_geometry_identity);
+    return Response.json(result, { status: result.status });
+  }
+  if (action === "send_to_render") {
+    // The furniture panel posts a reference, not a document -- same shape as
+    // the other furniture actions.
+    const reference = safeReference(source.reference || document?.source_reference_id);
+    const result = await sendToRender(reference);
+    return Response.json(result, { status: result.status });
+  }
   if (!document) return Response.json({ error: "Correction document missing." }, { status: 400 });
   if (action === "validate") {
     const normalized = withUpdatedHash(document);

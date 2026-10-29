@@ -1,0 +1,1889 @@
+"""Editable roof cross-section for rectangular footprints (no Blender needed).
+
+Rainer, 2026-09-19: side-view roof editor with draggable points, plus a
+"versetztes Doppelpultdach". One cross-section polyline covers both:
+
+    left eave (0, 0) -> P1 -> [P2] -> right eave (1, 0)
+
+u runs 0..1 across the SHORT span of the roof (overhang included), h is the
+height above the eave in mm. The eaves stay where the walls end today; only P1
+and P2 move. The section is extruded along the long axis, so every roof face
+shares its vertices with its neighbours -- no independent per-piece heights,
+which is the failure the old rectangle-decomposition roof had.
+
+  satteldach     one point (P1 == P2): gable, ridge may sit off-centre
+  pultdach       one point on the left or right edge (u = 0 or 1): a single
+                 slope; the high side becomes a plumb plaster wall
+  doppelpultdach two points, two slopes rising to different heights; with
+                 u1 == u2 the step between them is a vertical facade strip
+
+Each form keeps its own saved profile (plan["roof_profiles"][form]); the
+delivery's 4th roof slot is pultdach or doppelpultdach (plan["roof_fourth"]).
+
+The roof itself is only the folded "sheet" (profile_mesh). Everything between
+the wall tops and that sheet -- the gable triangles, the high side of a
+Pultdach -- is WALL, built by wall_extension() on the house's own wall planes,
+flush with the walls below (Rainer, 2026-09-19: "the left over triangle would
+be the extended wall ... you cant just have the roof in the air").
+
+Units: the profile is stored in u (0..1) and mm; the mesh is built in metres
+because render-exterior.py works in metres.
+"""
+import math
+import os
+
+FORMS = ("satteldach", "pultdach", "doppelpultdach")
+
+U_MIN, U_MAX = 0.10, 0.90
+H_MIN_MM, H_MAX_MM = 300.0, 6000.0
+MAX_SLOPE = 1.5            # rise over run, ~56 degrees
+STEP_MAX_MM = 3000.0       # largest vertical Versatz between P1 and P2
+SNAP_VERTICAL_U = 0.02     # P1/P2 closer than this in u become one vertical step
+
+SATTELDACH_DEFAULT_PITCH_DEG = 5.0   # Rainer, 2026-09-19: "5 degrees"
+PULTDACH_DEFAULT_PITCH_DEG = 5.0     # same
+DOPPEL_DEFAULT_PITCH_DEG = 10.0
+DOPPEL_DEFAULT_STEP_MM = 900.0
+
+
+def default_profile(form, span_mm):
+    half = span_mm / 2.0
+    if form == "pultdach":
+        return sanitize_profile({"form": form, "points": [
+            {"u": 1.0, "h_mm": span_mm * math.tan(math.radians(PULTDACH_DEFAULT_PITCH_DEG))}]},
+            span_mm)
+    if form == "doppelpultdach":
+        low = half * math.tan(math.radians(DOPPEL_DEFAULT_PITCH_DEG))
+        return sanitize_profile({"form": form, "points": [
+            {"u": 0.5, "h_mm": low},
+            {"u": 0.5, "h_mm": low + DOPPEL_DEFAULT_STEP_MM}]}, span_mm)
+    return sanitize_profile({"form": "satteldach", "points": [
+        {"u": 0.5, "h_mm": half * math.tan(math.radians(SATTELDACH_DEFAULT_PITCH_DEG))}]},
+        span_mm)
+
+
+def _num(value, fallback):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return fallback
+    return number if math.isfinite(number) else fallback
+
+
+def sanitize_profile(profile, span_mm):
+    """Clamp a stored profile into the range that always builds a sound roof.
+
+    Returns a clean dict, or None when there is no usable profile. Never
+    raises on bad numbers: the editor and the renderer both run this, so a
+    hand-edited annotations.json cannot produce a broken mesh.
+    """
+    if not isinstance(profile, dict) or profile.get("form") not in FORMS:
+        return None
+    form = profile["form"]
+    raw = [p for p in (profile.get("points") or []) if isinstance(p, dict)]
+    if not raw:
+        return None
+    span = max(_num(span_mm, 1000.0), 1000.0)
+
+    if form == "pultdach":
+        p = raw[0]
+        u = 1.0 if _num(p.get("u"), 1.0) >= 0.5 else 0.0
+        h = min(max(_num(p.get("h_mm"), 0.0), H_MIN_MM), H_MAX_MM, MAX_SLOPE * span)
+        return {"form": form, "points": [{"u": u, "h_mm": round(h)}]}
+
+    if form == "satteldach":
+        p = raw[0]
+        u = min(max(_num(p.get("u"), 0.5), U_MIN), U_MAX)
+        run = min(u, 1.0 - u) * span
+        h = min(max(_num(p.get("h_mm"), 0.0), H_MIN_MM), H_MAX_MM, MAX_SLOPE * run)
+        return {"form": form, "points": [{"u": round(u, 4), "h_mm": round(h)}]}
+
+    first = raw[0]
+    second = raw[1] if len(raw) > 1 else raw[0]
+    u1 = min(max(_num(first.get("u"), 0.5), U_MIN), U_MAX)
+    u2 = min(max(_num(second.get("u"), u1), U_MIN), U_MAX)
+    if u2 < u1:
+        u1, u2 = u2, u1
+        first, second = second, first
+    if u2 - u1 < SNAP_VERTICAL_U:
+        u2 = u1
+    h1 = min(max(_num(first.get("h_mm"), 0.0), H_MIN_MM), H_MAX_MM, MAX_SLOPE * u1 * span)
+    h2 = min(max(_num(second.get("h_mm"), 0.0), H_MIN_MM), H_MAX_MM,
+             MAX_SLOPE * (1.0 - u2) * span)
+    if u2 == u1:
+        h2 = min(h2, h1 + STEP_MAX_MM) if h2 >= h1 else max(h2, h1 - STEP_MAX_MM)
+    else:
+        reach = MAX_SLOPE * (u2 - u1) * span
+        h2 = min(max(h2, h1 - reach), h1 + reach)
+    return {"form": form, "points": [{"u": round(u1, 4), "h_mm": round(h1)},
+                                     {"u": round(u2, 4), "h_mm": round(h2)}]}
+
+
+def has_vertical_step(profile):
+    """Does this profile fold through a true vertical segment (two
+    consecutive points at the same u, doppelpultdach's clerestory step) --
+    as opposed to a smoothly, monotonically varying one (satteldach,
+    pultdach)?
+
+    Rainer, 2026-09-22, on the multi-wing valley clip
+    (roof_wings.clip_wing_to_valley()): clipping the smaller wing's height
+    domain near the reflex point fixes doppelpultdach's spike, but doing
+    it UNCONDITIONALLY regressed satteldach -- its smooth crossing already
+    looked right without any clip, and the clip's own hard cutoff
+    introduced a new, worse seam where a continuous valley used to be.
+    Only a profile with a genuine discontinuity needs the clip at all."""
+    if not profile:
+        return False
+    points = profile.get("points") or []
+    return any(abs(a["u"] - b["u"]) < 1e-6 for a, b in zip(points, points[1:]))
+
+
+def soften_vertical_steps(profile, span_mm, min_run_mm):
+    """A copy of `profile` where any TRUE vertical segment (two consecutive
+    points at the same u -- doppelpultdach's clerestory step) is widened
+    to a `min_run_mm`-wide ramp instead, same start/end heights.
+
+    Rainer, still on Doppelpultdach: "you are back to the 2 doppelpultdach
+    roofs" -- traced to a DIFFERENT bug than the wing-overlap spike (which
+    was already fixed): a height FIELD samples one z per (x,y) grid point,
+    and at a true zero-width vertical jump there is no well-defined height
+    to sample exactly AT the step -- neighbouring grid columns land
+    arbitrarily on one side or the other of it, reading as a jagged
+    "second roof" right where the step meets a gable (`profile_mesh()`,
+    the rectangular path's own proven function, never has this problem:
+    it builds the vertical face as real, explicit wall geometry via
+    wall_extension(), never by sampling a height field through it). This
+    affects the step WHEREVER it falls, not just where two wings overlap.
+
+    Widening the step into a short, steep but perfectly CONTINUOUS ramp
+    (at least one grid cell wide, hence `min_run_mm` tied to the caller's
+    own grid `step`) removes the ambiguity: every grid point has one
+    well-defined height again, so there is nothing left to sample
+    inconsistently. The visual difference at normal render distance is
+    imperceptible (the ramp is a few centimetres of run); the difference
+    at a silhouette edge, previously a jagged tear, is a clean short
+    slope. A profile without a true vertical segment (satteldach,
+    pultdach) is returned unchanged."""
+    if not profile or not profile.get("points"):
+        return profile
+    points = [dict(p) for p in profile["points"]]
+    min_gap_u = min_run_mm / span_mm if span_mm else 0.0
+    for i in range(len(points) - 1):
+        if abs(points[i]["u"] - points[i + 1]["u"]) < 1e-6:
+            new_u = min(points[i]["u"] + min_gap_u, U_MAX)
+            if i + 2 < len(points):
+                new_u = min(new_u, points[i + 2]["u"] - 1e-4)
+            points[i + 1]["u"] = new_u
+    return {"form": profile["form"], "points": points}
+
+
+def resolve_profile(plan_profiles, roof_type, span_mm):
+    """The profile to build for this exterior, or None for roof types this
+    module does not build (flachdach, walmdach).
+
+    plan_profiles is plan["roof_profiles"], one saved profile per form. A form
+    without a saved profile of its own gets the default for that form: the
+    5 degree Satteldach/Pultdach and the 10 degree versetztes Pult.
+    """
+    if roof_type not in FORMS:
+        return None
+    saved = plan_profiles.get(roof_type) if isinstance(plan_profiles, dict) else None
+    clean = sanitize_profile(saved, span_mm)
+    if clean and clean["form"] == roof_type:
+        return clean
+    return default_profile(roof_type, span_mm)
+
+
+def scale_profile_to_span(profile, from_span_mm, to_span_mm):
+    """Re-express an already-resolved `profile` on a DIFFERENT span, keeping
+    the same roof PITCH (rise/run), not the same absolute ridge height.
+
+    Rainer, 2026-09-22, two-wing Satteldach/Pultdach/Doppelpultdach auf
+    einem L (roof_wings.py): jeder Fluegel hat seine EIGENE, meist kuerzere
+    Spannweite als das ganze Gebaeude, gegen das der Nutzer sein Profil im
+    Dach-Tab eingestellt hat (der Editor kennt keine Fluegel, siehe
+    zweischenkliges-satteldach-v1.md). Dieselbe absolute Firsthoehe auf
+    einen viel schmaleren Fluegel zu legen zwingt dessen Dach auf eine ganz
+    andere (oft absurd steile) Neigung als den Rest des Hauses -- "no i
+    want it fixed, this is BS" / "i dont understand ... 2 flat roofs on top
+    of each other": genau das war der Fund, ein zu steil erzwungener
+    schmaler Fluegel, keine echte Naht.
+
+    u bleibt gleich (schon spannweiten-unabhaengig); h_mm wird um
+    to_span/from_span skaliert. Der Winkel einer geraden Strecke von der
+    Traufe (u=0, h=0) zu einem Punkt ist h_mm / (u * span_mm) -- skaliert
+    man h_mm um denselben Faktor wie die Spanne, bleibt dieses Verhaeltnis
+    und damit der Winkel gleich. Am Ende erneut `sanitize_profile()` gegen
+    `to_span_mm` als Sicherheitsnetz (ein winziger Fluegel kann trotz
+    gleichem Winkel noch gegen H_MIN_MM/H_MAX_MM/MAX_SLOPE stossen)."""
+    if not profile or not from_span_mm or from_span_mm <= 0:
+        return profile
+    scale = to_span_mm / from_span_mm
+    scaled = {"form": profile["form"],
+              "points": [{"u": p["u"], "h_mm": p["h_mm"] * scale} for p in profile["points"]]}
+    return sanitize_profile(scaled, to_span_mm)
+
+
+def wing_height_at(x, y, wing, profile, *, along_x=None):
+    """Roof height (metres, above the eave) at world point (x,y) for ONE
+    wing rectangle `(x0,x1,y0,y1)` and its resolved `profile` -- None if
+    (x,y) falls outside that wing's own rectangle.
+
+    Reuses `_axes()`/`_section()`/`_height_at()` exactly as profile_mesh()
+    does for a single rectangle; this is the same cross-section, just
+    sampled at one point instead of extruded into a mesh.
+
+    `along_x`: Codex second-opinion review, 2026-09-24, WB_125's Versetztes
+    Pultdach: this always called `_axes()` with NO override, silently
+    AUTO-DETECTING each wing's own ridge axis (the longer side) regardless
+    of what the caller actually built the roof's walls/profile against.
+    For this house's own two wings, the smaller one's auto-detected axis
+    happened to match the forced `roof_axis_override` by coincidence, but
+    the FULL (bigger) wing's did not -- its own height contribution was
+    silently sampled across the WRONG axis, at the WRONG span, a real,
+    confirmed bug (verified by hand against this house's actual numbers,
+    not just Codex's own generic probe). Every caller in the two-wing,
+    forced-axis path must now pass the SAME `along_x` used everywhere else
+    for that roof; `None` keeps the old automatic behaviour for every
+    caller that never had a forced axis to begin with (satteldach/pultdach
+    on an L, which choose per wing on purpose -- see render-exterior.py's
+    own per-wing `_axes()` calls in that branch)."""
+    x0, x1, y0, y1 = wing
+    if not (x0 - 1e-6 <= x <= x1 + 1e-6 and y0 - 1e-6 <= y <= y1 + 1e-6):
+        return None
+    resolved_along_x, span, _, c0 = _axes(x0, x1, y0, y1, along_x=along_x)
+    section = _section(profile, span)
+    cross = (y - c0) if resolved_along_x else (x - c0)
+    return _height_at(section, cross)
+
+
+def combined_height_at(x, y, wings, profiles, *, along_x=None):
+    """Roof height at (x,y) across ALL wings -- the taller of whichever
+    wings cover that point (Codex-Design-Review, 2026-09-22: "z = max(z1,
+    z2)", first applied in roof_wings.py's tent-function model; this is
+    the same idea against the REAL per-form profile, not just a symmetric
+    gable). None if no wing covers the point.
+
+    `along_x`: forwarded to `wing_height_at()` for every wing -- see its
+    own docstring. `None` (or any other single True/False/None value)
+    preserves the old behaviour: the SAME value used for every wing (still
+    the only mode this function's existing tests exercise -- unchanged).
+    Rainer, 2026-09-26, `PER-WING-AXIS-OVERRIDE-001`: a LIST/tuple (one
+    entry per wing, same order as `wings`) lets each wing use a genuinely
+    DIFFERENT forced axis at the same time -- needed for two wings of an
+    L-shaped house whose ridges are meant to run perpendicular to each
+    other, which a single shared value can never express regardless of
+    what it's set to."""
+    if isinstance(along_x, (list, tuple)):
+        per_wing_axis = along_x
+    else:
+        per_wing_axis = [along_x] * len(wings)
+    heights = [h for h in (wing_height_at(x, y, w, p, along_x=a)
+                           for w, p, a in zip(wings, profiles, per_wing_axis))
+               if h is not None]
+    return max(heights) if heights else None
+
+
+def mesh_height_at(verts, faces, x, y, tol=1e-6):
+    """Height at (x,y), interpolated from the ACTUAL triangulated roof mesh
+    `heightfield_roof_mesh()` returned -- not the analytic `combined_
+    height_at()`. `None` if (x,y) falls outside every triangle's XY
+    projection.
+
+    `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29 (Codex read-only design
+    review): where two wings' height functions cross (the "dominance
+    crease" `combined_height_at()`'s own `max()` switches winner along),
+    that crease is generally a line `heightfield_roof_mesh()`'s grid was
+    never told to snap to -- only wing BOUNDARIES and profile breakpoints
+    are snapped there. A single grid cell straddling that crease still
+    picks ONE diagonal (`heightfield_roof_mesh()`'s own "whichever diagonal
+    better follows a height jump" heuristic) and triangulates flat across
+    it either way, so a point inside that triangle can genuinely differ
+    from `combined_height_at()`'s own analytic value there -- Codex
+    reproduced a concrete 98.5mm case this way on a synthetic L, despite
+    every existing test passing (the tests check the analytic function and
+    the mesh's OWN construction separately, never a built triangle's
+    interpolated value against that same analytic function).
+
+    Fix used here follows Codex's own recommendation (worked-math section
+    5/7): rather than solving the general problem of inserting every
+    possible crease as a real mesh edge (a much larger undertaking, tracked
+    separately), make the built mesh the SOLE AUTHORITY wall construction
+    queries -- `wall_extension()`'s `_true_height()` calls this INSTEAD of
+    `combined_height_at()` when a mesh is available, so the wall always
+    agrees with whatever the roof mesh actually is, even in a cell where
+    the mesh's own triangulation is an approximation of the true analytic
+    surface. There is then only one source of truth, not two independently
+    -computed values that can disagree."""
+    for a, b, c in faces:
+        ax, ay, az = verts[a]
+        bx, by, bz = verts[b]
+        cx, cy, cz = verts[c]
+        # Barycentric coordinates via signed areas (2D cross products) --
+        # standard point-in-triangle-with-interpolation, no external deps.
+        denom = (by - cy) * (ax - cx) + (cx - bx) * (ay - cy)
+        if abs(denom) <= tol:
+            continue                              # degenerate (zero-area) triangle
+        u = ((by - cy) * (x - cx) + (cx - bx) * (y - cy)) / denom
+        v = ((cy - ay) * (x - cx) + (ax - cx) * (y - cy)) / denom
+        w = 1.0 - u - v
+        if u < -tol or v < -tol or w < -tol:
+            continue                              # (x,y) outside this triangle
+        return u * az + v * bz + w * cz
+    return None
+
+
+def gable_cap_polygon(x0, x1, y0, y1, z_eave, profile, end, *, along_x=None):
+    """The closed cross-section polygon at ONE gable end of a wing (eave
+    to ridge/step to eave, in 3D world coordinates, ordered around the
+    loop, NOT closed -- caller repeats the first point if their
+    triangulator needs that).
+
+    Rainer, still on Doppelpultdach: "you are back to the 2 doppelpultdach
+    roofs" -- traced (after the wing-overlap fix and a wrong guess about
+    height sampling) to Blender's SOLIDIFY "Fill Rim": it auto-caps the
+    height field's open gable boundary, but the fill algorithm it uses is
+    not reliable on a NON-CONVEX outline, and doppelpultdach's step folds
+    the cross-section concave -- satteldach and pultdach are always
+    convex there, which is exactly why only doppelpultdach showed this.
+    render-exterior.py uses this polygon to build the gable cap face
+    EXPLICITLY (via `mathutils.geometry.tessellate_polygon()`, a real,
+    general triangulator, before solidify ever runs) instead of leaving
+    it to SOLIDIFY's rim-fill -- the same "build the wall/cap by hand"
+    principle wall_extension() already uses for the exact same reason
+    (see its own docstring), just applied to the roof sheet's own edge
+    this time. `end` is "a0" or "a1" -- which of the wing's two gable
+    ends (see `_axes()`)."""
+    along_x, span, (a0, a1), c0 = _axes(x0, x1, y0, y1, along_x=along_x)
+    section = _section(profile, span)
+    a_fixed = a0 if end == "a0" else a1
+    pts = []
+    for cross, height in section:
+        c = c0 + cross
+        pts.append((a_fixed, c, z_eave + height) if along_x else (c, a_fixed, z_eave + height))
+    return pts
+
+
+def gable_cap_prism(x0, x1, y0, y1, z_eave, profile, end, thickness, *, along_x=None):
+    """The gable cap as its own solid prism (verts, faces) -- a real
+    alternative to `gable_cap_polygon()` + an external triangulator.
+
+    Rainer, 2026-09-24, WB_125's Versetztes Pultdach: his own Blender
+    screenshot (from the far side of the house) showed real crossing
+    facets. Root-caused with a real bmesh.bvhtree overlap query (not by
+    guessing from screenshots) to render-exterior.py's own use of
+    `gable_cap_polygon()`: `mathutils.geometry.tessellate_polygon()`
+    triangulates the returned NON-CONVEX loop from an arbitrary starting
+    vertex (a fan), which is not guaranteed to stay inside a concave
+    polygon -- the doppelpultdach step is exactly that concave case, and at
+    this profile's markedly OFF-CENTRE step position (u=0.41, not the
+    roughly-centred cases every prior verification used) the fan
+    triangulator picked a diagonal that crossed outside the true outline,
+    then `weld_and_recalc_normals()`'s vertex-merge pass spread that one bad
+    diagonal into several more crossing faces nearby. `_prism()` (already
+    proven throughout `wall_extension()`) sidesteps the whole class: its own
+    end caps are a single N-GON face, left to Blender's own robust n-gon
+    tessellation instead of a hand-rolled fan -- and, being a genuinely
+    separate, already-closed solid, it never needs merging into the roof
+    sheet's own vertices at all, so there is nothing left for a weld pass to
+    get wrong. `end` is "a0" or "a1"; the prism sits flush against that true
+    edge, extending `thickness` OUTWARD, away from the roof (never into it).
+
+    Rainer, 2026-09-24, same house, after the `wing_height_at()` axis fix
+    (see its own docstring) made the roof sheet's height correctly constant
+    along its own ridge axis: an EARLIER version of this function extended
+    the prism inward, into the sheet's own territory -- harmless while the
+    sheet's height still (wrongly) varied along the ridge axis there, but
+    once that height became genuinely constant across the prism's own
+    depth, the prism and the sheet's own first row of triangles became
+    exactly coplanar over that whole overlap, a textbook z-fighting setup
+    (tiny flickering dark slivers on what should be a plain flat gable,
+    visible in a real render). Extending outward instead means the prism
+    never shares any depth with the sheet at all -- there is nothing left to
+    fight over -- and looks identical from outside the building either way,
+    since only the prism's own flat outer face is ever in view."""
+    along_x, span, (a0, a1), c0 = _axes(x0, x1, y0, y1, along_x=along_x)
+    section = _section(profile, span)
+    a_fixed = a0 if end == "a0" else a1
+    a_mid = a_fixed - thickness / 2.0 if end == "a0" else a_fixed + thickness / 2.0
+    return _prism(section, a_mid, thickness, c0, z_eave, along_x)
+
+
+def heightfield_roof_mesh(wings, profiles, z_eave, step=0.3, height_wings=None, *, along_x=None):
+    """The combined roof SHEET for N overlapping axis-aligned wing
+    rectangles, built as ONE height field -- never a 3D boolean union.
+
+    Rainer, 2026-09-22, on the boolean-union roof (Stufe 2 of
+    zweischenkliges-satteldach-v1.md): satteldach's single ridge point
+    unions cleanly, but doppelpultdach's extra vertical step (and
+    pultdach's edge-mounted high side) gave the EXACT solver too many
+    crossing faces at the valley -- "3 roofs in one ... 90 degrees from
+    each other", two whole, uncut wing volumes left overlapping instead of
+    one clean valley. A height field cannot produce that failure mode BY
+    CONSTRUCTION: every vertex has exactly one z, so there is nothing left
+    to self-intersect.
+
+    Grid lines are placed so they land exactly on the shared bounding
+    box's OUTER edges (the true eave/overhang perimeter that
+    wall_extension() already builds walls against) -- only the interior
+    notch/valley boundary between wings is a staircase approximation of
+    the true corner. That is fine: there is no wall or eave feature at
+    the valley to misalign with, only the roof surface itself, and a fine
+    enough `step` keeps the facets unremarkable at render distance.
+
+    `height_wings`, if given, is used ONLY for `combined_height_at()` --
+    `wings` (the true, unclipped rectangles) still decides what the mesh
+    COVERS. Rainer, 2026-09-22, still on Doppelpultdach: "i dont want a
+    walmdach instead of the doppelpultdach" -- the still-broken part
+    wasn't self-intersection any more, it was one wing's own flat ridge
+    (constant along its OWN ridge axis, which happens to be the axis its
+    rectangle spans past the true valley) poking through the OTHER wing's
+    much lower eave, far from the real valley (roof_wings.clip_wing_to_
+    valley() -- caller picks which wing needs it, e.g. only the smaller
+    one). Passing the caller's already-clipped wings here keeps that
+    decision out of this function; it only needs to know which rectangles
+    to sample height from, if not the same ones it uses for coverage.
+
+    `along_x`, if given as a single True/False, forces the SAME ridge axis
+    for every wing's own height sampling (forwarded to `combined_height_
+    at()`/`wing_height_at()`) -- needed whenever the caller already forces
+    one consistent axis for the whole roof (`roof_axis_override`); `None`
+    keeps each wing auto-detecting its own (only correct when wings are
+    deliberately allowed to pitch in different directions, which the
+    satteldach/pultdach two-wing path still does on purpose). Rainer,
+    2026-09-26, `PER-WING-AXIS-OVERRIDE-001`: a LIST/tuple (one entry per
+    wing) forces a genuinely DIFFERENT axis per wing at once -- see
+    `combined_height_at()`'s own docstring, which this just forwards to
+    unchanged.
+
+    Returns (verts, faces) in metres -- faces are triangles (a bilinear
+    quad over 4 different heights is not reliably planar; triangulating
+    avoids Blender guessing how to split it).
+    """
+    height_wings = wings if height_wings is None else height_wings
+    x0 = min(w[0] for w in wings)
+    x1 = max(w[1] for w in wings)
+    y0 = min(w[2] for w in wings)
+    y1 = max(w[3] for w in wings)
+    nx = max(1, round((x1 - x0) / step))
+    ny = max(1, round((y1 - y0) / step))
+    xs = [x0 + (x1 - x0) * i / nx for i in range(nx + 1)]
+    ys = [y0 + (y1 - y0) * j / ny for j in range(ny + 1)]
+
+    # Rainer, 2026-09-26, WB_125's own satteldach QA build: a real, ~0.3m x
+    # 8m strip of the roof sheet was simply MISSING right at the wing-to-
+    # wing boundary (confirmed by raycasting `roof-pitch` from directly
+    # above -- 0 hits in that strip -- while the wall/soffit standing right
+    # behind it WAS present, so this was never a wall-position bug at all).
+    # Root cause: the grid above is spaced evenly across the OVERALL
+    # bounding box by a fixed `step`, with no reason to ever land exactly on
+    # a WING's own boundary -- so a cell can straddle a coverage transition
+    # (one row of corners inside a wing, the next row outside it), and
+    # `covered()` below requires ALL FOUR corners covered, dropping the
+    # whole cell across whatever `x`/`y` range that straddling row spans --
+    # here, one entire row, the wing's full remaining width (~8m), not a
+    # sub-millimetre float-precision sliver. Snapping the grid to include
+    # every wing's own true edges as explicit lines (deduplicated against
+    # the even spacing) guarantees no cell ever straddles a transition --
+    # each wing's boundary becomes a real row/column, not a coin-flip.
+    def snap(lines, edges, lo, hi):
+        merged = sorted(set(lines) | {e for e in edges if lo - 1e-6 < e < hi + 1e-6})
+        return [v for i, v in enumerate(merged) if i == 0 or v - merged[i - 1] > 1e-6]
+
+    # Rainer, 2026-09-27, ROOF-RIDGE-PATH-TOOL-001-FOLLOWUP-2 (the reflex-
+    # corner tear that survived three earlier hypotheses): found by
+    # comparing a real Blender raycast against this wing's OWN rendered
+    # ridge peak to `combined_height_at()`'s analytic value there -- a
+    # 48mm gap, on a wing whose gable wall (`wall_extension()`, using the
+    # EXACT piecewise-linear section, not this grid) reaches the true
+    # analytic peak minus only a 5cm `sink`. The grid above already snaps
+    # to every WING's own boundary edges so no cell straddles a coverage
+    # transition -- it never snapped to a wing's own PROFILE breakpoints
+    # (the ridge peak itself, `u`, measured across the CROSS axis), so a
+    # peak that doesn't happen to land on the fixed `step` spacing gets
+    # approximated by a chord between its two nearest grid columns/rows,
+    # undershooting the true height there by however far the peak sits
+    # from the nearest grid line. Near a steep peak that undershoot ate
+    # almost the entire 5cm sink margin, leaving the wall and the roof's
+    # own (coarser) surface only ~2mm apart -- not a real poke-through by
+    # either one's own numbers, but close enough for the renderer to
+    # flicker between them. Adding each wing's own breakpoints as extra
+    # grid lines (on whichever axis is THAT wing's cross axis) makes the
+    # grid hit the true peak exactly, the same "snap real edges in, don't
+    # approximate them" principle as the wing-boundary snap just above.
+    def _wing_breakpoints(wings, profiles, along_x):
+        per_wing_axis = along_x if isinstance(along_x, (list, tuple)) else [along_x] * len(wings)
+        xs_extra, ys_extra = [], []
+        for w, p, a in zip(wings, profiles, per_wing_axis):
+            resolved_along_x, span, _, c0 = _axes(*w, along_x=a)
+            target = ys_extra if resolved_along_x else xs_extra
+            for point in (p.get("points") or []):
+                target.append(c0 + point["u"] * span)
+        return xs_extra, ys_extra
+
+    _bp_xs, _bp_ys = _wing_breakpoints(wings, profiles, along_x)
+    xs = snap(xs, [w[0] for w in wings] + [w[1] for w in wings] + _bp_xs, x0, x1)
+    ys = snap(ys, [w[2] for w in wings] + [w[3] for w in wings] + _bp_ys, y0, y1)
+    nx, ny = len(xs) - 1, len(ys) - 1
+    if os.environ.get("DEBUG_WING_EXPOSURE"):
+        print(f"[DEBUG] heightfield_roof_mesh wings={wings} nx={nx} ny={ny} "
+              f"9.8514 in ys: {any(abs(v-9.8514)<1e-3 for v in ys)}")
+
+    def covered(x, y):
+        return any(w[0] - 1e-6 <= x <= w[1] + 1e-6 and w[2] - 1e-6 <= y <= w[3] + 1e-6
+                   for w in wings)
+
+    verts = [(x, y, z_eave + (combined_height_at(x, y, height_wings, profiles, along_x=along_x) or 0.0))
+             for y in ys for x in xs]
+
+    def idx(i, j):
+        return j * (nx + 1) + i
+
+    faces = []
+    for j in range(ny):
+        for i in range(nx):
+            corners = [(xs[i], ys[j]), (xs[i + 1], ys[j]),
+                      (xs[i + 1], ys[j + 1]), (xs[i], ys[j + 1])]
+            if not all(covered(cx, cy) for cx, cy in corners):
+                continue
+            a, b, c, d = idx(i, j), idx(i + 1, j), idx(i + 1, j + 1), idx(i, j + 1)
+            za, zb, zc, zd = verts[a][2], verts[b][2], verts[c][2], verts[d][2]
+            # `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29: a real WB_125
+            # satteldach hero-camera render showed a visible torn/zigzag
+            # ridge line, confirmed (by tracing this function's own real
+            # verts/faces on the exact failing build) to be exactly this: a
+            # column of cells straddling a wing's own snapped x-boundary
+            # (a genuine height CLIFF -- one wing's height sharply ends,
+            # the other's own, different height continues) picks OPPOSITE
+            # diagonals in adjacent rows purely because the per-cell
+            # "smaller diagonal jump" comparison below is a LOCAL decision
+            # with no reason to agree with its neighbour -- verified
+            # concretely: one cell split (a,c) because |za-zc|<=|zb-zd|,
+            # the very next cell up split (b,d) instead, despite both
+            # cells sitting on the identical cliff column, because the
+            # ridge's own smooth slope in the OTHER direction nudged the
+            # comparison's sign between rows. A single inconsistent
+            # diagonal choice is invisible on its own (still a valid
+            # triangulation of that one cell) but a whole column of them
+            # alternating reads as a jagged tear.
+            #
+            # Fix: classify the cell FIRST by which pair of parallel edges
+            # carries most of the height change -- left/right (a-d, b-c)
+            # vs bottom/top (a-b, d-c). A one-directional CLIFF cell (like
+            # every cell in this real column) has one pair much larger than
+            # the other; that classification is stable across a whole
+            # column/row (confirmed: identical left/right-vs-bottom/top
+            # pattern on both traced cells), unlike the raw per-diagonal
+            # magnitude comparison. For that case, use a FIXED diagonal
+            # (always a-c) so every cell along the same cliff agrees.
+            # A genuinely diagonal valley (comparable magnitude on every
+            # edge -- two wings meeting at an angle, the case this
+            # function's original comment describes) does not trigger this
+            # branch, so that existing, already-tested behaviour (per-cell
+            # smaller-jump diagonal) is unchanged.
+            left_right = abs(za - zd) + abs(zb - zc)
+            bottom_top = abs(za - zb) + abs(zd - zc)
+            if bottom_top > left_right * 3.0 or left_right > bottom_top * 3.0:
+                faces.append((a, b, c))
+                faces.append((a, c, d))
+            elif abs(za - zc) <= abs(zb - zd):
+                faces.append((a, b, c))
+                faces.append((a, c, d))
+            else:
+                faces.append((a, b, d))
+                faces.append((b, c, d))
+
+    # Grid points outside every wing (the corners cut off the bounding box
+    # to make the L) never appear in any face -- drop them and remap
+    # indices. Rainer's Blender build with them left in showed 541
+    # disconnected "islands" for one continuous roof sheet: leaving loose,
+    # face-less vertices in the mesh confused Blender's SOLIDIFY (it tried
+    # to rim-fill around every vertex, not just real boundary loops).
+    # Structurally these loose points never touched the surface at all --
+    # this is a data-hygiene fix, not a geometry change.
+    used = sorted({i for face in faces for i in face})
+    remap = {old: new for new, old in enumerate(used)}
+    verts = [verts[i] for i in used]
+    faces = [tuple(remap[i] for i in face) for face in faces]
+    return verts, faces
+
+
+def _dot(a, b):
+    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
+
+
+def _newell(points):
+    nx = ny = nz = 0.0
+    for i, cur in enumerate(points):
+        nxt = points[(i + 1) % len(points)]
+        nx += (cur[1] - nxt[1]) * (cur[2] + nxt[2])
+        ny += (cur[2] - nxt[2]) * (cur[0] + nxt[0])
+        nz += (cur[0] - nxt[0]) * (cur[1] + nxt[1])
+    return (nx, ny, nz)
+
+
+def _section(profile, span):
+    """The cross-section polyline in (across, up) metres, eave to eave."""
+    section = [(0.0, 0.0)]
+    for point in profile["points"]:
+        uz = (point["u"] * span, point["h_mm"] / 1000.0)
+        if abs(uz[0] - section[-1][0]) > 1e-9 or abs(uz[1] - section[-1][1]) > 1e-9:
+            section.append(uz)
+    section.append((span, 0.0))
+    return section
+
+
+def _height_at(section, c):
+    """Roof height at across-position c, read off the SLOPING segments."""
+    for (c0, z0), (c1, z1) in zip(section, section[1:]):
+        if c1 - c0 > 1e-9 and c0 - 1e-9 <= c <= c1 + 1e-9:
+            return z0 + (z1 - z0) * (c - c0) / (c1 - c0)
+    return 0.0
+
+
+def _step_pairs(section, lo, hi):
+    """`(across, z_before, z_after)` for every VERTICAL step of the profile
+    strictly inside `(lo, hi)` -- two section points at the same across
+    position but different heights (a "versetztes Pultdach"'s offset, or any
+    drawn profile with equal u twice).
+
+    `_height_at()` only reads SLOPING segments, so it can return just ONE
+    height per across position and silently drops a step. Rainer,
+    2026-10-02, on a Versetztes Pultdach in Blender: the gable wall climbed
+    to the LOWER side of the step and then ran straight down, leaving an
+    open triangle of 0.9 m under the high slab -- "the doppelpult isnt
+    working yet the hole is not completely closed"."""
+    out = []
+    for (c0, z0), (c1, z1) in zip(section, section[1:]):
+        if abs(c1 - c0) <= 1e-9 and abs(z1 - z0) > 1e-9 and lo + 1e-9 < c0 < hi - 1e-9:
+            out.append((c0, z0, z1))
+    return out
+
+
+def _insert_steps(points, steps):
+    """`points` is a sorted `[(across, height), ...]` top line; every entry
+    sitting exactly on a profile step is replaced by BOTH of the step's
+    heights, in left-to-right order, so the polygon climbs (or drops) the
+    step vertically instead of cutting across it."""
+    out = []
+    for cc, h in points:
+        hit = next((s for s in steps if abs(s[0] - cc) <= 1e-9), None)
+        if hit is None:
+            out.append((cc, h))
+        else:
+            out.append((cc, max(hit[1], 0.0)))
+            out.append((cc, max(hit[2], 0.0)))
+    return out
+
+
+def _axes(x0, x1, y0, y1, *, along_x=None):
+    """Which axis the ridge runs along, the cross-section span, the ridge
+    axis' own interval and the span's origin.
+
+    `along_x=None` (every call before 2026-09-22) keeps the automatic rule
+    exactly: the ridge runs along the LONGER side, a tie goes to along_x.
+    An explicit True/False (Rainer, 2026-09-22: "also mybe have a
+    possibility to rotate the roof 90 degrees") forces that axis regardless
+    of width/depth -- "Dachrichtung" in the Dach-tab, plan-level
+    (roof_axis_override), not a per-form setting: the ridge direction is a
+    property of the building, not of which roof shape is drawn over it.
+    """
+    width, depth = x1 - x0, y1 - y0
+    if along_x is None:
+        along_x = width >= depth
+    span = depth if along_x else width
+    return along_x, span, ((x0, x1) if along_x else (y0, y1)), (y0 if along_x else x0)
+
+
+def profile_mesh(x0, x1, y0, y1, z_eave, profile, *, along_x=None, a0_extra=None, a1_extra=None):
+    """The roof itself -- the folded sheet -- for an axis-aligned rectangle
+    (the roof outline, overhang included), in metres.
+
+    Returns (verts, faces, facade_faces). A vertical strip at the very edge of
+    the roof (a Pultdach's high side) is NOT part of the sheet: it is wall and
+    comes from wall_extension(). facade_faces indexes only the vertical step
+    inside a versetztes Pultdach, which gets the plaster material.
+
+    `along_x`: see _axes() -- None keeps the automatic rule, True/False
+    forces that axis. Must be the SAME value passed to wall_extension() for
+    the same roof, or the sheet and its walls disagree about which axis the
+    ridge runs along.
+
+    `a0_extra`/`a1_extra` (`ROOF-SWEEP-CONSTRUCTOR-001-FOLLOWUP-2`,
+    2026-09-30, Rainer, refining the previous single-depth mitering: "the
+    bottom part of the smaller roof should stop when it hits the larger
+    roof, the top part can go further"): an optional list, one value per
+    point of this profile's own `_section()` (same order, same length),
+    pulling that ring's cross-section OUTWARD from the plain `a0`/`a1` by a
+    DIFFERENT amount at each cross position, instead of every point sharing
+    one flat rectangle edge. `chevron_roof_construction()` uses this for a
+    smaller wing's junction end: 0 at an eave (that point's own height is
+    already 0, matching the bigger wing's own height at the shared edge
+    exactly, so it stops immediately) and a real, computed depth at the
+    ridge (however far it takes for the bigger wing's OWN rising roof to
+    reach that same height). `None` for either (every caller before this)
+    keeps today's single flat ring, byte-identical.
+    """
+    along_x, span, (a0, a1), c0 = _axes(x0, x1, y0, y1, along_x=along_x)
+    section = _section(profile, span)
+    n = len(section)
+
+    def place(ring, i):
+        if ring == 0:
+            a = a0 - (a0_extra[i] if a0_extra is not None else 0.0)
+        else:
+            a = a1 + (a1_extra[i] if a1_extra is not None else 0.0)
+        cross, up = section[i]
+        c = c0 + cross
+        return (a, c, z_eave + up) if along_x else (c, a, z_eave + up)
+
+    verts = [place(ring, i) for ring in (0, 1) for i in range(n)]
+    cross_unit = (0.0, 1.0, 0.0) if along_x else (1.0, 0.0, 0.0)
+
+    faces, facade = [], []
+    for i in range(n - 1):
+        dx = section[i + 1][0] - section[i][0]
+        dz = section[i + 1][1] - section[i][1]
+        vertical = abs(dx) < 1e-9
+        if vertical and (i == 0 or i == n - 2):
+            continue                                   # roof-edge wall: wall_extension()
+        indices = [i, i + 1, n + i + 1, n + i]
+        outward = (cross_unit[0] * -dz, cross_unit[1] * -dz, dx)
+        if _dot(_newell([verts[j] for j in indices]), outward) < 0:
+            indices.reverse()
+        faces.append(tuple(indices))
+        if vertical:
+            facade.append(len(faces) - 1)
+    return verts, faces, facade
+
+
+def _prism(polygon_cz, a_mid, thickness, c0, z_eave, along_x):
+    """A closed prism: polygon in (across, up) extruded +-thickness/2 along
+    the ridge axis at a_mid. Faces point outward. Returns (verts, faces)."""
+    area = sum(p[0] * q[1] - q[0] * p[1]
+               for p, q in zip(polygon_cz, polygon_cz[1:] + polygon_cz[:1]))
+    poly = polygon_cz if area > 0 else list(reversed(polygon_cz))     # CCW in (across, up)
+    n = len(poly)
+    half = thickness / 2.0
+
+    def place(ring, i):
+        a = a_mid - half if ring == 0 else a_mid + half
+        cross, up = poly[i]
+        c = c0 + cross
+        return (a, c, z_eave + up) if along_x else (c, a, z_eave + up)
+
+    verts = [place(ring, i) for ring in (0, 1) for i in range(n)]
+    axis_unit = (1.0, 0.0, 0.0) if along_x else (0.0, 1.0, 0.0)
+    cross_unit = (0.0, 1.0, 0.0) if along_x else (1.0, 0.0, 0.0)
+    faces = []
+
+    def add(indices, outward):
+        if _dot(_newell([verts[i] for i in indices]), outward) < 0:
+            indices = list(reversed(indices))
+        faces.append(tuple(indices))
+
+    add(list(range(n)), (-axis_unit[0], -axis_unit[1], 0.0))
+    add([n + i for i in range(n)], axis_unit)
+    for i in range(n):
+        j = (i + 1) % n
+        dc, dz = poly[j][0] - poly[i][0], poly[j][1] - poly[i][1]
+        add([i, j, n + j, n + i], (cross_unit[0] * dz, cross_unit[1] * dz, -dc))
+    return verts, faces
+
+
+def _long_wall(a_start, a_end, c_wall, thickness, height, c0, z_eave, along_x):
+    """A plain box along the ridge axis at across-position c_wall."""
+    return _long_wall_ramp(a_start, a_end, height, height, c_wall, thickness, c0, z_eave, along_x)
+
+
+def _long_wall_ramp(a_start, a_end, h_start, h_end, c_wall, thickness, c0, z_eave, along_x,
+                     bottom_start=0.0, bottom_end=0.0):
+    """Like `_long_wall()`, but the top follows a straight RAMP from
+    `h_start` (at a_start) to `h_end` (at a_end) instead of one flat
+    height. `h_start == h_end` reduces to exactly `_long_wall()`'s own
+    plain box (used by every caller before PER-WING-AXIS-OVERRIDE-001-
+    FOLLOWUP, and still by every caller that never has two different
+    heights to give).
+
+    `bottom_start`/`bottom_end` (`ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29,
+    Rainer: "if there are height differences then you just treat it like a
+    giebel"): a FLOATING box whose bottom also ramps, instead of always
+    sitting at 0 (the wall-top/eave). Used for the internal wing-to-wing
+    "step" closure -- a sub-range `exposed_ranges()` correctly says is
+    covered by the OTHER wing's own footprint (so no ordinary ground-to-
+    roof gable belongs there) can still have a genuine, real, unclosed
+    height difference between the two wings' own rooflines: the other
+    wing's own structure only reaches ITS OWN height, not this wing's
+    taller one, at that exact point. `bottom_start`/`bottom_end` (0.0 by
+    default -- every existing caller unchanged) let that closure start
+    from the other wing's own true height instead of the ground, so only
+    the actual gap gets built, not a redundant full-height duplicate wall
+    where the other wing's own structure already stands.
+
+    PER-WING-AXIS-OVERRIDE-001-FOLLOWUP, 2026-09-27: an earlier version of
+    this fix built a flat box per split segment at the TALLER of its two
+    true endpoint heights, reasoning that "slightly too tall, never too
+    short" was the safe direction. Real WB_125 render showed that was
+    wrong in practice, not just imprecise: the true combined height is a
+    straight RAMP between two adjacent breakpoints (profiles are
+    piecewise linear -- this is the real shape there, not an
+    approximation), and a flat box at the ramp's own TALL end pokes
+    through the real, correctly-lower roof sheet across the WHOLE width
+    of a segment that can be a metre or more wide -- a new, self-inflicted
+    defect, not a negligible rounding error. A sloped top has no such
+    gap: it touches the true roof at both ends and stays flush with it
+    everywhere between, since both are the same straight line there."""
+    half = thickness / 2.0
+
+    def place(a, c, z):
+        return (a, c0 + c, z_eave + z) if along_x else (c0 + c, a, z_eave + z)
+
+    bottom = [(a_start, c_wall - half), (a_end, c_wall - half),
+              (a_end, c_wall + half), (a_start, c_wall + half)]
+    bottom_h = [bottom_start, bottom_end, bottom_end, bottom_start]
+    top_h = [h_start, h_end, h_end, h_start]
+    verts = [place(a, c, h) for (a, c), h in zip(bottom, bottom_h)] + \
+            [place(a, c, h) for (a, c), h in zip(bottom, top_h)]
+    centre = tuple(sum(v[k] for v in verts) / 8.0 for k in range(3))
+    faces = []
+    for indices in ((0, 1, 2, 3), (4, 5, 6, 7), (0, 1, 5, 4),
+                    (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)):
+        pts = [verts[i] for i in indices]
+        mid = tuple(sum(p[k] for p in pts) / 4.0 for k in range(3))
+        out = tuple(mid[k] - centre[k] for k in range(3))
+        if _dot(_newell(pts), out) < 0:
+            indices = tuple(reversed(indices))
+        faces.append(indices)
+    return verts, faces
+
+
+def exposed_ranges(lo, hi, k, outward, other_n0, other_n1, other_t0, other_t1, tol=1e-6, tie_bias=0.0):
+    """The sub-intervals of `[lo, hi]` -- a boundary running along t, sitting
+    at fixed coordinate `k` on the perpendicular axis n -- that are NOT
+    covered by another wing's rectangle (`other_n0`/`other_n1` its extent
+    along n, `other_t0`/`other_t1` its extent along t). `outward` is -1 if
+    `[lo,hi]` is this wing's own MINIMUM side on n (stepping to smaller n is
+    "outward"), +1 if it's the MAXIMUM side.
+
+    Rainer, 2026-09-26, on the shared two-wing satteldach/pultdach branch:
+    "the [walls] always have to be in the Floorplan footprint seen from the
+    top" -- the same "wing_bound ± overhang, never roof-derived position"
+    rule already proven for the doppelpultdach hand-built-box branch
+    (plans/zweischenkliges-satteldach-v1.md), generalised: a boundary
+    portion is INTERNAL (covered by the other wing, must not get a wall/
+    soffit built there) exactly when stepping infinitesimally OUTWARD from
+    it lands inside the other wing's own rectangle -- i.e. the other wing
+    extends past `k` on that side. If it doesn't, the whole `[lo,hi]` run is
+    a genuine exterior boundary, returned unchanged. If it does, only the
+    part of `[lo,hi]` beyond the other wing's own `[other_t0,other_t1]`
+    extent is still genuinely exposed -- 0, 1, or 2 remaining sub-ranges.
+
+    Codex read-only review, 2026-09-26 (`plans/WING-END-EXPOSURE-001-codex-
+    review.md`): this test is axis-independent by construction -- it only
+    ever sees a fixed-coordinate boundary and a perpendicular extent, never
+    which ROLE (ridge-axis end vs cross-axis long wall) it is being built
+    as, which is essential because a forced `roof_axis_override` can make
+    the SAME physical edge play either role depending on the wing.
+
+    `tie_bias`: hand-verified against WB_125's real numbers (2026-09-26,
+    see `wall_extension()`'s own `dominant` docstring) -- when `k` sits
+    EXACTLY at `other_n0`/`other_n1` (both wings' true ends tied at the
+    same overall-building extreme, not one genuinely extending past the
+    other), the plain tolerance-only test made BOTH wings defer to each
+    other, building neither. Positive `tie_bias` (the caller's dominant/
+    bigger wing) shifts the covered threshold so an exact tie reads as NOT
+    covered; negative (the subordinate/smaller wing) shifts it the other
+    way so an exact tie reads as covered. A genuine internal boundary --
+    metres away from any tie -- is unaffected either way.
+    """
+    if outward < 0:
+        covered = other_n0 + tie_bias - tol < k <= other_n1 + tol
+    else:
+        covered = other_n0 - tol <= k < other_n1 - tie_bias + tol
+    if not covered:
+        return [(lo, hi)]
+    cut_lo = max(lo, other_t0)
+    cut_hi = min(hi, other_t1)
+    if cut_hi <= cut_lo + tol:
+        return [(lo, hi)]
+    result = []
+    if cut_lo - lo > tol:
+        result.append((lo, cut_lo))
+    if hi - cut_hi > tol:
+        result.append((cut_hi, hi))
+    return result
+
+
+TIE_MARGIN = 0.05  # metres -- see `dominant` below
+
+
+def wall_extension(x0, x1, y0, y1, z_eave, overhang, profile, thickness, sink=0.05, *,
+                    along_x=None, real_ends=(True, True), other_wing=None, dominant=True,
+                    all_wings=None, all_profiles=None, all_along_x=None, roof_mesh=None,
+                    build_soffit=True):
+    """The walls that carry the roof, in metres: everything from the wall tops
+    up to the roof sheet, on the house's own wall planes.
+
+    (x0..y1) is the ROOF outline; the walls stand `overhang` inside it. Two end
+    walls follow the roof line (the gable triangle, a Pultdach's side), two
+    long walls fill up to the roof along the eaves (the high side of a
+    Pultdach). `sink` tucks the top edge into the roof slab so no hairline
+    shows. Returns a list of (verts, faces) closed prisms, flush with the walls
+    below and `thickness` deep.
+
+    `along_x`: see _axes() -- must match the value passed to profile_mesh()
+    for the same roof.
+
+    Rainer, 2026-09-24, `german_catalog_review_bungalow_4_3_1_wb_125`'s
+    Doppelpultdach: first found a white spike bursting through the BIGGER
+    wing's own roof surface (fixed by passing the CLIPPED rectangle for the
+    wing whose height was clipped, so its own end-wall lands exactly on the
+    valley line -- no change needed here for that one). Then, after Rainer
+    sent 3 reference photos and confirmed the real shape is one Versetztes
+    Pultdach cross-section (not two independently-scaled wing profiles): the
+    wing that carries the FULL cross-section (both arms + the one true step)
+    has, by construction of the L-shape, only ONE true outer gable -- its
+    OTHER ridge-axis end is the internal reflex line, where only PART of its
+    cross-section (the arm beyond the narrower wing's own reach) is a real
+    roof edge at all; the rest continues seamlessly into the narrower wing.
+    Building a full-profile end-wall/soffit there poked wall material into
+    the narrower wing's own territory (same bug class, new spot). `real_ends`
+    (a0-end, a1-end) lets the caller mark that end `False` so its ordinary
+    end-wall/soffit is skipped -- the caller then makes a SEPARATE
+    wall_extension() call with a cross-axis-truncated rectangle and a
+    truncated (single-arm) profile for just that end, so the small remaining
+    edge still gets a real wall, correctly scoped. The long "high side"/
+    versatz walls (unaffected by real_ends) still run the wing's own full
+    ridge-axis range -- they represent the real vertical step, valid along
+    that wing's whole own extent regardless of which end is a true gable.
+    Default (True, True) is every existing caller -- unchanged behaviour.
+
+    `other_wing`: Rainer, 2026-09-26, on the SHARED (non-doppelpultdach)
+    two-wing branch: "the [walls] always have to be in the Floorplan
+    footprint seen from the top" -- `real_ends` above only ever suppressed a
+    whole end; nothing trimmed a PARTIALLY-covered end, soffit, or long wall
+    down to just the sliver actually outside the other wing. Pass the other
+    wing's own `(x0,x1,y0,y1)` rectangle (straight from the same `wings`
+    list this wing came from, same offset/overhang convention -- do not
+    pre-adjust it) and every end-wall, verge soffit, and long wall below is
+    additionally clipped, via `exposed_ranges()`, to the sub-range that is
+    NOT covered by it: fully suppressed where fully covered, built at its
+    exact true-footprint extent where partially exposed, unchanged where
+    not covered at all. `None` (every caller before this) keeps today's
+    unconditional behaviour -- correct for a real single-rectangle roof,
+    which has no other wing to overlap. Confirmed by a Codex read-only
+    review (`plans/WING-END-EXPOSURE-001-codex-review.md`) that the
+    existing overhang-inset math itself (`a0 + overhang` etc.) already
+    lands on the true footprint coordinate -- this parameter only decides
+    HOW MUCH of that already-correct boundary to actually build.
+
+    `dominant`: a real, second bug found by hand-verifying the FIRST attempt
+    at `other_wing` against WB_125's own real numbers (2026-09-26) -- a
+    render regression Codex's design didn't catch, since it never ran
+    Blender. `roof_wings.recognize_two_wings()` makes one wing span the
+    FULL x-extent and the other the FULL y-extent of the WHOLE building --
+    so under a forced `roof_axis_override`, BOTH wings can end up with a
+    ridge-axis END sitting at the exact SAME true coordinate (e.g. both
+    wings' own south end is the same overall building south edge, because
+    the "full-y" wing's own y-range starts there too, same as the "full-x"
+    wing's). At that exact tie, each wing's exposure test saw the OTHER
+    wing's range also reaching that coordinate and deferred to it --
+    BOTH wings suppressed their own south end, leaving NOTHING built there
+    at all (confirmed: `roof-pitch`/`roof-walls` were each individually
+    watertight, 0 open edges -- the hole was a gap BETWEEN two otherwise-
+    valid solids, not a topology defect in either). `dominant=True` (the
+    caller's BIGGER-by-area wing, matching the same area comparison already
+    used elsewhere in this file for the doppelpultdach clip decision) makes
+    a tie resolve as NOT covered (this wing builds its full, true end);
+    `dominant=False` (the smaller wing) makes a tie resolve as covered
+    (this wing defers). A GENUINE (non-tied) internal boundary -- the
+    actual reflex-line end, many metres from either wing's own true
+    extreme -- is unaffected either way; `TIE_MARGIN` (5cm) is far smaller
+    than any real architectural offset but far larger than float noise.
+
+    `all_wings`/`all_profiles`/`all_along_x`: PER-WING-AXIS-OVERRIDE-001-
+    FOLLOWUP, 2026-09-27. `dominant` above only ever decided WHO builds a
+    wall at a boundary two wings share -- it never made that wing's own
+    HEIGHT reflect the true combined roof. Real WB_125 render (perpendicular
+    per-wing axes, wingA ridge along X / wingB ridge along Y -- the NORMAL
+    look of any L-shaped gable roof, confirmed by Rainer as the actual
+    intended shape, not an edge case) showed a torn gap at the shared
+    boundary: the DOMINANT wing wins the right to build its own wall there
+    (correctly, avoiding a double-built wall), but that wall's height came
+    from its OWN section only -- at a tied south edge, wingA's own height is
+    low (near its eave), while wingB's rectangle covers that exact point
+    too and wingB's own ridge (running the OTHER axis) is genuinely taller
+    there. `combined_height_at()` (what the roof SHEET itself already uses)
+    returns the true max; the wall didn't ask it. These three params, when
+    given, let this function ask the same question the sheet already
+    answers correctly -- `None` (every caller before this, and the
+    doppelpultdach hand-built-box branch, which never had two wings to
+    begin with) keeps today's own-wing-only height, byte-for-byte.
+
+    `roof_mesh`: `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29. `combined_
+    height_at()` above is the ANALYTIC max() of both wings' height
+    functions -- it does not always match the actual triangulated mesh
+    `heightfield_roof_mesh()` built from those same wings (a grid cell
+    straddling the crease where one wing's height overtakes the other's
+    picks one diagonal and triangulates flat across it, which can read
+    tens of millimetres off the analytic value there -- reproduced and
+    measured via Codex's own read-only design review). Passing the
+    `(verts, faces)` that same `heightfield_roof_mesh()` call already
+    produced makes `_true_height()` below query THAT mesh (`mesh_height_
+    at()`) instead of the analytic function wherever it covers the point,
+    so the wall always agrees with whatever the roof mesh actually is --
+    one source of truth, not two independently-computed values that can
+    disagree. Falls back to `combined_height_at()` only where the mesh
+    doesn't cover the point at all (`mesh_height_at()` returns `None`
+    there, e.g. just outside its own triangulated extent). `None` (every
+    caller before this) keeps using the analytic function only, unchanged.
+
+    The long-wall fix samples the TRUE height at several points along each
+    already-`dominant`-decided sub-range instead of one, and takes the
+    SAFE (tallest) one -- not a continuous profile-following surface. This
+    can make a short stretch of wall very slightly TALLER than the real
+    roof there (mostly hidden behind the roof's own overhang/thickness);
+    the alternative -- sampling only the centre, or not sampling the other
+    wing's own extent boundary at all -- risks silently leaving the exact
+    same kind of gap this fix exists to close. A fully continuous,
+    form-fitted wall was Codex's own suggestion for a later pass; this is
+    the safe, minimal fix for the confirmed defect.
+    """
+    along_x, span, (a0, a1), c0 = _axes(x0, x1, y0, y1, along_x=along_x)
+    section = _section(profile, span)
+    c_lo, c_hi = overhang, span - overhang
+    if c_hi - c_lo < 0.5 or (a1 - a0) - 2 * overhang < 0.5:
+        return []
+    half = thickness / 2.0
+    # Rainer, 2026-10-01, testing a steep 30-degree satteldach specifically
+    # to make the mitering visible: "the hole is in the wall[,] you can
+    # close the hole in the wall and preserve the dachueberstand" -- every
+    # wall/soffit point gets tucked `sink` below the true roof height so no
+    # hairline shows (the roof's own overhang/thickness hides that small
+    # gap from outside). That hiding stops working at the profile's own
+    # PEAK (the ridge, ROOF-RIDGE-PATH-TOOL-001-FOLLOWUP-2's "the shell's
+    # true vertical thickness ... can be a small fraction of the nominal
+    # 0.22m" at exactly this point): a real steep-pitch render showed a
+    # visible sliver hole right at the gable's own tip, not along the rest
+    # of the gable. Rainer's own diagnosis, confirmed by inspecting the
+    # built mesh directly: the WALL stops short there, not the roof -- so
+    # the fix is in the wall, never the overhang. The peak point(s) of
+    # `section` reach their FULL height (no `sink`) here; every other point
+    # (the eaves, any other breakpoint) is unaffected, tucked exactly as
+    # before -- a straight line from a sunk eave up to an un-sunk peak is
+    # still one continuous, valid wall surface, not a new discontinuity.
+    _profile_peak = max(zz for _, zz in section)
+    _peak_ccs = [cc for cc, zz in section if abs(zz - _profile_peak) < 1e-9]
+
+    def _true_height(a_val, c_val):
+        """Height at this wing's local (a_val, c_val) -- own section unless
+        `all_wings` is given, in which case the TRUE combined roof height
+        wins whenever it's taller: preferably read directly off the actual
+        built mesh (`roof_mesh`, see this function's own docstring) so the
+        wall agrees with exactly what the roof mesh is, falling back to the
+        analytic `combined_height_at()` only where the mesh doesn't cover
+        this point. Never returns LESS than this wing's own height -- only
+        the combined value can raise it, never lower it, so a caller that
+        already trusted the own-wing value stays safe even where the other
+        wing/mesh doesn't cover this point at all."""
+        own = _height_at(section, c_val)
+        if all_wings is None:
+            return own
+        x, y = (a_val, c0 + c_val) if along_x else (c0 + c_val, a_val)
+        combined = None
+        if roof_mesh is not None:
+            combined = mesh_height_at(roof_mesh[0], roof_mesh[1], x, y)
+            if combined is not None:
+                combined -= z_eave           # mesh verts are absolute z; heights here are eave-relative
+        if combined is None:
+            combined = combined_height_at(x, y, all_wings, all_profiles, along_x=all_along_x)
+        return max(own, combined) if combined is not None else own
+    out_lo, out_hi = c_lo - half, c_hi + half          # outer faces of the long walls
+
+    other_a_true = other_c_true = None
+    tie_bias = TIE_MARGIN if dominant else -TIE_MARGIN
+    if other_wing is not None:
+        _, o_span, (oa0, oa1), oc0 = _axes(*other_wing, along_x=along_x)
+        # TRUE (overhang-inset) footprint coordinates -- must match what
+        # `a0 + overhang` etc. already means for THIS wing below, or a wing
+        # whose own true edge exactly touches the other's OFFSET (roof/
+        # overhang-included) edge reads as "inside" it when it is really
+        # only a tie at best. Found by hand-verifying against WB_125's real
+        # numbers, not caught by the earlier design review (see `dominant`).
+        #
+        # A visible gap SURVIVED this fix on the first real rebuild -- traced
+        # (via raycasting the built roof-pitch mesh from directly above, not
+        # more reasoning) to a SEPARATE, pre-existing bug in
+        # `heightfield_roof_mesh()`'s own coverage grid, unrelated to walls
+        # at all: its grid rows/columns are spaced evenly across the overall
+        # bounding box and have no reason to land exactly on a wing's own
+        # boundary, so a whole row of cells can straddle a coverage
+        # transition and get dropped -- see that function's own comment for
+        # the fix (snapping grid lines to every wing's true edges). Recorded
+        # here so a future reader doesn't re-derive "the wall must be wrong"
+        # from the same symptom.
+        other_a_true = (oa0 + overhang, oa1 - overhang)
+        other_c_true = (oc0 + overhang, oc0 + o_span - overhang)
+
+    # PER-WING-AXIS-OVERRIDE-001-FOLLOWUP: where the other wing's own ridge
+    # axis is the OPPOSITE of this wing's (the whole point of a per-wing
+    # override), its own cross coordinate maps DIRECTLY onto this wing's
+    # ridge-axis `a` (see `_true_height()`) -- every place ITS saved
+    # profile bends is a place the true combined height along one of THIS
+    # wing's own long walls can bend too, and (profiles being piecewise
+    # LINEAR) the only points where such a bend's own maximum can ever
+    # sit, other than a segment's own endpoints. Sampling only a
+    # segment's own start/mid/end (the simpler alternative) can undershoot
+    # a real ridge peak that doesn't happen to land near the midpoint --
+    # found by this fix's own first version, hand-verified against a
+    # worked example, not just assumed correct.
+    _other_a_breakpoints = ()
+    _other_own_height = None
+    if all_wings is not None and all_profiles is not None and other_wing is not None:
+        try:
+            _other_idx = all_wings.index(other_wing)
+        except ValueError:
+            _other_idx = None
+        if _other_idx is not None:
+            _other_ax_in = (all_along_x[_other_idx] if isinstance(all_along_x, (list, tuple))
+                            else all_along_x)
+            _other_ax_resolved, _other_span, _, _other_c0 = _axes(*other_wing, along_x=_other_ax_in)
+            _other_prof = all_profiles[_other_idx]
+            if _other_ax_resolved != along_x:
+                _other_a_breakpoints = tuple(sorted(
+                    _other_c0 + p["u"] * _other_span for p in (_other_prof.get("points") or [])))
+
+            # `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29, Rainer: "if there are
+            # height differences then you just treat it like a giebel" --
+            # `cross_ranges()`/`exposed_ranges()` below correctly identify a
+            # sub-range as "internal" (covered by the other wing's own
+            # footprint, so no ordinary ground-to-roof gable belongs there),
+            # but that only means the OTHER wing's own structure already
+            # occupies that ground-plan area -- not that it reaches THIS
+            # wing's own (possibly taller) roofline there. A real WB_125
+            # satteldach rebuild showed exactly that: a genuine ~0.9m
+            # height cliff, visible in the actual hero-camera render, at a
+            # wing boundary `exposed_ranges()` had (correctly, for the
+            # ground-plan question it answers) classified as internal.
+            # `_other_own_height(a_val, cc)` gives the OTHER wing's own true
+            # height (never the combined max -- that would just return this
+            # wing's own taller value again) at the world point THIS wing's
+            # local (a_val, cc) maps to, so the step-closure loop below can
+            # build a wall from exactly where the other wing's own roof
+            # already reaches up to where this one does, closing only the
+            # real gap.
+            def _other_own_height(a_val, cc):
+                x, y = (a_val, c0 + cc) if along_x else (c0 + cc, a_val)
+                return wing_height_at(x, y, other_wing, _other_prof, along_x=_other_ax_resolved) or 0.0
+
+    def cross_ranges(lo, hi, a_wall, outward):
+        """`[lo,hi]` (local cross coords) trimmed against `other_wing`, for
+        a boundary running along the cross axis at ridge-axis position
+        `a_wall` -- world coords in, world coords back out (the caller
+        re-subtracts `c0` itself, since callers need both forms)."""
+        if other_c_true is None:
+            return [(lo, hi)]
+        world = exposed_ranges(c0 + lo, c0 + hi, a_wall, outward,
+                                other_a_true[0], other_a_true[1],
+                                other_c_true[0], other_c_true[1], tie_bias=tie_bias)
+        return [(s - c0, e - c0) for s, e in world]
+
+    def covered_ranges(lo, hi, exposed):
+        """The complement of `exposed` (`cross_ranges()`'s own return
+        value) within `[lo, hi]` -- the sub-range(s) genuinely internal to
+        the other wing's own footprint, where the height-difference step
+        closure below may still need to build something (see
+        `_other_own_height()`'s own docstring)."""
+        covered = []
+        cursor = lo
+        for s, e in sorted(exposed):
+            if s - cursor > 1e-9:
+                covered.append((cursor, s))
+            cursor = max(cursor, e)
+        if hi - cursor > 1e-9:
+            covered.append((cursor, hi))
+        return covered
+
+    def boundary_polygon(a_wall, s, e, a_wall_lo=None, extra_sink=0.0):
+        """The (across, up) polygon for a wall/soffit spanning cross-range
+        `[s,e]` at fixed ridge-axis position `a_wall`: base corners at
+        height 0, up to the real roof height at s and e, along whatever
+        real profile points fall strictly between. Deduped so a clipped end
+        that lands exactly at the true eave (height 0 there already)
+        doesn't produce a zero-length duplicate edge -- the ORIGINAL
+        single-purpose `end_polygon`/`full_polygon` code this replaces
+        never had to handle that case, since `full_polygon` was always the
+        untrimmed 0..span range and its own construction (via
+        `section[1:-1]`, deliberately excluding the fixed 0/span endpoints)
+        avoided the duplicate by construction instead.
+
+        `a_wall` (PER-WING-AXIS-OVERRIDE-001-FOLLOWUP): height at s/e and
+        every interior breakpoint goes through `_true_height()`, not the
+        bare `_height_at(section, ...)` -- lets a genuine gable end at a
+        tied/dominant boundary pick up the OTHER wing's taller roof there
+        too, same as the long walls below.
+
+        `a_wall_lo` (ROOF-RIDGE-PATH-TOOL-001-FOLLOWUP, 2026-09-27): the
+        SOFFIT call below is one flat-topped prism spanning the whole
+        overhang depth (`a0` to `a0+overhang`), built from a height
+        sampled ONLY at its own CENTRE (`a_soffit`) -- fine when the true
+        roof height barely changes over that 0.5m, wrong where it doesn't:
+        real WB_125 render showed the soffit's flat top sitting 68mm
+        ABOVE the neighbouring gable wall's own height at their shared
+        edge, because the OTHER wing's contribution (steep there) is
+        genuinely taller at the soffit's centre than at its inner edge --
+        found by comparing the two independently-built prisms' vertices
+        at the exact point they should meet, not guessed. Passing the
+        soffit's OTHER true edge here takes the height that edge would
+        get too, and keeps the LOWER of the two at every cc -- the same
+        "safe = never poke through" choice already used for the ridge-
+        path tool's own cross-axis scan and this file's `_long_wall_ramp()`.
+        `None` (the end wall's own call) keeps today's single-point
+        behaviour exactly.
+
+        `extra_sink` (ROOF-RIDGE-PATH-TOOL-001-FOLLOWUP-2, 2026-09-27): the
+        `a_wall_lo` fix above closed a real, measured 68mm gap but a real
+        Blender render of WB_125's own hand-drawn two-wing split STILL
+        showed the soffit's flat top visible through the roof surface --
+        confirmed (BVH ray-cast per pixel from the actual hero camera,
+        comparing hit distance against `roof-pitch` vs this piece) as a
+        genuine "this piece is closer to the camera than the roof" defect,
+        not float noise, along nearly this whole gable's width. Root
+        cause: SOLIDIFY (`offset=-1.0`) extrudes the roof sheet along its
+        own FACE NORMAL, not straight down in Z -- for a steep slope (this
+        gable's own u=0.4 profile: pitch 0.27, matching the exact slope
+        Codex's earlier, unrelated normal-offset analysis used) the
+        shell's true VERTICAL thickness at a fixed (x,y) query, especially
+        near the sheet's own outer boundary/rim where solidify's cap
+        geometry -- not the simple "shifted straight down by thickness"
+        interior case -- governs the shape, can be a small fraction of the
+        nominal 0.22m. Confirmed empirically: tripling the shared `sink`
+        (0.05 -> 0.15) changed nothing; only a much larger, soffit-ONLY
+        margin actually cleared the camera-ray comparison above. Scoped to
+        `extra_sink` (not the shared `sink` every wall/soffit call already
+        uses) specifically because the SOFFIT is the one piece this margin
+        can never turn into a visible gap: `roof-pitch`'s own SOLIDIFY
+        shell already independently closes this exact space from above
+        (confirmed watertight/manifold, full raycast coverage, separately
+        this session) -- the soffit's only job is to hide that shell's
+        underside behind a matching FACADE-material panel, so pushing it
+        further down is strictly safer, never a new hole. The END WALL's
+        own call (no `extra_sink`) is untouched -- unlike the soffit, an
+        end wall built too short leaves a real, visible gap under the
+        roof, so it keeps the tight, already-correct margin above.
+
+        Rainer, 2026-10-01, after chasing `sink`/`extra_sink` margin sizes
+        across several rounds (a flat gap at the ridge tip, then a step
+        between the wall and the soffit at that same point): "just
+        subdivide the walls where soffit is in the middle once, and grab
+        these points and go upward until you hit the roof." No more
+        guessed-at-a-distance margins anywhere in this polygon -- every
+        sampled cross position, wall or soffit, reaches the TRUE roof
+        height exactly (`_true_height()`, already this function's own
+        authority for "where the roof actually is"). A single straight
+        line between two known points can still cut the corner of a bend
+        neither point sits on, so this always inserts at least one extra
+        MIDPOINT between `s` and `e` -- editing this polygon's own point
+        list, not adding a new piece of geometry -- so a bend between two
+        existing samples gets caught instead of assumed away."""
+        def _h(a_val, cc):
+            if a_wall_lo is None:
+                return max(_true_height(a_val, cc), 0.0)
+            return max(min(_true_height(a_val, cc), _true_height(a_wall_lo, cc)), 0.0)
+        h_s = _h(a_wall, s)
+        h_e = _h(a_wall, e)
+        _cc_points = [cc for cc, _zz in section[1:-1] if s + 1e-9 < cc < e - 1e-9]
+        _cc_points.append((s + e) / 2.0)
+        # `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29: `_true_height()` here
+        # already returns the true combined (multi-wing/mesh-authoritative)
+        # height at each sampled point -- but between two adjacent samples
+        # this polygon draws a STRAIGHT line, which only matches the real
+        # roof if nothing bends between them. `section[1:-1]` only knows
+        # THIS wing's own profile breakpoints, never where the OTHER wing's
+        # contribution starts/stops dominating (a real, confirmed ~0.4m
+        # undershoot on WB_125's real satteldach L: a gable's true height
+        # bends at the other wing's own coverage edge, which isn't one of
+        # this wing's own breakpoints, so the straight line between the
+        # nearest real samples cut the corner). Rather than re-deriving
+        # every possible bend location analytically, add extra samples on
+        # a fine regular grid too whenever a second wing is actually in
+        # play -- a dense enough sampling can't miss a bend by more than a
+        # small fraction of the step, unlike relying solely on breakpoints
+        # that don't know about the other wing's own geometry.
+        if all_wings is not None and e - s > 0.06:
+            import math as _math
+            _n = max(1, _math.ceil((e - s) / 0.3))
+            _cc_points += [s + (e - s) * _k / _n for _k in range(1, _n)]
+        middle = sorted({round(cc, 9): cc for cc in _cc_points}.values())
+        middle = [(cc, _h(a_wall, cc)) for cc in middle]
+        # A single profile (no second wing, no roof mesh) can have a vertical
+        # step; `_true_height()` is single-valued there and would drop it.
+        if all_wings is None and roof_mesh is None:
+            middle = _insert_steps(middle, _step_pairs(section, s, e))
+        raw = [(s, 0.0), (s, h_s)] + middle + [(e, h_e), (e, 0.0)]
+        poly = []
+        for p in raw:
+            if not poly or abs(p[0] - poly[-1][0]) > 1e-9 or abs(p[1] - poly[-1][1]) > 1e-9:
+                poly.append(p)
+        return poly
+
+    _debug = other_wing is not None and os.environ.get("DEBUG_WING_EXPOSURE")
+
+    prisms = []
+    for is_real, a_wall, outward in zip(real_ends, (a0 + overhang, a1 - overhang), (-1, 1)):
+        if not is_real:
+            continue
+        _ranges = cross_ranges(out_lo, out_hi, a_wall, outward)
+        if _debug:
+            print(f"[DEBUG] END a_wall={a_wall:.3f} outward={outward} full=({out_lo:.3f},{out_hi:.3f}) "
+                  f"-> exposed={_ranges}")
+        for s, e in _ranges:
+            if e - s < 0.02:
+                continue
+            prisms.append(_prism(boundary_polygon(a_wall, s, e), a_wall, thickness, c0, z_eave, along_x))
+
+        # `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29, Rainer: "if there are
+        # height differences then you just treat it like a giebel" -- the
+        # sub-range(s) `cross_ranges()` excluded above are internal to the
+        # OTHER wing's own footprint (correctly, no ordinary ground-to-roof
+        # gable belongs there), but that other wing's own roofline can
+        # still sit lower than THIS wing's here (see `_other_own_height()`'s
+        # own docstring -- a real, hero-camera-visible ~0.9m cliff on
+        # WB_125's satteldach rebuild, confirmed by direct raycast: neither
+        # wing's own wall reached the true combined height there, only the
+        # roof sheet's own steep, unsupported slope). Close exactly that
+        # gap: a step wall from the other wing's own true height up to this
+        # wing's, split at every breakpoint either wing's profile could
+        # bend at (both piecewise-linear, so a straight quad between two
+        # adjacent breakpoints is the exact true shape, the same principle
+        # `_long_wall_ramp()` already uses for the long walls).
+        if other_wing is not None and _other_own_height is not None:
+            for cs, ce in covered_ranges(out_lo, out_hi, _ranges):
+                if ce - cs < 0.02:
+                    continue
+                _splits = sorted({cs, ce} |
+                                 {cc for cc, _zz in section[1:-1] if cs + 1e-6 < cc < ce - 1e-6} |
+                                 {p for p in _other_a_breakpoints if cs + 1e-6 < p < ce - 1e-6})
+                for sa, sb in zip(_splits, _splits[1:]):
+                    if sb - sa < 0.02:
+                        continue
+                    top_a = max(_true_height(a_wall, sa) - sink, 0.0)
+                    top_b = max(_true_height(a_wall, sb) - sink, 0.0)
+                    bot_a = _other_own_height(a_wall, sa)
+                    bot_b = _other_own_height(a_wall, sb)
+                    if top_a - bot_a < 0.02 and top_b - bot_b < 0.02:
+                        continue                       # no real gap here, other wing's own wall already reaches
+                    prisms.append(_prism(
+                        [(sa, max(bot_a, 0.0)), (sa, top_a), (sb, top_b), (sb, max(bot_b, 0.0))],
+                        a_wall, thickness, c0, z_eave, along_x))
+
+    # Verge soffit: the gable wall stands `overhang` INSIDE the roof edge (by
+    # design, so the roof oversails the gable like a real verge) -- but
+    # nothing used to close the underside of that overhang pocket. Rainer,
+    # 2026-09-22, on the two-wing roof but the same gap exists on every
+    # plain rectangular satteldach/pultdach/doppelpultdach too: "i dont
+    # understand ... 2 flat roofs on top of each other" -- reproduced
+    # without any wing/union involved, so this was already there.
+    #
+    # The soffit needs the FULL cross-section (0..span, the true eave
+    # corners), not `end_polygon`'s out_lo/out_hi -- those are the WALL's
+    # own outer face (inset by half a wall thickness, matching the long
+    # walls), which left the two eave-corner tips of the overhang pocket
+    # still open even after the first version of this fix (Rainer still
+    # saw sky there). `full_top`/`full_polygon` mirror `top`/`end_polygon`
+    # but without that clip, so the soffit reaches the true corners too.
+    #
+    # Same `other_wing` trimming as the end wall above: a soffit closes a
+    # real roof OVERHANG, which only exists where this end is a genuine
+    # exterior gable -- where the other wing covers this end instead, there
+    # is no overhang pocket to close at all (the other wing's own structure
+    # is right there, not open air), so the soffit is trimmed exactly like
+    # its end wall, not built separately/unconditionally.
+
+    # `build_soffit` (ROOF-SWEEP-CONSTRUCTOR-001-FOLLOWUP-3, 2026-10-01):
+    # Rainer sent back a manually-edited copy of a real build with every
+    # soffit prism deleted by hand, keeping every wall -- "why is there an
+    # overhang? no houses are built like that". The soffit was always a
+    # cosmetic add-on, never load-bearing: `roof-pitch`'s own SOLIDIFY
+    # shell already closes this same space from above on its own (see this
+    # function's own earlier notes on that). `chevron_roof_construction()`
+    # passes `build_soffit=False`; every other, pre-existing caller is
+    # unaffected (`True` keeps today's behaviour exactly).
+    if overhang > 1e-6 and build_soffit:
+        for is_real, a_soffit, a_inner, outward in zip(
+                real_ends, (a0 + overhang / 2.0, a1 - overhang / 2.0),
+                (a0 + overhang, a1 - overhang), (-1, 1)):
+            if not is_real:
+                continue
+            _ranges = cross_ranges(0.0, span, a_soffit, outward)
+            if _debug:
+                print(f"[DEBUG] SOFFIT a_soffit={a_soffit:.3f} outward={outward} full=(0,{span:.3f}) "
+                      f"-> exposed={_ranges}")
+            for s, e in _ranges:
+                if e - s < 0.02:
+                    continue
+                prisms.append(_prism(boundary_polygon(a_soffit, s, e, a_wall_lo=a_inner, extra_sink=0.25),
+                                     a_soffit, overhang, c0, z_eave, along_x))
+
+    for c_wall, outward in ((c_lo, -1), (c_hi, 1)):
+        # Lowest roof height across the wall's thickness, so its top never
+        # pokes through the sloping roof surface. This wing's OWN baseline
+        # -- always at least this tall, even where `all_wings` isn't given.
+        own_height = max(min(_height_at(section, c_wall - half), _height_at(section, c_wall + half))
+                         - sink, 0.0)
+        c_wall_world = c0 + c_wall
+        if other_c_true is None:
+            a_ranges = [(a0 + overhang + half, a1 - overhang - half)]
+        else:
+            a_ranges = exposed_ranges(a0 + overhang + half, a1 - overhang - half, c_wall_world,
+                                      outward, other_c_true[0], other_c_true[1],
+                                      other_a_true[0], other_a_true[1], tie_bias=tie_bias)
+        for a_start, a_end in a_ranges:
+            if a_end - a_start < 0.02:
+                continue
+            # PER-WING-AXIS-OVERRIDE-001-FOLLOWUP: `exposed_ranges()` above
+            # only decided this wing WINS the right to build here (a
+            # `dominant` tie at a shared boundary resolves in its favour)
+            # -- it never checked whether the OTHER wing's rectangle still
+            # covers this exact stretch with a genuinely taller roof (see
+            # `_true_height()`'s own docstring for the worked example this
+            # fixes: a dominant wing's low eave, tied with a subordinate
+            # wing whose OWN ridge is much taller at that same point).
+            # Split at every point the true combined height could bend --
+            # the other wing's own ridge-axis extent (where its coverage
+            # itself starts/stops) AND its own saved profile breakpoints
+            # (where, if its axis runs the OTHER way, its height along
+            # THIS axis bends) -- then give each resulting dead-straight
+            # sub-segment a SLOPED top from one true endpoint height to
+            # the other (`_long_wall_ramp()`), not one flat height for the
+            # whole segment. Profiles are piecewise LINEAR, so a straight
+            # ramp between two adjacent breakpoints is the EXACT true
+            # shape there, not an approximation -- unlike a flat box at
+            # either endpoint's height, which either pokes through the
+            # real (lower) roof over the segment's high side, or falls
+            # short of it over its low side. (An earlier version of this
+            # fix used a flat box at the taller endpoint, reasoning that
+            # was the "safe" direction -- a real render showed that poke-
+            # through can span most of a metre-wide segment, not some
+            # negligible sliver; see `_long_wall_ramp()`'s own docstring.)
+            if all_wings is None:
+                _splits = [a_start, a_end]
+            else:
+                _splits = {a_start, a_end} | \
+                          {p for p in (other_a_true or ()) if a_start + 1e-6 < p < a_end - 1e-6} | \
+                          {p for p in _other_a_breakpoints if a_start + 1e-6 < p < a_end - 1e-6}
+                # `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29: the breakpoints
+                # above only capture where the OTHER wing's own profile
+                # bends or its coverage starts/stops ALONG THIS AXIS -- not
+                # where its contribution bends because its OWN axis runs
+                # the same way as this wing's (its coverage-edge crossing
+                # then shows up as a bend in `_true_height()`'s own CROSS-
+                # axis sampling, which this split list never sees). A real
+                # WB_125 gap (~0.4m, same mechanism as `boundary_polygon()`
+                # above) confirmed a straight ramp between the nearest known
+                # breakpoints can undershoot a bend neither list captures.
+                # Same fix: add fine regular samples too whenever a second
+                # wing is in play, so a bend can't be missed by more than a
+                # small fraction of the step regardless of its cause.
+                if a_end - a_start > 0.06:
+                    import math as _math
+                    _n = max(1, _math.ceil((a_end - a_start) / 0.3))
+                    _splits |= {a_start + (a_end - a_start) * _k / _n for _k in range(1, _n)}
+                _splits = sorted(_splits)
+            for sa, sb in zip(_splits, _splits[1:]):
+                if sb - sa < 0.02:
+                    continue
+                if all_wings is None:
+                    h_sa = h_sb = own_height
+                else:
+                    h_sa = max(own_height,
+                              min(_true_height(sa, c_wall - half), _true_height(sa, c_wall + half)) - sink)
+                    h_sb = max(own_height,
+                              min(_true_height(sb, c_wall - half), _true_height(sb, c_wall + half)) - sink)
+                if h_sa < 0.02 and h_sb < 0.02:
+                    continue
+                prisms.append(_long_wall_ramp(sa, sb, h_sa, h_sb, c_wall,
+                                              thickness, c0, z_eave, along_x))
+    return prisms
+
+
+def end_wall_and_soffit(x0, x1, y0, y1, z_eave, overhang, profile, thickness, end, sink=0.05, *,
+                         along_x=None):
+    """Just ONE gable end-wall + its verge soffit -- the piece of
+    wall_extension() that closes a single ridge-axis end, without that
+    function's two "high side"/versatz LONG walls (which run the WHOLE
+    ridge-axis range unconditionally, no `real_ends`-style way to scope
+    them).
+
+    Rainer, 2026-09-24, german_catalog_review_bungalow_4_3_1_wb_125's
+    Versetztes Pultdach: the wing carrying the full cross-section has a
+    small remaining notch-edge beyond the narrower wing's own reach, needing
+    ITS OWN end-wall -- but calling wall_extension() with a rectangle for
+    just that sliver also built its own pair of long walls stretching back
+    across the WHOLE ridge-axis range (including territory the wide wing
+    already owns), poking through it -- the exact bug class fixed earlier
+    today, reappearing because a wall system built for a whole wing was
+    reused for a single edge. This function builds only what a single edge
+    needs: the end-wall triangle/trapezoid and, if there's an overhang, its
+    soffit -- nothing that runs the length of the ridge.
+    """
+    along_x, span, (a0, a1), c0 = _axes(x0, x1, y0, y1, along_x=along_x)
+    section = _section(profile, span)
+    c_lo, c_hi = overhang, span - overhang
+    if c_hi - c_lo < 0.5:
+        return []
+    half = thickness / 2.0
+    out_lo, out_hi = c_lo - half, c_hi + half
+    # Rainer, 2026-10-01 (see wall_extension()'s own `boundary_polygon()`
+    # docstring note on the same fix): no more `sink` guesswork anywhere
+    # here -- every sampled point, wall and soffit alike, reaches the TRUE
+    # roof height exactly ("go upward until you hit the roof"), with at
+    # least one extra MIDPOINT inserted into each span so a bend between
+    # two existing points still gets caught, not assumed away. This is the
+    # SAME point list every caller already had, just with one more point
+    # and no height subtracted off it -- not a new piece of geometry.
+    _cc_points = [out_lo] + [cc for cc, _zz in section[1:-1] if out_lo + 1e-9 < cc < out_hi - 1e-9]
+    _cc_points.append((out_lo + out_hi) / 2.0)
+    _cc_points.append(out_hi)
+    _cc_points = sorted({round(cc, 9): cc for cc in _cc_points}.values())
+    top = [(cc, max(_height_at(section, cc), 0.0)) for cc in _cc_points]
+    top = _insert_steps(top, _step_pairs(section, out_lo, out_hi))
+    end_polygon = [(out_lo, 0.0)] + top + [(out_hi, 0.0)]
+
+    a_wall = a0 + overhang if end == "a0" else a1 - overhang
+    prisms = [_prism(end_polygon, a_wall, thickness, c0, z_eave, along_x)]
+
+    if overhang > 1e-6:
+        _full_points = [0.0] + [cc for cc, _zz in section[1:-1]]
+        _full_points.append(span / 2.0)
+        _full_points.append(span)
+        _full_points = sorted({round(cc, 9): cc for cc in _full_points}.values())
+        full_top = [(cc, max(_height_at(section, cc), 0.0)) for cc in _full_points]
+        full_top = _insert_steps(full_top, _step_pairs(section, 0.0, span))
+        full_polygon = [(0.0, 0.0)] + full_top + [(span, 0.0)]
+        a_soffit = a0 + overhang / 2.0 if end == "a0" else a1 - overhang / 2.0
+        prisms.append(_prism(full_polygon, a_soffit, overhang, c0, z_eave, along_x))
+    return prisms
+
+
+def _rect_edges(rect):
+    """The 4 boundary edges of an axis-aligned rectangle `(x0,x1,y0,y1)`, as
+    `(kind, fixed_coord, lo, hi)` -- `kind` is `"h"` (horizontal, fixed y,
+    spanning x in `[lo,hi]`) or `"v"` (vertical, fixed x, spanning y).
+    Order: south, north, west, east."""
+    x0, x1, y0, y1 = rect
+    return [("h", y0, x0, x1), ("h", y1, x0, x1),
+           ("v", x0, y0, y1), ("v", x1, y0, y1)]
+
+
+def _edges_overlap(edge_a, edge_b, tol=1e-6):
+    """Do `edge_a`/`edge_b` (from `_rect_edges()`) coincide (same kind, same
+    fixed coordinate) and overlap by more than `tol`? Returns bool."""
+    kind_a, k_a, lo_a, hi_a = edge_a
+    kind_b, k_b, lo_b, hi_b = edge_b
+    if kind_a != kind_b or abs(k_a - k_b) > tol:
+        return False
+    return min(hi_a, hi_b) - max(lo_a, lo_b) > tol
+
+
+def _depth_to_match_height(section_big, span_big, from_zero_end, h_target, tol=1e-9):
+    """`ROOF-SWEEP-CONSTRUCTOR-001-FOLLOWUP-2`, 2026-09-30, Rainer: "the
+    bottom part of the smaller roof should stop when it hits the larger
+    roof, the top part can go further" -- how far (metres), walking into
+    the BIGGER wing from the shared edge, its own TRUE section (`_section()`
+    of its own real, unscaled profile) first reaches height `h_target`.
+
+    `h_target` is the SMALLER wing's own height at one of its own cross
+    positions (an eave, a ridge, a step -- whatever `_section()` gives it).
+    At an eave (`h_target` 0) this is always 0: the bigger wing is ALSO at
+    height 0 exactly at the shared edge (its own true eave/gable-base
+    there), so that point "stops when it hits" immediately, no extension
+    needed. At a taller point (the ridge), this walks the bigger wing's own
+    rising slope until it reaches the same height, "as far as it takes".
+
+    `from_zero_end` is which end of `section_big` sits AT the shared edge:
+    True for its own cross=0 end, False for cross=`span_big`. Walking from
+    the `span_big` end is done by re-basing the section as a mirror image
+    (distance from that end), so both directions are one simple increasing
+    scan either way.
+
+    If `h_target` is taller than the bigger wing ever reaches on that side
+    (an unusual, steeper-branch-than-body case), this returns that side's
+    own far end -- extend at least all the way through rather than come up
+    short and leave a real gap.
+
+    Rainer, 2026-10-01, orbiting the real build in Blender (not just the
+    one hero camera angle this had been checked from): a visible SPIKE --
+    the smaller wing's own ridge sticking up out of the bigger roof, not a
+    clean valley -- confirmed as a real logic error, not a viewing-angle
+    quirk. The smaller wing's own height is CONSTANT along the axis being
+    extended (the whole point of a simple gable extrusion) while the
+    bigger wing's own height keeps RISING across that same stretch -- so
+    stopping exactly where the bigger wing's height first reaches
+    `h_target` only makes them EQUAL at that one single point; for every
+    point before it, the bigger wing is still SHORTER, and the smaller
+    wing's own (constant, taller-than-that) surface is visible above it
+    for the entire span -- the wedge ends exactly where it would finally
+    start being hidden, instead of inside the region where it actually is.
+    Doubling the found distance keeps going past that crossing into
+    territory where the bigger wing is now genuinely ahead, the same
+    "go until you end up in the middle of the other roof" the first
+    version of this fix already had right, just lost when this function
+    was built to stop at the exact crossing instead."""
+    if h_target <= tol:
+        return 0.0
+    walk = section_big if from_zero_end else [(span_big - c, h) for c, h in reversed(section_big)]
+    crossing = None
+    for (c0_, h0_), (c1_, h1_) in zip(walk, walk[1:]):
+        lo, hi = min(h0_, h1_), max(h0_, h1_)
+        if abs(h1_ - h0_) > tol and lo - tol <= h_target <= hi + tol:
+            frac = (h_target - h0_) / (h1_ - h0_)
+            crossing = max(c0_ + frac * (c1_ - c0_), 0.0)
+            break
+    far_end = walk[-1][0]
+    if crossing is None:
+        return far_end
+    return min(crossing * 2.0, far_end)
+
+
+def chevron_roof_construction(wings, profiles, along_x_list, z_eave, overhang, thickness,
+                              sink=0.05, tol=1e-6):
+    """`ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29 (Rainer, after the wing-
+    rectangle/height-field architecture kept producing real, visible defects
+    despite four separate targeted patches: "you make the [roof] same width
+    as the footprint and then close the holes after that you add the
+    dachueberstand" -- draw/derive each wing at its TRUE footprint extent
+    (`wings`, already the real, non-overlapping rectangle decomposition --
+    e.g. `decompose_rectangles()`/`merge_roof_massing()`, or a hand-drawn
+    ridge path's own per-segment scan -- NOT `recognize_two_wings()`'s own
+    output, which deliberately EXTENDS each wing to the full other-axis
+    range so the OLD max()-height-field trick has something to reconcile).
+    Each wing gets its OWN independent, ordinary `profile_mesh()`/`wall_
+    extension()` -- no height field, no `max()`, no shared grid, and so no
+    dominance crease to approximate or get wrong. Overhang is added AFTER,
+    per wing, only on that wing's genuinely FREE (exterior) sides.
+
+    The key structural fact that makes the junction between two ADJACENT,
+    PERPENDICULAR-ridged wings need no reconciliation at all: any boundary
+    edge of a wing rectangle is, by construction, ALWAYS at height 0 there
+    -- for whichever wing has its ridge PARALLEL to that edge, the edge is
+    part of its CROSS-axis (an eave, `_section()`'s own `(0,0)`/`(span,0)`
+    endpoints, height 0 everywhere along the whole eave); for whichever
+    wing has its ridge PERPENDICULAR to that edge, the edge is one of its
+    ALONG-axis ends (a gable, same `(0,0)`/`(span,0)` guarantee). A shared
+    edge between two PERPENDICULAR wings is therefore always height 0 on
+    BOTH sides, regardless of profile/pitch/span -- proven, not assumed,
+    and verified this session against WB_125's own real numbers (exact
+    floating-point match, not an approximation) before this function was
+    written. This does NOT hold for two wings sharing an edge with the SAME
+    ridge axis (two gables meeting gable-to-gable at a real, possibly
+    unequal, ridge height) -- that is a genuinely different, harder case
+    (Codex's own "T/plus junctions need a proper planar arrangement"
+    finding), so this function REFUSES (returns `None`) whenever it finds
+    two wings sharing an edge with the SAME `along_x`, rather than silently
+    building a wrong seam there.
+
+    Known, accepted limitation (documented, not hidden -- a follow-on
+    attempt at fixing it, splitting the wider wing into along-axis pieces
+    at the narrower one's own boundary, was tried and reverted the same
+    day: each piece then independently re-scaled its own profile to its
+    own, now-DIFFERENT cross-span, giving the two siblings genuinely
+    different ridge heights and a real discontinuity along their entire
+    shared edge -- worse than the limitation it tried to fix. The correct
+    fix needs the two pieces to share the exact same, unscaled underlying
+    section, extrapolated past the true edge on free sides rather than
+    rescaled to a new span; real, valuable follow-on work, not attempted
+    here under time pressure): a wing's free/shared classification is per
+    WHOLE SIDE, not per sub-range. A T-shape where the crossbar is WIDER
+    than the branch (the branch's edge is a proper SUBSET of the crossbar's
+    own edge, not the whole thing) marks the crossbar's entire matching
+    side as "shared", suppressing overhang along the REST of that side too
+    (the part not actually covered by the branch) -- the roof stays
+    correct and complete there (confirmed: 0 self-intersections, 0
+    coverage gaps over the actual wall footprint on WB_125's own real
+    rebuild), just without its own overhang protruding past the true wall
+    line on that one stretch.
+
+    Returns `((roof_verts, roof_faces), wall_prisms)`, or `None` if any
+    shared edge has matching (same-axis) ridges.
+
+    Overhang (ROOF-SWEEP-CONSTRUCTOR-001-FOLLOWUP-2, 2026-09-30, Rainer,
+    refining the previous flat-depth version of this fix -- "the bottom
+    part of the smaller roof should stop when it hits the larger roof, the
+    top part can go further"): a genuinely FREE side always gets the plain
+    `overhang`, same as any ordinary roof eave. A side that is a JUNCTION
+    with another, perpendicular wing is handled asymmetrically: only the
+    SMALLER of the two wings (by footprint area) extends its own roof SHEET
+    past the true edge there; the bigger wing's own side of the same
+    junction keeps the plain `overhang`, unchanged, since the smaller
+    wing's own extended sheet already covers that ground.
+
+    The smaller wing's own extension is no longer one flat depth for the
+    whole width (the first version's "reach the neighbour's own midpoint",
+    which overshot at the eaves and underspecified nothing in particular at
+    the ridge): it is now a DIFFERENT depth at every cross position,
+    computed via `_depth_to_match_height()` -- 0 at that wing's own eaves
+    (its height is already 0 there, exactly matching the bigger wing's own
+    height at the shared edge -- its own true eave/gable-base too -- so it
+    stops the instant it touches, no extension at all) and however far it
+    actually takes at the ridge for the bigger wing's own rising roof to
+    reach that same height ("the top part can go further"). This makes the
+    smaller wing's own extended ring a WEDGE in plan, not a rectangle --
+    `profile_mesh()`'s new `a0_extra`/`a1_extra` parameters build exactly
+    that, one offset per section point instead of one flat rectangle edge.
+
+    Which side of a wing plays which role at a junction is fixed by
+    geometry, not chosen: of any two PERPENDICULAR wings sharing an edge,
+    that edge is always a CROSS-axis eave for one of them and a RIDGE-axis
+    end (a gable) for the other -- see this function's own junction proof
+    above. In the ordinary case of a smaller wing branching off a bigger
+    body, it is the SMALLER wing's own RIDGE end that meets the junction --
+    so "extend the smaller wing" means extending its own `profile_mesh()`
+    extrusion range past that end, which, because the cross-section is
+    constant along the ridge axis by construction, is exactly "continue the
+    Forst [ridge] at the same height and pitch, just further" at whichever
+    cross positions still need it: no rescaling, no change to the profile
+    itself, only a longer (and, now, per-point) along-axis extrusion. This
+    is also why the depth calc always uses each wing's own TRUE, un-scaled
+    profile (`profiles[i]`), never the `overhang`-rescaled `roof_profile_i`
+    actually built below: comparing true heights to true heights keeps
+    "0 at an eave" exact, instead of picking up the small (sub-decimetre)
+    height the eave-overhang rescale itself adds a little inside the true
+    edge. The resulting depths, in metres, are then applied directly to
+    the SAME-indexed points of the rescaled `roof_profile_i` that actually
+    gets built -- rescaling only changes cross-axis distances/heights, never
+    how many section points there are or their order, so the two line up.
+    This is also why the deep extension stays scoped to the RIDGE axis
+    only, never the cross axis: the cross-axis eave overhang still needs
+    `scale_profile_to_span()`'s own pitch-preserving rescale (a real eave,
+    continuing the same slope outward), which only stays correct for a
+    SYMMETRIC extension on both cross sides -- so cross-axis sides always
+    keep the plain, symmetric `overhang`, on every wing, junction or not.
+
+    Known, accepted limitation: if a SMALLER wing's shared edge happens to
+    be its own CROSS-axis eave rather than its ridge end (the mirror of the
+    usual branch-off case), this function does not depth-extend it -- it
+    still only gets the plain `overhang`, for the reason above. Not observed
+    on any real house built so far; the real fix would need the same
+    slope-preserving-but-asymmetric extension the cross-axis case above
+    deliberately avoids, a genuinely harder problem tracked separately, not
+    attempted here.
+
+    WALLS are entirely unaffected by any of this: `wall_extension()` is
+    always given its own rectangle (`wall_rect`), the wing's true footprint
+    plus a plain `overhang` on every side, regardless of what the roof
+    SHEET's own rectangle/wedge does at a junction -- the deep ridge
+    extension exists purely so the roof SURFACE visually plugs into the
+    neighbour; it was never meant to move a wall. `real_ends`/the explicit
+    gable loop below still only builds a gable or soffit on a wing's
+    genuinely FREE ends, never on a shared one, exactly as before."""
+    n = len(wings)
+    edges_per_wing = [_rect_edges(w) for w in wings]
+    names = ("south", "north", "west", "east")
+    areas = [(w[1] - w[0]) * (w[3] - w[2]) for w in wings]
+    free = [{name: True for name in names} for _ in range(n)]
+    junction_other = [{} for _ in range(n)]
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            for name, edge in zip(names, edges_per_wing[i]):
+                for other_edge in edges_per_wing[j]:
+                    if _edges_overlap(edge, other_edge, tol):
+                        if along_x_list[i] == along_x_list[j]:
+                            return None    # same-axis junction: a harder case, refuse rather than guess
+                        free[i][name] = False
+                        junction_other[i][name] = j
+
+    roof_verts, roof_faces = [], []
+    prisms = []
+    for i, (wing, profile, along_x) in enumerate(zip(wings, profiles, along_x_list)):
+        x0, x1, y0, y1 = wing
+        f = free[i]
+        # Walls/gables always sit on the true footprint plus a plain
+        # overhang, regardless of what the roof SHEET's own rectangle/wedge
+        # does below -- see this function's "Overhang" docstring paragraph.
+        wall_rect = (x0 - overhang, x1 + overhang, y0 - overhang, y1 + overhang)
+
+        # Rainer, 2026-10-01, on a steep 30-degree test roof specifically:
+        # a real screenshot with the roof hidden showed wing B's own FREE
+        # gable (built from `roof_profile_i`, below) standing at a visibly
+        # DIFFERENT, TALLER ridge height than wing B's own SHARED-end
+        # closing wall (`end_wall_and_soffit()`'s own call further down,
+        # which deliberately uses the un-rescaled `profile`) -- the same
+        # wing's own single, continuous ridge cannot have two different
+        # heights. Root cause: `scale_profile_to_span()` here RESCALES the
+        # ridge height to preserve the PITCH ANGLE over the wider,
+        # overhang-included cross span -- the right tool for adapting ONE
+        # saved pitch across DIFFERENT WINGS of different true spans (its
+        # own, original, correct use elsewhere in this file), but the WRONG
+        # tool for widening the SAME wing's OWN span to fit its own
+        # overhang: that inflates the ridge height in proportion to
+        # overhang/true_span, invisible at a shallow 5-degree pitch (where
+        # this bug has shipped for weeks) but a real, visible gap at 30.
+        # `roof_profile_i` is now just `profile` itself, unscaled --
+        # `profile_mesh()`/`wall_extension()` below still get the WIDER,
+        # overhang-included span via `roof_rect`/`wall_rect`, but the
+        # ridge's own height no longer grows with it, matching
+        # `end_wall_and_soffit()`'s own raw-profile call exactly.
+        roof_profile_i = profile
+
+        # The roof SHEET's ridge-axis ends: a free end gets the same plain
+        # overhang as the walls (base_a*_ext, unaffected). A junction end,
+        # ONLY when this wing is the SMALLER of the two (see "Overhang"
+        # above), instead gets a PER-POINT depth: 0 at that end's own true
+        # edge as the baseline (base_a*_ext=0.0), then `a0_extra`/`a1_extra`
+        # pulls each cross position out by however far it actually needs
+        # to go, computed once against both wings' own TRUE profiles.
+        ridge_names = ("west", "east") if along_x else ("south", "north")
+        this_true_span = (y1 - y0) if along_x else (x1 - x0)
+        this_true_section = _section(profile, this_true_span)
+        base_a0_ext = base_a1_ext = overhang
+        a0_extra = a1_extra = None
+        for name in ridge_names:
+            j = junction_other[i].get(name)
+            if j is None or areas[i] >= areas[j] - tol:
+                continue    # free, or shared-and-bigger: plain overhang, unchanged
+            other_wing = wings[j]
+            other_along_x = along_x_list[j]
+            _, o_true_span, _, o_true_c0 = _axes(*other_wing, along_x=other_along_x)
+            o_true_section = _section(profiles[j], o_true_span)
+            edge_coord = y0 if name == "south" else (y1 if name == "north" else
+                                                     (x0 if name == "west" else x1))
+            from_zero_end = (edge_coord - o_true_c0) <= tol
+            depths = [_depth_to_match_height(o_true_section, o_true_span, from_zero_end, h)
+                     for (_, h) in this_true_section]
+            if name in ("west", "south"):
+                a0_extra, base_a0_ext = depths, 0.0
+            else:
+                a1_extra, base_a1_ext = depths, 0.0
+
+        if along_x:
+            roof_rect = (x0 - base_a0_ext, x1 + base_a1_ext, y0 - overhang, y1 + overhang)
+        else:
+            roof_rect = (x0 - overhang, x1 + overhang, y0 - base_a0_ext, y1 + base_a1_ext)
+
+        rv, rf, _ = profile_mesh(*roof_rect, z_eave, roof_profile_i, along_x=along_x,
+                                 a0_extra=a0_extra, a1_extra=a1_extra)
+        base = len(roof_verts)
+        roof_verts += rv
+        roof_faces += [tuple(idx + base for idx in face) for face in rf]
+
+        real_ends = (f["west"], f["east"]) if along_x else (f["south"], f["north"])
+        prisms += wall_extension(*wall_rect, z_eave, overhang, roof_profile_i, thickness,
+                                 along_x=along_x, real_ends=real_ends, sink=sink,
+                                 build_soffit=False)
+
+        # Rainer, 2026-10-01: sent back a manually-fixed build with the
+        # soffits deleted but this SHARED-end closing wall kept -- "the way
+        # it is in this blender file is correct." Restored exactly as it
+        # was (its own `overhang=0.0` already means its internal soffit
+        # branch never triggers, so this is the wall alone, matching that
+        # file's own piece count).
+        for is_free, end in zip(real_ends, ("a0", "a1")):
+            if is_free:
+                continue
+            prisms += end_wall_and_soffit(x0, x1, y0, y1, z_eave, 0.0, profile, thickness,
+                                          end, sink=sink, along_x=along_x)
+
+    return (roof_verts, roof_faces), prisms

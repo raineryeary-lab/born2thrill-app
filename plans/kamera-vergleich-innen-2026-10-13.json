@@ -1,0 +1,4942 @@
+[
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_001/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791120897,
+  "loc": [
+   38.897,
+   -21.858,
+   63.589
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.482,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.266,
+   0.751,
+   0.208,
+   0.815
+  ],
+  "bbox": [
+   3.76,
+   14.7,
+   1.55,
+   14.08
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_001/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791118576,
+  "loc": [
+   38.897,
+   -21.858,
+   63.589
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.482,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.266,
+   0.751,
+   0.208,
+   0.815
+  ],
+  "bbox": [
+   3.76,
+   14.7,
+   1.55,
+   14.08
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_014/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791387832,
+  "loc": [
+   43.57,
+   -22.17,
+   68.344
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.789,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.245,
+   0.66,
+   0.205,
+   0.813
+  ],
+  "bbox": [
+   5.7,
+   17.65,
+   2.98,
+   16.42
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_014/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791383827,
+  "loc": [
+   43.57,
+   -22.17,
+   68.344
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.789,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.245,
+   0.66,
+   0.205,
+   0.813
+  ],
+  "bbox": [
+   5.7,
+   17.65,
+   2.98,
+   16.42
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_015/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791395914,
+  "loc": [
+   51.725,
+   -27.117,
+   83.051
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 22.832,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.266,
+   0.634,
+   0.23,
+   0.782
+  ],
+  "bbox": [
+   7.02,
+   18.98,
+   3.45,
+   19.78
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_015/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791390102,
+  "loc": [
+   51.725,
+   -27.117,
+   83.051
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 22.832,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.266,
+   0.634,
+   0.23,
+   0.782
+  ],
+  "bbox": [
+   7.02,
+   18.98,
+   3.45,
+   19.78
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_039/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791121299,
+  "loc": [
+   28.735,
+   -16.976,
+   49.364
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.571,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.768,
+   0.189,
+   0.844
+  ],
+  "bbox": [
+   0.94,
+   10.49,
+   1.19,
+   10.9
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_039/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791119518,
+  "loc": [
+   28.735,
+   -16.976,
+   49.364
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.571,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.768,
+   0.189,
+   0.844
+  ],
+  "bbox": [
+   0.94,
+   10.49,
+   1.19,
+   10.9
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_24/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791442383,
+  "loc": [
+   40.981,
+   -26.837,
+   69.94
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.228,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.269,
+   0.735,
+   0.23,
+   0.791
+  ],
+  "bbox": [
+   1.25,
+   15.48,
+   0.95,
+   10.6
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_24/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791436971,
+  "loc": [
+   30.995,
+   -16.85,
+   48.524
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.228,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.166,
+   0.843,
+   0.1,
+   0.914
+  ],
+  "bbox": [
+   1.25,
+   15.48,
+   0.95,
+   10.6
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_25/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791447737,
+  "loc": [
+   43.461,
+   -26.662,
+   75.73
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.82,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.242,
+   0.757,
+   0.274,
+   0.812
+  ],
+  "bbox": [
+   1.26,
+   15.04,
+   1.21,
+   16.1
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_25/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791444296,
+  "loc": [
+   31.215,
+   -15.723,
+   52.744
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.82,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.157,
+   0.91,
+   0.11,
+   0.898
+  ],
+  "bbox": [
+   1.26,
+   15.04,
+   1.21,
+   16.1
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_31/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791461540,
+  "loc": [
+   36.839,
+   -22.979,
+   63.571
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.477,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.252,
+   0.75,
+   0.21,
+   0.742
+  ],
+  "bbox": [
+   0.94,
+   13.45,
+   1.33,
+   11.99
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_31/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791459579,
+  "loc": [
+   25.857,
+   -11.756,
+   39.142
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.477,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.086,
+   0.902,
+   0.037,
+   0.909
+  ],
+  "bbox": [
+   0.94,
+   13.45,
+   1.33,
+   11.99
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791879964,
+  "loc": [
+   39.141,
+   -24.059,
+   67.443
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.541,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.244,
+   0.68,
+   0.201,
+   0.816
+  ],
+  "bbox": [
+   1.06,
+   14.32,
+   1.35,
+   13.43
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_32/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791467835,
+  "loc": [
+   39.141,
+   -24.059,
+   67.443
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.541,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.244,
+   0.68,
+   0.201,
+   0.816
+  ],
+  "bbox": [
+   1.06,
+   14.32,
+   1.35,
+   13.43
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791880164,
+  "loc": [
+   33.418,
+   -19.317,
+   56.67
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.58,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.729,
+   0.187,
+   0.796
+  ],
+  "bbox": [
+   1.46,
+   12.52,
+   1.54,
+   12.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_33/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791490252,
+  "loc": [
+   33.418,
+   -19.317,
+   56.67
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.58,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.729,
+   0.187,
+   0.796
+  ],
+  "bbox": [
+   1.46,
+   12.52,
+   1.54,
+   12.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791880347,
+  "loc": [
+   37.644,
+   -22.994,
+   65.845
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.102,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.24,
+   0.683,
+   0.198,
+   0.819
+  ],
+  "bbox": [
+   0.93,
+   12.95,
+   1.24,
+   14.19
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_34/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791628764,
+  "loc": [
+   37.644,
+   -22.994,
+   65.845
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.102,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.24,
+   0.683,
+   0.198,
+   0.819
+  ],
+  "bbox": [
+   0.93,
+   12.95,
+   1.24,
+   14.19
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791880573,
+  "loc": [
+   40.058,
+   -23.966,
+   68.252
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.764,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.238,
+   0.678,
+   0.193,
+   0.821
+  ],
+  "bbox": [
+   1.52,
+   14.94,
+   1.44,
+   14.29
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_35/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791553169,
+  "loc": [
+   40.058,
+   -23.966,
+   68.252
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.764,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.238,
+   0.678,
+   0.193,
+   0.821
+  ],
+  "bbox": [
+   1.52,
+   14.94,
+   1.44,
+   14.29
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791880789,
+  "loc": [
+   40.809,
+   -26.206,
+   70.408
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.357,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.264,
+   0.74,
+   0.224,
+   0.727
+  ],
+  "bbox": [
+   1.03,
+   14.9,
+   1.29,
+   11.97
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_36/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791627202,
+  "loc": [
+   40.809,
+   -26.206,
+   70.408
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.357,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.264,
+   0.74,
+   0.224,
+   0.727
+  ],
+  "bbox": [
+   1.03,
+   14.9,
+   1.29,
+   11.97
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791881021,
+  "loc": [
+   37.998,
+   -23.529,
+   65.183
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.92,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.248,
+   0.686,
+   0.205,
+   0.814
+  ],
+  "bbox": [
+   1.19,
+   14.01,
+   1.2,
+   12.53
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_38/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791667722,
+  "loc": [
+   37.998,
+   -23.529,
+   65.183
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.92,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.248,
+   0.686,
+   0.205,
+   0.814
+  ],
+  "bbox": [
+   1.19,
+   14.01,
+   1.2,
+   12.53
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791881254,
+  "loc": [
+   37.044,
+   -22.95,
+   63.543
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.469,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.248,
+   0.679,
+   0.205,
+   0.815
+  ],
+  "bbox": [
+   1.16,
+   13.66,
+   1.16,
+   12.2
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_39/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791729990,
+  "loc": [
+   37.044,
+   -22.95,
+   63.543
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.469,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.248,
+   0.679,
+   0.205,
+   0.815
+  ],
+  "bbox": [
+   1.16,
+   13.66,
+   1.16,
+   12.2
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791881493,
+  "loc": [
+   36.528,
+   -22.039,
+   62.671
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.23,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.764,
+   0.193,
+   0.735
+  ],
+  "bbox": [
+   1.14,
+   13.47,
+   1.29,
+   13.08
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_40/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791745882,
+  "loc": [
+   36.528,
+   -22.039,
+   62.671
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.23,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.764,
+   0.193,
+   0.735
+  ],
+  "bbox": [
+   1.14,
+   13.47,
+   1.29,
+   13.08
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791881740,
+  "loc": [
+   37.689,
+   -23.028,
+   64.341
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.689,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.327,
+   0.753,
+   0.203,
+   0.814
+  ],
+  "bbox": [
+   1.36,
+   13.96,
+   1.23,
+   12.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_42/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791870289,
+  "loc": [
+   37.689,
+   -23.028,
+   64.341
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.689,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.327,
+   0.753,
+   0.203,
+   0.814
+  ],
+  "bbox": [
+   1.36,
+   13.96,
+   1.23,
+   12.56
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_43/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791462660,
+  "loc": [
+   41.458,
+   -26.044,
+   71.28
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.596,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.246,
+   0.687,
+   0.201,
+   0.814
+  ],
+  "bbox": [
+   1.05,
+   15.42,
+   1.02,
+   13.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_43/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791459823,
+  "loc": [
+   41.458,
+   -26.044,
+   71.28
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.596,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.246,
+   0.687,
+   0.201,
+   0.814
+  ],
+  "bbox": [
+   1.05,
+   15.42,
+   1.02,
+   13.44
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791881884,
+  "loc": [
+   41.398,
+   -26.977,
+   71.803
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.74,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.266,
+   0.739,
+   0.227,
+   0.738
+  ],
+  "bbox": [
+   0.86,
+   14.98,
+   1.17,
+   11.91
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_44/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791879132,
+  "loc": [
+   27.761,
+   -13.34,
+   42.557
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.74,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.102,
+   0.909,
+   0.019,
+   0.896
+  ],
+  "bbox": [
+   0.86,
+   14.98,
+   1.17,
+   11.91
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_46/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791883837,
+  "loc": [
+   30.57,
+   -15.283,
+   48.076
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.46,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.13,
+   0.874,
+   0.091,
+   0.871
+  ],
+  "bbox": [
+   0.7,
+   14.62,
+   1.52,
+   13.74
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_46/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791883304,
+  "loc": [
+   40.666,
+   -25.379,
+   70.784
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.46,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.249,
+   0.753,
+   0.206,
+   0.735
+  ],
+  "bbox": [
+   0.7,
+   14.62,
+   1.52,
+   13.74
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791462953,
+  "loc": [
+   40.427,
+   -25.739,
+   69.409
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.082,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.249,
+   0.687,
+   0.205,
+   0.811
+  ],
+  "bbox": [
+   1.07,
+   15.09,
+   0.8,
+   12.48
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_48/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791460123,
+  "loc": [
+   40.427,
+   -25.739,
+   69.409
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.082,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.249,
+   0.687,
+   0.205,
+   0.811
+  ],
+  "bbox": [
+   1.07,
+   15.09,
+   0.8,
+   12.48
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791122727,
+  "loc": [
+   46.962,
+   -27.162,
+   75.395
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.728,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.23,
+   0.769,
+   0.185,
+   0.79
+  ],
+  "bbox": [
+   4.58,
+   19.03,
+   0.34,
+   15.65
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790956235,
+  "loc": [
+   46.962,
+   -27.162,
+   75.395
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.728,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.23,
+   0.769,
+   0.185,
+   0.79
+  ],
+  "bbox": [
+   4.58,
+   19.03,
+   0.34,
+   15.65
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791463049,
+  "loc": [
+   47.416,
+   -31.694,
+   81.147
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 22.309,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.293,
+   0.639,
+   0.258,
+   0.761
+  ],
+  "bbox": [
+   1.58,
+   17.62,
+   1.66,
+   10.63
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/cubicasa_review_high_quality_architectural_199/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791460222,
+  "loc": [
+   47.416,
+   -31.694,
+   81.147
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 22.309,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.293,
+   0.639,
+   0.258,
+   0.761
+  ],
+  "bbox": [
+   1.58,
+   17.62,
+   1.66,
+   10.63
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_1_2_b_85/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791123049,
+  "loc": [
+   37.98,
+   -24.626,
+   63.993
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.593,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.282,
+   0.723,
+   0.245,
+   0.783
+  ],
+  "bbox": [
+   1.85,
+   14.43,
+   1.18,
+   9.25
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_1_2_b_85/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791121067,
+  "loc": [
+   37.98,
+   -24.626,
+   63.993
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.593,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.282,
+   0.723,
+   0.245,
+   0.783
+  ],
+  "bbox": [
+   1.85,
+   14.43,
+   1.18,
+   9.25
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_1_b_100_1/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791123259,
+  "loc": [
+   40.051,
+   -25.805,
+   68.189
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.746,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.27,
+   0.734,
+   0.231,
+   0.791
+  ],
+  "bbox": [
+   1.31,
+   15.2,
+   1.36,
+   10.62
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_1_b_100_1/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791122014,
+  "loc": [
+   40.051,
+   -25.805,
+   68.189
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.746,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.27,
+   0.734,
+   0.231,
+   0.791
+  ],
+  "bbox": [
+   1.31,
+   15.2,
+   1.36,
+   10.62
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_2_b_100_1/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791123478,
+  "loc": [
+   42.54,
+   -29.027,
+   73.802
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.29,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.287,
+   0.719,
+   0.25,
+   0.772
+  ],
+  "bbox": [
+   0.87,
+   15.39,
+   0.93,
+   9.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_2_b_100_1/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790954138,
+  "loc": [
+   42.54,
+   -29.027,
+   73.802
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.29,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.287,
+   0.719,
+   0.25,
+   0.772
+  ],
+  "bbox": [
+   0.87,
+   15.39,
+   0.93,
+   9.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_3_b_100_1/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791123680,
+  "loc": [
+   40.945,
+   -26.14,
+   69.791
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.187,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.292,
+   0.713,
+   0.258,
+   0.768
+  ],
+  "bbox": [
+   1.54,
+   15.26,
+   2.52,
+   10.29
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_3_b_100_1/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790970087,
+  "loc": [
+   40.945,
+   -26.14,
+   69.791
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.187,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.292,
+   0.713,
+   0.258,
+   0.768
+  ],
+  "bbox": [
+   1.54,
+   15.26,
+   2.52,
+   10.29
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_4_b_100_1/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791124472,
+  "loc": [
+   43.472,
+   -29.263,
+   74.213
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.403,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.289,
+   0.716,
+   0.253,
+   0.769
+  ],
+  "bbox": [
+   1.57,
+   16.16,
+   1.01,
+   9.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_4_b_100_1/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791123886,
+  "loc": [
+   43.472,
+   -29.263,
+   74.213
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.403,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.289,
+   0.716,
+   0.253,
+   0.769
+  ],
+  "bbox": [
+   1.57,
+   16.16,
+   1.01,
+   9.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_5_b_100_1/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791124129,
+  "loc": [
+   40.935,
+   -26.605,
+   69.817
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.194,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.292,
+   0.713,
+   0.257,
+   0.768
+  ],
+  "bbox": [
+   1.51,
+   15.24,
+   2.05,
+   9.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_2_5_b_100_1/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791012898,
+  "loc": [
+   40.935,
+   -26.605,
+   69.817
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.194,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.292,
+   0.713,
+   0.257,
+   0.768
+  ],
+  "bbox": [
+   1.51,
+   15.24,
+   2.05,
+   9.86
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_3_1_b_100_2/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791124350,
+  "loc": [
+   44.284,
+   -29.298,
+   75.367
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.72,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.286,
+   0.718,
+   0.25,
+   0.77
+  ],
+  "bbox": [
+   1.73,
+   16.55,
+   1.31,
+   10.38
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_3_1_b_100_2/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791014397,
+  "loc": [
+   44.284,
+   -29.298,
+   75.367
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.72,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.286,
+   0.718,
+   0.25,
+   0.77
+  ],
+  "bbox": [
+   1.73,
+   16.55,
+   1.31,
+   10.38
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_3_2_b_100_2/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791124578,
+  "loc": [
+   44.779,
+   -28.244,
+   76.386
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 21.0,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.288,
+   0.717,
+   0.252,
+   0.768
+  ],
+  "bbox": [
+   1.65,
+   16.67,
+   2.86,
+   11.89
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_3_2_b_100_2/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791024496,
+  "loc": [
+   44.779,
+   -28.244,
+   76.386
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 21.0,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.288,
+   0.717,
+   0.252,
+   0.768
+  ],
+  "bbox": [
+   1.65,
+   16.67,
+   2.86,
+   11.89
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_3_4_b_100_2/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791124832,
+  "loc": [
+   33.173,
+   -20.538,
+   56.611
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.563,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.262,
+   0.743,
+   0.223,
+   0.81
+  ],
+  "bbox": [
+   1.2,
+   12.35,
+   1.5,
+   10.26
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_3_4_b_100_2/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791026437,
+  "loc": [
+   33.173,
+   -20.538,
+   56.611
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.563,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.262,
+   0.743,
+   0.223,
+   0.81
+  ],
+  "bbox": [
+   1.2,
+   12.35,
+   1.5,
+   10.26
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_2_b_120/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791125091,
+  "loc": [
+   41.734,
+   -24.784,
+   70.816
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.469,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.263,
+   0.742,
+   0.221,
+   0.796
+  ],
+  "bbox": [
+   1.76,
+   15.74,
+   2.77,
+   13.7
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_2_b_120/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791030849,
+  "loc": [
+   41.734,
+   -24.784,
+   70.816
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.469,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.263,
+   0.742,
+   0.221,
+   0.796
+  ],
+  "bbox": [
+   1.76,
+   15.74,
+   2.77,
+   13.7
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_5_b_120/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791125336,
+  "loc": [
+   39.249,
+   -23.988,
+   66.201
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.2,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.315,
+   0.748,
+   0.212,
+   0.807
+  ],
+  "bbox": [
+   1.87,
+   14.89,
+   1.41,
+   12.35
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_5_b_120/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791031263,
+  "loc": [
+   39.249,
+   -23.988,
+   66.201
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.2,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.315,
+   0.748,
+   0.212,
+   0.807
+  ],
+  "bbox": [
+   1.87,
+   14.89,
+   1.41,
+   12.35
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_6_b_120/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791125582,
+  "loc": [
+   32.678,
+   -18.257,
+   54.787
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.062,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.231,
+   0.77,
+   0.187,
+   0.839
+  ],
+  "bbox": [
+   1.74,
+   12.52,
+   1.93,
+   12.67
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_6_b_120/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791032690,
+  "loc": [
+   32.678,
+   -18.257,
+   54.787
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.062,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.231,
+   0.77,
+   0.187,
+   0.839
+  ],
+  "bbox": [
+   1.74,
+   12.52,
+   1.93,
+   12.67
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_7_b_120/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791125836,
+  "loc": [
+   41.115,
+   -26.432,
+   69.777
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.183,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.278,
+   0.726,
+   0.241,
+   0.781
+  ],
+  "bbox": [
+   1.72,
+   15.44,
+   1.54,
+   10.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_4_7_b_120/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791092648,
+  "loc": [
+   41.115,
+   -26.432,
+   69.777
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.183,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.278,
+   0.726,
+   0.241,
+   0.781
+  ],
+  "bbox": [
+   1.72,
+   15.44,
+   1.54,
+   10.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_5_1_b_145/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791126088,
+  "loc": [
+   41.961,
+   -25.767,
+   72.056
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.81,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.243,
+   0.757,
+   0.278,
+   0.813
+  ],
+  "bbox": [
+   1.85,
+   14.87,
+   0.81,
+   14.92
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_3_5_1_b_145/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791109364,
+  "loc": [
+   41.961,
+   -25.767,
+   72.056
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.81,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.243,
+   0.757,
+   0.278,
+   0.813
+  ],
+  "bbox": [
+   1.85,
+   14.87,
+   0.81,
+   14.92
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_1_wb_105/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791370383,
+  "loc": [
+   40.274,
+   -22.775,
+   67.79
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.637,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.233,
+   0.768,
+   0.188,
+   0.73
+  ],
+  "bbox": [
+   2.11,
+   15.23,
+   2.17,
+   15.54
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_1_wb_105/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791126620,
+  "loc": [
+   40.274,
+   -22.775,
+   67.79
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.637,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.233,
+   0.768,
+   0.188,
+   0.73
+  ],
+  "bbox": [
+   2.11,
+   15.23,
+   2.17,
+   15.54
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_2_wb_105/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791126605,
+  "loc": [
+   38.166,
+   -23.681,
+   65.183
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.92,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.256,
+   0.679,
+   0.215,
+   0.806
+  ],
+  "bbox": [
+   1.36,
+   14.18,
+   1.44,
+   11.98
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_2_wb_105/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790943330,
+  "loc": [
+   38.166,
+   -23.681,
+   65.183
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.92,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.256,
+   0.679,
+   0.215,
+   0.806
+  ],
+  "bbox": [
+   1.36,
+   14.18,
+   1.44,
+   11.98
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_3_wb_105/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791380073,
+  "loc": [
+   42.667,
+   -27.68,
+   72.435
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.914,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.295,
+   0.647,
+   0.247,
+   0.762
+  ],
+  "bbox": [
+   1.77,
+   15.93,
+   1.52,
+   10.67
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_3_wb_105/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791371713,
+  "loc": [
+   42.667,
+   -27.68,
+   72.435
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.914,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.295,
+   0.647,
+   0.247,
+   0.762
+  ],
+  "bbox": [
+   1.77,
+   15.93,
+   1.52,
+   10.67
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_3_wb_105/renders/go-baseline.sicherung-vor-versatz-fix/interior-modern-baseline.blend",
+  "mtime": 1791379959,
+  "loc": [
+   42.667,
+   -27.68,
+   72.435
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.914,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.295,
+   0.647,
+   0.247,
+   0.762
+  ],
+  "bbox": [
+   1.77,
+   15.93,
+   1.52,
+   10.67
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_3_wb_105/renders/go-baseline.sicherung-vor-versatz-fix/interior-modern-baseline.blend1",
+  "mtime": 1791379958,
+  "loc": [
+   42.667,
+   -27.68,
+   72.435
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.914,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.295,
+   0.647,
+   0.247,
+   0.762
+  ],
+  "bbox": [
+   1.77,
+   15.93,
+   1.52,
+   10.67
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791463139,
+  "loc": [
+   33.186,
+   -19.06,
+   56.246
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.463,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.221,
+   0.706,
+   0.178,
+   0.777
+  ],
+  "bbox": [
+   1.23,
+   12.57,
+   1.46,
+   12.92
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_4_wb_105/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791460314,
+  "loc": [
+   33.186,
+   -19.06,
+   56.246
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 15.463,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.221,
+   0.706,
+   0.178,
+   0.777
+  ],
+  "bbox": [
+   1.23,
+   12.57,
+   1.46,
+   12.92
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_5_wb_105/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791126844,
+  "loc": [
+   36.901,
+   -21.3,
+   62.798
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.265,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.242,
+   0.759,
+   0.199,
+   0.735
+  ],
+  "bbox": [
+   1.44,
+   13.79,
+   2.29,
+   13.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_5_wb_105/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790943595,
+  "loc": [
+   36.901,
+   -21.3,
+   62.798
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.265,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.242,
+   0.759,
+   0.199,
+   0.735
+  ],
+  "bbox": [
+   1.44,
+   13.79,
+   2.29,
+   13.68
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791463234,
+  "loc": [
+   36.038,
+   -21.132,
+   61.146
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 16.81,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.684,
+   0.188,
+   0.835
+  ],
+  "bbox": [
+   1.28,
+   13.71,
+   1.61,
+   13.24
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_6_wb_105/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791460411,
+  "loc": [
+   36.038,
+   -21.132,
+   61.146
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 16.81,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.684,
+   0.188,
+   0.835
+  ],
+  "bbox": [
+   1.28,
+   13.71,
+   1.61,
+   13.24
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_7_wb_105/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791127072,
+  "loc": [
+   42.279,
+   -25.284,
+   71.803
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.74,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.253,
+   0.749,
+   0.211,
+   0.731
+  ],
+  "bbox": [
+   1.74,
+   15.86,
+   2.2,
+   14.19
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_1_7_wb_105/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790943633,
+  "loc": [
+   42.279,
+   -25.284,
+   71.803
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.74,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.253,
+   0.749,
+   0.211,
+   0.731
+  ],
+  "bbox": [
+   1.74,
+   15.86,
+   2.2,
+   14.19
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_2_wb_115/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791127312,
+  "loc": [
+   37.939,
+   -23.041,
+   64.578
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.754,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.68,
+   0.193,
+   0.824
+  ],
+  "bbox": [
+   1.47,
+   14.18,
+   0.99,
+   13.15
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_2_wb_115/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790943719,
+  "loc": [
+   37.939,
+   -23.041,
+   64.578
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.754,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.68,
+   0.193,
+   0.824
+  ],
+  "bbox": [
+   1.47,
+   14.18,
+   0.99,
+   13.15
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791463329,
+  "loc": [
+   42.18,
+   -26.165,
+   72.029
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.802,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.255,
+   0.749,
+   0.213,
+   0.736
+  ],
+  "bbox": [
+   1.3,
+   15.9,
+   1.71,
+   13.16
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_3_wb_115/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791460507,
+  "loc": [
+   42.18,
+   -26.165,
+   72.029
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.802,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.255,
+   0.749,
+   0.213,
+   0.736
+  ],
+  "bbox": [
+   1.3,
+   15.9,
+   1.71,
+   13.16
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_4_wb_115/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791127557,
+  "loc": [
+   38.144,
+   -22.576,
+   64.892
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.84,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.244,
+   0.695,
+   0.201,
+   0.817
+  ],
+  "bbox": [
+   1.5,
+   14.27,
+   1.89,
+   13.48
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_4_wb_115/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790943872,
+  "loc": [
+   38.144,
+   -22.576,
+   64.892
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 17.84,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.244,
+   0.695,
+   0.201,
+   0.817
+  ],
+  "bbox": [
+   1.5,
+   14.27,
+   1.89,
+   13.48
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_5_wb_115/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791127791,
+  "loc": [
+   44.34,
+   -27.041,
+   73.84
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.3,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.261,
+   0.682,
+   0.221,
+   0.795
+  ],
+  "bbox": [
+   2.65,
+   17.17,
+   1.66,
+   13.13
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_5_wb_115/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790943925,
+  "loc": [
+   44.34,
+   -27.041,
+   73.84
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.3,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.261,
+   0.682,
+   0.221,
+   0.795
+  ],
+  "bbox": [
+   2.65,
+   17.17,
+   1.66,
+   13.13
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_6_wb_115/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791128023,
+  "loc": [
+   39.793,
+   -23.932,
+   67.7
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.612,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.252,
+   0.75,
+   0.211,
+   0.748
+  ],
+  "bbox": [
+   1.57,
+   14.88,
+   1.97,
+   13.31
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_2_6_wb_115/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790944015,
+  "loc": [
+   39.793,
+   -23.932,
+   67.7
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.612,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.252,
+   0.75,
+   0.211,
+   0.748
+  ],
+  "bbox": [
+   1.57,
+   14.88,
+   1.97,
+   13.31
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_1_wb_125/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791128265,
+  "loc": [
+   38.744,
+   -24.477,
+   66.939
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.403,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.254,
+   0.693,
+   0.213,
+   0.807
+  ],
+  "bbox": [
+   0.95,
+   14.1,
+   1.21,
+   12.27
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_1_wb_125/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790950928,
+  "loc": [
+   38.744,
+   -24.477,
+   66.939
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.403,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.254,
+   0.693,
+   0.213,
+   0.807
+  ],
+  "bbox": [
+   0.95,
+   14.1,
+   1.21,
+   12.27
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791463459,
+  "loc": [
+   40.946,
+   -24.456,
+   69.876
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.21,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.247,
+   0.678,
+   0.204,
+   0.811
+  ],
+  "bbox": [
+   1.49,
+   15.23,
+   2.02,
+   14.24
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_2_wb_125/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791460638,
+  "loc": [
+   40.946,
+   -24.456,
+   69.876
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.21,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.247,
+   0.678,
+   0.204,
+   0.811
+  ],
+  "bbox": [
+   1.49,
+   15.23,
+   2.02,
+   14.24
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791463681,
+  "loc": [
+   39.835,
+   -23.561,
+   67.847
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.653,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.764,
+   0.193,
+   0.732
+  ],
+  "bbox": [
+   1.53,
+   14.87,
+   1.69,
+   14.46
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_3_wb_125/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791460859,
+  "loc": [
+   39.835,
+   -23.561,
+   67.847
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 18.653,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.764,
+   0.193,
+   0.732
+  ],
+  "bbox": [
+   1.53,
+   14.87,
+   1.69,
+   14.46
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791881994,
+  "loc": [
+   41.082,
+   -24.78,
+   70.213
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.303,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.327,
+   0.754,
+   0.202,
+   0.81
+  ],
+  "bbox": [
+   1.44,
+   15.25,
+   1.73,
+   14.09
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_5_wb_125/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791478909,
+  "loc": [
+   41.082,
+   -24.78,
+   70.213
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 19.303,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.327,
+   0.754,
+   0.202,
+   0.81
+  ],
+  "bbox": [
+   1.44,
+   15.25,
+   1.73,
+   14.09
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791882235,
+  "loc": [
+   43.354,
+   -27.281,
+   74.056
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.36,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.266,
+   0.737,
+   0.226,
+   0.736
+  ],
+  "bbox": [
+   1.54,
+   16.1,
+   1.74,
+   12.77
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/german_catalog_review_bungalow_4_3_7_wb_125/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791486642,
+  "loc": [
+   43.354,
+   -27.281,
+   74.056
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 20.36,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.266,
+   0.737,
+   0.226,
+   0.736
+  ],
+  "bbox": [
+   1.54,
+   16.1,
+   1.74,
+   12.77
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_047/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791364145,
+  "loc": [
+   29.072,
+   -17.196,
+   50.443
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.868,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.231,
+   0.749,
+   0.187,
+   0.824
+  ],
+  "bbox": [
+   0.64,
+   10.46,
+   1.36,
+   11.29
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_047/renders/go-baseline/interior-modern-upper-baseline.blend",
+  "mtime": 1791364210,
+  "loc": [
+   27.932,
+   -16.056,
+   50.619
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.196,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.217,
+   0.77,
+   0.17,
+   0.849
+  ],
+  "bbox": [
+   0.64,
+   10.46,
+   1.36,
+   11.3
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791546234,
+  "loc": [
+   30.322,
+   -17.469,
+   52.197
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.35,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.231,
+   0.769,
+   0.187,
+   0.842
+  ],
+  "bbox": [
+   0.87,
+   11.09,
+   1.74,
+   12.01
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791538546,
+  "loc": [
+   30.322,
+   -17.469,
+   52.197
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.35,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.231,
+   0.769,
+   0.187,
+   0.842
+  ],
+  "bbox": [
+   0.87,
+   11.09,
+   1.74,
+   12.01
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/interior-modern-upper-baseline.blend",
+  "mtime": 1791546302,
+  "loc": [
+   29.182,
+   -16.329,
+   52.373
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.678,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.217,
+   0.783,
+   0.17,
+   0.859
+  ],
+  "bbox": [
+   0.87,
+   11.09,
+   1.74,
+   12.01
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_048/renders/go-baseline/interior-modern-upper-baseline.blend1",
+  "mtime": 1791540505,
+  "loc": [
+   25.975,
+   -13.122,
+   45.495
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.678,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.171,
+   0.829,
+   0.113,
+   0.915
+  ],
+  "bbox": [
+   0.87,
+   11.09,
+   1.74,
+   12.01
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_050/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791129103,
+  "loc": [
+   29.752,
+   -17.012,
+   50.518
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.889,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.768,
+   0.219,
+   0.843
+  ],
+  "bbox": [
+   1.22,
+   11.16,
+   1.66,
+   11.43
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_050/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790948435,
+  "loc": [
+   29.752,
+   -17.012,
+   50.518
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.889,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.232,
+   0.768,
+   0.219,
+   0.843
+  ],
+  "bbox": [
+   1.22,
+   11.16,
+   1.66,
+   11.43
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_050/renders/go-baseline/interior-modern-upper-baseline.blend",
+  "mtime": 1791129157,
+  "loc": [
+   28.612,
+   -15.872,
+   50.694
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.217,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.218,
+   0.782,
+   0.172,
+   0.861
+  ],
+  "bbox": [
+   1.22,
+   11.16,
+   1.66,
+   11.43
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_051/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791129380,
+  "loc": [
+   30.446,
+   -16.994,
+   51.124
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.055,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.23,
+   0.713,
+   0.186,
+   0.844
+  ],
+  "bbox": [
+   1.58,
+   11.64,
+   1.82,
+   11.85
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_051/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790950909,
+  "loc": [
+   30.446,
+   -16.994,
+   51.124
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.055,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.23,
+   0.713,
+   0.186,
+   0.844
+  ],
+  "bbox": [
+   1.58,
+   11.64,
+   1.82,
+   11.85
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_051/renders/go-baseline/interior-modern-upper-baseline.blend",
+  "mtime": 1791129444,
+  "loc": [
+   29.306,
+   -15.864,
+   51.3
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.383,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.216,
+   0.784,
+   0.169,
+   0.862
+  ],
+  "bbox": [
+   1.58,
+   11.64,
+   1.81,
+   11.85
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_052/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791129689,
+  "loc": [
+   28.72,
+   -15.879,
+   48.264
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.269,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.764,
+   0.194,
+   0.842
+  ],
+  "bbox": [
+   1.47,
+   10.96,
+   2.11,
+   11.14
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_052/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790951136,
+  "loc": [
+   28.72,
+   -15.879,
+   48.264
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.269,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.237,
+   0.764,
+   0.194,
+   0.842
+  ],
+  "bbox": [
+   1.47,
+   10.96,
+   2.11,
+   11.14
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_052/renders/go-baseline/interior-modern-upper-baseline.blend",
+  "mtime": 1791129749,
+  "loc": [
+   27.58,
+   -14.739,
+   48.439
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 12.597,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.222,
+   0.779,
+   0.177,
+   0.861
+  ],
+  "bbox": [
+   1.47,
+   10.96,
+   2.11,
+   11.14
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_054/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791129984,
+  "loc": [
+   31.48,
+   -18.431,
+   53.439
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.692,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.251,
+   0.751,
+   0.211,
+   0.821
+  ],
+  "bbox": [
+   1.3,
+   11.82,
+   2.01,
+   10.96
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_054/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1790951228,
+  "loc": [
+   31.48,
+   -18.431,
+   53.439
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.692,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.251,
+   0.751,
+   0.211,
+   0.821
+  ],
+  "bbox": [
+   1.3,
+   11.82,
+   2.01,
+   10.96
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_054/renders/go-baseline/interior-modern-upper-baseline.blend",
+  "mtime": 1791130047,
+  "loc": [
+   30.34,
+   -17.291,
+   53.615
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.02,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.239,
+   0.763,
+   0.196,
+   0.838
+  ],
+  "bbox": [
+   1.3,
+   11.82,
+   2.01,
+   10.96
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_055/renders/go-baseline/interior-modern-baseline.blend",
+  "mtime": 1791131471,
+  "loc": [
+   31.063,
+   -18.344,
+   52.3
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.378,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.269,
+   0.759,
+   0.201,
+   0.832
+  ],
+  "bbox": [
+   1.53,
+   11.8,
+   1.33,
+   10.78
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_055/renders/go-baseline/interior-modern-baseline.blend1",
+  "mtime": 1791096163,
+  "loc": [
+   31.063,
+   -18.344,
+   52.3
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 14.378,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.269,
+   0.759,
+   0.201,
+   0.832
+  ],
+  "bbox": [
+   1.53,
+   11.8,
+   1.33,
+   10.78
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_055/renders/go-baseline/interior-modern-upper-baseline.blend",
+  "mtime": 1791131536,
+  "loc": [
+   29.854,
+   -16.958,
+   52.353
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.673,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.223,
+   0.769,
+   0.177,
+   0.844
+  ],
+  "bbox": [
+   1.53,
+   11.81,
+   1.34,
+   10.89
+  ]
+ },
+ {
+  "file": "E:/born2thrill-local-workbench-data/corrections/twostorey_055/renders/go-baseline/interior-modern-upper-baseline.blend1",
+  "mtime": 1791096221,
+  "loc": [
+   29.854,
+   -16.958,
+   52.353
+  ],
+  "rot": [
+   33.4,
+   -0.0,
+   45.0
+  ],
+  "type": "PERSP",
+  "lens": 82.0,
+  "ortho": 13.673,
+  "shift": [
+   0.0,
+   0.0
+  ],
+  "sensor": 36.0,
+  "res": [
+   2000,
+   1500
+  ],
+  "frame": [
+   0.223,
+   0.769,
+   0.177,
+   0.844
+  ],
+  "bbox": [
+   1.53,
+   11.81,
+   1.34,
+   10.89
+  ]
+ }
+]
