@@ -1,0 +1,378 @@
+{
+  "project_id": "bungalow_039",
+  "coordinate_space": "render-geometry-mm-y-down-v1",
+  "floors": [
+    {
+      "floor_level": "groundfloor",
+      "width_mm": 11788.2,
+      "height_mm": 11918.2,
+      "rooms": [
+        {
+          "id": "1787661220217_93530f676c71a",
+          "name": "HWR / HTR",
+          "kind": "service",
+          "polygon_mm": [
+            [
+              951.5,
+              8063.8
+            ],
+            [
+              5048.3,
+              8068.4
+            ],
+            [
+              5048.3,
+              10889.5
+            ],
+            [
+              951.5,
+              10879.5
+            ]
+          ],
+          "area_m2": 11.55
+        },
+        {
+          "id": "1787661231797_db0b3fccb7f63",
+          "name": "Bad",
+          "kind": "sanitary",
+          "polygon_mm": [
+            [
+              951.5,
+              5653.3
+            ],
+            [
+              4352.3,
+              5651.5
+            ],
+            [
+              4352.3,
+              8062.9
+            ],
+            [
+              951.5,
+              8063.8
+            ]
+          ],
+          "area_m2": 8.2
+        },
+        {
+          "id": "1787661266831_4e6230281bc44",
+          "name": "Wohnen / Essen / Kochen",
+          "kind": "living",
+          "polygon_mm": [
+            [
+              5537.1,
+              1190.9
+            ],
+            [
+              10445.7,
+              1190.9
+            ],
+            [
+              10445.7,
+              10879.5
+            ],
+            [
+              6399.3,
+              10879.5
+            ],
+            [
+              6399.3,
+              9078.5
+            ],
+            [
+              6399.3,
+              7899.1
+            ],
+            [
+              6399.3,
+              5663.3
+            ],
+            [
+              5528.3,
+              5656.3
+            ]
+          ],
+          "area_m2": 43.08
+        },
+        {
+          "id": "1787661273850_487af4c1805f6",
+          "name": "Eltern / Schlafen",
+          "kind": "sleeping",
+          "polygon_mm": [
+            [
+              951.5,
+              1190.9
+            ],
+            [
+              5537.1,
+              1190.9
+            ],
+            [
+              5528.3,
+              5656.3
+            ],
+            [
+              951.5,
+              5653.3
+            ]
+          ],
+          "area_m2": 20.45
+        },
+        {
+          "id": "1787661290674_861ec0d523de48",
+          "name": "Diele",
+          "kind": "circulation",
+          "polygon_mm": [
+            [
+              5048.3,
+              10889.5
+            ],
+            [
+              5048.3,
+              8068.4
+            ],
+            [
+              4352.3,
+              8062.9
+            ],
+            [
+              4352.3,
+              5651.5
+            ],
+            [
+              6399.3,
+              5663.3
+            ],
+            [
+              6399.3,
+              10879.5
+            ]
+          ],
+          "area_m2": 8.74
+        }
+      ],
+      "walls": [
+        {
+          "id": "wall-0",
+          "start": [
+            951.5,
+            8066.1
+          ],
+          "end": [
+            5048.3,
+            8066.1
+          ],
+          "thickness": 120
+        },
+        {
+          "id": "wall-1",
+          "start": [
+            5048.3,
+            8066.1
+          ],
+          "end": [
+            5048.3,
+            10884.5
+          ],
+          "thickness": 120
+        },
+        {
+          "id": "wall-2",
+          "start": [
+            951.5,
+            5652.4
+          ],
+          "end": [
+            6399.3,
+            5652.4
+          ],
+          "thickness": 120
+        },
+        {
+          "id": "wall-3",
+          "start": [
+            4352.3,
+            5652.4
+          ],
+          "end": [
+            4352.3,
+            8066.1
+          ],
+          "thickness": 120
+        },
+        {
+          "id": "wall-4",
+          "start": [
+            6399.3,
+            10879.5
+          ],
+          "end": [
+            6399.3,
+            5652.4
+          ],
+          "thickness": 120
+        },
+        {
+          "id": "wall-5",
+          "start": [
+            5532.7,
+            5654.8
+          ],
+          "end": [
+            5532.7,
+            1190.9
+          ],
+          "thickness": 120
+        },
+        {
+          "id": "wall-6",
+          "start": [
+            1089.7,
+            1255.9
+          ],
+          "end": [
+            10395.8,
+            1255.9
+          ],
+          "thickness": 240
+        },
+        {
+          "id": "wall-7",
+          "start": [
+            10395.8,
+            1255.9
+          ],
+          "end": [
+            10395.8,
+            10775.1
+          ],
+          "thickness": 240
+        },
+        {
+          "id": "wall-8",
+          "start": [
+            10395.8,
+            10775.1
+          ],
+          "end": [
+            1089.7,
+            10775.1
+          ],
+          "thickness": 240
+        },
+        {
+          "id": "wall-9",
+          "start": [
+            1089.7,
+            10775.1
+          ],
+          "end": [
+            1089.7,
+            1255.9
+          ],
+          "thickness": 240
+        }
+      ],
+      "openings": [
+        {
+          "id": "1787661295294_9e6427a68e5418",
+          "wall_id": "wall-2",
+          "opening_type": "door",
+          "position": 0.7308,
+          "width": 875.0,
+          "role": null
+        },
+        {
+          "id": "1787661297500_6a5b51ee400a68",
+          "wall_id": "wall-3",
+          "opening_type": "door",
+          "position": 0.3218,
+          "width": 874.8,
+          "role": null
+        },
+        {
+          "id": "1787661300311_9f71b0c661adb8",
+          "wall_id": "wall-1",
+          "opening_type": "door",
+          "position": 0.3842,
+          "width": 874.8,
+          "role": null
+        },
+        {
+          "id": "1787661310452_c0754dedebd8d8",
+          "wall_id": "wall-4",
+          "opening_type": "opening",
+          "position": 0.7874,
+          "width": 1848.8,
+          "role": null
+        },
+        {
+          "id": "1787661317240_4e208f698b64d",
+          "wall_id": "wall-6",
+          "opening_type": "window",
+          "position": 0.2833,
+          "width": 2010.0,
+          "role": null
+        },
+        {
+          "id": "1787661318799_94b92ac2966df8",
+          "wall_id": "wall-6",
+          "opening_type": "window",
+          "position": 0.667,
+          "width": 2010.0,
+          "role": null
+        },
+        {
+          "id": "1787661320277_8366223cc5698",
+          "wall_id": "wall-7",
+          "opening_type": "window",
+          "position": 0.26,
+          "width": 884.8,
+          "role": null
+        },
+        {
+          "id": "1787661322002_8be622968d80f8",
+          "wall_id": "wall-7",
+          "opening_type": "window",
+          "position": 0.5729,
+          "width": 884.8,
+          "role": null
+        },
+        {
+          "id": "1787661323795_21e0fa2ae60ed",
+          "wall_id": "wall-8",
+          "opening_type": "window",
+          "position": 0.2028,
+          "width": 1145.8,
+          "role": null
+        },
+        {
+          "id": "1787661325362_52399b7f434f18",
+          "wall_id": "wall-8",
+          "opening_type": "window",
+          "position": 0.8108,
+          "width": 885.0,
+          "role": null
+        },
+        {
+          "id": "1787661328700_7609bb99c3c95",
+          "wall_id": "wall-9",
+          "opening_type": "window",
+          "position": 0.4075,
+          "width": 884.8,
+          "role": null
+        },
+        {
+          "id": "1787661346955_6431beccd33188",
+          "wall_id": "wall-8",
+          "opening_type": "door",
+          "position": 0.4997,
+          "width": 1124.9,
+          "role": null
+        }
+      ],
+      "stair": null
+    }
+  ]
+}

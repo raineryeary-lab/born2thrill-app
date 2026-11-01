@@ -1,0 +1,3 @@
+Read HANDOFF-CODEX.md and selected-catalog.json completely before acting.
+
+Import this exact six-image handoff into the active Born2Thrill/Floorplan Tools repository. Do not regenerate, rename, delete or overwrite any image. First inspect repository instructions and the existing catalogue schema, then copy the handoff to a versioned durable project folder and map the metadata without losing qc_status. Validate all paths and JSON. Report only: destination folder, imported asset IDs, validation results, and any exact blocker.

@@ -1,0 +1,15 @@
+{
+  "asset_id": "exterior-classic-v19-photoreal-v1",
+  "file": "exterior-classic-v19-photoreal.png",
+  "asset_type": "exterior_visualization",
+  "style": "classic_modern_bungalow",
+  "description_de": "Fotorealistische klassische Bungalow-Außenansicht mit warmweißem Putz, roten Tonziegeln, anthrazitfarbenen Rahmen und zurückhaltend gestaltetem Garten.",
+  "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/exterior-classic-v19.blend",
+  "geometry_reference_render": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/exterior-classic-v19.png",
+  "palette": ["warm_white", "terracotta", "anthracite", "garden_green"],
+  "materials": ["mineral_render", "clay_roof_tile", "glass", "metal", "paving", "lawn"],
+  "features": ["single_storey", "hip_roof", "solid_entrance_door", "anthracite_frames", "entrance_path", "landscaped_garden", "connected_driveway"],
+  "view": "oblique_corner_approximately_35_degrees",
+  "qc_status": "preferred_candidate",
+  "search_text_de": "Außenansicht klassisch modern Bungalow Walmdach Tonziegel warmweiß Anthrazit Eingang Garten Rasen Stauden Zufahrt Nachmittag"
+}

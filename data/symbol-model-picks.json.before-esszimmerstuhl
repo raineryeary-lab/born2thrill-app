@@ -1,0 +1,1767 @@
+{
+ "schema": "dmh-symbol-model-picks-v2",
+ "note": "Types come from the assets' own names; sizes verified by resolve-hub-scales.py. Apply `divisor` on import — the library holds three different authoring scales.",
+ "picks": {
+  "abstellschrank": {
+   "type": "cupboard",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\White-Brown_Cupboard_BLEND\\White-Brown Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White-Brown Cupboard",
+    "size_mm": [
+     1500,
+     657,
+     987
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "candidates": 2
+  },
+  "badewanne": {
+   "type": "bathtub",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Large_Rounded_Bathtube_BLEND\\Large Rounded Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Large Rounded Bathtube",
+    "size_mm": [
+     1687,
+     896,
+     1016
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Large_Rounded_Bathtube_BLEND\\Large Rounded Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Large Rounded Bathtube",
+    "size_mm": [
+     1687,
+     896,
+     1016
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Large_Rounded_Bathtube_BLEND\\Large Rounded Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Large Rounded Bathtube",
+    "size_mm": [
+     1687,
+     896,
+     1016
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Bathtube_BLEND\\Black Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Black Bathtube",
+    "size_mm": [
+     1738,
+     941,
+     928
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Bathtube_BLEND\\Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Bathtube",
+    "size_mm": [
+     1802,
+     866,
+     786
+    ]
+   },
+   "candidates": 3
+  },
+  "badheizkoerper": {
+   "type": "towel_radiator",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Bathroom_Heater_BLEND\\Bathroom Heater.blend",
+    "divisor": 2.54,
+    "label": "Bathroom Heater",
+    "size_mm": [
+     600,
+     51,
+     1393
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Bathroom_Heater_BLEND\\Bathroom Heater.blend",
+    "divisor": 2.54,
+    "label": "Bathroom Heater",
+    "size_mm": [
+     600,
+     51,
+     1393
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Bathroom_Heater_BLEND\\Bathroom Heater.blend",
+    "divisor": 2.54,
+    "label": "Bathroom Heater",
+    "size_mm": [
+     600,
+     51,
+     1393
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Bathroom_Heater_BLEND\\Bathroom Heater.blend",
+    "divisor": 2.54,
+    "label": "Bathroom Heater",
+    "size_mm": [
+     600,
+     51,
+     1393
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Bathroom_Heater_BLEND\\Bathroom Heater.blend",
+    "divisor": 2.54,
+    "label": "Bathroom Heater",
+    "size_mm": [
+     600,
+     51,
+     1393
+    ]
+   },
+   "candidates": 1
+  },
+  "couchtisch": {
+   "type": "coffee_table",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Modern_Glass_Topped_Table_BLEND\\Modern Glass Topped Table.blend",
+    "divisor": 2.54,
+    "label": "Modern Glass Topped Table",
+    "size_mm": [
+     740,
+     820,
+     389
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rectangular_Coffee_Table_BLEND\\White Rectangular Coffee Table.blend",
+    "divisor": 2.54,
+    "label": "White Rectangular Coffee Table",
+    "size_mm": [
+     1200,
+     600,
+     410
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Wood_and_Glass_Coffee_Table_3D_Model_9730_BLEND\\Wood and Glass Coffee Table 3D Model (9730).blend",
+    "divisor": 2.54,
+    "label": "Wood and Glass Coffee Table 3D Model (9730)",
+    "size_mm": [
+     800,
+     800,
+     617
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_round_black_and_glass_coffee_table_blender\\cgaxis_round_black_and_glass_coffee_table_blender\\cgaxis_round_black_and_glass_coffee_table_blender.blend",
+    "divisor": 1.0,
+    "label": "cgaxis_round_black_and_glass_coffee_table_blender",
+    "size_mm": [
+     800,
+     800,
+     400
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Modern_Glass_Topped_Table_BLEND\\Modern Glass Topped Table.blend",
+    "divisor": 2.54,
+    "label": "Modern Glass Topped Table",
+    "size_mm": [
+     740,
+     820,
+     389
+    ]
+   },
+   "candidates": 5
+  },
+  "doppelbett": {
+   "type": "bed",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Bed_with_Grid_Pattern_BLEND\\Grey Bed with Grid Pattern.blend",
+    "divisor": 2.54,
+    "label": "Grey Bed with Grid Pattern",
+    "size_mm": [
+     1958,
+     2151,
+     856
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Wooden_Bed_with_Black-Orange_Bedclothes_BLEND\\Wooden Bed with Black-Orange Bedclothes.blend",
+    "divisor": 2.54,
+    "label": "Wooden Bed with Black-Orange Bedclothes",
+    "size_mm": [
+     1880,
+     2324,
+     940
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Tall_Bed_with_Shelves_9606_BLEND\\Tall Bed with Shelves (9606).blend",
+    "divisor": 2.54,
+    "label": "Tall Bed with Shelves (9606)",
+    "size_mm": [
+     1493,
+     2050,
+     1213
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Bed_with_Grid_Pattern_BLEND\\Grey Bed with Grid Pattern.blend",
+    "divisor": 2.54,
+    "label": "Grey Bed with Grid Pattern",
+    "size_mm": [
+     1958,
+     2151,
+     856
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\White_Leather_Bed_BLEND\\White Leather Bed.blend",
+    "divisor": 2.54,
+    "label": "White Leather Bed",
+    "size_mm": [
+     2170,
+     2328,
+     975
+    ]
+   },
+   "candidates": 9
+  },
+  "doppelwaschtisch": {
+   "type": "double_basin",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Double_Bathroom_Sink_BLEND\\Double Bathroom Sink.blend",
+    "divisor": 2.54,
+    "label": "Double Bathroom Sink",
+    "size_mm": [
+     2269,
+     737,
+     888
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Double_Bathroom_Sink_BLEND\\Double Bathroom Sink.blend",
+    "divisor": 2.54,
+    "label": "Double Bathroom Sink",
+    "size_mm": [
+     2269,
+     737,
+     888
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Double_Bathroom_Sink_BLEND\\Double Bathroom Sink.blend",
+    "divisor": 2.54,
+    "label": "Double Bathroom Sink",
+    "size_mm": [
+     2269,
+     737,
+     888
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Double_Bathroom_Sink_BLEND\\Double Bathroom Sink.blend",
+    "divisor": 2.54,
+    "label": "Double Bathroom Sink",
+    "size_mm": [
+     2269,
+     737,
+     888
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Double_Bathroom_Sink_BLEND\\Double Bathroom Sink.blend",
+    "divisor": 2.54,
+    "label": "Double Bathroom Sink",
+    "size_mm": [
+     2269,
+     737,
+     888
+    ]
+   },
+   "candidates": 1
+  },
+  "dusche": {
+   "type": "shower",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Shower_BLEND\\Square Shower.blend",
+    "divisor": 2.54,
+    "label": "Square Shower",
+    "size_mm": [
+     906,
+     903,
+     2130
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Rectangular_Shower_BLEND\\Rectangular Shower.blend",
+    "divisor": 2.54,
+    "label": "Rectangular Shower",
+    "size_mm": [
+     1515,
+     976,
+     2105
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Rectangular_Shower_BLEND\\Rectangular Shower.blend",
+    "divisor": 2.54,
+    "label": "Rectangular Shower",
+    "size_mm": [
+     1515,
+     976,
+     2105
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Shower_BLEND\\Square Shower.blend",
+    "divisor": 2.54,
+    "label": "Square Shower",
+    "size_mm": [
+     906,
+     903,
+     2130
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Shower_Cabine_BLEND\\Shower Cabine.blend",
+    "divisor": 2.54,
+    "label": "Shower Cabine",
+    "size_mm": [
+     809,
+     809,
+     2100
+    ]
+   },
+   "candidates": 3
+  },
+  "dusche_gross": {
+   "type": "shower",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Shower_BLEND\\Square Shower.blend",
+    "divisor": 2.54,
+    "label": "Square Shower",
+    "size_mm": [
+     906,
+     903,
+     2130
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Rectangular_Shower_BLEND\\Rectangular Shower.blend",
+    "divisor": 2.54,
+    "label": "Rectangular Shower",
+    "size_mm": [
+     1515,
+     976,
+     2105
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Rectangular_Shower_BLEND\\Rectangular Shower.blend",
+    "divisor": 2.54,
+    "label": "Rectangular Shower",
+    "size_mm": [
+     1515,
+     976,
+     2105
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Shower_BLEND\\Square Shower.blend",
+    "divisor": 2.54,
+    "label": "Square Shower",
+    "size_mm": [
+     906,
+     903,
+     2130
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Shower_Cabine_BLEND\\Shower Cabine.blend",
+    "divisor": 2.54,
+    "label": "Shower Cabine",
+    "size_mm": [
+     809,
+     809,
+     2100
+    ]
+   },
+   "candidates": 3
+  },
+  "dusche_klein": {
+   "type": "shower",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Shower_BLEND\\Square Shower.blend",
+    "divisor": 2.54,
+    "label": "Square Shower",
+    "size_mm": [
+     906,
+     903,
+     2130
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Shower_Cabine_BLEND\\Shower Cabine.blend",
+    "divisor": 2.54,
+    "label": "Shower Cabine",
+    "size_mm": [
+     809,
+     809,
+     2100
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Shower_Cabine_BLEND\\Shower Cabine.blend",
+    "divisor": 2.54,
+    "label": "Shower Cabine",
+    "size_mm": [
+     809,
+     809,
+     2100
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Shower_BLEND\\Square Shower.blend",
+    "divisor": 2.54,
+    "label": "Square Shower",
+    "size_mm": [
+     906,
+     903,
+     2130
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Rectangular_Shower_BLEND\\Rectangular Shower.blend",
+    "divisor": 2.54,
+    "label": "Rectangular Shower",
+    "size_mm": [
+     1515,
+     976,
+     2105
+    ]
+   },
+   "candidates": 3
+  },
+  "eckbadewanne": {
+   "type": "corner_bath",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Corner_Bathtube_BLEND\\Corner Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Corner Bathtube",
+    "size_mm": [
+     1544,
+     1544,
+     755
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Corner_Bathtube_BLEND\\Corner Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Corner Bathtube",
+    "size_mm": [
+     1544,
+     1544,
+     755
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Corner_Bathtube_BLEND\\Corner Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Corner Bathtube",
+    "size_mm": [
+     1544,
+     1544,
+     755
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Corner_Bathtube_BLEND\\Corner Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Corner Bathtube",
+    "size_mm": [
+     1544,
+     1544,
+     755
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Corner_Bathtube_BLEND\\Corner Bathtube.blend",
+    "divisor": 2.54,
+    "label": "Corner Bathtube",
+    "size_mm": [
+     1544,
+     1544,
+     755
+    ]
+   },
+   "candidates": 1
+  },
+  "ecksofa": {
+   "type": "corner_sofa",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_grey_4_seat_corner_sofa_blender\\cgaxis_grey_4_seat_corner_sofa_blender\\cgaxis_grey_4_seat_corner_sofa.blend",
+    "divisor": 1.0,
+    "label": "cgaxis_grey_4_seat_corner_sofa",
+    "size_mm": [
+     2836,
+     2309,
+     717
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_brown_leather_corner_sofa_blender\\cgaxis_brown_leather_corner_sofa_blender\\cgaxis_brown_leather_corner_sofa_blender.blend",
+    "divisor": 1.0,
+    "label": "cgaxis_brown_leather_corner_sofa_blender",
+    "size_mm": [
+     3210,
+     3133,
+     813
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Modern_Corner_Sofa_BLEND\\Modern Corner Sofa.blend",
+    "divisor": 2.54,
+    "label": "Modern Corner Sofa",
+    "size_mm": [
+     2412,
+     1821,
+     1077
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_grey_4_seat_corner_sofa_blender\\cgaxis_grey_4_seat_corner_sofa_blender\\cgaxis_grey_4_seat_corner_sofa.blend",
+    "divisor": 1.0,
+    "label": "cgaxis_grey_4_seat_corner_sofa",
+    "size_mm": [
+     2836,
+     2309,
+     717
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_beige_large_corner_sofa_blender\\cgaxis_beige_large_corner_sofa_blender\\cgaxis_beige_large_corner_sofa_blender.blend",
+    "divisor": 2.54,
+    "label": "cgaxis_beige_large_corner_sofa_blender",
+    "size_mm": [
+     1612,
+     1386,
+     354
+    ]
+   },
+   "candidates": 8
+  },
+  "einzelbett": {
+   "type": "bed",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Bed_with_Drawers_BLEND\\Grey Bed with Drawers.blend",
+    "divisor": 2.54,
+    "label": "Grey Bed with Drawers",
+    "size_mm": [
+     1120,
+     2050,
+     682
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Wooden_Bed_with_Black_Mattress_BLEND\\Wooden Bed with Black Mattress.blend",
+    "divisor": 10.0,
+    "label": "Wooden Bed with Black Mattress",
+    "size_mm": [
+     639,
+     673,
+     476
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Tall_Bed_with_Shelves_9606_BLEND\\Tall Bed with Shelves (9606).blend",
+    "divisor": 2.54,
+    "label": "Tall Bed with Shelves (9606)",
+    "size_mm": [
+     1493,
+     2050,
+     1213
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Bed_with_Drawers_BLEND\\Grey Bed with Drawers.blend",
+    "divisor": 2.54,
+    "label": "Grey Bed with Drawers",
+    "size_mm": [
+     1120,
+     2050,
+     682
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\White_Leather_Bed_BLEND\\White Leather Bed.blend",
+    "divisor": 2.54,
+    "label": "White Leather Bed",
+    "size_mm": [
+     2170,
+     2328,
+     975
+    ]
+   },
+   "candidates": 9
+  },
+  "essgruppe_6": {
+   "type": "dining_set",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
+    "divisor": 2.54,
+    "label": "Black Table and Chairs Set",
+    "size_mm": [
+     2200,
+     1310,
+     924
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
+    "divisor": 2.54,
+    "label": "Black Table and Chairs Set",
+    "size_mm": [
+     2200,
+     1310,
+     924
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
+    "divisor": 2.54,
+    "label": "Black Table and Chairs Set",
+    "size_mm": [
+     2200,
+     1310,
+     924
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
+    "divisor": 2.54,
+    "label": "Black Table and Chairs Set",
+    "size_mm": [
+     2200,
+     1310,
+     924
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Table_and_Chairs_Set_BLEND\\Black Table and Chairs Set.blend",
+    "divisor": 2.54,
+    "label": "Black Table and Chairs Set",
+    "size_mm": [
+     2200,
+     1310,
+     924
+    ]
+   },
+   "candidates": 1
+  },
+  "fernseher": {
+   "type": "tv",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\TV_Flatscreen_03_BLEND\\TV Flatscreen 03.blend",
+    "divisor": 2.54,
+    "label": "TV Flatscreen 03",
+    "size_mm": [
+     1408,
+     300,
+     870
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\TV_Flatscreen_03_BLEND\\TV Flatscreen 03.blend",
+    "divisor": 2.54,
+    "label": "TV Flatscreen 03",
+    "size_mm": [
+     1408,
+     300,
+     870
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\TV_Flatscreen_03_BLEND\\TV Flatscreen 03.blend",
+    "divisor": 2.54,
+    "label": "TV Flatscreen 03",
+    "size_mm": [
+     1408,
+     300,
+     870
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\TV_Flatscreen_01_BLEND\\TV Flatscreen 01.blend",
+    "divisor": 2.54,
+    "label": "TV Flatscreen 01",
+    "size_mm": [
+     1084,
+     404,
+     700
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\TV_Flatscreen_03_BLEND\\TV Flatscreen 03.blend",
+    "divisor": 2.54,
+    "label": "TV Flatscreen 03",
+    "size_mm": [
+     1408,
+     300,
+     870
+    ]
+   },
+   "candidates": 2
+  },
+  "handwaschbecken": {
+   "type": "basin",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Batroom_Sink_BLEND\\Square Batroom Sink.blend",
+    "divisor": 2.54,
+    "label": "Square Batroom Sink",
+    "size_mm": [
+     400,
+     280,
+     554
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Square_Batroom_Sink_BLEND\\Square Batroom Sink.blend",
+    "divisor": 2.54,
+    "label": "Square Batroom Sink",
+    "size_mm": [
+     400,
+     280,
+     554
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Rectangular_Washbasin_BLEND\\Rectangular Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Rectangular Washbasin",
+    "size_mm": [
+     597,
+     421,
+     234
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Modern_Square_Washbasin_BLEND\\Modern Square Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Modern Square Washbasin",
+    "size_mm": [
+     408,
+     407,
+     283
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Washbasin_BLEND\\Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Washbasin",
+    "size_mm": [
+     507,
+     396,
+     233
+    ]
+   },
+   "candidates": 5
+  },
+  "hochschrank_herd": {
+   "type": "oven",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Built_in_Double_Oven_BLEND\\Built in Double Oven.blend",
+    "divisor": 2.54,
+    "label": "Built in Double Oven",
+    "size_mm": [
+     757,
+     580,
+     1428
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Oven_16_BLEND\\Oven 16.blend",
+    "divisor": 2.54,
+    "label": "Oven 16",
+    "size_mm": [
+     600,
+     639,
+     590
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Oven_16_BLEND\\Oven 16.blend",
+    "divisor": 2.54,
+    "label": "Oven 16",
+    "size_mm": [
+     600,
+     639,
+     590
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Built_in_Oven_1_BLEND\\Built in Oven 1.blend",
+    "divisor": 2.54,
+    "label": "Built in Oven 1",
+    "size_mm": [
+     757,
+     580,
+     673
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Built_in_Double_Oven_BLEND\\Built in Double Oven.blend",
+    "divisor": 2.54,
+    "label": "Built in Double Oven",
+    "size_mm": [
+     757,
+     580,
+     1428
+    ]
+   },
+   "candidates": 3
+  },
+  "hocker": {
+   "type": "stool",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Leather_Hocker_Chair_3_BLEND\\Leather Hocker Chair 3.blend",
+    "divisor": 2.54,
+    "label": "Leather Hocker Chair 3",
+    "size_mm": [
+     540,
+     491,
+     709
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Leather_Hocker_Chair_3_BLEND\\Leather Hocker Chair 3.blend",
+    "divisor": 2.54,
+    "label": "Leather Hocker Chair 3",
+    "size_mm": [
+     540,
+     491,
+     709
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Leather_Hocker_Chair_3_BLEND\\Leather Hocker Chair 3.blend",
+    "divisor": 2.54,
+    "label": "Leather Hocker Chair 3",
+    "size_mm": [
+     540,
+     491,
+     709
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Leather_Hocker_Chair_3_BLEND\\Leather Hocker Chair 3.blend",
+    "divisor": 2.54,
+    "label": "Leather Hocker Chair 3",
+    "size_mm": [
+     540,
+     491,
+     709
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Leather_Hocker_Chair_3_BLEND\\Leather Hocker Chair 3.blend",
+    "divisor": 2.54,
+    "label": "Leather Hocker Chair 3",
+    "size_mm": [
+     540,
+     491,
+     709
+    ]
+   },
+   "candidates": 1
+  },
+  "kleiderschrank": {
+   "type": "wardrobe",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\White_Wardrobe_BLEND\\White Wardrobe.blend",
+    "divisor": 2.54,
+    "label": "White Wardrobe",
+    "size_mm": [
+     3082,
+     650,
+     2384
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\White_Wardrobe_BLEND\\White Wardrobe.blend",
+    "divisor": 2.54,
+    "label": "White Wardrobe",
+    "size_mm": [
+     3082,
+     650,
+     2384
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\White_Wardrobe_BLEND\\White Wardrobe.blend",
+    "divisor": 2.54,
+    "label": "White Wardrobe",
+    "size_mm": [
+     3082,
+     650,
+     2384
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\White_Wardrobe_BLEND\\White Wardrobe.blend",
+    "divisor": 2.54,
+    "label": "White Wardrobe",
+    "size_mm": [
+     3082,
+     650,
+     2384
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\White_Wardrobe_BLEND\\White Wardrobe.blend",
+    "divisor": 2.54,
+    "label": "White Wardrobe",
+    "size_mm": [
+     3082,
+     650,
+     2384
+    ]
+   },
+   "candidates": 1
+  },
+  "kochfeld": {
+   "type": "hob",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Induction_Hob_3_BLEND\\Induction Hob 3.blend",
+    "divisor": 2.54,
+    "label": "Induction Hob 3",
+    "size_mm": [
+     908,
+     520,
+     19
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Induction_Hob_3_BLEND\\Induction Hob 3.blend",
+    "divisor": 2.54,
+    "label": "Induction Hob 3",
+    "size_mm": [
+     908,
+     520,
+     19
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Induction_Hob_3_BLEND\\Induction Hob 3.blend",
+    "divisor": 2.54,
+    "label": "Induction Hob 3",
+    "size_mm": [
+     908,
+     520,
+     19
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Induction_Hob_1_BLEND\\Induction Hob 1.blend",
+    "divisor": 2.54,
+    "label": "Induction Hob 1",
+    "size_mm": [
+     804,
+     520,
+     7
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Induction_Hob_2_BLEND\\Induction Hob 2.blend",
+    "divisor": 2.54,
+    "label": "Induction Hob 2",
+    "size_mm": [
+     908,
+     360,
+     19
+    ]
+   },
+   "candidates": 3
+  },
+  "kuehlschrank": {
+   "type": "fridge",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Refrigerator_2_BLEND\\Refrigerator 2.blend",
+    "divisor": 2.54,
+    "label": "Refrigerator 2",
+    "size_mm": [
+     541,
+     597,
+     1772
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Refrigerator_1_BLEND\\Refrigerator 1.blend",
+    "divisor": 2.54,
+    "label": "Refrigerator 1",
+    "size_mm": [
+     541,
+     597,
+     1772
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Refrigerator_14_BLEND\\Refrigerator 14.blend",
+    "divisor": 10.0,
+    "label": "Refrigerator 14",
+    "size_mm": [
+     633,
+     213,
+     635
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Refrigerator_2_BLEND\\Refrigerator 2.blend",
+    "divisor": 2.54,
+    "label": "Refrigerator 2",
+    "size_mm": [
+     541,
+     597,
+     1772
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Refrigerator_13_BLEND\\Refrigerator 13.blend",
+    "divisor": 2.54,
+    "label": "Refrigerator 13",
+    "size_mm": [
+     900,
+     636,
+     1844
+    ]
+   },
+   "candidates": 4
+  },
+  "schrank_40": {
+   "type": "cupboard",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\White-Brown_Cupboard_BLEND\\White-Brown Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White-Brown Cupboard",
+    "size_mm": [
+     1500,
+     657,
+     987
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "candidates": 2
+  },
+  "schrank_60": {
+   "type": "cupboard",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\White-Brown_Cupboard_BLEND\\White-Brown Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White-Brown Cupboard",
+    "size_mm": [
+     1500,
+     657,
+     987
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\White_Rounded_Cupboard_BLEND\\White Rounded Cupboard.blend",
+    "divisor": 2.54,
+    "label": "White Rounded Cupboard",
+    "size_mm": [
+     1500,
+     656,
+     1011
+    ]
+   },
+   "candidates": 2
+  },
+  "schreibtisch": {
+   "type": "desk",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_Workstation_41_BLEND\\Office Desk Workstation 41.blend",
+    "divisor": 2.54,
+    "label": "Office Desk Workstation 41",
+    "size_mm": [
+     1800,
+     800,
+     765
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_Workstation_41_BLEND\\Office Desk Workstation 41.blend",
+    "divisor": 2.54,
+    "label": "Office Desk Workstation 41",
+    "size_mm": [
+     1800,
+     800,
+     765
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_Corner_Unit_39_BLEND\\Office Desk Corner Unit 39.blend",
+    "divisor": 2.54,
+    "label": "Office Desk Corner Unit 39",
+    "size_mm": [
+     2802,
+     1300,
+     780
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_34_BLEND\\Office Desk 34.blend",
+    "divisor": 2.54,
+    "label": "Office Desk 34",
+    "size_mm": [
+     1870,
+     812,
+     825
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_10_BLEND\\Office Desk 10.blend",
+    "divisor": 2.54,
+    "label": "Office Desk 10",
+    "size_mm": [
+     2239,
+     1231,
+     800
+    ]
+   },
+   "candidates": 4
+  },
+  "schreibtisch_kind": {
+   "type": "desk",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_Workstation_41_BLEND\\Office Desk Workstation 41.blend",
+    "divisor": 2.54,
+    "label": "Office Desk Workstation 41",
+    "size_mm": [
+     1800,
+     800,
+     765
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_Workstation_41_BLEND\\Office Desk Workstation 41.blend",
+    "divisor": 2.54,
+    "label": "Office Desk Workstation 41",
+    "size_mm": [
+     1800,
+     800,
+     765
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_Corner_Unit_39_BLEND\\Office Desk Corner Unit 39.blend",
+    "divisor": 2.54,
+    "label": "Office Desk Corner Unit 39",
+    "size_mm": [
+     2802,
+     1300,
+     780
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_34_BLEND\\Office Desk 34.blend",
+    "divisor": 2.54,
+    "label": "Office Desk 34",
+    "size_mm": [
+     1870,
+     812,
+     825
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Office_Desk_10_BLEND\\Office Desk 10.blend",
+    "divisor": 2.54,
+    "label": "Office Desk 10",
+    "size_mm": [
+     2239,
+     1231,
+     800
+    ]
+   },
+   "candidates": 4
+  },
+  "sofa_1sitzer": {
+   "type": "armchair",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Modern_Armchair_BLEND\\Black Modern Armchair.blend",
+    "divisor": 2.54,
+    "label": "Black Modern Armchair",
+    "size_mm": [
+     952,
+     987,
+     1006
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Red_Leather_Armchair_02_BLEND\\Red Leather Armchair 02.blend",
+    "divisor": 2.54,
+    "label": "Red Leather Armchair 02",
+    "size_mm": [
+     943,
+     751,
+     661
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Light-Grey_Armchair_BLEND\\Light-Grey Armchair.blend",
+    "divisor": 2.54,
+    "label": "Light-Grey Armchair",
+    "size_mm": [
+     954,
+     812,
+     733
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Black_Modern_Armchair_BLEND\\Black Modern Armchair.blend",
+    "divisor": 2.54,
+    "label": "Black Modern Armchair",
+    "size_mm": [
+     952,
+     987,
+     1006
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Photorealistic_Armchair_03_BLEND\\Photorealistic Armchair 03.blend",
+    "divisor": 2.54,
+    "label": "Photorealistic Armchair 03",
+    "size_mm": [
+     804,
+     861,
+     1359
+    ]
+   },
+   "candidates": 9
+  },
+  "sofa_2sitzer": {
+   "type": "sofa_2",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Two_Seat_Sofa_BLEND\\Grey Two Seat Sofa.blend",
+    "divisor": 2.54,
+    "label": "Grey Two Seat Sofa",
+    "size_mm": [
+     1760,
+     913,
+     787
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Two_Seat_Sofa_BLEND\\Grey Two Seat Sofa.blend",
+    "divisor": 2.54,
+    "label": "Grey Two Seat Sofa",
+    "size_mm": [
+     1760,
+     913,
+     787
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_yellow_2_seat_sofa_blender\\cgaxis_yellow_2_seat_sofa_blender\\cgaxis_yellow_2_seat_sofa_blender.blend",
+    "divisor": 1.0,
+    "label": "cgaxis_yellow_2_seat_sofa_blender",
+    "size_mm": [
+     2460,
+     1119,
+     794
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Light-Grey_Two_Seat_Sofa_BLEND\\Light-Grey Two Seat Sofa.blend",
+    "divisor": 2.54,
+    "label": "Light-Grey Two Seat Sofa",
+    "size_mm": [
+     1618,
+     812,
+     733
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_2_seat_grey_sofa_blender\\cgaxis_2_seat_grey_sofa_blender\\cgaxis_2_seat_grey_sofa_blender.blend",
+    "divisor": 1.0,
+    "label": "cgaxis_2_seat_grey_sofa_blender",
+    "size_mm": [
+     2008,
+     987,
+     854
+    ]
+   },
+   "candidates": 4
+  },
+  "sofa_3sitzer": {
+   "type": "sofa_3",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Sofa_with_Pillows_BLEND\\Grey Sofa with Pillows.blend",
+    "divisor": 2.54,
+    "label": "Grey Sofa with Pillows",
+    "size_mm": [
+     2102,
+     909,
+     907
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Sofa_with_Wooden_Frame_BLEND\\Grey Sofa with Wooden Frame.blend",
+    "divisor": 2.54,
+    "label": "Grey Sofa with Wooden Frame",
+    "size_mm": [
+     2013,
+     888,
+     802
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\cgaxis_3_seat_orange_sofa_blender\\cgaxis_3_seat_orange_sofa_blender\\cgaxis_3_seat_orange_sofa_blender.blend",
+    "divisor": 1.0,
+    "label": "cgaxis_3_seat_orange_sofa_blender",
+    "size_mm": [
+     2181,
+     1109,
+     850
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Grey_Sofa_with_Pillows_BLEND\\Grey Sofa with Pillows.blend",
+    "divisor": 2.54,
+    "label": "Grey Sofa with Pillows",
+    "size_mm": [
+     2102,
+     909,
+     907
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\White_Sofa_07_BLEND\\White Sofa 07.blend",
+    "divisor": 2.54,
+    "label": "White Sofa 07",
+    "size_mm": [
+     2352,
+     910,
+     728
+    ]
+   },
+   "candidates": 18
+  },
+  "spuele": {
+   "type": "kitchen_sink",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Kitchen_Sink_22_BLEND\\Kitchen Sink 22.blend",
+    "divisor": 2.54,
+    "label": "Kitchen Sink 22",
+    "size_mm": [
+     1015,
+     494,
+     295
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Kitchen_Sink_22_BLEND\\Kitchen Sink 22.blend",
+    "divisor": 2.54,
+    "label": "Kitchen Sink 22",
+    "size_mm": [
+     1015,
+     494,
+     295
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Kitchen_Sink_22_BLEND\\Kitchen Sink 22.blend",
+    "divisor": 2.54,
+    "label": "Kitchen Sink 22",
+    "size_mm": [
+     1015,
+     494,
+     295
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Kitchen_Sink_24_BLEND\\Kitchen Sink 24.blend",
+    "divisor": 2.54,
+    "label": "Kitchen Sink 24",
+    "size_mm": [
+     1000,
+     500,
+     506
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Kitchen_Sink_22_BLEND\\Kitchen Sink 22.blend",
+    "divisor": 2.54,
+    "label": "Kitchen Sink 22",
+    "size_mm": [
+     1015,
+     494,
+     295
+    ]
+   },
+   "candidates": 2
+  },
+  "trockner": {
+   "type": "washer",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "candidates": 1
+  },
+  "wand_wc": {
+   "type": "wc",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Toilet_Bowl_BLEND\\Toilet Bowl.blend",
+    "divisor": 2.54,
+    "label": "Toilet Bowl",
+    "size_mm": [
+     386,
+     596,
+     813
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Toilet_Bowl_BLEND\\Toilet Bowl.blend",
+    "divisor": 2.54,
+    "label": "Toilet Bowl",
+    "size_mm": [
+     386,
+     596,
+     813
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Toilet_Bowl_BLEND\\Toilet Bowl.blend",
+    "divisor": 2.54,
+    "label": "Toilet Bowl",
+    "size_mm": [
+     386,
+     596,
+     813
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Rouded_Toilet_BLEND\\Rouded Toilet.blend",
+    "divisor": 2.54,
+    "label": "Rouded Toilet",
+    "size_mm": [
+     565,
+     357,
+     1011
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Toilet_Bowl_BLEND\\Toilet Bowl.blend",
+    "divisor": 2.54,
+    "label": "Toilet Bowl",
+    "size_mm": [
+     386,
+     596,
+     813
+    ]
+   },
+   "candidates": 2
+  },
+  "waschmaschine": {
+   "type": "washer",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Washing_Machine_BLEND\\Washing Machine.blend",
+    "divisor": 2.54,
+    "label": "Washing Machine",
+    "size_mm": [
+     600,
+     442,
+     800
+    ]
+   },
+   "candidates": 1
+  },
+  "waschtisch": {
+   "type": "basin",
+   "modern": {
+    "path": "E:\\_models_hub\\_extracted\\Modern_Rectangular_Washbasin_BLEND\\Modern Rectangular Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Modern Rectangular Washbasin",
+    "size_mm": [
+     599,
+     502,
+     352
+    ]
+   },
+   "classic": {
+    "path": "E:\\_models_hub\\_extracted\\Modern_Rectangular_Washbasin_BLEND\\Modern Rectangular Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Modern Rectangular Washbasin",
+    "size_mm": [
+     599,
+     502,
+     352
+    ]
+   },
+   "warm": {
+    "path": "E:\\_models_hub\\_extracted\\Modern_Square_Washbasin_BLEND\\Modern Square Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Modern Square Washbasin",
+    "size_mm": [
+     408,
+     407,
+     283
+    ]
+   },
+   "dark": {
+    "path": "E:\\_models_hub\\_extracted\\Rectangular_Washbasin_BLEND\\Rectangular Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Rectangular Washbasin",
+    "size_mm": [
+     597,
+     421,
+     234
+    ]
+   },
+   "scandi": {
+    "path": "E:\\_models_hub\\_extracted\\Washbasin_BLEND\\Washbasin.blend",
+    "divisor": 2.54,
+    "label": "Washbasin",
+    "size_mm": [
+     507,
+     396,
+     233
+    ]
+   },
+   "candidates": 5
+  },
+  "essgruppe_stuhl": {
+   "modern": {
+    "path": "E:/_models_hub/_extracted/cgaxis_dark_grey_velvet_dining_chair_blender/cgaxis_dark_grey_velvet_dining_chair_blender/cgaxis_dark_grey_velvet_dining_chair_blender.blend",
+    "label": "cgaxis dark grey velvet dining chair",
+    "size_mm": [
+     563,
+     593
+    ],
+    "divisor": 1.0
+   }
+  },
+  "schreibtischstuhl": {
+   "modern": {
+    "path": "E:/_models_hub/_extracted/Office_Chair_48_BLEND/Office Chair 48.blend",
+    "label": "Office Chair 48",
+    "size_mm": [
+     639,
+     640
+    ],
+    "divisor": 3.5,
+    "note": "measured 2236x2238x4340mm raw on 2026-08-10; divisor calibrated to 1240mm seat-back height"
+   },
+   "classic": {
+    "path": "E:/_models_hub/_extracted/Office_Chair_48_BLEND/Office Chair 48.blend",
+    "label": "Office Chair 48",
+    "size_mm": [
+     639,
+     640
+    ],
+    "divisor": 3.5,
+    "note": "measured 2236x2238x4340mm raw on 2026-08-10; divisor calibrated to 1240mm seat-back height"
+   }
+  }
+ }
+}

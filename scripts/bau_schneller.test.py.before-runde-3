@@ -1,0 +1,484 @@
+"""BAU-SCHNELLER-001: Blender-Auftraege parallel, frueh abbrechen, Vorpruefung.
+
+Rainer, 2026-10-27: "fuvking build takes forever". Gemessen an
+german_catalog_review_onehalfstorey_1_2_2_efh_140_1: ~6 1/2 min, davon ~3 min
+fuer 18 Pruefaufrufe hintereinander -- und der Treppenfehler kam erst ganz am
+Ende. Plan: plans/BAU-SCHNELLER-001.md.
+"""
+import contextlib
+import importlib.util
+import io
+import json
+import os
+import sys
+import tempfile
+import threading
+import time
+import unittest
+from pathlib import Path
+from unittest import mock
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+os.environ.setdefault("FLOORPLAN_WORKBENCH_DATA_DIR", tempfile.mkdtemp())
+
+
+def lade(name, datei):
+    spec = importlib.util.spec_from_file_location(name, HERE / datei)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+rp = lade("run_project_bs", "run_project.py")
+Auftrag = rp.Auftrag
+
+
+class Zaehler:
+    """Fuehrt Schein-Auftraege aus und merkt sich, wie viele gleichzeitig liefen."""
+
+    def __init__(self, dauer=0.05, scheitern=()):
+        self.dauer = dauer
+        self.scheitern = set(scheitern)
+        self.lock = threading.Lock()
+        self.jetzt = 0
+        self.hoechst = 0
+        self.start = []      # Reihenfolge der Starts
+        self.ende = {}       # name -> Zeitpunkt
+
+    def __call__(self, auftrag, cmd):
+        with self.lock:
+            self.jetzt += 1
+            self.hoechst = max(self.hoechst, self.jetzt)
+            self.start.append(auftrag.name)
+        time.sleep(self.dauer)
+        with self.lock:
+            self.jetzt -= 1
+            self.ende[auftrag.name] = time.monotonic()
+        return auftrag.name not in self.scheitern, "out " + auftrag.name
+
+
+def abarbeiten(auftraege, parallel, zaehler):
+    with contextlib.redirect_stdout(io.StringIO()):
+        return rp.abarbeiten(auftraege, parallel, ausfuehren=zaehler)
+
+
+class Planer(unittest.TestCase):
+    def test_hoechstens_n_gleichzeitig(self):
+        z = Zaehler()
+        jobs = [Auftrag(f"j{i}", ["x"]) for i in range(9)]
+        erg = abarbeiten(jobs, 3, z)
+        self.assertEqual(len(erg), 9)
+        self.assertLessEqual(z.hoechst, 3)
+        self.assertEqual(z.hoechst, 3)
+
+    def test_pruefung_startet_nach_ihrem_eigenen_render_nicht_nach_allen(self):
+        z = Zaehler(dauer=0.05)
+        jobs = [Auftrag("render-a", ["x"]),
+                Auftrag("pruef-a", ["x"], braucht=("render-a",), prio=-1),
+                Auftrag("render-b", ["x"], nach=("render-a",)),
+                Auftrag("render-c", ["x"], nach=("render-b",))]
+        abarbeiten(jobs, 2, z)
+        # pruef-a lief neben render-b, nicht erst nach render-c
+        self.assertLess(z.start.index("pruef-a"), z.start.index("render-c"))
+
+    def test_erster_wesentlicher_fehler_stoppt_neue_auftraege(self):
+        z = Zaehler(dauer=0.02, scheitern={"a"})
+        jobs = [Auftrag("a", ["x"])] + [Auftrag(f"b{i}", ["x"], nach=("a",)) for i in range(5)]
+        erg = abarbeiten(jobs, 1, z)
+        self.assertEqual(z.start, ["a"])
+        self.assertFalse(erg["a"][0])
+        self.assertEqual(sorted(erg), ["a"])
+
+    def test_unwesentlicher_fehler_laesst_weiterlaufen(self):
+        # Eine Zusatz-Ausfuehrung (-b) verhinderte das Zertifikat auch frueher nicht.
+        z = Zaehler(dauer=0.01, scheitern={"extra"})
+        jobs = [Auftrag("extra", ["x"], wesentlich=False),
+                Auftrag("danach", ["x"], nach=("extra",))]
+        erg = abarbeiten(jobs, 1, z)
+        self.assertEqual(z.start, ["extra", "danach"])
+        self.assertTrue(erg["danach"][0])
+
+    def test_gescheiterte_voraussetzung_ueberspringt_abhaengige(self):
+        z = Zaehler(dauer=0.01, scheitern={"render"})
+        jobs = [Auftrag("render", ["x"], wesentlich=False),
+                Auftrag("pruef", ["x"], braucht=("render",)),
+                Auftrag("anderes", ["x"])]
+        erg = abarbeiten(jobs, 2, z)
+        self.assertNotIn("pruef", z.start)
+        self.assertNotIn("pruef", erg)
+        self.assertTrue(erg["anderes"][0])
+
+    def test_kette_bleibt_in_ihrer_reihenfolge(self):
+        # Gleiche Kameradatei -> nacheinander, in der alten Reihenfolge.
+        z = Zaehler(dauer=0.01)
+        jobs = [Auftrag("k1", ["x"]), Auftrag("k2", ["x"], nach=("k1",)),
+                Auftrag("k3", ["x"], nach=("k2",))]
+        abarbeiten(jobs, 3, z)
+        self.assertEqual(z.start, ["k1", "k2", "k3"])
+        self.assertEqual(z.hoechst, 1)
+
+    def test_ein_prozess_gibt_die_listenreihenfolge(self):
+        z = Zaehler(dauer=0.0)
+        jobs = [Auftrag(f"j{i}", ["x"]) for i in range(5)]
+        abarbeiten(jobs, 1, z)
+        self.assertEqual(z.start, [f"j{i}" for i in range(5)])
+
+    def test_befehl_darf_spaet_berechnet_werden_und_ausfallen(self):
+        z = Zaehler(dauer=0.0)
+        jobs = [Auftrag("a", ["x"]),
+                Auftrag("b", lambda erg: ["y", erg["a"][1]], nach=("a",)),
+                Auftrag("c", lambda erg: None, nach=("a",))]
+        erg = abarbeiten(jobs, 2, z)
+        self.assertIn("b", erg)
+        self.assertNotIn("c", z.start)
+
+    def test_parallel_aus_umgebung(self):
+        with mock.patch.dict(os.environ, {"BAU_PARALLEL": "1"}):
+            self.assertEqual(rp.bau_parallel(), 1)
+        with mock.patch.dict(os.environ, {"BAU_PARALLEL": "kaputt"}):
+            self.assertEqual(rp.bau_parallel(), 3)
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("BAU_PARALLEL", None)
+            self.assertEqual(rp.bau_parallel(), 3)
+
+
+def wand(a, b, typ="exterior"):
+    return {"start_mm": list(a), "end_mm": list(b), "wall_type": typ}
+
+
+RECHTECK = [wand((0, 0), (10000, 0)), wand((10000, 0), (10000, 8000)),
+            wand((10000, 8000), (0, 8000)), wand((0, 8000), (0, 0))]
+# 1_2_2 am 2026-10-27: zwei Streifen zwischen Flur und Kind als "Aussenwand".
+SECHS = RECHTECK + [wand((7900, 6140), (5800, 6140)), wand((7800, 6380), (5800, 6380))]
+
+
+def plan(walls_oben, house_type="1.5-storey", level="attic", plan_id="x_haus"):
+    return {"plan_id": plan_id, "house_type": house_type,
+            "floors": [{"level": "groundfloor", "walls": RECHTECK},
+                       {"level": level, "walls": walls_oben}]}
+
+
+class Vorpruefung(unittest.TestCase):
+    def test_sechs_aussenwaende_im_dg_wird_abgelehnt(self):
+        grund = rp.vorpruefung(plan(SECHS))
+        self.assertIn("1,5-Geschosser", grund)
+        self.assertIn("6 Aussenwaende", grund)
+
+    def test_rechteck_geht_durch(self):
+        self.assertIsNone(rp.vorpruefung(plan(RECHTECK)))
+
+    def test_zweigeschosser_wird_nicht_geprueft(self):
+        self.assertIsNone(rp.vorpruefung(plan(SECHS, house_type="2-storey", level="upperfloor")))
+
+    def test_eingeschossig_wird_nicht_geprueft(self):
+        p = plan(SECHS)
+        p["floors"] = p["floors"][:1]
+        self.assertIsNone(rp.vorpruefung(p))
+
+
+# ------------------------------------------------------------- ganzer Lauf
+class Schein:
+    """Ersetzt Plan-Builder, Blender und Pruefer durch Dateien und Texte."""
+
+    def __init__(self, geschosse=2, oben=RECHTECK, house_type="2-storey",
+                 scheitern=lambda cmd, env: False, dauer=0.0, luftraum_oben=False):
+        self.geschosse = geschosse
+        self.luftraum_oben = luftraum_oben
+        self.ende_vb = {}
+        self.erste_vb_ende = {}
+        self.start_innen_liste = {}
+        self.ende_innen_liste = {}
+        self.oben = oben
+        self.house_type = house_type
+        self.scheitern = scheitern
+        self.dauer = dauer
+        self.lock = threading.Lock()
+        self.befehle = []
+        self.jetzt = {"ext": 0, "int": 0}
+        self.hoechst = {"ext": 0, "int": 0}
+        self.start_innen = {}
+        self.ende_innen = {}
+
+    def __call__(self, cmd, log_path=None, env=None):
+        env = env or {}
+        text = " ".join(str(c) for c in cmd)
+        art = ("ext" if "render-exterior.py" in text else
+               "int" if "render-furnished-dollhouse.py" in text else None)
+        schluessel = (env.get("DMH_FLOOR"), env.get("DMH_FINISH"))
+        with self.lock:
+            self.befehle.append((text, env.get("EXT_ROOF_TYPE"), env.get("DMH_FINISH"),
+                                 env.get("DMH_FLOOR")))
+            if art:
+                self.jetzt[art] += 1
+                self.hoechst[art] = max(self.hoechst[art], self.jetzt[art])
+            if art == "int":
+                self.start_innen[schluessel] = time.monotonic()
+                self.start_innen_liste[(Path(cmd[-2]).stem, env.get("DMH_FINISH"))] = time.monotonic()
+        try:
+            return self._tun(cmd, text, log_path, env)
+        finally:
+            if "verify_render_blend.py" in text:
+                with self.lock:
+                    self.ende_vb[Path(cmd[-2]).name] = time.monotonic()
+                    self.erste_vb_ende.setdefault(Path(cmd[-2]).name, time.monotonic())
+            if art:
+                time.sleep(self.dauer)
+                with self.lock:
+                    self.jetzt[art] -= 1
+                    if art == "int":
+                        self.ende_innen[schluessel] = time.monotonic()
+                        self.ende_innen_liste[(Path(cmd[-2]).stem, env.get("DMH_FINISH"))] = time.monotonic()
+
+    def _tun(self, cmd, text, log_path, env):
+        fehler = self.scheitern(text, env)
+        if fehler:
+            out = fehler if isinstance(fehler, str) else "FAIL R9_stair_access\n  - top tread zu tief\n"
+            ok = False
+        elif "build-simplifier-render-plan.py" in text:
+            floors = [{"level": "groundfloor", "walls": RECHTECK}]
+            if self.geschosse > 1:
+                oben = {"level": "attic" if self.house_type == "1.5-storey" else "upperfloor",
+                        "walls": self.oben}
+                if self.luftraum_oben:
+                    oben["rooms"] = [{"kind": "luftraum",
+                                      "polygon_mm": [[0, 0], [2000, 0], [2000, 2000]]}]
+                floors.append(oben)
+            with open(cmd[-1], "w", encoding="utf-8") as h:
+                json.dump({"plan_id": "haus", "house_type": self.house_type,
+                           "roof_type": "satteldach", "source_geometry_hash": "g",
+                           "source_provenance": {"annotation_hash": "a", "input_hash": "i"},
+                           "floors": floors}, h)
+            out, ok = "", True
+        elif "render-exterior.py" in text:
+            png = cmd[-1]
+            for pfad in (png, png[:-4] + ".blend"):
+                Path(pfad).write_text("x", encoding="utf-8")
+            out, ok = "[exterior] ok", True
+        elif "render-furnished-dollhouse.py" in text:
+            Path(cmd[-1]).write_text("x", encoding="utf-8")
+            Path(env["DMH_SAVE_BLEND"]).write_text("x", encoding="utf-8")
+            out, ok = "[dollhouse] ok", True
+        elif "verify_render_blend.py" in text:
+            out, ok = "[verify-blend] x\nPASS R0_symbol_sizes\nPASS R9_stair_access\n", True
+        elif "verify_render.py" in text:
+            out, ok = "PASS verify", True
+        else:
+            out, ok = "", True
+        if log_path:
+            with open(log_path, "w", encoding="utf-8") as h:
+                h.write(out)
+        return ok, out
+
+
+def lauf(schein, parallel, geschosse=2, vorher=(), finishes=None, env_extra=None):
+    daten = tempfile.mkdtemp()
+    simplifier = tempfile.mkdtemp()
+    os.makedirs(os.path.join(simplifier, "projects", "haus"))
+    ziel = os.path.join(daten, "corrections", "haus", "renders", "go-baseline")
+    os.makedirs(ziel)
+    for name in vorher:
+        Path(ziel, name).write_text("alt", encoding="utf-8")
+    Path(simplifier, "projects", "haus", "annotations.json").write_text("{}", encoding="utf-8")
+    floors = ",".join(str(i) for i in range(geschosse))
+    ausgabe = io.StringIO()
+    code = None
+
+    def still(cmd, log_path=None, env=None):
+        return schein(cmd, log_path, env)
+
+    def laut(cmd, log_path=None, env=None):
+        print("[go] $ " + " ".join(str(c) for c in cmd))
+        ok, out = schein(cmd, log_path, env)
+        if not ok:
+            print(out)
+        return ok, out
+
+    with mock.patch.object(rp, "DATA_REPO", daten), \
+            mock.patch.object(rp, "SIMPLIFIER", simplifier), \
+            mock.patch.object(rp, "run_still", still), \
+            mock.patch.object(rp, "run", laut), \
+            mock.patch.dict(os.environ, {"BAU_PARALLEL": str(parallel),
+                                         "ZF_ATTIC_ROOT": os.path.join(daten, "_dachboden"),
+                                         **(env_extra or {})}), \
+            mock.patch.object(sys, "argv", ["run_project.py", "haus", "--styles", "modern,classic",
+                                            "--floors", floors]
+                              + (["--finishes", finishes] if finishes else [])), \
+            contextlib.redirect_stdout(ausgabe):
+        try:
+            rp.main()
+        except SystemExit as ende:
+            code = ende.code
+    aus = os.path.join(daten, "corrections", "haus", "renders", "go-baseline")
+    manifest = None
+    if os.path.exists(os.path.join(aus, "delivery-manifest.json")):
+        with open(os.path.join(aus, "delivery-manifest.json"), encoding="utf-8") as h:
+            manifest = json.load(h)
+    return code, manifest, ausgabe.getvalue(), aus
+
+
+class GanzerLauf(unittest.TestCase):
+    def test_parallel_baut_dieselbe_lieferung_wie_seriell(self):
+        s1, s3 = Schein(), Schein()
+        code1, m1, _, _ = lauf(s1, 1)
+        code3, m3, _, _ = lauf(s3, 3)
+        self.assertEqual(code1, 0)
+        self.assertEqual(code3, 0)
+        self.assertEqual([a["file"] for a in m1["artifacts"]], [a["file"] for a in m3["artifacts"]])
+        self.assertEqual(m1["verified_styles"], m3["verified_styles"])
+
+        def normal(befehle):
+            # Pfade unterscheiden sich nur im Tempordner.
+            return sorted((Path(t.split(" -- ")[0].split()[-1]).name if " -- " in t else
+                           Path(t.split()[1]).name, roof, fin, fl) for t, roof, fin, fl in befehle)
+        self.assertEqual(normal(s1.befehle), normal(s3.befehle))
+
+    def test_aussen_bleibt_eine_kette_in_alter_reihenfolge(self):
+        # Alle vier Aussen-.blend bleiben liegen -> jede kann kamera-aussen.json schreiben.
+        s = Schein()
+        lauf(s, 3)
+        aussen = [roof for t, roof, _, _ in s.befehle if "render-exterior.py" in t]
+        self.assertEqual(aussen, ["flachdach", "walmdach", "satteldach", "pultdach"])
+        self.assertEqual(s.hoechst["ext"], 1)
+
+    def test_innen_schreiber_zuerst_dann_leser_nebeneinander(self):
+        s = Schein(dauer=0.05)
+        lauf(s, 4)
+        for geschoss in ("0", "1"):
+            innen = [fin for t, _, fin, fl in s.befehle
+                     if "render-furnished-dollhouse.py" in t and fl == geschoss]
+            self.assertEqual(innen[0], "modern-a")
+            # Leser liefen erst nach dem Schreiber -- und nicht einer nach dem anderen.
+            self.assertGreaterEqual(s.start_innen[(geschoss, "modern-b")],
+                                    s.ende_innen[(geschoss, "modern-a")])
+        self.assertGreater(s.hoechst["int"], 1)
+
+    def test_liegt_eine_alte_zusatz_blend_noch_da_wird_sie_wieder_kette(self):
+        # Eine liegengebliebene classic-.blend kann Handkamera retten -> sie
+        # wartet auf ALLES davor auf ihrem Geschoss, wie seriell.
+        s = Schein(dauer=0.03, geschosse=1)
+        lauf(s, 4, geschosse=1, vorher=["interior-classic-baseline.blend"])
+        start = s.start_innen[("0", "classic-a")]
+        for frueher in ("modern-a", "modern-b"):
+            self.assertGreaterEqual(start, s.ende_innen[("0", frueher)])
+
+    def test_pruefungsfehler_stoppt_und_steht_im_log(self):
+        def r9(text, env):
+            return "verify_render_blend.py" in text and "upper" in text
+        for parallel in (1, 3):
+            s = Schein(scheitern=r9)
+            code, manifest, aus, _ = lauf(s, parallel)
+            self.assertEqual(code, 1, parallel)
+            self.assertIsNone(manifest)
+            self.assertIn("FAIL R9_stair_access\n  - top tread zu tief", aus)
+
+    def test_vorpruefung_stoppt_vor_blender(self):
+        for parallel in (1, 3):
+            s = Schein(house_type="1.5-storey", oben=SECHS)
+            code, manifest, aus, _ = lauf(s, parallel)
+            self.assertEqual(code, 1)
+            self.assertIsNone(manifest)
+            self.assertFalse([t for t, *_ in s.befehle if "blender" in t.lower()], parallel)
+            zeilen = [z for z in aus.splitlines() if "1,5-Geschosser" in z]
+            self.assertTrue(zeilen)
+            # go.py abbruchgrund() ueberspringt "[go] "-Zeilen -- der Grund darf keine sein.
+            self.assertFalse(zeilen[0].startswith("[go] "))
+
+
+# --------------------------------------------------------------- Runde 2
+# Codex-Pruefung 2026-10-28 (scratchpad codex-out-bau.md): Luftraum liest die
+# Szene darunter, gleiche Ausgabedateien bei --finishes, Kamera-Override,
+# Fehlergrund, Blender-Exit-Code.
+class DateiAbhaengigkeiten(unittest.TestCase):
+    def test_zweiter_schreiber_wartet_auf_ersten_und_dessen_leser(self):
+        a = Auftrag("a", ["x"], schreibt={"f"})
+        r = Auftrag("r", ["x"], braucht=("a",), liest={"f"})
+        b = Auftrag("b", ["x"], schreibt={"f"})
+        rp.datei_abhaengigkeiten([a, r, b])
+        self.assertIn("a", b.nach)
+        self.assertIn("r", b.nach)
+
+    def test_leser_einer_datei_braucht_den_letzten_schreiber(self):
+        a = Auftrag("a", ["x"], schreibt={"f"})
+        o = Auftrag("o", ["x"], braucht_dateien={"f"})
+        rp.datei_abhaengigkeiten([a, o])
+        self.assertIn("a", o.braucht)
+
+    def test_ohne_gemeinsame_datei_keine_abhaengigkeit(self):
+        a = Auftrag("a", ["x"], schreibt={"f"})
+        b = Auftrag("b", ["x"], schreibt={"g"})
+        rp.datei_abhaengigkeiten([a, b])
+        self.assertEqual(b.nach, ())
+        self.assertEqual(b.braucht, ())
+
+
+class Runde2Lauf(unittest.TestCase):
+    def test_luftraum_oben_wartet_auf_die_szene_darunter(self):
+        s = Schein(dauer=0.05, luftraum_oben=True)
+        code, manifest, _, _ = lauf(s, 4)
+        self.assertEqual(code, 0)
+        for fin in ("modern-a", "modern-b"):
+            self.assertGreaterEqual(s.start_innen[("1", fin)], s.ende_innen[("0", fin)], fin)
+
+    def test_ohne_luftraum_bleibt_oben_zuerst(self):
+        s = Schein(dauer=0.05)
+        lauf(s, 4)
+        innen = [fl for t, _, fin, fl in s.befehle if "render-furnished-dollhouse.py" in t]
+        self.assertEqual(innen[0], "1")
+
+    def test_gleiche_ausgabedatei_wird_nacheinander_gebaut(self):
+        # --finishes modern-a,modern-b: classic schreibt sein zweites Finish
+        # ebenfalls nach interior-modern-b-baseline.* (Codex P1).
+        s = Schein(dauer=0.05, geschosse=1)
+        lauf(s, 4, geschosse=1, finishes="modern-a,modern-b")
+        starts = [(t, fin) for t, _, fin, fl in s.befehle if "render-furnished-dollhouse.py" in t]
+        self.assertEqual(len(starts), 4)
+        classic_b = s.start_innen_liste[("plan-classic", "modern-b")]
+        modern_b_ende = s.ende_innen_liste[("plan-modern", "modern-b")]
+        self.assertGreaterEqual(classic_b, modern_b_ende)
+        # ... und erst nach der Pruefung der modern-Fassung derselben Datei.
+        self.assertGreaterEqual(classic_b, s.erste_vb_ende["interior-modern-b-baseline.blend"])
+
+    def test_kamera_override_verbindet_alle_geschosse(self):
+        s = Schein(dauer=0.05)
+        lauf(s, 4, env_extra={"DMH_KAMERA_JSON": os.path.join(tempfile.mkdtemp(), "k.json")})
+        # Eine Kameradatei fuer alle: das Obergeschoss liest erst nach dem Schreiber.
+        self.assertGreaterEqual(s.start_innen[("1", "modern-a")], s.ende_innen[("0", "modern-a")])
+
+    def test_blender_bekommt_einen_exit_code_fuer_python_fehler(self):
+        for parallel in (1, 3):
+            s = Schein()
+            lauf(s, parallel)
+            blender = [t for t, *_ in s.befehle if "--background" in t]
+            self.assertTrue(blender)
+            for t in blender:
+                self.assertIn("--python-exit-code 1 --python", t, parallel)
+
+    def test_spaeter_absturz_wird_als_bau_fehler_gemeldet(self):
+        def absturz(text, env):
+            if "render-furnished-dollhouse.py" in text and env.get("DMH_FLOOR") == "0" \
+                    and env.get("DMH_FINISH") == "modern-a":
+                return "Traceback (most recent call last):\nIndexError: list index out of range\n"
+            return False
+        s = Schein(scheitern=absturz, dauer=0.02)
+        code, manifest, aus, _ = lauf(s, 3)
+        self.assertEqual(code, 1)
+        zeilen = [z for z in aus.splitlines() if z.startswith("BAU-FEHLER: ")]
+        self.assertEqual(len(zeilen), 1, aus)
+        self.assertIn("IndexError: list index out of range", zeilen[0])
+        go = lade("go_bs", "go.py")
+        pfad = os.path.join(tempfile.mkdtemp(), "bau.log")
+        Path(pfad).write_text(aus, encoding="utf-8")
+        self.assertIn("IndexError", go.bau_fehler(pfad))
+
+    def test_verifier_fail_wird_als_bau_fehler_mit_regel_gemeldet(self):
+        def r9(text, env):
+            return "verify_render_blend.py" in text and "upper" in text
+        s = Schein(scheitern=r9)
+        _, _, aus, _ = lauf(s, 3)
+        zeilen = [z for z in aus.splitlines() if z.startswith("BAU-FEHLER: ")]
+        self.assertEqual(zeilen, ["BAU-FEHLER: Verifier R9_stair_access: top tread zu tief"])
+
+
+if __name__ == "__main__":
+    unittest.main()

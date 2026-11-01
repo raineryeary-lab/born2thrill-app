@@ -1,0 +1,2443 @@
+#!/usr/bin/env python3
+"""Write the Codex handoff for every house that is waiting on one.
+
+Codex's own review: "The handoff is manual and not resumable ... Do not invent
+another manual note format. Promote the existing handoff.json into a resumable
+job contract." So this writes BOTH:
+
+  codex-job.json      the contract: job id, every input .blend with its sha256,
+                      the geometry/annotation hash it came from, the outputs
+                      required and their state. Machine-checkable on return.
+  CODEX-AUFTRAG.md    the same thing in German for a human, GENERATED from the
+                      contract so the two cannot drift apart.
+
+Resumable because each required output carries its own state: a rerun only
+needs the entries that are still pending or failed. Idempotent: a house whose
+job already matches the current .blend hashes is left alone.
+
+    python make-codex-job.py --all
+    python make-codex-job.py onehalfstorey_029
+"""
+
+import argparse
+import datetime
+import hashlib
+import importlib.util
+import json
+import math
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SUITE = os.path.dirname(os.path.dirname(HERE))
+# Nicht raten. 2026-08-21: der Datenordner zog von C: nach E:; ein Skript,
+# das ohne gesetzte Variable still auf den alten C:-Nachbarordner
+# zurueckfiele, wuerde unbemerkt gegen veraltete Daten arbeiten.
+_konfiguriert = os.environ.get("FLOORPLAN_WORKBENCH_DATA_DIR", "").strip()
+if not _konfiguriert:
+    sys.exit("FLOORPLAN_WORKBENCH_DATA_DIR ist nicht gesetzt -- verweigere, "
+            "den Datenordner zu erraten. Siehe .env.local.")
+DATA = os.path.abspath(_konfiguriert)
+
+HERO = ("Full frame - 24-35 mm - Stativ - ISO 100 - f/8-f/11, Kamera waagerecht, "
+        "3/4-Ansicht der Schokoladenseite, senkrechte Kanten senkrecht, "
+        "ganzes Gebaeude im Bild.")
+
+
+# Das Regelwerk, das jedem Auftrag beiliegt. Eine Datei, eine Wahrheit --
+# geaendert wird sie dort, nicht im Generator (Rainer, 2026-08-26).
+REGELWERK = os.path.join(os.path.dirname(HERE), "docs", "CODEX-REGELN-4PLUS2.md")
+RENDER_POLICY = os.path.join(os.path.dirname(HERE), "policies",
+                             "zuhausefinder-hard-rules.v1.json")
+REFERENCE_REGISTRY = os.path.join(os.path.dirname(HERE), "references", "index.json")
+
+
+def _render_contract_module():
+    path = os.path.join(HERE, "render-contract.py")
+    spec = importlib.util.spec_from_file_location("zf_render_contract", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _json(path):
+    with open(path, encoding="utf-8-sig") as handle:
+        return json.load(handle)
+
+
+def compile_render_contract(job, folder):
+    module = _render_contract_module()
+    policy = _json(RENDER_POLICY)
+    registry = _json(REFERENCE_REGISTRY)
+    kinds = {item.get("kind") for item in job.get("required_outputs", [])}
+    roles = ({"interior-style"} if "interior" in kinds else set())
+    if "exterior" in kinds:
+        roles.add("exterior-style")
+    ids = [item["id"] for item in registry.get("references", [])
+           if item.get("approval") == "approved" and item.get("role") in roles]
+    return module.compile_contract(job, folder, policy, registry, ids), module
+
+
+def sha256(path):
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+# Die vier Innenraum-Stile des Pakets "House Visual Catalog 4+2". Sie gelten
+# PRO GESCHOSS, nicht pro Haus (Rainer, 2026-08-26: "4 version per Floor for
+# the floorplans and 2 exteriors"). Ein Bungalow ergibt also 4+2 = 6 Bilder,
+# ein Zweigeschosser 8+2 = 10.
+INNENSTILE = (
+    ("warm-modern",       "Warm Modern"),
+    ("dark-modern",       "Dark Modern"),
+    ("soft-scandinavian", "Soft Scandinavian"),
+    ("classic",           "Classic"),
+)
+
+
+EBENEN_KUERZEL = {"basement": "kg", "groundfloor": "eg", "upperfloor": "og", "attic": "dg"}
+
+
+def _geschoss_index(stem):
+    """Welches Geschoss des Plans eine Innen-.blend zeigt: 0, 1 (-upper), N (-floorN)."""
+    import re as _re
+    treffer = _re.search(r"-floor(\d+)-baseline$", stem)
+    if treffer:
+        return int(treffer.group(1))
+    return 1 if "-upper-baseline" in stem else 0
+
+
+def _geschoss_kuerzel(stem, ebenen=None):
+    """eg/og/dg einer Innen-.blend, oder None bei nur einem Geschoss.
+
+    Mit `ebenen` (die Geschosse des Plans, von unten nach oben) aus dem
+    Plan -- other_vito (EG + OG + DG, 2026-10-24) bekam sonst zweimal "-eg"
+    und kein "-dg". Ohne `ebenen` wie bisher aus dem Dateinamen.
+    """
+    if ebenen:
+        i = _geschoss_index(stem)
+        if i < len(ebenen):
+            return EBENEN_KUERZEL.get(ebenen[i], "eg")
+    rest = stem.replace("interior-", "").replace("-baseline", "")
+    for kuerzel in ("upper", "og", "obergeschoss"):
+        if kuerzel in rest:
+            return "og"
+    for kuerzel in ("lower", "eg", "erdgeschoss", "ground"):
+        if kuerzel in rest:
+            return "eg"
+    return None
+
+
+BLENDER = os.environ.get(
+    "BLENDER_EXE",
+    r"C:\Program Files\Blender Foundation\Blender 5.0" + chr(92) + "blender.exe")
+
+# Objektarten, die im Auftrag beim Namen genannt werden muessen. Garderobe und
+# Stuff, weil Codex sie ersetzen soll; die Sanitaerobjekte, weil sie fuenfmal
+# hintereinander aus dem Bild verschwunden sind.
+NENNENSWERT = {
+    "garderobe": "Garderobe (ersetzen)",
+    # "Stuff" sagt nicht, was daraus werden soll -- und der Bauer hat kein
+    # Modell dafuer: im Plan steht `build: "rect"`, es IST ein Quader.
+    # Rainer, 2026-09-01: "why does this still keep happening?" und "codex
+    # muss sich mehr Muehe geben passende Moebelstuecke zu erfinden und nicht
+    # nur Quader einstellen".
+    #
+    # An 3_3_4 gemessen: `stuff-9` (400 x 2450 x 800 mm an der Kuechenwand,
+    # im Plan `storage_shelving`) blieb in 03 und 06 ein glatter Kasten,
+    # waehrend in 04 und 05 eine Kuechenzeile mit Fronten und Griffen daraus
+    # geworden war. Viermal geraten, zweimal daneben. `garderobe` heisst
+    # "Garderobe" und wird deshalb jedes Mal richtig; `stuff` hiess "stuff".
+    #
+    # `(ersetzen)` bleibt WOERTLICH stehen: `farbe_fuer` sucht genau diese
+    # Zeichenkette und macht den Marker daran rot. Ein erster Versuch schrieb
+    # "(ersetzen -- ...)" und haette `stuff` blau gemalt, also
+    # "stehenlassen"; zwei bestehende Tests haben es gefangen.
+    "stuff": "Stauraum-Platzhalter (ersetzen) -- ein echtes Moebel mit "
+             "Fronten, Fugen und Griffen daraus machen; ein glatter Kasten "
+             "ist kein Ergebnis",
+    # sauna-fitness-hobby-v1 (Rainer, 2026-10-23: "cabin in the room").
+    "saunakabine": "Saunakabine (ersetzen) -- Holzkabine genau auf dieser "
+                   "Grundflaeche: Glastuer, zwei Liegestufen, Saunaofen, "
+                   "warmes Holz; kein glatter Kasten",
+    "badewanne": "Sanitaer (muss sichtbar bleiben)",
+    "eckbadewanne": "Sanitaer (muss sichtbar bleiben)",
+    "dusche": "Sanitaer (muss sichtbar bleiben)",
+    "dusche_gross": "Sanitaer (muss sichtbar bleiben)",
+    "dusche_klein": "Sanitaer (muss sichtbar bleiben)",
+    "wand_wc": "Sanitaer (muss sichtbar bleiben)",
+    "waschtisch": "Sanitaer (muss sichtbar bleiben)",
+    "handwaschbecken": "Sanitaer (muss sichtbar bleiben)",
+    "doppelwaschtisch": "Sanitaer (muss sichtbar bleiben)",
+    "spuele": "Kueche (muss sichtbar bleiben)",
+    "kochfeld": "Kueche (muss sichtbar bleiben)",
+    # Tuerblaetter heissen `wall-<n>-door` und traegen deshalb keinen
+    # eigenen Stamm. Sie muessen trotzdem auf die Karte: `wall-12-door`
+    # steht aufgeschlagen 190 Pixel neben der Garderobe, und genau diese
+    # zwei wurden am 2026-08-27 zweimal hintereinander verwechselt.
+    "tuer": "Tuer (bleibt, nicht ersetzen)",
+}
+
+# Alles andere im Raum bekommt diese Rolle. Sie ist bewusst anders formuliert
+# als "ersetzen": ein Schreibtisch soll stilgerecht neu aussehen und ein
+# Schreibtisch bleiben.
+MOEBEL_ROLLE = "Moebel (umgestalten, muss sichtbar bleiben)"
+
+
+# Objekte, die der Bauer aus einem anderen ABLEITET. Sie stehen unter eigenem
+# Namen in der .blend und lesen sich im Auftrag wie zusaetzliche Moebel --
+# sind es aber nicht: die sechs `essgruppe_stuhl` SIND die Stuehle von
+# `essgruppe_6`, nicht sechs weitere.
+#
+# Rainer, 2026-08-31, zur Lieferung fuer 3_3_4: "look how many chairs ... in
+# the dining". Neun Stuehle am Tisch statt sechs. Der Auftrag nannte
+# `essgruppe_6-25` "Moebel (muss sichtbar bleiben)" und darunter sechs
+# `essgruppe_stuhl` mit derselben Rolle -- also eine Essgruppe fuer sechs UND
+# sechs Stuehle.
+#
+# Der Schluessel ist der abgeleitete Stamm, der Wert der Praefix seines
+# Elternteils. `schreibtischstuhl` haengt an JEDEM Objekt, dessen Name mit
+# "schreibtisch" beginnt (build-simplifier-render-plan.py:2959), also auch am
+# Kinderschreibtisch.
+ABGELEITET = {
+    "essgruppe_stuhl": "essgruppe_6",
+    "schreibtischstuhl": "schreibtisch",
+}
+
+# Wie das Paar im Auftrag heissen soll -- die Formulierung, die ein Mensch
+# beim Zeichnen im Kopf hat.
+PAAR_NAME = {
+    "essgruppe_stuhl": "Esstisch mit %d Stuehlen",
+    "schreibtischstuhl": "Schreibtisch mit %d Stuhl",
+}
+
+
+def _elternteil(kind_stamm, vorhandene):
+    """Der Stamm, von dem `kind_stamm` abgeleitet ist -- oder None."""
+    praefix = ABGELEITET.get(kind_stamm)
+    if praefix is None:
+        return None
+    # Exakter Treffer geht vor: `essgruppe_6` ist genau ein Name.
+    if praefix in vorhandene:
+        return praefix
+    passend = sorted(s for s in vorhandene
+                     if s.startswith(praefix) and s != kind_stamm)
+    return passend[0] if passend else None
+
+
+def stueckzahlen(objekte, geschoss=None):
+    """Wie viele Stuecke von jeder Sorte -- und was davon zusammengehoert.
+
+    Ein Marker je Stueck sagt nur, WO etwas liegt. Wie viele es sind, stand
+    bisher nirgends; wer sieben Marker an einem Fleck sieht, malt sieben
+    Moebel. Diese Liste sagt die Zahl, und bei abgeleiteten Objekten sagt sie
+    dazu, dass sie schon mitgezaehlt sind.
+    """
+    if not objekte:
+        return []
+    # GEZAEHLT WIRD DAS MOEBELSTUECK, NICHT DAS NETZ. `objekte` fuehrt jedes
+    # Netz einzeln: ein Kleiderschrank besteht aus Korpus, Tueren und
+    # Griffen. Ungefiltert stand hier "kleiderschrank: 4", obwohl zwei
+    # Schraenke im Haus stehen -- eine Stueckzahl, die MEHR Moebel erfindet
+    # als die Namensliste. `_bauteil` fasst dieselben Teile zusammen, genau
+    # wie es die Objektkarte fuer die Marker tut.
+    stuecke = {stamm: {_bauteil(name) for name in namen}
+               for stamm, namen in objekte.items()}
+    vorhandene = set(stuecke)
+    # Kind -> Elternteil, nur wo beide wirklich in der Datei stehen.
+    paare = {}
+    for kind in sorted(vorhandene):
+        eltern = _elternteil(kind, vorhandene)
+        if eltern:
+            paare[kind] = eltern
+
+    zeilen = ["", "## Stueckzahlen" + (" (%s)" % geschoss if geschoss else ""), "",
+              "So viele Stuecke stehen wirklich in der .blend. Im fertigen "
+              "Bild sind es genau so",
+              "viele -- kein Stuhl mehr, kein Schrank weniger.", ""]
+    erledigt = set()
+    for stamm in sorted(vorhandene):
+        if stamm in erledigt:
+            continue
+        kind = next((k for k, e in paare.items() if e == stamm), None)
+        if kind:
+            anzahl = len(stuecke[kind])
+            titel = PAAR_NAME.get(kind, "%s mit %%d" % stamm) % anzahl
+            zeilen.append(
+                "- **%s** — `%s` (%d) und `%s` (%d) gehoeren zusammen: "
+                "%s beim Bauen aus dem Elternobjekt abgeleitet und steh%s "
+                "schon daran. Es kommt nichts dazu. "
+                "Im Bild sind es genau %d."
+                % (titel, stamm, len(stuecke[stamm]), kind, anzahl,
+                   ("die %d Stuehle wurden" % anzahl) if anzahl != 1
+                   else "der eine Stuhl wurde",
+                   "en" if anzahl != 1 else "t", anzahl))
+            erledigt.add(stamm)
+            erledigt.add(kind)
+            continue
+        zeilen.append("- `%s`: %d" % (stamm, len(stuecke[stamm])))
+        erledigt.add(stamm)
+
+    zeilen += ["",
+               "**Vor dem Abgeben nachzaehlen.** In jedem gelieferten Bild "
+               "jede Sorte durchzaehlen",
+               "und mit dieser Liste vergleichen. Eine Zahl, die nicht "
+               "stimmt, ist eine abgelehnte",
+               "Lieferung -- am 2026-08-31 standen neun Stuehle an einem "
+               "Tisch fuer sechs.", ""]
+    return zeilen
+
+
+
+
+NACHWEIS_MARKE = "NACHWEIS:"
+
+
+def nachweis_abschnitt(nachweis):
+    """Die Frage, die nur beantworten kann, wer die Datei geoeffnet hat.
+
+    Rainer, 2026-08-31: "hes guessing again". Der Auftrag verlangt seit dem
+    2026-08-30 unter "OEFFNEN heisst AUFMACHEN", die .blend wirklich
+    aufzumachen. Codex hatte am selben Tag zugegeben, es noch nie getan zu
+    haben, und die Lieferung danach zeigte dieselben Fehler.
+
+    Prosa laesst sich ueberlesen, eine Zahl nicht. Gefragt wird nach der
+    Anzahl der MESH-Objekte -- die Objektliste im Auftrag nennt nur Moebel,
+    Waende, Boeden, Fenster und Dach fehlen darin. Die Summe ist also nicht
+    ausrechenbar, nur auslesbar.
+
+    Die erwartete Antwort steht in codex-job.json, nicht hier: eine Zahl im
+    Auftragstext wird abgeschrieben statt nachgesehen -- so wie am
+    2026-08-29 die Marker-Koordinaten.
+    """
+    if not nachweis or not nachweis.get("mesh_objekte"):
+        return []
+    return ["", "## Nachweis, dass die .blend offen war", "",
+            "Der Befehl oben gibt eine Zeile je MESH-Objekt aus. Zaehle sie "
+            "und trage die Zahl",
+            "in `catalog.json` ein, als eigenes Feld neben den Bildern:", "",
+            '    "nachweis": "%s <zahl> MESH-Objekte"' % NACHWEIS_MARKE, "",
+            "Die Zahl steht in keiner Datei, die du sonst bekommst -- die "
+            "Objektliste in diesem",
+            "Auftrag nennt nur Moebel, nicht Waende, Boeden, Fenster und "
+            "Dach. Wer sie richtig",
+            "nennt, hat die Datei offen gehabt.", "",
+            "**Ohne diese Zeile wird die Lieferung nicht geprueft.** Eine "
+            "falsche Zahl ebenfalls",
+            "nicht: dann ist woanders nachgesehen worden.", ""]
+
+
+def nachweis_stimmt(rueckgabe, nachweis):
+    """Hat die Rueckgabe die richtige Objektzahl?
+
+    True, False -- oder None, wenn der Auftrag gar keinen Nachweis verlangt
+    hat. Alte Auftraege duerfen daran weder scheitern noch stillschweigend
+    bestehen; der Aufrufer soll den Unterschied sehen.
+    """
+    if not nachweis or not nachweis.get("mesh_objekte"):
+        return None
+    erwartet = int(nachweis["mesh_objekte"])
+    for zeile in (rueckgabe or "").splitlines():
+        if NACHWEIS_MARKE not in zeile:
+            continue
+        zahlen = re.findall(r"\d+", zeile.split(NACHWEIS_MARKE, 1)[1])
+        if zahlen and int(zahlen[0]) == erwartet:
+            return True
+    return False
+
+
+
+# VIER BILDER EINES HAUSES, NICHT VIER ENTWUERFE.
+#
+# Hier stand bis zum 2026-09-01: "Vier echte Entwuerfe, kein
+# Farbfilter uebereinander" und "Der Rohrender mit Farbstich ist
+# KEIN Stil und wird abgelehnt". Der erste Satz bestellte vier
+# Entwuerfe, der zweite verbot den einzigen Weg, der die
+# Moeblierung festhaelt -- und zwei Saetze weiter stand "gleiche
+# Geometrie in allen vieren". Ein Widerspruch, und Codex hat ihn
+# zugunsten der Entwuerfe aufgeloest.
+#
+# Ergebnis an german_catalog_review_bungalow_3_4_2_b_120: eine
+# Dusche fehlte in einem Bild, ein Schreibtisch in dreien, am
+# Esstisch standen acht Stuehle statt sechs. Rainer, 2026-09-01:
+# "die Tatsache dass Codex den Blender-File 4 mal interpretiert
+# faellt auf Dich zurueck." Stimmt -- der Auftrag hat es bestellt.
+#
+# Jetzt steht getrennt da, was variieren DARF und was nicht.
+# Rainer, 2026-10-13, nach bungalow_040_46 und _040_48: zweimal machte Codex
+# aus dem raumhohen Hochschrank einen halbhohen Kasten und setzte den Ofen auf
+# die Seite, die im Rohrender zu sehen war -- obwohl die Front von der Kamera
+# weg zeigte und der Auftrag "Front zeigt im Bild nach ..." und "H 2400 mm"
+# schon nannte. Als eigener, harter Abschnitt, nicht im Fliesstext versteckt.
+MOEBELRICHTUNG_REGEL = [
+    "1. Die Front jedes Moebels zeigt dorthin, wo der orange Pfeil auf der "
+    "OBJEKTKARTE hinzeigt und wo in der Markerliste \"Front zeigt im Bild nach "
+    "...\" steht -- NICHT dorthin, wo im Rohrender gerade eine Seite sichtbar "
+    "ist. Zeigt die Front von der Kamera weg, ist sie im Bild NICHT zu sehen, "
+    "und dann bleibt sie unsichtbar. Keine Front, keine Tuer und kein Geraet "
+    "auf die sichtbare Seite verlegen.",
+    "2. Hochschrank/Herd und Kuehlschrank sind EINBAU-HOCHSCHRAENKE: 600 mm "
+    "breit, 600 mm tief, 2400 mm hoch (raumhoch). Nie kuerzen, nie zu einem "
+    "halbhohen Schrank machen. Das Geraet (Backofen bzw. Kuehlschrank) sitzt "
+    "IN DER FRONT zwischen zwei Seitenwangen, darueber und darunter "
+    "Schrankfronten.",
+    "3. Stehen zwei Hochschraenke nebeneinander, bleiben es ZWEI Saeulen "
+    "nebeneinander, Front in dieselbe Richtung, buendig an der Kuechenzeile. "
+    "Nicht zu einem Block zusammenziehen, nicht drehen, nicht verschieben.",
+    "4. Das Karomuster im Rohrender ist nur Platzhalter fuer Schrankfronten "
+    "und wird im Stil des Bildes ersetzt (z. B. Holz). Es sagt NICHTS ueber "
+    "die Richtung -- die steht nur im Pfeil.",
+    "5. Im Zweifel gilt die .blend: Lage, Groesse und Drehung genau wie dort. "
+    "Ein Moebel mit falscher Frontrichtung oder ein gekuerzter Hochschrank ist "
+    "eine abgelehnte Lieferung.",
+    # GLAS-SCHIEBETUER-001, Rainer 2026-10-18: "has to be better than that or
+    # we add to the code that codex fixes it in rendering".
+    "6. `glasschiebetuer` ist ein BEGEHBARER SCHRANK, raumhoch. VORN (Seite des "
+    "Pfeils) raumhohe Glas-Schwebetueren mit schmalen Alu-Rahmen, oben eine "
+    "Laufschiene, KEINE Leiste am Boden; die Fluegelzahl steht in der Markerliste, und "
+    "EIN Fluegel steht halb offen ueber seinem Nachbarn -- so bleibt sichtbar, "
+    "dass es Schiebetueren sind. HINTEN offene Regale OHNE Tueren: Felder mit "
+    "Kleiderstangen und echter haengender Kleidung auf Buegeln (Hemden, "
+    "Blusen, Jacken, Hosen; gedeckte Farben, natuerlich unregelmaessig) und "
+    "Felder mit Faechern voll gefalteter Waesche-Stapel, unten Schuhe. Das "
+    "Rohrender zeigt nur Platzhalterkaesten -- im Bild muss es aussehen wie "
+    "eine echte, ordentlich gefuellte Ankleide hinter Glas. Nie einen "
+    "geschlossenen Schrank daraus machen, nie Tueren vor die Regale setzen, "
+    "nichts ausserhalb seines Fussabdrucks.",
+]
+
+INNEN_REGEL = (
+    "VIER STILE EINES HAUSES, KEINE VIER ENTWUERFE. Es "
+    "ist viermal DASSELBE Haus, dieselbe Einrichtung, "
+    "aus der gespeicherten Dollhouse-Kamera: Warm "
+    "Modern, Dark Modern, Soft Scandinavian, Classic. "
+    "VARIIEREN DARF: Material und Farbe der Oberflaechen, "
+    "Licht und Stimmung, Textilien, Teppiche, Bilder, "
+    "Pflanzen und Dekoration. NICHT VARIIEREN DARF: "
+    "welche Moebel dastehen, wie viele es sind, wo sie "
+    "stehen und wohin sie zeigen -- das steht in der "
+    ".blend und ist in allen vier Bildern gleich. Ein "
+    "Moebel, das in einem Bild da ist und im naechsten "
+    "fehlt, ist eine abgelehnte Lieferung; ebenso ein "
+    "Stuhl, den es in der .blend nicht gibt. Gleiche "
+    "Kamera, gleicher Ausschnitt, gleiche Geometrie. "
+    "Geometrie nicht neu schneiden: Schnittebene, "
+    "Treppenloch und Gelaender gehoeren zum Modell. "
+    # Die Anzahl steht NICHT hier: sie folgt aus required_outputs
+    # (anzahl_satz). Hier stand "zwei Aussenansichten ... 4 je Geschoss + 2"
+    # und widersprach der Bildliste (onehalfstorey_044, 2026-10-20).
+    "ATMOSPHAERE: die Leuchten im Raum sind AN und werfen "
+    "sichtbare warme Lichtkegel, jedes Moebel hat einen "
+    "Kontaktschatten, Boden und Wand liegen nicht Ton in "
+    "Ton, eine Akzentfarbe wird zwei- bis dreimal "
+    "wiederholt, und es gibt Teppich, Bilder, Pflanzen und "
+    "etwas auf dem Esstisch. Ein blosser Farbstich ueber "
+    "dem Rohrender ist kein Stil -- die Atmosphaere muss "
+    "wirklich da sein. Sie entsteht aber aus Material und "
+    "Licht, NICHT aus neuer Moeblierung."
+)
+
+
+# Was aus einem Stauraum-Platzhalter wird, sagt der RAUM.
+#
+# Rainer, 2026-09-01: "should we define Stuff? it would usually be shelves
+# with whatever would fit to the room: kids room toys, living room deco or
+# books, HWR storage area shelves with things in them, bathroom towels and
+# deco."
+#
+# Vorher stand im Auftrag nur "Stauraum-Platzhalter (ersetzen)" -- was daraus
+# werden soll, musste Codex raten, und er riet je Bild anders. An
+# german_catalog_review_bungalow_3_3_4_b_100_2 war stuff-9 in einem Bild ein
+# Sideboard mit Tueren und Griffen und im naechsten ein glatter Klotz.
+#
+# Die Schluessel sind Wortstuecke, keine ganzen Raumnamen: im Bestand heissen
+# die Raeume "Wohnen / Essen / Kochen", "Eltern / Schlafen", "HWR / HTR".
+# Gezaehlt ueber alle 61 Plaene: Kind 74, Diele 63, Bad 62, HWR 61,
+# Eltern/Schlafen 60, Wohnen 40, WC 28, Flur 22, Kochen 21, Gast 20,
+# Buero 18, Ankleide 16, DU-WC 16, Abstellraum 6.
+#
+# Die Reihenfolge entscheidet: "DU-WC" muss vor "WC" stehen, und ein
+# Kinderzimmer bleibt ein Kinderzimmer, auch wenn "Wohnen" im Namen stuende.
+STUFF_NACH_RAUM = (
+    ("kind",       "offenes Regal mit Spielzeug, Buechern und Koerben"),
+    ("bad",        "Regal mit gestapelten Handtuechern, Koerben und Deko"),
+    ("du-wc",      "Regal mit gestapelten Handtuechern, Koerben und Deko"),
+    ("wc",         "schmales Regal mit Handtuechern und Deko"),
+    ("hwr",        "Lagerregal mit Kisten, Waschmittel und Vorraeten"),
+    ("htr",        "Lagerregal mit Kisten, Waschmittel und Vorraeten"),
+    ("abstell",    "Lagerregal mit Kisten und Vorraeten"),
+    ("speise",     "Regal mit Vorraeten, Glaesern und Konserven"),
+    ("ankleide",   "offenes Regal mit gefalteter Waesche, Schachteln und Schuhen"),
+    ("diele",      "Regal mit Koerben, Schluesselschale und Schuhen"),
+    ("flur",       "Regal mit Koerben, Buechern und Deko"),
+    ("buero",      "Regal mit Ordnern, Buechern und Deko"),
+    # "wohnen" VOR "kochen" und "essen": der Bestand kennt
+    # "Wohnen / Essen / Kochen" als EINEN offenen Raum, und ein
+    # Stauraum-Platzhalter darin ist Wohnzimmermoebel. Die Kueche hat ihre
+    # eigene `kuechenzeile`, dafuer ist `stuff` nicht da.
+    ("wohnen",     "Regal mit Buechern, Vasen, Bildern und Deko"),
+    ("essen",      "Sideboard mit Geschirr, Buechern und Deko"),
+    ("kochen",     "Regal mit Geschirr, Glaesern und Vorratsdosen"),
+    ("gast",       "Regal mit Buechern und Deko"),
+    # sauna-fitness-hobby-v1
+    ("fitness",    "Fitnessgeraete: Laufband oder Ergometer, Hantelbank, Spiegelwand, Matte"),
+    ("sport",      "Fitnessgeraete: Laufband oder Ergometer, Hantelbank, Spiegelwand, Matte"),
+    ("hobby",      "Werkbank oder Basteltisch mit Regal voller Material"),
+    ("werkstatt",  "Werkbank mit Werkzeugwand und Regal"),
+    ("sauna",      "Liegen, Handtuchregal und Pflanzen"),
+    ("wellness",   "Liegen, Handtuchregal und Pflanzen"),
+    ("eltern",     "Kommode oder Regal mit Buechern, Deko und gefalteter Waesche"),
+    ("schlafen",   "Kommode oder Regal mit Buechern, Deko und gefalteter Waesche"),
+)
+
+STUFF_ALLGEMEIN = "Regal mit Dingen, die in diesen Raum gehoeren"
+
+
+def stuff_inhalt(raumname):
+    """Was in diesem Raum aus dem Platzhalter werden soll."""
+    n = (raumname or "").lower()
+    for schluessel, inhalt in STUFF_NACH_RAUM:
+        if schluessel in n:
+            return inhalt
+    return STUFF_ALLGEMEIN
+
+
+RUNDEN = "RUNDEN.jsonl"
+
+
+def runden_lesen(renders_ordner):
+    """Alle Pruefrunden dieses Hauses, aelteste zuerst."""
+    pfad = os.path.join(renders_ordner, RUNDEN)
+    zeilen = []
+    try:
+        with open(pfad, encoding="utf-8") as datei:
+            for zeile in datei:
+                zeile = zeile.strip()
+                if not zeile:
+                    continue
+                try:
+                    zeilen.append(json.loads(zeile))
+                except ValueError:
+                    continue
+    except OSError:
+        return []
+    return zeilen
+
+
+def letzte_runde(runden):
+    """Die juengste Runde, oder None."""
+    return runden[-1] if runden else None
+
+
+def beanstandungs_abschnitt(runde):
+    """Was beim letzten Mal beanstandet wurde -- fuer den Auftragstext.
+
+    Rainer, 2026-08-30: "wie bringen wir das jetzt codex bei?"
+
+    Neue REGELN erreichen Codex von selbst: das Regelwerk liegt jedem Auftrag
+    als `CODEX-REGELN.md` bei. Was an DIESEM Haus beanstandet wurde, erreichte
+    ihn nicht -- `lieferung-pruefen.py --auge` schrieb es in `RUNDEN.jsonl`,
+    und diese Datei wurde nie gelesen. Notiert und vergessen.
+
+    Ein Auftrag ohne die Beanstandung der letzten Runde ist derselbe Auftrag
+    wie vorher, und bekommt dieselbe Antwort.
+
+    Der MENSCHLICHE Blick steht zuerst: was der Pruefer nicht gefunden hat,
+    ist das Wichtigere -- die Badewanne, der Schreibtisch und die
+    Waschmaschinen sind alle an ihm vorbeigegangen.
+    """
+    if not runde:
+        return ""
+    auge = (runde.get("auge") or "").strip()
+    was = [str(x) for x in (runde.get("was") or [])]
+    if not auge and not was:
+        return ""
+    teile = ["## Was beim letzten Mal beanstandet wurde", ""]
+    if auge:
+        teile += ["**Am Bild gesehen** (das wiegt am schwersten):", "",
+                  "- " + auge, ""]
+    if was:
+        teile += ["**Vom Pruefer gefunden:**", ""]
+        teile += ["- " + x for x in was[:40]]
+        if len(was) > 40:
+            teile.append("- ... (%d weitere)" % (len(was) - 40))
+        teile.append("")
+    teile += ["Diese Punkte gelten als bekannt. Kommen sie wieder, ist die "
+              "Lieferung ohne weitere Pruefung abgelehnt.", ""]
+    return "\n".join(teile)
+
+
+def rolle_fuer(stamm):
+    """Die Rolle eines Objektstamms auf der Karte, oder None fuer Bauteile.
+
+    Rainer, 2026-08-28: "ja wir brauchen Ergebnisse."
+
+    Bis heute trugen nur `garderobe`, `stuff`, Sanitaer, Kueche und Tueren
+    einen Marker. In `german_catalog_review_bungalow_3_2_5_b_100_1` stand im
+    Baseline-Render ein Schreibtisch mit Buerostuhl; drei der vier Stile
+    tauschten ihn aus -- gegen ein Lowboard mit Fernseher, gegen ein
+    Einzelbett, gegen ein Sideboard. Der `marker_check` meldete 12 von 12 in
+    Ordnung, weil der Schreibtisch keinen Marker hatte.
+
+    Der Kommentar an `_inventar` hielt schon am 2026-08-27 fest, dass genau
+    dieser Schreibtisch aus drei Bildern verschwand, und entschied sich fuer
+    eine kurze Karte plus eine Inventarliste. Die Liste hat es nicht
+    verhindert. Wer nicht markiert ist, wird nicht geprueft.
+    """
+    if not stamm or stamm.startswith(KEIN_MOEBEL):
+        return None
+    return NENNENSWERT.get(stamm, MOEBEL_ROLLE)
+
+
+def farbe_fuer(stamm):
+    """Rot nur fuer Platzhalter. Alles andere wird umgestaltet, nicht ersetzt."""
+    rolle = rolle_fuer(stamm)
+    if rolle is None:
+        return None
+    return "ersetzen" if "(ersetzen)" in rolle else "bleibt"
+
+
+def _stamm(name):
+    """Welche Rolle traegt dieses Objekt?
+
+    Fast immer das erste Namenssegment. Ausnahme sind die Tuerblaetter:
+    sie heissen nach ihrer Wand (`wall-12-door`) und wuerden sonst als
+    Wand durchgehen.
+    """
+    # Lower-floor visibility copies retain their original object names.
+    name = name.removeprefix("EG-Sicht-")
+    return "tuer" if name.endswith("-door") else name.split("-")[0]
+
+
+def objektnamen(blend_pfad):
+    """Die ECHTEN Objektnamen aus der .blend -- nicht aus dem Bauplan geraten.
+
+    Der Bauplan zaehlt anders als der Renderer: fuer bungalow_039 sagt er
+    `garderobe-13`, in der Datei heisst das Objekt `garderobe-15`. Ein
+    Auftrag, der einen Namen nennt, den es nicht gibt, schickt Codex auf die
+    Suche nach einem Objekt, das nie gefunden wird (Rainer, 2026-08-27:
+    "you wrote the code, why is it not correct?"). Dauert rund zwei Sekunden.
+    """
+    return objekte_und_lagen(blend_pfad)[0]
+
+
+def objekte_und_lagen(blend_pfad):
+    """Namen UND Bildlage der genannten Objekte -- in EINEM Blender-Lauf.
+
+    Der Name allein genuegt nicht. In der Lieferung vom 2026-08-27 stand die
+    Garderobe in vier Bildern an drei verschiedenen Stellen: zweimal ersetzte
+    sie das offene Tuerblatt der Haustuer, zweimal wurde stattdessen eine
+    Garderobenleiste an einer Dielenwand erfunden. Im Rohrender sieht ein
+    aufgeschlagenes Tuerblatt aus wie ein Schrankbrett -- ohne Lageangabe ist
+    das nicht zu unterscheiden.
+
+    Zurueck kommt (namen, lagen). `lagen` bildet den Objektnamen auf die
+    normierte Kameraansicht ab: (0,0) unten links, (1,1) oben rechts, so wie
+    Blender es meldet. Die Umrechnung auf Pixel macht `_lage_zu_pixel`.
+    """
+    if not os.path.exists(BLENDER) or not os.path.exists(blend_pfad):
+        return {}, {}, {}, 0, {}
+    import inspect
+    ausdruck = chr(10).join([
+        "import bpy",
+        # EINE Implementierung fuer die Pfeilrichtung. Sie hier
+        # hineinzureichen ist unschoen; sie ein zweites Mal in
+        # Blender-Syntax zu schreiben waere schlimmer -- dann haetten Karte
+        # und Test zwei Wahrheiten.
+        inspect.getsource(weg_von_der_wand),
+        "KEIN_PFEIL = %r" % (KEIN_PFEIL,),
+        inspect.getsource(pfeil_richtung),
+        "from mathutils import Vector",
+        "from bpy_extras.object_utils import world_to_camera_view",
+        "szene = bpy.context.scene",
+        "kamera = szene.camera",
+        # Die Wandkisten dieses Geschosses, einmal vorab: minx, miny, maxx,
+        # maxy in Weltmetern. Tuerblaetter (`wall-<n>-door`) zaehlen nicht --
+        # ein aufgeschlagenes Blatt steht mitten im Raum und waere die
+        # "naechste Wand" fuer jedes Moebel daneben.
+        "WAENDE = []",
+        "for w in bpy.data.objects:",
+        "    if w.type != 'MESH' or not w.name.startswith('wall'):",
+        "        continue",
+        "    if w.name.endswith('-door'):",
+        "        continue",
+        "    ke = [w.matrix_world @ Vector(e) for e in w.bound_box]",
+        "    WAENDE.append((min(e.x for e in ke), min(e.y for e in ke),",
+        "                   max(e.x for e in ke), max(e.y for e in ke)))",
+        "print('OBJEKTE-ANFANG')",
+        "for o in sorted(bpy.data.objects, key=lambda x: x.name):",
+        "    if o.type != 'MESH':",
+        "        continue",
+        "    print('OBJ', o.name)",
+        # stuff-raum-an-codex-v1: der Raum, den der Dollhouse-Bau dem
+        # Stuff-Kasten mitgegeben hat (render-furnished-dollhouse.py).
+        "    if o.get('raum'):",
+        "        print('RAUM', o.name, o['raum'])",
+        "    if kamera is None:",
+        "        continue",
+        # Der Schwerpunkt der Bounding-Box, nicht der Objekt-Ursprung: ein
+        # importiertes Moebelmodell hat seinen Ursprung oft in einer Ecke
+        # oder gar ausserhalb des Netzes.
+        "    ecken = [o.matrix_world @ Vector(e) for e in o.bound_box]",
+        "    mitte = sum(ecken, Vector((0.0, 0.0, 0.0))) / len(ecken)",
+        "    p = world_to_camera_view(szene, kamera, mitte)",
+        "    print('LAGE', o.name, round(p.x, 5), round(p.y, 5))",
+        # Ein Punkt sagt nicht, wie gross ein Moebel ist und wohin es zeigt.
+        # Rainer, 2026-08-31: "positionierung streng nach blender file".
+        # Also kommt mit, was in der Datei steht: Masse in Millimetern,
+        # Drehung um die Hochachse und die acht Ecken des Quaders in der
+        # Kameraansicht.
+        "    from math import degrees",
+        "    d = o.dimensions",
+        "    dreh = round(degrees(o.rotation_euler.z)) % 360",
+        "    print('MASS', o.name, round(d.x * 1000), round(d.y * 1000),",
+        "          round(d.z * 1000), dreh)",
+        "    ecken_uv = [world_to_camera_view(szene, kamera, e) for e in ecken]",
+        "    print('ECKEN', o.name,",
+        "          ' '.join('%.5f,%.5f' % (q.x, q.y) for q in ecken_uv))",
+        # Ein Quader ist symmetrisch: 0 Grad und 180 Grad sehen gleich aus.
+        # Rainer, 2026-08-31: "dann musst du die orientierung auch mit
+        # beruecksichtigen", und dann: "the arrow has to point away from the
+        # wall, so for the bed it would be kopfteil to fussteil and schrank
+        # would be the back of the schrank to the front".
+        #
+        # Die lokale +Y-Achse taugte dafuer nicht: sie ist eine
+        # Modellierkonvention, bei kleiderschrank-19 (Drehung 0) und
+        # doppelbett-18 (Drehung 270) heisst sie nicht dasselbe. "Weg von der
+        # naechsten Wand" ist fuer jedes Moebel dieselbe Aussage.
+        #
+        # Gerechnet wird mit `weg_von_der_wand` -- EINE Implementierung, hier
+        # in den Blender-Lauf hineingereicht, geprueft in den Tests dieses
+        # Moduls.
+        "    kiste = (min(e.x for e in ecken), min(e.y for e in ecken),",
+        "             max(e.x for e in ecken), max(e.y for e in ecken))",
+        # Ein Bett ist laenger als breit, und die Kopfrichtung liegt auf der
+        # LANGEN Achse. Fuer alles andere bleibt es bei "weg von der Wand".
+        "    achse = None",
+        "    if o.name.split('-')[0] in ('doppelbett', 'einzelbett'):",
+        "        q = o.matrix_world.to_quaternion()",
+        "        lang = Vector((0.0, 1.0, 0.0)) if o.dimensions.y >= o.dimensions.x else Vector((1.0, 0.0, 0.0))",
+        "        w = q @ lang",
+        "        achse = (w.x, w.y)",
+        # Ein L-Sofa hat ZWEI offene Seiten, keine (Rainer, 2026-09-04: "on
+        # an Eckcouch we then need 2 arrows"). "Weg von der Wand" beantwortet
+        # das nicht -- die Kerbe (leere Ecke der Bounding-Box, gemessen an
+        # der Punktdichte je Quadrant) zeigt, wohin die beiden Sitzflaechen
+        # zeigen: je eine Richtung auf der X- und der Y-Achse, zur Kerbe hin.
+        # Nachgemessen am 2026-09-04 an cgaxis_grey_4_seat_corner_sofa und
+        # cgaxis_brown_leather_corner_sofa (siehe MODEL_FACING_DEG-Kommentar
+        # in render-furnished-dollhouse.py): Kerbe unten-links -> Pfeile
+        # nach -X und +Y. Diese Regel ist objektbezogen, nicht wandbezogen,
+        # also unabhaengig von der Position im Raum richtig.",
+        "    if o.name.split('-')[0] == 'ecksofa':",
+        "        zaehlung = {}",
+        "        for v in o.data.vertices:",
+        "            w = o.matrix_world @ v.co",
+        "            schluessel = (-1 if w.x < mitte.x else 1, -1 if w.y < mitte.y else 1)",
+        "            zaehlung[schluessel] = zaehlung.get(schluessel, 0) + 1",
+        "        for schluessel in ((-1, -1), (-1, 1), (1, -1), (1, 1)):",
+        "            zaehlung.setdefault(schluessel, 0)",
+        "        kerbe = min(zaehlung, key=zaehlung.get)",
+        "        richtungen = [(float(kerbe[0]), 0.0), (0.0, float(kerbe[1]))]",
+        "    else:",
+        "        wand = weg_von_der_wand(kiste, WAENDE, 1.4, achse)",
+        "        stempel = list(o['fp_front']) if o.get('fp_front') is not None else None",
+        "        richtung, quelle, widerspruch = pfeil_richtung(o.name.split('-')[0], stempel, wand)",
+        "        richtungen = [richtung]",
+        "        if widerspruch:",
+        "            print('WIDERSPRUCH', o.name)",
+        "    for n, richtung in enumerate(richtungen):",
+        "        if not richtung:",
+        "            continue",
+        # Kurz halten. Bei einem 2-m-Bett reichte der Pfeil ueber die Wand
+        # ins Nachbarzimmer und sah aus, als zeige er auf etwas anderes
+        # (Rainer, 2026-09-01, zur Karte). Ein Drittel der Objektlaenge,
+        # hoechstens 60 cm -- er soll die Richtung zeigen, nicht den Weg.
+        "        weit = min(max(max(o.dimensions.x, o.dimensions.y) * 0.33, 0.25), 0.60)",
+        "        spitze = mitte + Vector((richtung[0], richtung[1], 0.0)) * weit",
+        "        q = world_to_camera_view(szene, kamera, spitze)",
+        "        marke = 'VORNE' if n == 0 else 'VORNE%d' % (n + 1)",
+        "        print(marke, o.name, round(q.x, 5), round(q.y, 5))",
+        "print('OBJEKTE-ENDE')",
+    ])
+    try:
+        lauf = subprocess.run([BLENDER, "--background", blend_pfad,
+                               "--python-expr", ausdruck],
+                              capture_output=True, text=True, timeout=180)
+    except Exception:
+        return {}, {}, {}, 0, {}
+    gefunden = {}
+    lagen = {}
+    masse = {}
+    alle = []
+    for zeile in lauf.stdout.splitlines():
+        if zeile.startswith("OBJ "):
+            name = zeile[4:].strip()
+            alle.append(name)
+            stamm = _stamm(name)
+            if rolle_fuer(stamm):
+                gefunden.setdefault(stamm, []).append(name)
+        elif zeile.startswith("LAGE "):
+            teile = zeile.split()
+            if len(teile) != 4:
+                continue
+            name = teile[1]
+            if not rolle_fuer(_stamm(name)):
+                continue
+            try:
+                lagen[name] = [float(teile[2]), float(teile[3])]
+            except ValueError:
+                continue
+        elif zeile.startswith("MASS "):
+            teile = zeile.split()
+            if len(teile) != 6 or not rolle_fuer(_stamm(teile[1])):
+                continue
+            try:
+                masse.setdefault(teile[1], {}).update({
+                    "masse_mm": [int(teile[2]), int(teile[3]), int(teile[4])],
+                    "drehung_grad": int(teile[5])})
+            except ValueError:
+                continue
+        elif zeile.startswith("ECKEN "):
+            teile = zeile.split()
+            if len(teile) < 3 or not rolle_fuer(_stamm(teile[1])):
+                continue
+            punkte = []
+            for paar in teile[2:]:
+                try:
+                    u, v = paar.split(",")
+                    punkte.append([float(u), float(v)])
+                except ValueError:
+                    punkte = []
+                    break
+            if punkte:
+                masse.setdefault(teile[1], {})["ecken_uv"] = punkte
+        elif zeile.startswith("VORNE "):
+            teile = zeile.split()
+            if len(teile) != 4 or not rolle_fuer(_stamm(teile[1])):
+                continue
+            try:
+                masse.setdefault(teile[1], {})["vorne_uv"] = [
+                    float(teile[2]), float(teile[3])]
+            except ValueError:
+                continue
+        elif zeile.startswith("RAUM "):
+            teile = zeile.split(None, 2)
+            if len(teile) != 3 or not rolle_fuer(_stamm(teile[1])):
+                continue
+            masse.setdefault(teile[1], {})["raum"] = teile[2].strip()
+        elif zeile.startswith("VORNE2 "):
+            # Zweiter Pfeil, bisher nur fuer ecksofa (siehe VORNE2 im
+            # Blender-Ausdruck oben) -- ein L-Sofa hat zwei Sitzrichtungen.
+            teile = zeile.split()
+            if len(teile) != 4 or not rolle_fuer(_stamm(teile[1])):
+                continue
+            try:
+                masse.setdefault(teile[1], {})["vorne2_uv"] = [
+                    float(teile[2]), float(teile[3])]
+            except ValueError:
+                continue
+    # `alle` sind ALLE MESH-Objekte, auch Waende, Boeden, Fenster und
+    # Dach. Die Zahl ist der Nachweis, dass die Datei offen war: sie
+    # steht in keiner Liste, die der Auftrag ausdruckt.
+    return gefunden, lagen, _inventar(alle), len(alle), masse
+
+
+
+EINBAU_SAEULEN = ("hochschrank_herd", "kuehlschrank")
+EINBAU_HOEHE_MM = 2400   # wie render-furnished-dollhouse.py, schrank_h
+
+
+def front_im_bild(mitte_px, vorne_px):
+    """Die Pfeilrichtung der Karte als Wort: "rechts oben", "links" ...
+
+    Rainer, 2026-10-13: "das treibt mich in den Wahnsinn" -- die Front der
+    Hochschraenke zeigte von der Kamera weg, im Rohrender war nur Korpus zu
+    sehen, und Codex setzte den Ofen auf die sichtbare Seite. Der Pfeil auf
+    der Karte war da, aber klein; jetzt steht die Richtung auch im Text.
+    """
+    if not mitte_px or not vorne_px:
+        return None
+    dx = vorne_px[0] - mitte_px[0]
+    dy = vorne_px[1] - mitte_px[1]
+    if abs(dx) < 1e-6 and abs(dy) < 1e-6:
+        return None
+    winkel = math.degrees(math.atan2(-dy, dx)) % 360   # 0 = rechts, 90 = oben
+    namen = ["rechts", "rechts oben", "oben", "links oben",
+             "links", "links unten", "unten", "rechts unten"]
+    return namen[int(((winkel + 22.5) % 360) // 45)]
+
+
+KEIN_PFEIL = ("essgruppe_6", "esstisch", "couchtisch", "hocker", "teppich", "pflanze")
+
+
+def pfeil_richtung(stamm, fp_front, wand):
+    """Welche Richtung der Pfeil zeigt: (richtung, quelle, widerspruch).
+
+    CODEX-EXPORT-001, Punkt 2. Bis dahin immer "weg von der naechsten Wand"
+    -- bei twostorey_053 viermal falsch, u. a. der Kuehlschrank, der die
+    Seitenwand beruehrte und deshalb seitlich zeigte, waehrend die Saeule
+    daneben richtig stand. Jetzt:
+      - gestempelte Front aus dem Bau (fp_front, die Drehung des Symbols)
+      - ohne Stempel (gezeichnete Laeufe/Rechtecke, alte Bauten): Wandregel
+      - richtungslose Stuecke (Essgruppe, Couchtisch, Hocker, Teppich,
+        Pflanze): kein Pfeil
+    `widerspruch`: Stempel und Wandregel liegen mehr als 45 Grad auseinander
+    -- die Vorpruefung meldet das, damit ein falscher Stempel auffaellt.
+    """
+    if stamm in KEIN_PFEIL:
+        return None, "kein", False
+    if fp_front:
+        r = (float(fp_front[0]), float(fp_front[1]))
+        widerspruch = bool(wand) and (r[0] * wand[0] + r[1] * wand[1]) < 0.707
+        return r, "drehung", widerspruch
+    return wand, "wand", False
+
+
+def weg_von_der_wand(kiste, waende, hoechstabstand=1400, laengsachse=None):
+    """Die Richtung, die von der naechsten Wand FORT zeigt -- oder None.
+
+    Rainer, 2026-08-31: "the arrow has to point away from the wall, so for
+    the bed it would be kopfteil to fussteil and schrank would be the back of
+    the schrank to the front".
+
+    Vorher zeigte der Pfeil die lokale +Y-Achse des Objekts. Die ist eine
+    Modellierkonvention: bei `kleiderschrank-19` (Drehung 0) und
+    `doppelbett-18` (Drehung 270) bedeutet +Y nicht dasselbe, und wer die
+    Karte liest, kann es nicht wissen. "Weg von der Wand" ist fuer jedes
+    Moebel dieselbe Aussage und im Bild nachpruefbar.
+
+    `kiste` ist die Grundflaeche des Moebels (minx, miny, maxx, maxy),
+    `waende` sind ebensolche Kisten. Gemessen wird von KANTE zu KANTE, nicht
+    vom Mittelpunkt: an 3_3_4 nachgemessen liegt der Mittelpunkt von
+    `doppelbett-18` 0,898 m von seiner Wand entfernt und nur 1,038 m von der
+    querstehenden -- das sah aus wie ein Moebel in der Zimmerecke, obwohl das
+    Bett mit dem Kopfende an der Wand steht. Ein Punkt ist eine Kiste ohne
+    Ausdehnung, die Rechnung gilt fuer beides.
+
+    Steht nichts in Reichweite -- ein Esstisch mitten im Raum --, oder sind
+    zwei Waende aus verschiedenen Richtungen aehnlich nah (Codex, 2026-09-01:
+    "'Naechste Wand' ist bei Ecken uneindeutig"), kommt None zurueck und es
+    wird kein Pfeil gezeichnet. Ein Pfeil, der nichts bedeutet, wird trotzdem
+    befolgt.
+
+    Die Toleranz ist rein relativ, ohne festen Zuschlag: der Blender-Lauf
+    reicht Meter herein, die Tests rechnen in Millimetern, und ein "+ 50"
+    hiess dann einmal 50 mm und einmal 50 m. Am 2026-09-01 loeschte genau das
+    alle 40 Pfeile eines Hauses.
+    """
+    if not kiste or len(kiste) < 4:
+        return None
+    mix, miy, max_, may = (min(kiste[0], kiste[2]), min(kiste[1], kiste[3]),
+                           max(kiste[0], kiste[2]), max(kiste[1], kiste[3]))
+    kmx, kmy = (mix + max_) / 2.0, (miy + may) / 2.0
+    treffer = []
+    for wand in waende or []:
+        wix, wiy = min(wand[0], wand[2]), min(wand[1], wand[3])
+        wax, way = max(wand[0], wand[2]), max(wand[1], wand[3])
+        # Ein fast quadratischer Kasten ist keine Wand, sondern eine
+        # Stuetze an einer Wandkreuzung. An 3_3_4 stehen rund um
+        # `doppelbett-18` mehrere von 0,10 x 0,11 m: dort entscheidet der
+        # Millimeter, welche Achse die Normale ist, die Richtung ist ein
+        # Muenzwurf, und die Eckenregel loeschte deshalb den Pfeil des Betts.
+        # An so einen Klotz stellt niemand ein Bett.
+        breit, tief = wax - wix, way - wiy
+        if max(breit, tief) < 2.0 * min(breit, tief):
+            continue
+        # Eine Wand ist ein langer duenner Kasten. Ihre SCHMALE Achse ist die
+        # Normale -- und "weg von der Wand" heisst: entlang dieser Normale,
+        # auf die Seite, auf der das Moebel steht.
+        #
+        # Der reine Kantenabstand taugte dafuer nicht: ein Bett, das die Wand
+        # BERUEHRT, hat Abstand null auf beiden Achsen, und daraus liess sich
+        # keine Richtung ableiten -- ausgerechnet der haeufigste Fall.
+        if breit < tief:
+            richtung = (1.0 if kmx > (wix + wax) / 2.0 else -1.0, 0.0)
+        else:
+            richtung = (0.0, 1.0 if kmy > (wiy + way) / 2.0 else -1.0)
+        # Der Abstand gilt auf BEIDEN Achsen. Nur entlang der Normalen
+        # gerechnet meldete eine Wand, die auf ihrer Laengsachse fuenf Meter
+        # neben dem Moebel liegt, den Abstand null -- und wurde damit zur
+        # "naechsten Wand".
+        luecke_x = max(mix - wax, wix - max_, 0.0)
+        luecke_y = max(miy - way, wiy - may, 0.0)
+        abstand = (luecke_x ** 2 + luecke_y ** 2) ** 0.5
+        if kmx == (wix + wax) / 2.0 and kmy == (wiy + way) / 2.0:
+            # Deckungsgleiche Mittelpunkte geben keine Seite her.
+            continue
+        treffer.append((abstand, richtung[0], richtung[1]))
+    # BEI EINEM BETT LIEGT DIE RICHTUNG AUF DER LIEGEACHSE.
+    #
+    # Rainer, 2026-08-31: "for the bed it would be kopfteil to fussteil" --
+    # und am 2026-09-01: "codex has the wrong rotation of the bed again."
+    # Gebaut war "weg von der naechsten Wand", und das ist bei einem Bett mit
+    # der LAENGSSEITE an der Wand die falsche Achse. An
+    # german_catalog_review_bungalow_3_4_2_b_120 hatten zwei von drei Betten
+    # gar keinen Pfeil und das dritte einen quer zur Liegerichtung.
+    #
+    # Mit `laengsachse` wird nur noch entlang dieser Achse gezeigt: von dem
+    # Ende weg, das naeher an einer Wand steht. Steht keine Wand in
+    # Reichweite, gilt die Achse selbst -- ein Bett braucht immer eine
+    # Kopfrichtung, sonst steht sie wieder nirgends.
+    if laengsachse:
+        ax, ay = laengsachse
+        laenge = (ax * ax + ay * ay) ** 0.5 or 1.0
+        ax, ay = ax / laenge, ay / laenge
+        beste, naechste = None, float("inf")
+        for abstand, rx, ry in treffer:
+            # Nur Waende, die auf der Achse liegen, entscheiden ueber das
+            # Vorzeichen; eine Wand quer dazu sagt nichts ueber Kopf und Fuss.
+            entlang = rx * ax + ry * ay
+            if abs(entlang) < 0.7:
+                continue
+            if abstand < naechste:
+                naechste, beste = abstand, (1.0 if entlang > 0 else -1.0)
+        if beste is None or naechste > hoechstabstand:
+            return (round(ax, 6), round(ay, 6))
+        return (round(ax * beste, 6), round(ay * beste, 6))
+    if not treffer:
+        return None
+    treffer.sort(key=lambda x: x[0])
+    bester = treffer[0]
+    if bester[0] > hoechstabstand:
+        return None
+    for abstand, rx, ry in treffer[1:]:
+        if abstand > bester[0] * 1.35:
+            break
+        # Waende, die in DIESELBE Richtung zeigen, streiten nicht: die
+        # Kanten einer langen Wand liefern denselben Vektor, und ein Moebel
+        # davor haette sonst nie einen Pfeil.
+        if bester[1] * rx + bester[2] * ry < 0.9:
+            return None
+    return (round(bester[1], 6), round(bester[2], 6))
+
+
+def _lage_zu_pixel(u, v, breite, hoehe):
+    """Normierte Kameraansicht -> Pixel.
+
+    Blender zaehlt die senkrechte Achse von UNTEN, ein Bild von OBEN. Ohne
+    die Spiegelung sitzt jeder Marker im falschen Raum.
+
+    Werte ausserhalb von 0..1 werden NICHT an den Rand geklemmt: ein Objekt
+    ausserhalb des Bildausschnitts ist eine Aussage ueber die Szene, und wer
+    es auf den Rand zieht, behauptet eine Lage, die es nicht gibt. Der
+    Aufrufer entscheidet, was er damit tut.
+    """
+    return (int(round(u * breite)), int(round((1.0 - v) * hoehe)))
+
+
+# Objektstaemme, die zur Gebaeudehuelle gehoeren und kein Moebel sind. Sie
+# stehen zu Hunderten in der Datei und wuerden eine Inventarliste unbrauchbar
+# machen.
+KEIN_MOEBEL = ("wall", "floor", "cut", "ground", "proto", "sockel", "roof",
+               "ceiling", "stair", "loch", "rail", "gelaender", "window",
+               "fenster", "terrain", "aussen",
+               # Deckenstreifen unter den Waenden (`slab-0` ... `slab-10`, 120/240 mm
+               # dick, 220 mm hoch). twostorey_051, 2026-09-20: elf davon standen
+               # als "Moebel (umgestalten, muss sichtbar bleiben)" auf der
+               # OG-Objektkarte -- Codex haette Wandstreifen neu gestalten sollen.
+               "slab")
+
+
+def _inventar(namen):
+    """Wie viele Moebel welcher Art in der .blend stehen.
+
+    Die Objektkarte schuetzt nur, was einen Marker traegt. Am 2026-08-27
+    verschwand der Schreibtisch aus drei Bildern -- er hat keinen. Die Karte
+    mit dreissig Markern zu ueberladen macht sie unlesbar (siehe die
+    Zusammenfassung in `_bauteil`), also bekommt der Auftrag zusaetzlich diese
+    Liste, und Abschnitt 11 des Regelwerks verlangt, dass jedes Stueck daraus
+    im Bild vorkommt.
+    """
+    stuecke = {}
+    for name in namen:
+        if name.endswith("-door"):
+            continue
+        stamm = _stamm(name)
+        if rolle_fuer(stamm) is None:
+            continue
+        # Gezaehlt werden Moebelstuecke, nicht Netze. Eine Dusche steht als
+        # tray, zwei Glasscheiben und vier Rahmen in der Datei; "x 7" waere
+        # eine falsche Aussage ueber die Wohnung.
+        stuecke.setdefault(stamm, set()).add(_bauteil(name))
+    return {stamm: len(ids) for stamm, ids in stuecke.items()}
+
+
+def _bauteil(name):
+    """Der Name des GANZEN Moebelstuecks, ohne seine Einzelteile.
+
+    Eine Dusche steht in der .blend als `dusche_gross-16-tray`,
+    `-glass-0`, `-rim-1` ... -- sieben Objekte, ein Duschbad. Alle sieben zu
+    markieren macht die Karte unlesbar und laesst sie wichtiger aussehen als
+    die Garderobe, um die es geht.
+
+    Zusammengefasst wird auf `<stamm>-<nummer>`. Die Teilbezeichnung steht
+    nicht immer hinten: die Dusche heisst `dusche_gross-16-tray`, das
+    Kochfeld aber `kochfeld-ring-13--1--1`. Nach der Objektnummer zu suchen
+    trifft beide; nach den ersten zwei Segmenten zu schneiden legte
+    `kochfeld-13` und `kochfeld-ring` als zwei Marker uebereinander.
+    """
+    # Ein Tuerblatt wuerde ueber die Wandnummer zu `wall-12` -- dann stuende
+    # die Wand auf der Karte statt der Tuer.
+    if name.endswith("-door"):
+        return name
+    if name.startswith("EG-Sicht-"):
+        return "EG-Sicht-" + _bauteil(name.removeprefix("EG-Sicht-"))
+    teile = name.split("-")
+    for stueck in teile[1:]:
+        if stueck.isdigit():
+            return "%s-%s" % (teile[0], stueck)
+    return name
+
+
+def raeume_aus_massen(masse):
+    """Bauteil -> Raumname, aus dem `raum` der .blend (stuff-raum-an-codex-v1).
+
+    Alte Dateien ohne `raum` geben nichts -- dann bleibt die allgemeine
+    Stuff-Rolle, geraten wird nicht.
+    """
+    raeume = {}
+    for name, werte in (masse or {}).items():
+        if werte.get("raum"):
+            raeume.setdefault(_bauteil(name), werte["raum"])
+    return raeume
+
+
+def _marker_liste(objekte, lagen, masse=None, raeume=None):
+    """Die nummerierten Marker -- in derselben Reihenfolge wie im Auftrag.
+
+    Karte und Textliste muessen zwingend gleich sortiert sein. Zeigt Marker 3
+    auf das Objekt, das im Text als 5 steht, richtet die Karte mehr Schaden
+    an als das Raten vorher.
+
+    Ein Marker je Moebelstueck, nicht je Netz: die Einzelteile eines Objekts
+    liegen alle innerhalb weniger Zentimeter, ihre Kreise wuerden einander
+    verdecken.
+
+    Objekte ohne Lage bekommen keinen Marker. `stuff` wird als Flaeche gebaut
+    und hat im Bauplan oft gar keine Punktposition; ein Marker in der
+    Bildmitte waere eine Erfindung.
+    """
+    marker = []
+    for stamm in sorted(objekte):
+        gruppen = {}
+        for name in objekte[stamm]:
+            gruppen.setdefault(_bauteil(name), []).append(name)
+        for bauteil in sorted(gruppen):
+            namen = gruppen[bauteil]
+            # Das Hauptnetz fuehrt, wenn es da ist -- sein Schwerpunkt liegt
+            # im Moebelstueck, nicht in einer Glasscheibe am Rand.
+            fuehrend = bauteil if bauteil in lagen else None
+            treffer = [lagen[n] for n in namen if n in lagen]
+            if not treffer:
+                continue
+            if fuehrend:
+                u, v = lagen[fuehrend]
+            else:
+                u = sum(p[0] for p in treffer) / len(treffer)
+                v = sum(p[1] for p in treffer) / len(treffer)
+            rolle = rolle_fuer(stamm) or stamm
+            # Bei einem Stauraum-Platzhalter sagt der Raum, was daraus wird.
+            raum = (raeume or {}).get(bauteil)
+            if stamm == "stuff" and raum:
+                rolle = "%s -- hier im Raum \"%s\": %s" % (
+                    rolle, raum, stuff_inhalt(raum))
+            # Was die .blend ueber Groesse und Ausrichtung sagt. Fuehrend ist
+            # dasselbe Netz wie bei der Lage, damit Punkt und Kasten zum
+            # selben Objekt gehoeren.
+            gemessen = (masse or {}).get(fuehrend or namen[0]) or {}
+            marker.append({
+                "n": len(marker) + 1,
+                "name": bauteil,
+                "rolle": rolle,
+                # Eine Karte, auf der alles gleich aussieht, beantwortet
+                # die Frage nicht, die sie beantworten soll.
+                "farbe": farbe_fuer(stamm) or "bleibt",
+                "teile": len(namen),
+                "uv": [round(u, 5), round(v, 5)],
+                # Ein Punkt allein macht "Fussabdruck bleibt erhalten"
+                # unbefolgbar: aus einem Kreis liest niemand ab, wie breit
+                # ein Bett ist und wohin es zeigt (Rainer, 2026-08-31:
+                # "positionierung streng nach blender file").
+                **({"masse_mm": gemessen["masse_mm"]}
+                   if gemessen.get("masse_mm") else {}),
+                **({"drehung_grad": gemessen["drehung_grad"]}
+                   if gemessen.get("drehung_grad") is not None else {}),
+                **({"ecken_uv": gemessen["ecken_uv"]}
+                   if gemessen.get("ecken_uv") else {}),
+                **({"vorne_uv": gemessen["vorne_uv"]}
+                   if gemessen.get("vorne_uv") else {}),
+                **({"vorne2_uv": gemessen["vorne2_uv"]}
+                   if gemessen.get("vorne2_uv") else {}),
+                # Einbausaeule: Grundflaeche des Korpus (`-schrank`), nicht
+                # nur des Geraets in seiner Nische.
+                **({"korpus_mm": ((masse or {}).get(f"{bauteil}-schrank") or {}).get("masse_mm")}
+                   if ((masse or {}).get(f"{bauteil}-schrank") or {}).get("masse_mm") else {}),
+            })
+    return marker
+
+
+def _umriss_zu_pixeln(ecken_uv, breite, hoehe):
+    """Die Ecken der Bounding-Box in Bildpixel -- dieselbe Spiegelung wie
+    der Mittelpunkt. Ohne sie liegt der Kasten im falschen Raum."""
+    return [list(_lage_zu_pixel(u, v, breite, hoehe)) for u, v in ecken_uv or []]
+
+
+def objektkarte(render_png, marker, ziel_png):
+    """Den Baseline-Render mit nummerierten Markern versehen.
+
+    Fehlt Pillow oder der Render, entsteht keine Karte und der Auftrag bleibt
+    trotzdem gueltig -- ein Generator, der an einer fehlenden
+    Zusatzbibliothek scheitert, blockiert die ganze Lieferkette.
+
+    Zurueck kommt (dateiname, bildgroesse) oder None.
+    """
+    if not marker or not os.path.exists(render_png):
+        return None
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+    except Exception:
+        return None
+    try:
+        bild = Image.open(render_png).convert("RGB")
+    except Exception:
+        return None
+    breite, hoehe = bild.size
+    stift = ImageDraw.Draw(bild)
+    radius = max(14, breite // 70)
+    try:
+        schrift = ImageFont.truetype("arialbd.ttf", int(radius * 1.3))
+    except Exception:
+        schrift = ImageFont.load_default()
+    # ERST alle Kaesten, DANN alle Kreise: sonst legt der Umriss eines
+    # spaeteren Objekts sich ueber die Nummer eines frueheren.
+    #
+    # Der Kasten ist die Bounding-Box aus der .blend, in die Kameraansicht
+    # projiziert -- zwoelf Kanten, also auch die Hoehe. Ein Kreis sagt nur
+    # WO; Rainer, 2026-08-31: "positionierung streng nach blender file".
+    # Am 2026-08-30 stand das Doppelbett von 3_3_4 auf dem Platz des
+    # Kleiderschranks, und der Auftrag hatte nichts, woran das aufgefallen
+    # waere.
+    KANTEN = ((0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
+              (0, 4), (1, 5), (2, 6), (3, 7))
+    for eintrag in marker:
+        ecken = _umriss_zu_pixeln(eintrag.get("ecken_uv"), breite, hoehe)
+        if len(ecken) != 8:
+            continue
+        eintrag["umriss_px"] = ecken
+        ton = (220, 30, 30) if eintrag.get("farbe") != "bleibt" else (25, 95, 205)
+        # Der Kasten duenn und blass: er ist die Randbedingung, nicht die
+        # Aussage. Rainer, 2026-09-01, zur Karte: "i dont see it" -- Pfeil
+        # und Kastenkanten hatten dieselbe Farbe und fast dieselbe Staerke,
+        # und bei 40 Objekten ueberlagern sich die Kaesten so, dass der
+        # Pfeil darin verschwindet.
+        blass = tuple(min(255, int(c * 0.45 + 255 * 0.55)) for c in ton)
+        for a, b in KANTEN:
+            stift.line([ecken[a][0], ecken[a][1], ecken[b][0], ecken[b][1]],
+                       fill=blass, width=1)
+        # Der Pfeil zeigt die lokale +Y-Achse des Objekts. Ohne ihn ist ein
+        # Bett, das um 180 Grad verdreht steht, vom Kasten nicht zu
+        # unterscheiden -- der Quader sieht in beiden Faellen gleich aus
+        # (Rainer, 2026-08-31: "dann musst du die orientierung auch mit
+        # beruecksichtigen").
+        def _pfeil_zeichnen(vorne, px_schluessel):
+            # EIGENE FARBE, dick, mit echter Spitze. Orange kommt sonst
+            # nirgends auf der Karte vor.
+            if not vorne:
+                return
+            vx, vy = _lage_zu_pixel(vorne[0], vorne[1], breite, hoehe)
+            mx, my = _lage_zu_pixel(eintrag["uv"][0], eintrag["uv"][1],
+                                    breite, hoehe)
+            eintrag[px_schluessel] = [vx, vy]
+            PFEIL = (255, 122, 0)
+            stift.line([mx, my, vx, vy], fill=(255, 255, 255), width=9)
+            stift.line([mx, my, vx, vy], fill=PFEIL, width=5)
+            laenge = math.hypot(vx - mx, vy - my) or 1.0
+            ux, uy = (vx - mx) / laenge, (vy - my) / laenge
+            s = max(11, radius // 2)
+            spitze = [(vx + ux * s, vy + uy * s),
+                      (vx - uy * s * 0.7 - ux * s * 0.2,
+                       vy + ux * s * 0.7 - uy * s * 0.2),
+                      (vx + uy * s * 0.7 - ux * s * 0.2,
+                       vy - ux * s * 0.7 - uy * s * 0.2)]
+            stift.polygon(spitze, fill=PFEIL, outline=(255, 255, 255))
+
+        _pfeil_zeichnen(eintrag.get("vorne_uv"), "vorne_px")
+        # Zweiter Pfeil: nur ein L-Sofa hat zwei Sitzrichtungen (Rainer,
+        # 2026-09-04: "on an Eckcouch we then need 2 arrows").
+        _pfeil_zeichnen(eintrag.get("vorne2_uv"), "vorne2_px")
+
+    gezeichnet = []
+    for eintrag in marker:
+        x, y = _lage_zu_pixel(eintrag["uv"][0], eintrag["uv"][1], breite, hoehe)
+        eintrag["px"] = [x, y]
+        # Ausserhalb des Bildes wird nichts gezeichnet -- aber die Nummer
+        # bleibt vergeben, damit Karte und Liste nicht auseinanderlaufen.
+        if not (0 <= x <= breite and 0 <= y <= hoehe):
+            continue
+        # Zwei Objekte koennen an derselben Stelle stehen (stuff-28 und
+        # stuff-29 tun das). Der zweite Kreis wandert dann zur Seite, statt
+        # den ersten zu verdecken. Der Pixelwert in der Liste bleibt der
+        # echte -- nur die Zeichnung weicht aus.
+        zx, zy = x, y
+        while any((zx - ax) ** 2 + (zy - ay) ** 2 < (2 * radius) ** 2
+                  for ax, ay in gezeichnet):
+            zx += int(radius * 2.2)
+        gezeichnet.append((zx, zy))
+        if zx != x:
+            stift.line([x, y, zx, zy],
+                       fill=(220, 30, 30) if eintrag.get("farbe") != "bleibt"
+                       else (25, 95, 205), width=2)
+        x, y = zx, zy
+        ton = (220, 30, 30) if eintrag.get("farbe") != "bleibt" else (25, 95, 205)
+        stift.ellipse([x - radius, y - radius, x + radius, y + radius],
+                      fill=ton, outline=(255, 255, 255), width=3)
+        stift.text((x, y), str(eintrag["n"]), fill=(255, 255, 255),
+                   font=schrift, anchor="mm")
+    try:
+        bild.save(ziel_png)
+    except Exception:
+        return None
+    return os.path.basename(ziel_png), [breite, hoehe]
+
+
+def png_groesse(pfad):
+    """Pixelmasse eines PNG aus dem Header -- ohne Zusatzbibliothek.
+
+    Der Auftrag nennt damit fuer JEDE Datei das geforderte Masz. Eine
+    allgemeine Regel "gleiche Groesse wie die Quelle" genuegte nicht: die
+    Lieferung vom 2026-08-27 kam als 2000x1500, obwohl die Aussen-Quelle
+    1920x1080 ist -- anderes Seitenverhaeltnis, unbemerkt.
+    """
+    magisch = bytes([137, 80, 78, 71, 13, 10, 26, 10])
+    try:
+        with open(pfad, "rb") as handle:
+            kopf = handle.read(24)
+        if kopf[:8] != magisch:
+            return None
+        return [int.from_bytes(kopf[16:20], "big"),
+                int.from_bytes(kopf[20:24], "big")]
+    except Exception:
+        return None
+
+
+DOPPELHAUS_REGEL = (
+    "DOPPELHAUS: Dieses Haus ist eine Doppelhaushaelfte. Im Bild steht das ganze "
+    "Doppelhaus -- die Nachbarhaelfte (Objekte `nachbar-*`) ist die gespiegelte "
+    "zweite Haelfte und gehoert ins Bild. Sie bekommt dasselbe Material und "
+    "dieselbe Dachdeckung, bleibt aber schlicht: keine zusaetzlichen Details, "
+    "keine Dekoration, keine Gartengestaltung vor ihr. Das Produkt ist UNSERE "
+    "Haelfte vorn; die Trennlinie zwischen beiden Haelften darf als feine Fuge "
+    "sichtbar sein, das Dach laeuft durch.")
+
+
+def aussen_regel(plan_doc):
+    """Die Regel fuer die Aussenansichten -- bei einer Doppelhaushaelfte mit Nachbar.
+
+    doppelhaushaelfte-v1 (Rainer, 2026-10-23)."""
+    if (plan_doc or {}).get("doppelhaus"):
+        return HERO + " " + DOPPELHAUS_REGEL
+    return HERO
+
+
+def outputs_for(blends, folder=None):
+    """Die geforderten Bilder: zwei Aussenansichten, vier Stile je Geschoss.
+
+    Frueher war es EIN Bild je .blend -- also ein einziges Innenbild pro
+    Geschoss, obwohl der Lieferumfang vier Stile verlangt. Codex hat die
+    fehlenden drei dann aus eigenem Antrieb geliefert oder eben nicht.
+    """
+    aussen = [n for n in blends if n.startswith("exterior")]
+    innen = [n for n in blends if not n.startswith("exterior")]
+    required = []
+    # Die Nummer vorn ist keine Zierde: der Katalog sortiert die Bilder eines
+    # Hauses nach dem Dateinamen, und die Aussenansichten sollen vorn stehen.
+    # Ohne sie musste jede Lieferung vor dem Hochladen von Hand umbenannt
+    # werden (Rainer, 2026-08-27: "denk auch an die Ausgabedateien"). Innen
+    # heisst im Katalog "floorplan", nicht "interior" -- so stehen sie seit
+    # jeher dort.
+    nummer = 1
+    # 1,5-Geschosser: zwei Satteldach-Aussenansichten, die sich nur im
+    # Zwerchhaus unterscheiden -- Codex muss wissen, welche welche ist
+    # (anderthalb-zwerchkubus-modern-v1).
+    varianten = {}
+    if "exterior-satteldach-kubus-baseline.blend" in aussen:
+        varianten = {
+            "exterior-satteldach-baseline.blend":
+                "klassisch: Zwerchgiebel mit eigenem Satteldach, Putz wie das Haus",
+            "exterior-satteldach-kubus-baseline.blend":
+                "modern: Zwerchkubus mit Flachdach und Attika, Putz grau abgesetzt "
+                "(Material zwerchkubus-putz), schmale dunkle Attika-Abdeckung",
+        }
+    for name in aussen:
+        stem = name[:-len(".blend")]
+        required.append({
+            "from_blend": name,
+            "kind": "exterior",
+            # publish-renders.py verknuepft ein Bild ueber den Dateinamen.
+            "filename_hint": "%02d-%s.png" % (nummer, stem.replace("-baseline", "")),
+            "target_px": (png_groesse(os.path.join(folder, stem + ".png"))
+                          if folder else None),
+            "state": "pending",
+        })
+        if name in varianten:
+            required[-1]["variante"] = varianten[name]
+        nummer += 1
+    mehrere = len(innen) > 1
+    # Die Geschosse des Plans, von unten nach oben (plan-*.json neben den .blend).
+    ebenen = None
+    for _plan_name in ("plan-modern.json", "plan-classic.json"):
+        _pfad = os.path.join(folder or "", _plan_name)
+        if folder and os.path.exists(_pfad):
+            try:
+                with open(_pfad, encoding="utf-8-sig") as _h:
+                    ebenen = [f.get("level") for f in json.load(_h).get("floors") or []]
+            except (OSError, ValueError):
+                ebenen = None
+            break
+    innen = sorted(innen, key=lambda n: _geschoss_index(n[:-len(".blend")]))
+    for name in innen:
+        stem = name[:-len(".blend")]
+        # Bei mehreren Geschossen bekommt JEDES ein Kuerzel, auch das
+        # Erdgeschoss -- sonst heisst eine Datei "interior-modern-dark.png" und
+        # die andere "interior-modern-dark-og.png", und niemand sieht der
+        # ersten an, welches Geschoss sie zeigt.
+        kuerzel = (_geschoss_kuerzel(stem, ebenen) or "eg") if mehrere else None
+        for schluessel, titel in INNENSTILE:
+            required.append({
+                "from_blend": name,
+                "kind": "interior",
+                "style": schluessel,
+                "style_label": titel,
+                "floor": kuerzel,
+                "filename_hint": "%02d-floorplan-%s%s.png" % (
+                    nummer, schluessel, "-" + kuerzel if kuerzel else ""),
+                "target_px": (png_groesse(os.path.join(folder, stem + ".png"))
+                              if folder else None),
+                "state": "pending",
+            })
+            nummer += 1
+    return required
+
+
+
+# Rainer, 2026-10-29: "the first version we check together if they are ok
+# then the rest are completed and uploaded by itself" -- erste Fassung ist
+# "one image per floor of one type and one exterior". Plan ERSTE-FASSUNG-WARTEN-001.
+PUBLISH_NOTE = ("Nach Rainers OK zur ersten Fassung laedst du selbst hoch, mit "
+                "genau diesem Befehl, erst wenn ALLE geforderten Bilder im Ordner "
+                "liegen und catalog.json geprueft ist. Vorher nicht. "
+                "upload_performed: true schreibst du in catalog.json erst nach "
+                "erfolgreichem Upload und nachdem du geprueft hast, dass die "
+                "Bilder bei der richtigen plan_id liegen. Immer ohne --send, "
+                "keine Kunden-E-Mails, keine Aenderung an Rechte- oder "
+                "Bildfreigaben.")
+
+
+def erste_fassung(required):
+    """Die Bilder der ersten Fassung: eine Aussenansicht, je Geschoss ein Stil.
+
+    Jeweils das erste der Bestellung -- die Reihenfolge von outputs_for."""
+    aussen = [r["filename_hint"] for r in required if r.get("kind") == "exterior"][:1]
+    innen, gesehen = [], set()
+    for r in required:
+        if r.get("kind") == "interior" and r.get("from_blend") not in gesehen:
+            gesehen.add(r.get("from_blend"))
+            innen.append(r["filename_hint"])
+    return aussen + innen
+
+
+def erst_freigabe_text(required):
+    namen = erste_fassung(required)
+    return ("ERSTE FASSUNG: Stell zuerst NUR diese %d Bilder fertig (je Geschoss "
+            "ein Stil und eine Aussenansicht): %s. Zeig sie Rainer und WARTE auf "
+            "sein ausdrueckliches OK -- auch bei Nachbesserungen. Ein OK gilt "
+            "nur fuer genau das Bild, zu dem es gegeben wurde. Erst wenn die "
+            "Aussenansicht UND die Innenbilder angenommen sind: die restlichen "
+            "Bilder im selben Standard, die Pruefliste (Abschnitt 11) fuer "
+            "jedes Bild, dann hochladen."
+            % (len(namen), ", ".join(namen)))
+
+
+def anzahl_satz(required):
+    """Wie viele Bilder, aus der Bildliste selbst -- kann ihr nie widersprechen.
+
+    Plan codex-ein-ordner-ein-knopf-v1.
+    """
+    aussen = sum(1 for r in required if r.get("kind") == "exterior")
+    innen = [r for r in required if r.get("kind") == "interior"]
+    geschosse = len({r.get("from_blend") for r in innen})
+    stile = len(innen) // geschosse if geschosse else 0
+    return ("ANZAHL: %d %s + %d Stile je Geschoss%s = %d Bilder, genau die "
+            "Liste unter \"Rueckgabe\"."
+            % (aussen, "Aussenansicht" if aussen == 1 else "Aussenansichten",
+               stile, " (%d Geschosse)" % geschosse if geschosse > 1 else "",
+               len(required)))
+
+
+def lieferordner_anlegen(job):
+    """Den Lieferordner schon beim Auftrag anlegen -- leer, Codex fuellt ihn.
+
+    Rainer, 2026-10-20: "the paths and all the BS should be created when we
+    press the button an Codex". Plan codex-ein-ordner-ein-knopf-v1.
+    """
+    ziel = job.get("delivery_folder")
+    if ziel:
+        os.makedirs(ziel, exist_ok=True)
+    return ziel
+
+
+ZEIGER = "ANGENOMMEN.json"
+
+
+def angenommene_lieferung(renders_ordner):
+    """Die angenommene Lieferung dieses Hauses, oder None.
+
+    `lieferung-pruefen.py` schreibt sie nach `renders/ANGENOMMEN.json`: Ordner,
+    Dateinamen und sha256 der Bilder, die durch die Pruefung sind.
+    """
+    pfad = os.path.join(renders_ordner or "", ZEIGER)
+    try:
+        with open(pfad, encoding="utf-8") as datei:
+            return json.load(datei)
+    except (OSError, ValueError):
+        return None
+
+
+def zustand_setzen(required, angenommen):
+    """Was schon angenommen ist, wird nicht noch einmal bestellt.
+
+    Rainer, 2026-09-01, nach der Freigabe von
+    german_catalog_review_bungalow_3_3_4_b_100_2: sechs Bilder geliefert,
+    geprueft, angenommen, hochgeladen und im Kundenkatalog scharf geschaltet
+    (im=6) -- und der frisch geschriebene Auftrag verlangte alle sechs
+    erneut. `make-codex-job.py` schrieb `"state": "pending"` fest verdrahtet
+    und sah nie nach, ob es das Bild laengst gibt.
+
+    Das ist nicht bloss ueberfluessige Arbeit: jeder neue Durchgang ist ein
+    neuer Wuerfelwurf, und dabei ist schon dreimal die Badewanne aus einem
+    fertigen Bad verschwunden. Ein freigegebenes Bild darf gar nicht erst
+    zur Bestellung werden.
+    """
+    fertig = {}
+    for eintrag in ((angenommen or {}).get("dateien") or []):
+        name = eintrag.get("name")
+        if name:
+            fertig[name] = (angenommen or {}).get("ordner")
+    for eintrag in required:
+        if eintrag.get("filename_hint") in fertig:
+            eintrag["state"] = "angenommen"
+            ordner = fertig[eintrag["filename_hint"]]
+            if ordner:
+                eintrag["angenommen_in"] = ordner
+    return required
+
+
+
+def annahme_aufheben(required, runde):
+    """Eine Beanstandung hebt die Annahme auf -- fuer die betroffenen Bilder.
+
+    Codex, 2026-09-01, auf einen Auftrag mit fuenfzehn Beanstandungen:
+    "Der Auftrag sagt ausdruecklich: Alle sechs Bilder sind bereits
+    angenommen -- 'NICHTS ZU TUN. Rendere nichts.' Ich habe deshalb keine
+    Bilder oder Dateien veraendert."
+
+    Er hatte recht. Der Abschnitt "Schon angenommen" entstand am selben Tag,
+    weil ein frischer Auftrag freigegebene Bilder erneut bestellte -- und
+    wurde nicht mit den Beanstandungen verzahnt. Seitdem konnte ein Auftrag
+    gleichzeitig "alles angenommen" und "hier sind fuenfzehn Fehler" sagen.
+
+    Welche Bilder betroffen sind: die, deren Dateiname in der Beanstandung
+    steht. Steht keiner drin, gelten alle INNENbilder -- dort wird
+    beanstandet. Die Aussenansichten bleiben liegen, damit sie nicht ohne
+    Grund neu gewuerfelt werden.
+    """
+    text = " ".join(str(x) for x in
+                    [(runde or {}).get("auge") or ""] + list((runde or {}).get("was") or []))
+    if not text.strip():
+        return required
+    genannt = [e for e in required
+               if os.path.splitext(e.get("filename_hint", ""))[0] in text]
+    betroffen = genannt or [e for e in required if e.get("kind") == "interior"]
+    for eintrag in betroffen:
+        if eintrag.get("state") == "angenommen":
+            eintrag["state"] = "pending"
+            eintrag.pop("angenommen_in", None)
+    return required
+
+
+def nur_bestellen(required, muster):
+    """Nur die Bilder bestellen, deren Dateiname eines der Muster enthaelt.
+
+    Rainer, 2026-10-24: "we need an Auftrag for codex to fix just these
+    exteriors instead of doing the whole package". Nach der Korrektur des
+    versetzten Pultdachs ist nur die eine Aussenansicht falsch; die anderen
+    Bilder sind fertig und online. Jeder neue Durchgang ist ein neuer
+    Wuerfelwurf -- also werden sie gar nicht erst bestellt.
+
+    Treffer werden "pending" (auch wenn sie schon angenommen waren), alles
+    andere "angenommen". Ohne Muster bleibt alles, wie es ist.
+    """
+    if not muster:
+        return required
+    for eintrag in required:
+        name = eintrag.get("filename_hint") or ""
+        if any(m in name for m in muster):
+            eintrag["state"] = "pending"
+            eintrag.pop("angenommen_in", None)
+        else:
+            eintrag["state"] = "angenommen"
+    return required
+
+
+def nur_abschnitt(job):
+    """Der Kopf eines Teilauftrags: welches Bild, und warum nur das."""
+    if not job.get("nur"):
+        return []
+    offen = [e.get("filename_hint") for e in job["required_outputs"] if e.get("state") != "angenommen"]
+    zeilen = ["", "## TEILAUFTRAG -- nur %s" % ", ".join("`%s`" % o for o in offen), ""]
+    if job.get("nur_grund"):
+        zeilen += [job["nur_grund"], ""]
+    zeilen += ["Alle anderen Bilder dieses Hauses sind fertig und bleiben unberuehrt. "
+               "Das neue Bild bekommt denselben Dateinamen, dieselbe Kamera und "
+               "denselben Stil wie das bisherige (liegt im zuletzt angenommenen "
+               "Lieferordner); geaendert wird NUR, was oben steht.", ""]
+    return zeilen
+
+
+def rueckgabe_abschnitt_kopf(required):
+    """Die Zeilen ueber der Dateiliste: was noch zu tun ist -- oder nichts."""
+    offen = [e for e in required if e.get("state") != "angenommen"]
+    fertig = [e for e in required if e.get("state") == "angenommen"]
+    if not fertig:
+        return []
+    zeilen = ["", "## Schon angenommen -- NICHT neu rendern", ""]
+    for eintrag in fertig:
+        wo = eintrag.get("angenommen_in")
+        zeilen.append("- `%s`%s" % (eintrag.get("filename_hint"),
+                                    ("  (liegt in %s)" % wo) if wo else ""))
+    zeilen += ["",
+               "Diese Bilder sind geprueft, angenommen und zum Teil schon im "
+               "Kundenkatalog. Sie",
+               "werden nicht neu gerendert -- jeder neue Durchgang ist ein "
+               "neuer Wuerfelwurf, und",
+               "dabei ist schon dreimal die Badewanne aus einem fertigen Bad "
+               "verschwunden.", ""]
+    if not offen:
+        zeilen += ["**NICHTS ZU TUN.** Alle geforderten Bilder sind "
+                   "angenommen. Wenn dieser Auftrag",
+                   "trotzdem vor dir liegt, frag nach -- rendere nichts.", ""]
+    return zeilen
+
+
+def moebel_fingerprint(plan):
+    """Exakt wie run_project.furniture_fingerprint -- dieselben Bytes, derselbe Hash."""
+    ordner = os.path.join(DATA, "corrections", plan, "furniture")
+    if not os.path.isdir(ordner):
+        return None
+    digest = hashlib.sha256()
+    for name in sorted(os.listdir(ordner)):
+        if not name.endswith(".json"):
+            continue
+        with open(os.path.join(ordner, name), "rb") as handle:
+            digest.update(name.encode("utf-8"))
+            digest.update(handle.read())
+    return digest.hexdigest()[:16]
+
+
+# Bilder, die zu einer .blend gehoeren und dem Bearbeiter sagen, WAS er vor
+# sich hat. Der Auftrag gab bisher nur die .blend mit.
+#
+# Rainer, 2026-08-31, an 3_3_4: im Elternschlafzimmer fehlte der
+# Kleiderschrank in allen vier Bildern. Codex, read-only gefragt, was er an
+# der Stelle sieht: "ein glatter, weisser laenglicher Quader ... semantisch
+# mehrdeutig: Der Bearbeiter kann ihn fuer WAND, Platzhalter oder
+# unwichtiges Bauteil halten. Fehlen feste Objektmasken, Tiefen-/
+# Geometriedaten und eine ausdrueckliche Positionsbindung, koennen
+# Gestaltungsprioren daraus eine 'plausiblere' Moeblierung ableiten."
+#
+# Er hat den Schrank nicht entfernt -- er hat ihn nie als Moebel gesehen.
+#
+# Der TIEFENPASS trennt die zwei Faelle: ein Schrank steht 500 mm vor der
+# Wand, eine Wand ist buendig. Im Farbbild sind beide ein weisser Quader, im
+# Tiefenbild zwei Grauwerte. Er lag die ganze Zeit im Ordner und kam im
+# Auftrag NULL Mal vor.
+#
+# Rainer, 2026-09-07: schlaegt einen Objektmasken-Pass vor, "wie vray
+# cryptomatte". Der TIEFENPASS beantwortet "nah oder fern", nicht "was ist
+# es". Der IDMASK-Pass gibt jedem Moebelstueck EINE feste Flaechenfarbe pro
+# Kategorie (zwei Stuehle vom gleichen Typ = gleiche Farbe), Wand/Rahmen/
+# Boden bleiben einheitlich grau. Die Farbzuordnung steht im Manifest unter
+# "idmask_legend" -- Codex kann dort nachschlagen, welche Farbe zu welcher
+# Kategorie gehoert, statt sie zu raten.
+BEIWERK = ("", "-depth", "-edge", "-idmask")
+
+
+# Der Befehl, mit dem Codex die Objektliste aus einer .blend liest. Als
+# Konstante, weil er einfache UND doppelte Anfuehrungszeichen enthaelt --
+# eingebettet in die Zeilenliste unten zerbricht daran die Quelle.
+BLENDER_OBJEKTLISTE = (
+    'blender --background "<datei>.blend" --python-expr '
+    """'import bpy; [print(o.name, [round(v,3) for v in o.location], """
+    """[round(v,3) for v in o.dimensions]) for o in bpy.data.objects """
+    """if o.type == "MESH"]'"""
+)
+
+
+def auftragsdateien(folder):
+    """Die Dateien, die der Auftrag mitgibt: .blend plus ihr Beiwerk.
+
+    Kein Ordnerabzug -- die Liste ist ein Vertrag. Nur was zu einer .blend
+    gehoert, kommt mit, und die Objektkarte dazu.
+    """
+    da = set(os.listdir(folder))
+    dabei = []
+    for name in sorted(n for n in da if n.endswith(".blend")):
+        dabei.append(name)
+        stamm = name[:-len(".blend")]
+        for zusatz in BEIWERK:
+            bild = "%s%s.png" % (stamm, zusatz)
+            if bild in da:
+                dabei.append(bild)
+        karte = "OBJEKTKARTE-%s.png" % stamm
+        if karte in da:
+            dabei.append(karte)
+    return dabei
+
+
+def bau_passt_zum_auftrag(manifest, blends, sha, zustand, trotz_renderer=False):
+    """Darf aus diesem Bau ein Auftrag werden? (ok, grund)
+
+    CODEX-EXPORT-001, Punkt 5. twostorey_058: der Auftrag vom 16.10. lag
+    neben dem Neubau vom 17.10. -- alle sechs .blend, alle Rohrender, der
+    Annotationshash und die Objektkarten passten nicht mehr, und Codex hat
+    gegen den alten Stand geliefert. Geprueft wurden bis dahin nur die Moebel.
+
+    Jetzt: (1) haus-zustand sagt zertifiziert UND aktuell -- dieselbe
+    Definition wie die Hausliste; "nur der Renderer ist neuer" nur mit
+    --trotz-renderer. (2) Im Ordner liegen genau die .blend des Zertifikats,
+    keine mehr, keine weniger. (3) Jede .blend hat die Pruefsumme aus dem
+    Zertifikat.
+    """
+    z = zustand or {}
+    if not z.get("zertifikat"):
+        return False, ("kein gueltiges Zertifikat (%s) -- erst Bauen"
+                       % (z.get("grund") or "keine zertifizierte Lieferung"))
+    if not z.get("aktuell"):
+        if z.get("nur_renderer"):
+            if not trotz_renderer:
+                return False, ("der Bau ist aelter als der Renderer -- neu Bauen, oder "
+                               "bewusst mit --trotz-renderer aus dem alten Bau")
+        else:
+            return False, "der Bau ist veraltet (%s) -- erst neu Bauen" % (z.get("grund") or "?")
+    soll = {a.get("file"): a.get("sha256") for a in (manifest or {}).get("artifacts") or []}
+    ist = set(blends)
+    zuviel = sorted(ist - set(soll))
+    fehlt = sorted(set(soll) - ist)
+    if zuviel or fehlt:
+        return False, ("die .blend im Ordner passen nicht zum Zertifikat%s%s -- neu Bauen"
+                       % ((" (zu viel: %s)" % ", ".join(zuviel)) if zuviel else "",
+                          (" (fehlt: %s)" % ", ".join(fehlt)) if fehlt else ""))
+    falsch = sorted(n for n in ist if soll.get(n) and sha(n) != soll[n])
+    if falsch:
+        return False, ("%s stimmt nicht mit der Pruefsumme im Zertifikat ueberein -- "
+                       "neu Bauen" % ", ".join(falsch))
+    return True, ""
+
+
+def _haus_zustand(plan):
+    """Die Frische-Definition der Hausliste (haus-zustand.py), nicht nachgebaut."""
+    spec = importlib.util.spec_from_file_location(
+        "haus_zustand", os.path.join(HERE, "haus-zustand.py"))
+    modul = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modul)
+    return modul.zustand(plan)
+
+
+def build_job(plan, trotz_renderer=False):
+    folder = os.path.join(DATA, "corrections", plan, "renders", "go-baseline")
+    if not os.path.isdir(folder):
+        return None, "kein go-baseline Ordner"
+    blends = sorted(n for n in os.listdir(folder) if n.endswith(".blend"))
+    if not blends:
+        return None, "keine .blend Dateien"
+
+    # Der Auftrag darf nur beschreiben, was WIRKLICH im Bau steckt.
+    #
+    # bungalow_036, 2026-08-21: gebaut 23:00 ohne Moebel ("furniture 0
+    # instances"), am Morgen um 09:00 moebliert, um 09:00 "An Codex" gedrueckt
+    # -- der Auftrag verpackte die leeren .blend, und Codex hat das Haus kurzer-
+    # hand selbst eingerichtet. Rainer: "not what i built. the workflow is
+    # still flawed." Er hat recht: dieser Schritt prueft jetzt, ob die
+    # Lieferung zu den AKTUELLEN Moebeln gehoert, statt blind zu verpacken.
+    manifest_path = os.path.join(folder, "delivery-manifest.json")
+    try:
+        with open(manifest_path, encoding="utf-8-sig") as handle:
+            manifest = json.load(handle)
+    except OSError:
+        return None, ("keine zertifizierte Lieferung -- erst Bauen "
+                      "(python go.py %s)" % plan)
+    except ValueError:
+        return None, "delivery-manifest.json ist unlesbar -- neu bauen"
+    jetzt = moebel_fingerprint(plan)
+    if manifest.get("furniture_fingerprint") != jetzt:
+        return None, ("die .blend sind OHNE die aktuellen Moebel gebaut "
+                      "(Lieferung %s, Moebel jetzt %s) -- erst neu Bauen, "
+                      "dann An Codex"
+                      % (manifest.get("furniture_fingerprint"), jetzt))
+    ok, grund = bau_passt_zum_auftrag(
+        manifest, blends, lambda n: sha256(os.path.join(folder, n)),
+        _haus_zustand(plan), trotz_renderer)
+    if not ok:
+        return None, grund
+
+    plan_doc = {}
+    for style in ("plan-modern.json", "plan-classic.json"):
+        candidate = os.path.join(folder, style)
+        if os.path.exists(candidate):
+            with open(candidate, encoding="utf-8-sig") as handle:
+                plan_doc = json.load(handle)
+            break
+    provenance = plan_doc.get("source_provenance") or {}
+
+    # Die Bilder kommen NICHT nach go-baseline. Dort liegen unsere eigenen
+    # Rohbau-Renders, und publish-renders.py laedt jede Bilddatei eines
+    # Ordners hoch -- genau so standen am 2026-08-26 drei graue
+    # Blender-Kloetze im Kundenkatalog. Jeder Auftrag bekommt deshalb
+    # seinen eigenen, leeren Lieferordner.
+    lieferordner = os.path.join(
+        os.path.dirname(folder),
+        "codex-%s-%s" % (plan, datetime.date.today().isoformat()))
+
+    # Die echten Objektnamen aus der Innen-.blend. Damit nennt der
+    # Auftrag Garderobe, Stuff und Sanitaer beim Namen, statt einen
+    # Namen aus einem anderen Haus zu wiederholen.
+    innen = [n for n in blends if not n.startswith("exterior")]
+
+    # Eine Karte JE Innen-.blend, nicht eine je Haus. Rainer, 2026-08-28: der
+    # Auftrag fuer `onehalfstorey_020` verlangte vier Bilder aus dem
+    # Obergeschoss und lieferte nur die Karte des Erdgeschosses. Fuer jene vier
+    # gab es nichts zu bestaetigen, und genau dort verschwand dreimal die
+    # Eckbadewanne, ohne dass eine Pruefung anschlug.
+    #
+    # Die Objektkarte ist derselbe Baseline-Render, den Codex ohnehin als
+    # Grundbild benutzt, mit nummerierten Markern auf jedem Moebelstueck. Ohne
+    # sie muss Codex die Garderobe im Bild suchen -- und findet dort ein
+    # aufgeschlagenes Tuerblatt, das genauso aussieht wie ein Schrankbrett.
+    karten = []
+    mesh_objekte = 0
+    objekte, lagen, inventar = {}, {}, {}
+    for stelle, name in enumerate(innen):
+        (eigene, eigene_lagen, eigenes_inventar, eigene_netze,
+         eigene_masse) = objekte_und_lagen(os.path.join(folder, name))
+        mesh_objekte += eigene_netze
+        # Die Objektliste und das Inventar im Auftragstext beschreiben weiter
+        # das erste Geschoss; die Karten tragen den Rest.
+        if stelle == 0:
+            objekte, lagen, inventar = eigene, eigene_lagen, eigenes_inventar
+        marker = _marker_liste(eigene, eigene_lagen, eigene_masse,
+                               raeume=raeume_aus_massen(eigene_masse))
+        if not marker:
+            continue
+        stem = name[:-len(".blend")]
+        ergebnis = objektkarte(os.path.join(folder, stem + ".png"), marker,
+                               os.path.join(folder, "OBJEKTKARTE-%s.png" % stem))
+        if ergebnis:
+            # Objekte und Inventar gehoeren zu DIESEM Geschoss. Vorher stand nur
+            # das des ersten im Auftrag, und es wurde hinter der letzten Karte
+            # ausgegeben: die OG-Bilder bekamen das Erdgeschoss-Inventar
+            # (Sofa, Esstisch, Waschmaschine) als Liste "dieses Geschosses".
+            karten.append({"file": ergebnis[0], "image": ergebnis[1],
+                           "markers": marker,
+                           "objects": eigene, "inventar": eigenes_inventar})
+    karte = karten
+
+    job = {
+        "schema": "zf-codex-job-v1",
+        "job_id": "%s-%s" % (plan, datetime.date.today().isoformat()),
+        "plan_id": plan,
+        "created_at": datetime.datetime.now().isoformat(timespec="seconds"),
+        "attempt": 1,
+        # Die Zahl, die Codex nennen muss, damit die Lieferung geprueft
+        # wird. Sie steht HIER, nicht im Auftragstext -- eine Zahl im Text
+        # wird abgeschrieben statt nachgesehen.
+        "nachweis": {"mesh_objekte": mesh_objekte},
+        "source": {
+            "annotation_hash": provenance.get("annotation_hash"),
+            "geometry_hash": plan_doc.get("source_geometry_hash"),
+            "correction_status": plan_doc.get("correction_status"),
+        },
+        # Der Ordner gehoert in den Vertrag: dort liegen die .blend und
+        # dorthin kommen die Bilder zurueck.
+        "folder": folder,
+        "inputs": [{"file": name, "sha256": sha256(os.path.join(folder, name))}
+                   for name in auftragsdateien(folder)],
+        "constraints": {
+            # Rainer, 2026-08-21: "codex must use the models we provide it
+            # keeps using older models of other houses". Die sha256-Pruefsumme
+            # unten belegt schon, WELCHE Datei gemeint ist -- aber sagt nicht
+            # ausdruecklich, dass ihr Inhalt (jedes Moebelstueck, Modell,
+            # Material) unangetastet bleiben muss. Ohne diesen Satz greift
+            # Codex offenbar auf eigene Erinnerung an ein FRUEHERES Haus
+            # zurueck, statt die hier tatsaechlich gelieferte Geometrie zu
+            # nehmen -- dieselbe Klasse Fehler wie die Geometrie-Sperre fuer
+            # ComfyUI-Politur (comfyui_polish_geometry_lock.md): eine
+            # Politur-/Renderpass darf niemals Waende, Fenster, Tueren ODER
+            # MOEBEL ersetzen, nur Licht/Material/Atmosphaere.
+            # Rainer, 2026-08-26: "i would prefere these rules for codex".
+            # Das vollstaendige Regelwerk liegt in docs/CODEX-REGELN-4PLUS2.md
+            # und wird an JEDEN Auftrag angehaengt.
+            #
+            # Der alte Text hier sagte "Nichts davon darf ersetzt werden" und
+            # meinte damit AUCH die Moebel. Das Regelwerk sagt das Gegenteil
+            # (Punkt 3: "Furniture is symbolic and should be replaced"). Beides
+            # zusammen waeren Regeln, die sich gegenseitig aufheben -- genau
+            # das, was abgestellt werden sollte. Aufgeloest wie im Regelwerk:
+            # Architektur gesperrt, Moebel ersetzbar im eigenen Fussabdruck.
+            "models_locked": "HARD RULE: Architektur ist unantastbar. Waende, "
+                "Raumgrenzen, Fenster, Tueren, Oeffnungen, Schnittebene, "
+                "Treppenloch, Gelaender und die gespeicherte Kamera bleiben "
+                "exakt so, wie sie in dieser .blend-Datei stehen -- sie stammt "
+                "aus DIESEM Haus (%s), keinem anderen. Moebel dagegen sind "
+                "Platzhalter und SOLLEN durch fertige, stilgerechte Varianten "
+                "ersetzt werden -- aber jede Ersetzung bleibt im Fussabdruck, "
+                "in der Mitte, in der Groesse und in der Ausrichtung ihres "
+                "Ausgangsobjekts. Es gelten die vollstaendigen Regeln in "
+                "CODEX-REGELN.md, die diesem Auftrag beiliegen." % plan,
+            "exterior_hero_shot": aussen_regel(plan_doc),
+            "interiors": INNEN_REGEL + " " + anzahl_satz(outputs_for(blends)),
+            "moebelrichtung": MOEBELRICHTUNG_REGEL,
+            # Bei einem eingeschossigen Haus stehen in "Rueckgabe" Namen OHNE
+            # eg/og. Eine pauschale Anweisung "Geschoss erkennbar lassen" haette
+            # dem widersprochen und Codex zu erfundenen Suffixen verleitet.
+            "naming": ("Genau die Dateinamen aus \"Rueckgabe\" verwenden. "
+                       "%s"
+                       % ("Dieses Haus hat mehrere Geschosse, das Kuerzel "
+                          "(-eg/-og) gehoert in den Namen."
+                          if len([b for b in blends if not b.startswith("exterior")]) > 1
+                          else "Dieses Haus hat ein Geschoss; die Innenbilder "
+                               "tragen kein Geschoss-Kuerzel.")),
+        },
+        "objects": objekte,
+        "object_map": karte,
+        # Abschnitt 11.1 verlangt seit dem 2026-08-29 zu jedem blauen Marker
+        # die Stelle, an der Codex das Objekt im gelieferten Bild sieht. Das
+        # Feld sagt dem Pruefer, dass dieser Auftrag danach geschrieben ist --
+        # aeltere Lieferungen sollen nicht rueckwirkend durchfallen.
+        "beleg_verlangt": True,
+        "inventar": inventar,
+        "rules": {
+            "file": "CODEX-REGELN.md",
+            "sha256": sha256(REGELWERK) if os.path.exists(REGELWERK) else None,
+            "note": "Vollstaendiges Regelwerk, liegt neben dieser Datei. "
+                    "Quelle: docs/CODEX-REGELN-4PLUS2.md",
+        },
+        # Was `lieferung-pruefen.py` schon angenommen hat, wird nicht noch
+        # einmal bestellt. Ohne diese Zeile verlangte ein frisch
+        # geschriebener Auftrag am 2026-09-01 alle sechs Bilder eines
+        # Hauses erneut, das laengst im Kundenkatalog stand.
+        # Erst die angenommenen Bilder markieren, dann die Annahme fuer
+        # das aufheben, was seither beanstandet wurde. Ohne den zweiten
+        # Schritt sagt der Auftrag "NICHTS ZU TUN" und listet darunter die
+        # Fehler -- Codex hat daraufhin am 2026-09-01 gar nichts gemacht.
+        # Die Geschosse des Plans von unten nach oben -- fuer die Kuerzel
+        # EG/OG/DG an Bildern und Objektkarten (other_vito, 2026-10-24).
+        "geschosse": [f.get("level") for f in plan_doc.get("floors") or []],
+        "required_outputs": annahme_aufheben(
+            zustand_setzen(
+                outputs_for(blends, folder),
+                angenommene_lieferung(os.path.dirname(os.path.normpath(folder))
+                                      if folder else None)),
+            letzte_runde(runden_lesen(
+                os.path.dirname(os.path.normpath(folder)) if folder else ""))),
+        "return": {
+            "images": "in den Ordner neben dieser Datei",
+            "catalog": "catalog.json mit einem Eintrag je required_output: "
+                       "from_blend, filename, sha256, state, ggf. error",
+        },
+        "delivery_folder": lieferordner,
+        "publish": {
+            "command": ("python %s --plan %s --dir %s"
+                        % (os.path.join(HERE, "publish-renders.py"), plan,
+                           lieferordner)),
+            # Rainer, 2026-10-07: "if you dont feel like uploading then give
+            # that prompt part to the codex image generating part". Vorher
+            # stand hier "Codex laedt NICHT hoch" -- deshalb schrieb jedes
+            # Paket "no upload" in seine catalog.json und jemand musste es
+            # hinterher von Hand nachholen.
+            "note": PUBLISH_NOTE,
+        },
+    }
+    job["publish"]["erst_freigabe"] = erst_freigabe_text(job["required_outputs"])
+    return job, folder
+
+
+def _karten_geschoss(karte, mehrere, ebenen=None):
+    """EG/OG einer Objektkarte, oder None bei einem einzigen Geschoss.
+
+    Der Erdgeschoss-Name (`interior-modern-baseline`) traegt kein Kuerzel; bei
+    mehreren Geschossen ist das, was kein Kuerzel hat, das erste."""
+    if not mehrere:
+        return None
+    stem = os.path.basename(karte.get("file") or "").replace("OBJEKTKARTE-", "")
+    kuerzel = _geschoss_kuerzel(stem[:-len(".png")] if stem.endswith(".png") else stem, ebenen)
+    return (kuerzel or "eg").upper()
+
+
+def _inventarabschnitt(inventar, geschoss=None):
+    lines = ["", "## Inventar dieses Geschosses" + (" (%s)" % geschoss if geschoss else ""), "",
+             "So viele Moebel welcher Art stehen in der .blend. JEDES Stueck "
+             "muss im Bild",
+             "vorkommen -- stilgerecht gestaltet, aber vorhanden. Die "
+             "Objektkarte markiert nur",
+             "die verwechselbaren Objekte; diese Liste ist vollstaendig.", "",
+             "Am 2026-08-27 verschwand der Schreibtisch aus drei Bildern, "
+             "weil er keinen Marker",
+             "traegt. Er steht hier.", ""]
+    for stamm in sorted(inventar):
+        lines.append("- `%s` x %d" % (stamm, inventar[stamm]))
+    lines.append("")
+    return lines
+
+
+def karten_liste(job):
+    """Die Objektkarten eines Auftrags, immer als Liste.
+
+    Rainer, 2026-08-28: der Auftrag fuer `onehalfstorey_020` verlangte vier
+    Bilder aus dem Obergeschoss, lieferte aber nur die Karte des
+    Erdgeschosses. Fuer jene vier gab es nichts zu bestaetigen -- und genau
+    dort verschwand dreimal die Eckbadewanne, ohne dass eine Pruefung anschlug.
+
+    Auftraege von vorher tragen unter `object_map` ein einzelnes Objekt. Beide
+    Formen muessen lesbar bleiben, sonst faellt jede aeltere Lieferung durch.
+    """
+    karte = job.get("object_map")
+    if not karte:
+        return []
+    karten = karte if isinstance(karte, list) else [karte]
+    # Von unten nach oben (EG, OG, DG) -- alphabetisch kam "floor2" vor
+    # "upper", und das DG stand im Auftrag vor dem OG (other_vito).
+    def _index(k):
+        stem = os.path.basename(k.get("file") or "").replace("OBJEKTKARTE-", "")
+        return _geschoss_index(stem[:-len(".png")] if stem.endswith(".png") else stem)
+    return sorted(karten, key=_index)
+
+
+def render_markdown(job):
+    lines = ["# Codex-Auftrag - %s" % job["plan_id"], "",
+             "```", "job_id: %s" % job["job_id"],
+             "plan_id: %s" % job["plan_id"]]
+    if job["source"].get("annotation_hash"):
+        lines.append("annotation: %s" % job["source"]["annotation_hash"][:16])
+    lines += ["```", ""]
+    # Der Ablageort ganz oben, nicht erst unter "Rueckgabe" (Plan
+    # codex-ein-ordner-ein-knopf-v1). Der Ordner ist schon angelegt.
+    if job.get("delivery_folder"):
+        lines += ["**Bilder + catalog.json hierhin (Ordner ist schon angelegt):**", "",
+                  "    " + job["delivery_folder"], ""]
+    lines += ["Diese Datei ist aus `codex-job.json` erzeugt. Nicht von Hand aendern -",
+              "die JSON ist der Vertrag, das hier ist die lesbare Fassung.", "",
+              "## ⚠ Modelle sind gesperrt", "",
+              job["constraints"]["models_locked"], ""]
+    # Was beim letzten Mal beanstandet wurde -- ganz oben, direkt nach der
+    # Modellsperre. Rainer, 2026-08-30: "wie bringen wir das jetzt codex
+    # bei?" Neue Regeln liegen als CODEX-REGELN.md bei; die Beanstandung an
+    # DIESEM Haus stand bisher nur in RUNDEN.jsonl und wurde nie gelesen.
+    _abschnitt = beanstandungs_abschnitt(
+        letzte_runde(runden_lesen(os.path.dirname(job["folder"]))))
+    if _abschnitt:
+        lines += _abschnitt.split(chr(10))
+    lines += [
+              "## Dateien (%d)" % len(job["inputs"]), "",
+              # Ohne den Ordner nennt der Auftrag drei Dateinamen, die nirgends
+              # liegen. Codex muss wissen, WO -- sonst sucht es die .blend im
+              # eigenen Arbeitsverzeichnis (Rainer, 2026-08-27: "codex knows
+              # where to look for the models").
+              "Sie liegen in:", "",
+              "    " + job.get("folder", ""), ""]
+    for item in job["inputs"]:
+        lines.append("- `%s`  sha256 `%s`" % (item["file"], item["sha256"][:16]))
+    lines += ["",
+              "Immer die NEUESTE gelieferte .blend oeffnen. Kein alter Render, "
+              "keine Vorschau,",
+              "kein frueherer Zwischenstand und kein anderes Haus als "
+              "Geometriequelle.",
+              "",
+              # Rainer, 2026-08-31: "aber codex kann doch die objectnamen doch
+              # lesen oder nicht?" -- Codex, read-only gefragt: "Ja, ich kann
+              # Objektnamen, Positionen und Abmessungen aus einer .blend
+              # auslesen ... Bei meinen bisherigen Auftraegen in diesem
+              # Projekt habe ich keine .blend tatsaechlich geoeffnet."
+              #
+              # Er KANN es und tat es nicht. "Immer die neueste .blend
+              # oeffnen" hat er als "nimm diese und keine alte" gelesen. Also
+              # steht der Befehl jetzt da, mit dem Skript daneben.
+              "**OEFFNEN heisst AUFMACHEN.** Die Objektliste in der .blend ist "
+              "die Wahrheit, nicht",
+              "das Rohrender: dort ist ein Kleiderschrank ein weisser Quader "
+              "und von einer Wand",
+              "nicht zu unterscheiden. Lies sie aus, bevor du anfaengst:",
+              "",
+              "```",
+              BLENDER_OBJEKTLISTE,
+              "```",
+              "",
+              "Findest du zu einem Marker der Objektkarte in der .blend kein "
+              "Objekt, ist das",
+              "eine MELDUNG in deiner Rueckgabe -- kein Grund, den Raum neu "
+              "einzurichten."]
+    lines += nachweis_abschnitt(job.get("nachweis"))
+    lines += ["", "## Aussenansichten", "", job["constraints"]["exterior_hero_shot"], "",
+              "## Innenansichten", "", job["constraints"]["interiors"], "",
+              "## HARTE REGEL: Moebelrichtung und Einbau-Hochschraenke", "",
+              *job["constraints"].get("moebelrichtung", []), "",
+              "## Benennung", "", job["constraints"]["naming"], "",
+              ]
+    # Was schon angenommen ist, steht ueber der Bestellung -- nicht darin.
+    lines += nur_abschnitt(job)
+    lines += rueckgabe_abschnitt_kopf(job["required_outputs"])
+    lines += ["",
+              "## Rueckgabe", "",
+              "%d Bilder plus `catalog.json`, ein Eintrag je gefordertem Bild:"
+              % len(job["required_outputs"]), ""]
+    for out in job["required_outputs"]:
+        stil = (" [%s]" % out["style_label"]) if out.get("style_label") else ""
+        geschoss = (" (%s)" % out["floor"]) if out.get("floor") else ""
+        masz = ("  %d x %d px" % tuple(out["target_px"])) if out.get("target_px") else ""
+        lines.append("- %s  ->  %s%s%s%s"
+                     % (out["from_blend"], out["filename_hint"], stil, geschoss, masz))
+        if out.get("variante"):
+            lines.append("    %s" % out["variante"])
+    lines += ["",
+              "Ablegen in einem NEUEN Ordner (anlegen, falls er fehlt):", "",
+              "    " + job.get("delivery_folder", ""), "",
+              "NICHT nach go-baseline -- dort liegen die Rohbau-Renders, und der",
+              "Upload nimmt jede Bilddatei des Ordners.", "",
+              "Genau diese Dateinamen, nicht mehr und nicht weniger. "
+              "Zwischenstaende gehoeren unter",
+              "eigene Namen (`-v2`, `-review`) und duerfen die geforderten "
+              "Namen erst belegen, wenn sie",
+              "angenommen sind.", "",
+              # Rainer, 2026-08-28: "schreibe das bitte in den Auftrag, das ist
+              # echt unnoetig immer wieder." Zweimal hintereinander lieferte
+              # Codex `-review` und `-review-2` und wartete dann; der
+              # Umbenennungsauftrag musste beide Male von Hand geschrieben
+              # werden. Gefaehrlich daran ist nicht die Handarbeit, sondern
+              # der Neurender: bei onehalfstorey_020 verschwand die Badewanne
+              # dreimal aus vier Bildern. Deshalb steht der Weg vom
+              # Zwischenstand zur Lieferung jetzt hier.
+              "**Du lieferst einmal.** Ist der Zwischenstand angenommen, "
+              "wird er HIER auf die",
+              "geforderten Namen gebracht -- kopiert wird nichts, umbenannt "
+              "wird die Datei selbst,",
+              "die Bytes bleiben deine. Es gibt keine zweite Runde und keinen "
+              "`-final`-Ordner.", "",
+              "Ein angenommenes Bild also bitte nie neu rendern. Jeder neue "
+              "Durchgang ist ein",
+              "neuer Wuerfelwurf; dabei ist schon dreimal die Badewanne aus "
+              "einem fertigen Bad",
+              "verschwunden."]
+    karten = karten_liste(job)
+    mehrere = len(karten) > 1
+    erstes = _karten_geschoss(karten[0], mehrere, job.get("geschosse")) if karten else None
+    if job.get("objects"):
+        lines += ["", "## Objekte in dieser Datei" + (" (%s)" % erstes if erstes else ""), "",
+                  "Die Namen stammen aus der gelieferten .blend, nicht aus einem",
+                  "anderen Haus. Nach diesen Namen suchen, nicht nach der Lage im Raum.", ""]
+        for stamm in sorted(job["objects"]):
+            rolle = NENNENSWERT.get(stamm, "")
+            namen = job["objects"][stamm]
+            lines.append("- **%s** — %s" % (rolle or stamm, ", ".join("`%s`" % n
+                                                                     for n in namen)))
+        lines += ["",
+                  "**Garderobe und Stuff werden IMMER ersetzt.** Sie sind reine "
+                  "Platzhalter -- ein Kasten,",
+                  "der als Kasten im Bild stehenbleibt, ist eine abgelehnte "
+                  "Lieferung. Jede Ersetzung",
+                  "bleibt im eigenen Fussabdruck.", "",
+                  "**Erfinde ein passendes Moebelstueck, stell keinen Quader "
+                  "hin.** Was passt, sagen",
+                  "die Masse und der Raum: 400 x 2450 x 800 mm an einer "
+                  "Kuechenwand ist eine",
+                  "Kuechenzeile, 500 x 1650 x 800 mm an einer Wohnzimmerwand "
+                  "ein Sideboard, ein",
+                  "schmaler hoher Korpus in der Diele ein Schrank. Ein Moebel "
+                  "hat Fronten, Fugen,",
+                  "Griffe und eine Arbeits- oder Deckplatte -- daran erkennt "
+                  "man es als Moebel.", "",
+                  "Am 2026-09-01 war der Stauraum-Platzhalter an der "
+                  "Kuechenwand von",
+                  "german_catalog_review_bungalow_3_3_4_b_100_2 in zwei von "
+                  "vier Bildern eine fertige",
+                  "Kuechenzeile mit Tueren und Griffen und in den anderen "
+                  "zwei ein glatter,",
+                  "merkmalloser Klotz. (Anderes Haus, nur als Beispiel -- "
+                  "such es hier nicht.) In",
+                  "ALLEN VIER Bildern EINES Hauses ist es dasselbe Objekt "
+                  "und muss dasselbe Moebel",
+                  "sein.", "",
+                  "**Jedes andere Moebelstueck darf ebenfalls ersetzt werden**, "
+                  "wenn es dem gewaehlten Stil",
+                  "dient -- Bett, Sofa, Sessel, Tisch, Stuehle, Schraenke, "
+                  "Kuechenfronten, Medienmoebel.",
+                  "Mitte, Fussabdruck, Groesse und Ausrichtung des "
+                  "Ausgangsobjekts bleiben dabei erhalten.", "",
+                  "**Sanitaer und Kueche:** Aussehen ja, Weglassen nein. Wanne, "
+                  "Dusche, WC, Waschtisch,",
+                  "Spuele und Kochfeld duerfen stilgerecht neu gestaltet werden, "
+                  "muessen aber in jedem",
+                  "Bild sichtbar bleiben.", ""]
+        # Wie viele es von jeder Sorte sind. Die Namensliste allein hat am
+        # 2026-08-31 neun Stuehle an einen Tisch fuer sechs gestellt.
+        lines += stueckzahlen(job["objects"], erstes)
+    for index, karte in enumerate(karten):
+        lines += ["", "## Wo diese Objekte liegen", "",
+                  "Im Auftragsordner liegt die Objektkarte:", "",
+                  "    " + karte["file"], "",
+                  "Das ist derselbe Baseline-Render, nur mit nummerierten "
+                  "Markern. Die Nummern",
+                  "unten gehoeren zu den Markern im Bild. Erst auf der Karte "
+                  "nachsehen, dann arbeiten --",
+                  "nicht im Render nach der Form suchen.", "",
+                  "**Der PFEIL zeigt VON DER WAND FORT.** Vom Kreis geht eine "
+                  "dicke Linie mit einem",
+                  "Punkt am Ende weg. Sie zeigt von der naechsten Wand weg, "
+                  "gerechnet aus der .blend:", "",
+                  "- Bett: vom Kopfteil zum Fussteil.",
+                  "- Schrank: von der Rueckwand zur Front.",
+                  "- Sofa, Kommode, Waschtisch: von der Wand in den Raum.", "",
+                  "Ein Quader sieht bei 0 und bei 180 Grad gleich aus -- der "
+                  "Pfeil unterscheidet die",
+                  "beiden. Das neue Moebel zeigt in dieselbe Richtung. Ein "
+                  "Bett mit dem Kopfteil in",
+                  "den Raum und dem Fussteil an der Wand ist eine abgelehnte "
+                  "Lieferung, auch wenn es",
+                  "im richtigen Kasten steht.", "",
+                  "**Der Pfeil ist KEINE Verschieberichtung.** Er sagt nicht "
+                  "\"schieb das Moebel",
+                  "dorthin\", sondern \"diese Seite ist die freie\". Das "
+                  "Moebel bleibt, wo der Kasten",
+                  "ist.", "",
+                  "Steht ein Moebel frei im Raum (Esstisch), oder steht es in "
+                  "einer Ecke mit zwei",
+                  "gleich nahen Waenden, gibt es keinen Pfeil -- eine "
+                  "geratene Richtung waere",
+                  "schlimmer als keine. Dann gilt die Drehung in Grad aus der "
+                  "Liste unten.", "",
+                  "**Der KASTEN ist die Vorschrift, nicht der Kreis.** Um jedes "
+                  "Moebel liegt sein",
+                  "Quader aus der .blend -- zwoelf Kanten, also auch die Hoehe. "
+                  "Das neue Moebel",
+                  "steht in DIESEM Kasten: gleiche Mitte, gleiche Grundflaeche, "
+                  "gleiche Richtung.",
+                  "Nicht daneben, nicht gedreht, nicht an die naechste Wand "
+                  "geschoben.", "",
+                  "Am 2026-08-30 stand das Doppelbett von 3_3_4 auf dem Platz "
+                  "des Kleiderschranks,",
+                  "und der Schrank fehlte im Zimmer ganz. Der Auftrag hatte "
+                  "damals nur einen Punkt --",
+                  "aus einem Punkt liest niemand ab, wie breit ein Bett ist "
+                  "und wohin es zeigt.", "",
+                  "Passt das gewaehlte Modell nicht in den Kasten, nimm ein "
+                  "anderes Modell. Den",
+                  "Kasten zu verlassen ist keine Stilentscheidung, sondern "
+                  "eine abgelehnte Lieferung.", "",
+                  "**Wenn die Masse nicht genau hinkommen**, bleibt die "
+                  "WANDSEITE fest -- die Seite,",
+                  "von der der Pfeil wegzeigt. Der Unterschied geht auf die "
+                  "Pfeilseite, also in den",
+                  "Raum hinein. Ein Schrank waechst nach vorn, nicht in die "
+                  "Wand; ein Bett wird am",
+                  "Fussende laenger, nicht am Kopfende. Ohne Pfeil bleibt die "
+                  "Mitte fest.", "",
+                  "**Was die Angaben bedeuten.** Der Kreis sitzt auf dem "
+                  "Schwerpunkt des Quaders,",
+                  "nicht auf dem Objekt-Ursprung -- ein importiertes Modell "
+                  "hat seinen Ursprung oft in",
+                  "einer Ecke. `B x T x H` sind die eigenen Masse des Moebels "
+                  "in Millimetern, vor der",
+                  "Drehung; `gedreht N Grad` ist die Drehung um die Hochachse, "
+                  "gegen den Uhrzeigersinn",
+                  "von oben gesehen, 0 Grad = ungedreht wie geliefert.", "",
+                  "**ROT heisst ersetzen. BLAU heisst stehenlassen.** Ein blauer "
+                  "Marker sitzt auf einem",
+                  "Tuerblatt, einem Sanitaerobjekt oder einem Kuechenteil: "
+                  "stilgerecht neu gestalten ja,",
+                  "weglassen oder ueberbauen nein.", ""]
+        for eintrag in karte["markers"]:
+            px = eintrag.get("px")
+            ort = ("  (Pixel %d, %d von %d x %d)"
+                   % (px[0], px[1], karte["image"][0], karte["image"][1])
+                   if px and karte.get("image") else "")
+            # Ein Marker steht fuer das ganze Moebelstueck. Wer nach dem Namen
+            # sucht, findet mehrere Netze -- das gehoert dazugesagt, sonst
+            # wirkt der Rest wie ein Fremdobjekt.
+            teile = ("  [%d Teilobjekte `%s-*`]" % (eintrag["teile"], eintrag["name"])
+                     if eintrag.get("teile", 1) > 1 else "")
+            # Groesse und Ausrichtung, so wie sie in der .blend stehen. Ohne
+            # sie ist "Fussabdruck bleibt erhalten" nicht befolgbar: aus
+            # einem Pixelpunkt liest niemand ab, wie breit ein Bett ist und
+            # wohin es zeigt (Rainer, 2026-08-31: "positionierung streng
+            # nach blender file").
+            mm = eintrag.get("masse_mm")
+            gemessen = ("  B %d x T %d x H %d mm, gedreht %d Grad"
+                        % (mm[0], mm[1], mm[2], eintrag.get("drehung_grad", 0))
+                        if mm else "")
+            # Einbausaeule (Hochschrank/Herd, Kuehlschrank): das gemessene
+            # Objekt ist nur das GERAET in der Nische. Rainer, 2026-10-13, an
+            # bungalow_040_46: Codex machte daraus einen halbhohen Schrank mit
+            # dem Ofen auf der Seite. Die Saeule ist 2400 mm hoch.
+            if _stamm(eintrag["name"]) in EINBAU_SAEULEN and mm:
+                korpus = eintrag.get("korpus_mm")
+                b, t = (korpus[0], korpus[1]) if korpus else (600, 600)
+                gemessen = ("  Einbau-Hochschrank B %d x T %d x H %d mm (raumhoch, "
+                            "Geraet %d x %d x %d mm in einer Nische mitten in der "
+                            "FRONT), gedreht %d Grad"
+                            % (b, t, EINBAU_HOEHE_MM, mm[0], mm[1], mm[2],
+                               eintrag.get("drehung_grad", 0)))
+            # Begehbarer Glasschrank: die vielen Teile (Glas, Rahmen, Regal,
+            # Kleider) sind EIN Moebel -- Regel 6 sagt, wie er aussehen muss.
+            if _stamm(eintrag["name"]) == "glasschiebetuer":
+                gemessen += ("  BEGEHBARER SCHRANK (Regel 6): vorn Glas-Schiebetueren"
+                             "%s, einer halb offen; hinten offene Regale mit Kleidung"
+                             % ((", %d Fluegel" % eintrag["fluegel"]) if eintrag.get("fluegel") else ""))
+            richtung = front_im_bild(eintrag.get("px"), eintrag.get("vorne_px"))
+            front = ("  **Front zeigt im Bild nach %s**" % richtung) if richtung else ""
+            lines.append("- **%d** `%s` — %s%s%s%s%s"
+                         % (eintrag["n"], eintrag["name"], eintrag["rolle"],
+                            ort, gemessen, front, teile))
+        lines += ["",
+                  "**Die Tuerblatt-Falle.** Ein aufgeschlagenes Tuerblatt sieht "
+                  "im Rohrender aus wie",
+                  "ein Schrankbrett. Am 2026-08-27 stand die Garderobe deshalb "
+                  "in vier Bildern an drei",
+                  "verschiedenen Stellen: zweimal ersetzte sie die Haustuer, "
+                  "zweimal wurde eine zweite",
+                  "Garderobe an einer Dielenwand erfunden. Was auf der Karte "
+                  "keinen Marker hat, ist",
+                  "keine Garderobe und kein Stuff -- dort wird nichts ersetzt "
+                  "und nichts hinzugefuegt.", ""]
+        # Was zu DIESEM Geschoss gehoert, steht direkt hinter seiner Karte.
+        if karte.get("inventar") is not None:
+            geschoss = _karten_geschoss(karte, mehrere, job.get("geschosse"))
+            if index > 0 and karte.get("objects"):
+                lines += stueckzahlen(karte["objects"], geschoss)
+            if karte["inventar"]:
+                lines += _inventarabschnitt(karte["inventar"], geschoss)
+    # Auftraege von vorher tragen nur das Inventar des ersten Geschosses am
+    # Auftrag selbst; sie lesen sich weiter wie bisher.
+    if job.get("inventar") and not any(k.get("inventar") is not None for k in karten):
+        lines += _inventarabschnitt(job["inventar"])
+    if job.get("rules"):
+        lines += ["", "## Regelwerk", "",
+                  "Es gilt das vollstaendige Regelwerk in `%s`, das neben dieser "
+                  "Datei liegt." % job["rules"]["file"],
+                  "Es beschreibt Moebel-Ersetzung, Bett, Essgruppe, Kueche, TV, "
+                  "Garderobe, Stuff,",
+                  "die vier Stile, die Pruefliste vor der Annahme und die "
+                  "Lieferregeln.", ""]
+        if job["rules"].get("sha256"):
+            lines += ["    sha256 %s" % job["rules"]["sha256"][:16], ""]
+    if job["publish"].get("erst_freigabe"):
+        lines += ["", "## Erste Fassung -- zuerst gemeinsam pruefen", "",
+                  job["publish"]["erst_freigabe"], ""]
+    lines += ["", "## Hochladen -- das machst DU, zum Schluss", "",
+              "Erst wenn alle %d geforderten Bilder im Rueckgabeordner liegen:" % len(job["required_outputs"]),
+              "", "    " + job["publish"]["command"], "", job["publish"]["note"], "",
+              "Fehlt auch nur eines, laedst du NICHT hoch und sagst, welches fehlt "
+              "und warum. Ein unvollstaendiges Paket im Katalog kostet mehr Arbeit "
+              "als gar keines.", ""]
+    return "\n".join(lines)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("plans", nargs="*")
+    parser.add_argument("--all", action="store_true")
+    parser.add_argument("--nur", action="append", default=[],
+                        help="nur Bilder bestellen, deren Dateiname dies enthaelt "
+                             "(mehrfach moeglich), z. B. --nur doppelpult")
+    parser.add_argument("--grund", default="",
+                        help="was sich geaendert hat -- steht im Teilauftrag")
+    parser.add_argument("--trotz-renderer", action="store_true",
+                        help="Auftrag auch aus einem Bau, der nur aelter als der Renderer ist")
+    args = parser.parse_args()
+
+    plans = args.plans
+    if args.all:
+        corrections = os.path.join(DATA, "corrections")
+        plans = sorted(name for name in os.listdir(corrections)
+                       if os.path.isdir(os.path.join(corrections, name, "renders", "go-baseline")))
+    if not plans:
+        sys.exit("name some plans or pass --all")
+
+    written = 0
+    abgelehnt = []
+    for plan in plans:
+        job, folder = build_job(plan, trotz_renderer=args.trotz_renderer)
+        if not job:
+            print("  skip   %-24s %s" % (plan, folder))
+            abgelehnt.append(plan)
+            # Ein alter Auftrag darf nicht stehen bleiben und wie der
+            # aktuelle aussehen (058): umbenennen, nicht loeschen.
+            alt = os.path.join(DATA, "corrections", plan, "renders", "go-baseline")
+            for name in ("codex-job.json", "CODEX-AUFTRAG.md"):
+                pfad = os.path.join(alt, name)
+                if os.path.exists(pfad):
+                    os.replace(pfad, pfad + ".ungueltig")
+                    print("         alter %s -> %s.ungueltig" % (name, name))
+            continue
+        if args.nur:
+            job["required_outputs"] = nur_bestellen(job["required_outputs"], args.nur)
+            job["nur"] = args.nur
+            job["nur_grund"] = args.grund
+            if not any(e.get("state") != "angenommen" for e in job["required_outputs"]):
+                print("  skip   %-24s kein Bild passt zu --nur %s" % (plan, " ".join(args.nur)))
+                continue
+        contract, contract_module = compile_render_contract(job, folder)
+        preflight = contract_module.preflight(contract, folder)
+        if not preflight["ok"]:
+            raise RuntimeError("Render-Preflight fehlgeschlagen: %s"
+                               % ", ".join(preflight["error_codes"]))
+        job["contract"] = {
+            "schema": contract["schema"],
+            "policy_version": contract["policy_version"],
+            "contract_sha256": contract["contract_sha256"],
+            "effective_contract": "effective-contract.json",
+            "preflight": "preflight.json",
+        }
+        with open(os.path.join(folder, "codex-job.json"), "w", encoding="utf-8") as handle:
+            json.dump(job, handle, indent=2, ensure_ascii=False)
+        with open(os.path.join(folder, "effective-contract.json"), "w", encoding="utf-8") as handle:
+            json.dump(contract, handle, indent=2, ensure_ascii=False, sort_keys=True)
+        with open(os.path.join(folder, "preflight.json"), "w", encoding="utf-8") as handle:
+            json.dump(preflight, handle, indent=2, ensure_ascii=False, sort_keys=True)
+        with open(os.path.join(folder, "CODEX-AUFTRAG.md"), "w", encoding="utf-8") as handle:
+            handle.write(render_markdown(job))
+        lieferordner_anlegen(job)
+        # Das Regelwerk kommt als eigene Datei mit, nicht als Verweis auf einen
+        # Pfad, den Codex nicht sieht (Rainer, 2026-08-26).
+        if os.path.exists(REGELWERK):
+            # BYTEWEISE kopieren. Ueber einen Textkanal macht Windows aus jedem
+            # \n ein \r\n -- die Datei neben dem Auftrag haette dann eine andere
+            # sha256 als die im Vertrag genannte, und die Pruefsumme waere
+            # wertlos (gemessen 2026-08-27: 56878715 im Vertrag gegen e2e9a8e3
+            # auf der Platte).
+            shutil.copyfile(REGELWERK, os.path.join(folder, "CODEX-REGELN.md"))
+        print("  ok     %-24s %d Datei(en) -> %s" % (plan, len(job["inputs"]), folder))
+        written += 1
+    print("\n%d Auftrag/Auftraege geschrieben" % written)
+    # Beim gezielten Aufruf (Hausakte, "An Codex") ist ein abgelehnter
+    # Auftrag ein Fehler -- vorher kam Exit 0, und die Seite zeigte Erfolg.
+    if abgelehnt and not args.all:
+        sys.exit(2)
+
+
+if __name__ == "__main__":
+    main()

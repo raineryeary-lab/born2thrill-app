@@ -1,0 +1,4659 @@
+"""Exterior render: solid facade, real roof (concealed flat / true-pitch hip),
+real CG Axis door+window assets, site areas, a hero camera angle. Companion to
+render-furnished-dollhouse.py (interior cutaway). Reads the same plan schema,
+extended with roof_type and exterior_areas (see build-simplifier-render-plan.py).
+
+Roof construction, per corrections from Rainer (2026-08-12):
+  - Flachdach = innenliegendes Flachdach: the exterior walls run 800mm above
+    the ceiling line as a solid parapet; the actual flat roof deck sits
+    recessed behind that parapet, invisible from outside; the parapet top
+    is capped with a thin dark-metal Blechabdeckung strip.
+  - Walmdach/Satteldach: a true symmetric hip/gable at a fixed 22 degree
+    pitch on every slope (rise = half the short span * tan(22 deg), which
+    is also what keeps the hip corners a clean 45 degree mitre).
+  - Door/window openings get real CG Axis Hub-library models, not boxes.
+
+Usage:
+  blender --background --python render-exterior.py -- <plan.json> <out.png>
+"""
+import bmesh
+import bpy
+import json
+import math
+import mathutils
+import os
+import sys
+
+MM = 0.001
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+# bpypolyskel (github.com/prochitecture/bpypolyskel, cloned locally into
+# scripts/bpypolyskel by Rainer): a straight-skeleton implementation that
+# turns an arbitrary building footprint polygon straight into a correct
+# hipped/gabled roof mesh, valleys and all. Replaces the earlier rectangle-
+# decomposition roof (independent ridge heights per piece -> looked like
+# stacked separate roofs at every wing boundary).
+sys.path.insert(0, os.path.join(HERE, "bpypolyskel"))
+from bpypolyskel import bpypolyskel as polyskel  # noqa: E402
+sys.path.insert(0, HERE)
+import roof_profile  # noqa: E402
+import roof_wings  # noqa: E402
+import ueberdachung  # noqa: E402
+
+plan_path = sys.argv[sys.argv.index("--") + 1]
+out_path = sys.argv[sys.argv.index("--") + 2]
+plan = json.load(open(plan_path, encoding="utf-8-sig"))
+# Every storey, not just the ground floor. `plan["floors"][0]` was written
+# against bungalow_040_66 — a bungalow, where floor zero IS the house — so a
+# two-storey came out as a bungalow with the upper floor missing entirely
+# (Rainer, 2026-08-16: "it is actually 2 story").
+#
+# The ground floor still defines the footprint and the wall loop; each
+# additional storey raises the eave by one storey height and contributes its
+# own openings at its own level.
+floors = plan["floors"] or []
+floor = floors[0]
+STOREY_COUNT = max(1, len(floors))
+# A missing roof type is not a flat roof -- it is a house nobody has decided
+# the roof of. The fallback stays (refusing here would stop every build), but
+# it says so now instead of pretending.
+roof_type = plan.get("roof_type")
+if not roof_type:
+    roof_type = "flachdach"
+    print("[exterior] ACHTUNG: keine Dachform annotiert (roof_type fehlt) -- "
+          "es wird ersatzweise ein FLACHDACH gebaut. Fuer ein Haus mit "
+          "Dachgeschoss ist das falsch.")
+# One plan, up to 4 roof-form exteriors: the plan's wall/material content
+# does not vary by roof (roof geometry is a late, separate build step
+# below), so run_project.py renders this same plan four times with this
+# override instead of building four separate plans (Rainer, 2026-09-15:
+# "not just 2 exteriors but all 4" -- flachdach, walmdach, satteldach,
+# pultdach). Same idiom as DMH_CAMERA_STYLE/DMH_FLAT_CUT elsewhere.
+# "satteldach-kubus" = Satteldach, Zwerchhaus als Kubus mit Flachdach (moderne
+# 1,5-Geschosser-Variante, anderthalb-zwerchkubus-modern-v1).
+import anderthalb  # noqa: E402
+AH_ZWERCH_FORM = "giebel"
+if os.environ.get("EXT_ROOF_TYPE"):
+    roof_type, AH_ZWERCH_FORM = anderthalb.dachform_und_zwerch(os.environ["EXT_ROOF_TYPE"])
+    print("[exterior] Dachform         %s (aus EXT_ROOF_TYPE)%s"
+          % (roof_type, "  Zwerchhaus: KUBUS mit Flachdach" if AH_ZWERCH_FORM == "kubus" else ""))
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+scene = bpy.context.scene
+
+
+def collection(name):
+    if name in bpy.data.collections:
+        return bpy.data.collections[name]
+    coll = bpy.data.collections.new(name)
+    scene.collection.children.link(coll)
+    return coll
+
+
+def flat(name, color, roughness=0.6, metallic=0.0):
+    mat = bpy.data.materials.new(name)
+    mat.use_nodes = True
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (*color, 1.0)
+    bsdf.inputs["Roughness"].default_value = roughness
+    if "Metallic" in bsdf.inputs:
+        bsdf.inputs["Metallic"].default_value = metallic
+    return mat
+
+
+def box(name, location, dimensions, angle, material, into="Exterior"):
+    mesh = bpy.data.meshes.new(f"{name}-mesh")
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(name, mesh)
+    collection(into).objects.link(obj)
+    obj.scale = (dimensions[0], dimensions[1], dimensions[2])
+    obj.location = location
+    obj.rotation_euler = (0, 0, angle)
+    if material:
+        obj.data.materials.append(material)
+    return obj
+
+
+def bake_modifiers(obj):
+    """Evaluate obj's modifier stack via the depsgraph and swap the result
+    straight into its mesh, without bpy.ops.object.modifier_apply — that
+    operator's poll fails outside a live 3D viewport context (confirmed: it
+    throws when this script runs under a plain GUI launch, not just
+    --background)."""
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    eval_obj = obj.evaluated_get(depsgraph)
+    mesh = bpy.data.meshes.new_from_object(eval_obj)
+    old_mesh = obj.data
+    obj.modifiers.clear()
+    obj.data = mesh
+    bpy.data.meshes.remove(old_mesh)
+
+
+def end_extension_mm(endpoint, outward, own, all_walls):
+    """How far one wall END may extend ALONG ITS OWN AXIS: to the far face
+    of whatever wall it meets there, and not a millimetre further. Ported
+    verbatim from render-furnished-dollhouse.py's _end_extension_mm -- that
+    function is what fixed the exact same "boxes just butt together at the
+    corner" problem for the interior walls (task: outer wall corners
+    missing/wrong). Building each exterior wall as an independent box with a
+    flat +thickness pad at both ends (the previous approach here) never
+    mitres the corner; this extends each end exactly to the far face of
+    whatever wall it meets, so adjacent wall bodies properly overlap instead
+    of leaning against each other."""
+    ex, ey = endpoint
+    best = 0.0
+    for other in all_walls:
+        if other is own:
+            continue
+        sx, sy = other["start_mm"]
+        tx, ty = other["end_mm"]
+        seg = math.hypot(tx - sx, ty - sy)
+        if not seg:
+            continue
+        t = max(0.0, min(1.0, ((ex - sx) * (tx - sx) + (ey - sy) * (ty - sy)) / seg ** 2))
+        px, py = sx + t * (tx - sx), sy + t * (ty - sy)
+        dist = math.hypot(ex - px, ey - py)
+        touch = (own["thickness_mm"] + other["thickness_mm"]) / 2 + 5
+        if dist > touch:
+            continue
+        nx, ny = -(ty - sy) / seg, (tx - sx) / seg
+        side = (ex - sx) * nx + (ey - sy) * ny
+        if side < 0:
+            nx, ny, side = -nx, -ny, -side
+        # `side` is the distance from OUR endpoint to the other wall's line,
+        # measured after flipping the normal to face us -- but AT A CORNER
+        # our endpoint sits exactly ON that line (side == 0 there, always),
+        # so the flip has nothing to correct with and nx,ny is left however
+        # `other`'s own start->end drawing direction happened to orient it.
+        # `approach` (the alignment of our own outward direction with that
+        # arbitrary normal) then flips sign corner to corner depending only
+        # on that drawing direction -- NOT on whether the corner is convex
+        # or reflex. Verified by hand on WB_125's L-notch (Rainer, "the roof
+        # also has to be in the corner of the L you cant leave it empty"):
+        # a genuine convex corner of this same building gives approach=+1
+        # and mitres correctly (reach=130mm), while the reflex corner gives
+        # approach=-1 for BOTH walls that meet there and -- because of the
+        # `approach < 0.2` guard below -- gets skipped entirely, leaving
+        # zero mitre extension on either side: the two wall boxes only
+        # touch at a single point instead of overlapping, a real gap right
+        # at the L's notch. Using the magnitude fixes the reflex case and
+        # leaves every convex corner's own reach calculation unchanged
+        # (abs(+1) == +1).
+        approach = -(outward[0] * nx + outward[1] * ny)
+        if abs(approach) < 0.2:
+            continue
+        # CODEX-EXPORT-001 F4: +10 stand 10 mm vor der Fassade -- an jeder
+        # Ecke eine senkrechte Rippe ueber die volle Hoehe. +1 mm bleibt
+        # unter einem Pixel und haelt die Flaechen trotzdem nicht koplanar
+        # (EXACT-Union).
+        reach = (side + other["thickness_mm"] / 2) / abs(approach) + 1
+        best = max(best, min(reach, other["thickness_mm"] + own["thickness_mm"]))
+    if best:
+        return best
+
+    # COLLINEAR continuation. The loop above only handles walls that MEET at
+    # an angle: for a neighbour running along the same line, its normal is
+    # perpendicular to `outward`, so `approach` is ~0 and the wall is skipped
+    # -- the two boxes then butt edge-to-edge with exactly coincident faces.
+    # Joined and booleaned, the EXACT solver leaves a seam there, which reads
+    # as a full-height slot down the facade (Rainer, 2026-08-17: "why is
+    # there a hole in the wall") -- the same coincident-face failure family
+    # as the window cutters and the sink cutout. Overlapping by half the wall
+    # thickness removes the coincidence entirely.
+    own_len = math.hypot(own["end_mm"][0] - own["start_mm"][0],
+                         own["end_mm"][1] - own["start_mm"][1]) or 1.0
+    own_dir = ((own["end_mm"][0] - own["start_mm"][0]) / own_len,
+               (own["end_mm"][1] - own["start_mm"][1]) / own_len)
+    for other in all_walls:
+        if other is own:
+            continue
+        seg = math.hypot(other["end_mm"][0] - other["start_mm"][0],
+                         other["end_mm"][1] - other["start_mm"][1])
+        if not seg:
+            continue
+        other_dir = ((other["end_mm"][0] - other["start_mm"][0]) / seg,
+                     (other["end_mm"][1] - other["start_mm"][1]) / seg)
+        if abs(own_dir[0] * other_dir[0] + own_dir[1] * other_dir[1]) < 0.98:
+            continue
+        for corner in (other["start_mm"], other["end_mm"]):
+            if math.hypot(corner[0] - endpoint[0], corner[1] - endpoint[1]) <= 50:
+                return own["thickness_mm"] / 2
+    return 0.0
+
+
+def apply_boolean_difference(obj, cutter):
+    modifier = obj.modifiers.new("cut", "BOOLEAN")
+    modifier.operation = "DIFFERENCE"
+    modifier.solver = "EXACT"
+    modifier.object = cutter
+    bake_modifiers(obj)
+
+
+def union_objects(objects, name):
+    """Boolean-union a list of solids into one object, so a multi-wing roof
+    reads as one continuous mass instead of overlapping shells."""
+    if not objects:
+        return None
+    base = objects[0]
+    base.name = name
+    for other in objects[1:]:
+        modifier = base.modifiers.new("union", "BOOLEAN")
+        modifier.operation = "UNION"
+        modifier.solver = "EXACT"
+        modifier.object = other
+        bake_modifiers(base)
+        bpy.data.objects.remove(other, do_unlink=True)
+    return base
+
+
+def join_objects(objects, name):
+    """Merge a list of solids into one object by a plain mesh JOIN -- no
+    boolean, no EXACT solver. Rainer, 2026-09-22: the boolean union broke
+    for a multi-wing roof's WALL pieces the same way it broke for the
+    roof sheet ("3 roofs in one ... 90 degrees from each other"); the wing
+    wall prisms never actually overlap each other in 3D (each wing's
+    gable/soffit/long-wall stands on that wing's OWN, non-overlapping
+    footprint), so there is nothing for a boolean to carve -- a join is
+    simpler and cannot produce the solver's self-intersection artifacts."""
+    if not objects:
+        return None
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in objects:
+        obj.select_set(True)
+    bpy.context.view_layer.objects.active = objects[0]
+    if len(objects) > 1:
+        bpy.ops.object.join()
+    base = bpy.context.active_object
+    base.name = name
+    return base
+
+
+# ------------------------------------------------------- footprint massing
+# The exterior wall list is an unordered bag of segments -- real footprints
+# are rarely a single rectangle (this one is a main wing + a corridor + two
+# smaller wings flanking an open carport notch), so a roof built from the
+# overall bounding box floats over voids and collapses hips into a false
+# pyramid on anything close to square. Trace the real wall loop, then chop
+# it into the rectangles that actually have a wall underneath, and roof each
+# one on its own.
+
+def trace_wall_loops(walls, tol=0.4):
+    segments = [((w["start_mm"][0] * MM, w["start_mm"][1] * MM),
+                 (w["end_mm"][0] * MM, w["end_mm"][1] * MM)) for w in walls]
+    n = len(segments)
+    endpoints = []
+    for i, (a, b) in enumerate(segments):
+        endpoints.append((i, 0, a))
+        endpoints.append((i, 1, b))
+
+    def find_match(point, exclude):
+        best, best_d = None, tol
+        for (i, e, p) in endpoints:
+            if i == exclude:
+                continue
+            d = math.hypot(point[0] - p[0], point[1] - p[1])
+            if d < best_d:
+                best_d, best = d, (i, e)
+        return best
+
+    visited = set()
+    loops = []
+    for start in range(n):
+        if start in visited:
+            continue
+        loop_pts, chain = [], []
+        cur, cur_end = start, 1
+        for _ in range(n + 2):
+            a, b = segments[cur]
+            far_point = b if cur_end == 1 else a
+            near_point = a if cur_end == 1 else b
+            loop_pts.append(near_point)
+            chain.append(cur)
+            match = find_match(far_point, cur)
+            if match is None:
+                loop_pts.append(far_point)
+                break
+            nxt, nxt_end = match
+            if nxt == start and len(chain) > 1:
+                loop_pts.append(far_point)
+                break
+            cur, cur_end = nxt, 1 - nxt_end
+        for i in chain:
+            visited.add(i)
+        if len(loop_pts) >= 3:
+            loops.append(loop_pts)
+    return loops
+
+
+def polygon_area(poly):
+    total = 0.0
+    for i in range(len(poly)):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % len(poly)]
+        total += x1 * y2 - x2 * y1
+    return abs(total) / 2
+
+
+def point_in_polygon(x, y, poly):
+    inside = False
+    n = len(poly)
+    j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]
+        xj, yj = poly[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def cluster_coords(values, tol):
+    values = sorted(values)
+    groups = [[values[0]]]
+    for v in values[1:]:
+        if v - groups[-1][-1] <= tol:
+            groups[-1].append(v)
+        else:
+            groups.append([v])
+    return [sum(g) / len(g) for g in groups]
+
+
+def regularize_loop(loop, tol=0.35):
+    """Ein getracter Wandumriss, auf saubere Achsen gebracht.
+
+    trace_wall_loops() faedelt die ENDPUNKTE der Waende auf. Stossen zwei
+    Waende nicht exakt aufeinander -- nach der Geschoss-Registrierung fehlt
+    an den Ecken je eine halbe Wandstaerke -- ergibt das ein leicht
+    ausgefranstes Polygon. decompose_rectangles() legt dann das groesste
+    EINGESCHRIEBENE Rechteck hinein, und das Dach faellt kleiner aus als
+    das Geschoss darunter: gemessen an onehalfstorey_029 8.59 x 9.38 m Dach
+    ueber 8.69 x 9.52 m Obergeschoss -- Waende ragen an den Ecken heraus,
+    das Dach wirkt zerstueckelt (Rainer, 2026-08-23: "the corners in the
+    upper floor are not correct they are causing a fragmented roof").
+
+    Hier werden fast gleiche x- bzw. y-Werte zu EINEM Wert zusammengezogen
+    (Mittelwert der Gruppe) und danach doppelte/kollineare Punkte entfernt.
+    Aus vier ausgefransten Ecken wird wieder ein Rechteck.
+    """
+    if len(loop) < 3:
+        return loop
+
+    def cluster(values):
+        zuordnung = {}
+        for wert in sorted(set(values)):
+            treffer = next((mittel for mittel in zuordnung if abs(mittel - wert) <= tol), None)
+            if treffer is None:
+                zuordnung[wert] = [wert]
+            else:
+                zuordnung[treffer].append(wert)
+        fest = {}
+        for mittel, gruppe in zuordnung.items():
+            ziel = sum(gruppe) / len(gruppe)
+            for wert in gruppe:
+                fest[wert] = ziel
+        return fest
+
+    fx = cluster([p[0] for p in loop])
+    fy = cluster([p[1] for p in loop])
+    punkte = [(fx[p[0]], fy[p[1]]) for p in loop]
+
+    entdoppelt = []
+    for punkt in punkte:
+        if not entdoppelt or math.dist(punkt, entdoppelt[-1]) > 1e-6:
+            entdoppelt.append(punkt)
+    if len(entdoppelt) > 1 and math.dist(entdoppelt[0], entdoppelt[-1]) <= 1e-6:
+        entdoppelt.pop()
+
+    sauber = []
+    anzahl = len(entdoppelt)
+    for index in range(anzahl):
+        vorher = entdoppelt[(index - 1) % anzahl]
+        hier = entdoppelt[index]
+        nachher = entdoppelt[(index + 1) % anzahl]
+        kreuz = ((hier[0] - vorher[0]) * (nachher[1] - hier[1])
+                 - (hier[1] - vorher[1]) * (nachher[0] - hier[0]))
+        if abs(kreuz) > 1e-9:
+            sauber.append(hier)
+    return sauber if len(sauber) >= 3 else entdoppelt
+
+
+def decompose_rectangles(poly, tol=0.3):
+    """Grid/scanline decomposition of an (approximately) orthogonal polygon
+    into its maximal axis-aligned rectangles."""
+    xs = cluster_coords([p[0] for p in poly], tol)
+    ys = cluster_coords([p[1] for p in poly], tol)
+    cells = []
+    for i in range(len(xs) - 1):
+        for j in range(len(ys) - 1):
+            cx, cy = (xs[i] + xs[i + 1]) / 2, (ys[j] + ys[j + 1]) / 2
+            if point_in_polygon(cx, cy, poly):
+                cells.append((xs[i], xs[i + 1], ys[j], ys[j + 1]))
+    rows = {}
+    for x0, x1, y0, y1 in cells:
+        rows.setdefault((y0, y1), []).append((x0, x1))
+    row_rects = []
+    for (y0, y1), xr in rows.items():
+        xr.sort()
+        merged = []
+        for x0, x1 in xr:
+            if merged and abs(merged[-1][1] - x0) < 1e-6:
+                merged[-1] = (merged[-1][0], x1)
+            else:
+                merged.append((x0, x1))
+        for x0, x1 in merged:
+            row_rects.append([x0, x1, y0, y1])
+    used = [False] * len(row_rects)
+    final = []
+    for i, r in enumerate(row_rects):
+        if used[i]:
+            continue
+        x0, x1, y0, y1 = r
+        used[i] = True
+        changed = True
+        while changed:
+            changed = False
+            for j, r2 in enumerate(row_rects):
+                if used[j]:
+                    continue
+                x0b, x1b, y0b, y1b = r2
+                if abs(x0b - x0) < 1e-6 and abs(x1b - x1) < 1e-6 and abs(y0b - y1) < 1e-6:
+                    y1, used[j], changed = y1b, True, True
+        final.append((x0, x1, y0, y1))
+    return final
+
+
+def snap_wings_to_real_walls(wings, walls, tol=0.35):
+    """Correct each wing rectangle's own boundary coordinates to the exact
+    REAL wall centreline nearest it, undoing the small-jog averaging
+    `regularize_loop()` applies before `decompose_rectangles()` ever sees
+    the footprint.
+
+    Rainer, 2026-10-01, on the chevron gable walls (`ROOF-SWEEP-
+    CONSTRUCTOR-001`): "every gable wall ... they have too be just in the
+    footprint of the floorplan ... they look like somebody fixed the house
+    after a hurricane" -- traced to gable walls built straight from
+    `massing_rects`'s own corner, not the real wall. `regularize_loop()`
+    deliberately clusters near-equal x/y values (its own `tol=0.35`) into
+    ONE averaged line before decomposition -- the right call for the ROOF's
+    own shape (`chevron_roof_construction()`'s own docstring: "no wall or
+    eave feature at the valley to misalign with"), since a small jog in the
+    footprint doesn't need its own tiny roof step. But a GABLE WALL is a
+    real, visible wall, and it must stand on the one real wall that's
+    actually there, not an average of two nearby real ones a few
+    centimetres apart -- confirmed concretely on `german_catalog_review_
+    bungalow_4_3_1_wb_125`: its real west wall jogs from x=1.409m to
+    x=1.452m partway up, and the massing rectangle's own west edge (1.48m)
+    matches NEITHER real wall.
+
+    For each of a wing's 4 boundary values, this looks for the REAL wall
+    segment (from the same raw `exterior_walls` list `trace_wall_loops()`
+    reads, before any regularizing) that is axis-aligned the right way,
+    within `tol` of the massing value (the same clustering tolerance
+    `regularize_loop()` itself uses, so this only ever corrects jogs that
+    tolerance already considered "the same wall"), and overlaps this wing's
+    own perpendicular extent the most -- then snaps to THAT wall's own
+    exact coordinate. A wing edge with no matching real wall nearby (an
+    internal massing split with no real wall under it at all, e.g. the
+    valley between two wings) is left exactly as `decompose_rectangles()`
+    produced it -- there is no real wall there to snap to in the first
+    place, and that edge was never used to build a gable wall anyway, only
+    the roof surface's own mitering."""
+    v_walls, h_walls = [], []
+    for w in walls:
+        sx, sy = w["start_mm"][0] * MM, w["start_mm"][1] * MM
+        ex, ey = w["end_mm"][0] * MM, w["end_mm"][1] * MM
+        if abs(sx - ex) < 1e-6 and abs(sy - ey) > 1e-6:
+            v_walls.append((sx, min(sy, ey), max(sy, ey)))
+        elif abs(sy - ey) < 1e-6 and abs(sx - ex) > 1e-6:
+            h_walls.append((sy, min(sx, ex), max(sx, ex)))
+
+    def snap(value, candidates, lo, hi):
+        best, best_overlap = value, 0.0
+        for coord, c0, c1 in candidates:
+            if abs(coord - value) > tol:
+                continue
+            overlap = min(hi, c1) - max(lo, c0)
+            if overlap > best_overlap:
+                best_overlap, best = overlap, coord
+        return best
+
+    snapped = []
+    for x0, x1, y0, y1 in wings:
+        snapped.append((snap(x0, v_walls, y0, y1), snap(x1, v_walls, y0, y1),
+                        snap(y0, h_walls, x0, x1), snap(y1, h_walls, x0, x1)))
+    return snapped
+
+
+def signed_polygon_area(poly):
+    total = 0.0
+    for i in range(len(poly)):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % len(poly)]
+        total += x1 * y2 - x2 * y1
+    return total / 2
+
+
+def offset_orthogonal_polygon(poly, offset):
+    """Outward offset for a rectilinear (axis-aligned-edges) CCW polygon --
+    every edge here is horizontal or vertical, so each vertex just moves
+    diagonally by the sum of its two adjacent edges' outward unit normals,
+    which is exact at a 90 degree corner (convex or reflex)."""
+    n = len(poly)
+
+    def outward_normal(i):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        dx, dy = x2 - x1, y2 - y1
+        length = math.hypot(dx, dy) or 1.0
+        return dy / length, -dx / length
+
+    result = []
+    for i in range(n):
+        nx1, ny1 = outward_normal((i - 1) % n)
+        nx2, ny2 = outward_normal(i)
+        x, y = poly[i]
+        result.append((x + (nx1 + nx2) * offset, y + (ny1 + ny2) * offset))
+    return result
+
+
+def merge_roof_massing(rects, waste_ratio=0.35):
+    """The grid decomposition is exact but over-eager: a single simple wing
+    routinely comes back as two or three slightly different-width strips
+    because some UNRELATED coordinate elsewhere in the polygon added a grid
+    line through it -- each strip then gets its own independently-pitched
+    hip roof at a different ridge height, and the union reads as a stepped
+    stack of separate roofs instead of one wing. Greedily re-merge any two
+    pieces whose combined bounding box only adds a small sliver of area
+    neither piece actually covers (a real gap -- the carport notch, a
+    corridor -- adds a lot; a stray grid line adds almost none)."""
+    rects = list(rects)
+    while True:
+        best = None
+        best_waste = waste_ratio
+        for i in range(len(rects)):
+            for j in range(i + 1, len(rects)):
+                x0a, x1a, y0a, y1a = rects[i]
+                x0b, x1b, y0b, y1b = rects[j]
+                area_a = (x1a - x0a) * (y1a - y0a)
+                area_b = (x1b - x0b) * (y1b - y0b)
+                ux0, ux1 = min(x0a, x0b), max(x1a, x1b)
+                uy0, uy1 = min(y0a, y0b), max(y1a, y1b)
+                union_area = (ux1 - ux0) * (uy1 - uy0)
+                waste = (union_area - area_a - area_b) / min(area_a, area_b)
+                if waste < best_waste:
+                    best_waste, best = waste, (i, j, (ux0, ux1, uy0, uy1))
+        if best is None:
+            return rects
+        i, j, merged = best
+        rects = [r for k, r in enumerate(rects) if k not in (i, j)] + [merged]
+
+
+def recalc_normals(mesh):
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+
+
+def mesh_island_count(mesh):
+    """How many disconnected pieces does this mesh's vertex/edge graph
+    have? Used as a real, post-build safety check (not another guess) --
+    see weld_and_recalc_normals()'s caller."""
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.verts.ensure_lookup_table()
+    visited = set()
+    islands = 0
+    for v in bm.verts:
+        if v.index in visited:
+            continue
+        islands += 1
+        stack = [v]
+        while stack:
+            cur = stack.pop()
+            if cur.index in visited:
+                continue
+            visited.add(cur.index)
+            for e in cur.link_edges:
+                other = e.other_vert(cur)
+                if other.index not in visited:
+                    stack.append(other)
+    bm.free()
+    return islands
+
+
+def mesh_has_self_intersections(mesh, epsilon=1e-4):
+    """Does this mesh have any two non-adjacent faces that actually cross in
+    3D? `mesh_island_count()` above only ever caught a DISCONNECTED cap (the
+    two halves falling apart); it says nothing about a cap that stays
+    perfectly connected to the surface but still overlaps/crosses it --
+    exactly what happened on WB_125's Versetztes-Pultdach-auf-L rebuild
+    (2026-09-24): Rainer's own Blender screenshot, from the far side of the
+    house, showed real crossing facets that never showed up in the hero
+    camera's render, `mesh_island_count()` (still 1 island, welding worked
+    fine), or any of the ray-cast/coverage checks used earlier that day --
+    none of those check for self-intersection, only for holes or
+    disconnection. Root-caused down to a handful of degenerate faces (traced
+    with a real bmesh.bvhtree overlap query, not by guessing from
+    screenshots) but not fully explained -- rather than keep guessing why
+    `gable_cap_polygon()`'s triangulation occasionally goes wrong on this
+    profile shape, this is the same "verify, don't guess" principle
+    `mesh_island_count()` already established, extended to catch the actual
+    failure mode this time: a real, cheap post-build check using Blender's
+    own BVH tree, so a bad cap falls back to SOLIDIFY's own rim-fill
+    automatically instead of ever shipping crossing geometry."""
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bm.faces.ensure_lookup_table()
+    try:
+        bvh = mathutils.bvhtree.BVHTree.FromBMesh(bm, epsilon=epsilon)
+        for i, j in bvh.overlap(bvh):
+            if i >= j:
+                continue
+            vi = {v.index for v in bm.faces[i].verts}
+            vj = {v.index for v in bm.faces[j].verts}
+            if vi & vj:
+                continue  # adjacent faces sharing a vertex/edge -- not a crossing
+            return True
+        return False
+    finally:
+        bm.free()
+
+
+def weld_and_recalc_normals(mesh, dist=1e-4):
+    """Like recalc_normals(), but first merges vertices that sit at the
+    same position -- for a mesh assembled from more than one source
+    (the height-field grid plus its own explicit gable caps, added
+    separately with their own new, coincident-but-unconnected vertices):
+    without this, the two pieces touch geometrically but never share an
+    edge, so `roof-pitch` comes out as several disconnected islands
+    instead of one continuous surface."""
+    bm = bmesh.new()
+    bm.from_mesh(mesh)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=dist)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    bm.to_mesh(mesh)
+    bm.free()
+
+
+def polygon_prism(name, points_mm, z0, z1, material, into="Exterior"):
+    """A vertical-walled solid from a 2D polygon, extruded z0..z1."""
+    verts_bottom = [(p[0] * MM, p[1] * MM, z0) for p in points_mm]
+    verts_top = [(p[0] * MM, p[1] * MM, z1) for p in points_mm]
+    verts = verts_bottom + verts_top
+    n = len(points_mm)
+    faces = [list(range(n)), [n + i for i in reversed(range(n))]]
+    for i in range(n):
+        j = (i + 1) % n
+        faces.append([i, j, n + j, n + i])
+    mesh = bpy.data.meshes.new(f"{name}-mesh")
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    recalc_normals(mesh)
+    obj = bpy.data.objects.new(name, mesh)
+    collection(into).objects.link(obj)
+    if material:
+        obj.data.materials.append(material)
+    return obj
+
+
+def gelaende_hoehe(x, y, gelaende, haus_bbox):
+    """Height in metres, clamped to facade-line plateaus."""
+    if gelaende.get("art") != "hang":
+        return -0.16
+    dx, dy = gelaende["richtung"]
+    # The area centroids select the facing facade pair. An offset driveway
+    # must not tilt the street plateau across that facade (060 acceptance).
+    if abs(dx) > abs(dy):
+        dx, dy = math.copysign(1.0, dx), 0.0
+    else:
+        dx, dy = 0.0, math.copysign(1.0, dy)
+    x0, y0, x1, y1 = haus_bbox
+    projections = [px*dx+py*dy for px,py in [(x0,y0),(x1,y0),(x1,y1),(x0,y1)]]
+    start, end = min(projections), max(projections)
+    t = max(0.0, min(1.0, (x*dx+y*dy-start)/max(end-start, 1e-9)))
+    return gelaende["oben_z_m"]*(1-t)+gelaende["unten_z_m"]*t
+
+
+def gelaende_warnungen(gelaende, haus_bbox, openings, areas):
+    if gelaende.get("art") != "hang":
+        return []
+    warnings = []
+    for o in openings:
+        if gelaende_hoehe(o["x"],o["y"],gelaende,haus_bbox)-o["z"] > 0.1:
+            warnings.append("WARNUNG Fenster/Tuer im Erdreich: " + str(o["id"]))
+    for a in areas:
+        if any(abs(a["base_z_m"]-gelaende_hoehe(x/1000,y/1000,gelaende,haus_bbox)) > .15 for x,y in a["points_mm"]):
+            warnings.append("WARNUNG Aussenflaeche " + str(a["id"]) + " liegt im Hang")
+    return warnings
+
+
+def gelaende_gitter(gelaende, haus_bbox, outlines, pad, step=.5):
+    """Regular mesh with facade/outline coordinates inserted; no boolean."""
+    x0,y0,x1,y1 = haus_bbox
+    def axis(lo, hi, extra):
+        count = math.ceil((hi-lo)/step)
+        return sorted(set([lo+i*(hi-lo)/count for i in range(count+1)]+extra))
+    xs = axis(x0-pad,x1+pad,[p[0] for poly in outlines for p in poly])
+    ys = axis(y0-pad,y1+pad,[p[1] for poly in outlines for p in poly])
+    def inside(x,y,poly):
+        result=False
+        for (ax,ay),(bx,by) in zip(poly,poly[1:]+poly[:1]):
+            if (ay>y)!=(by>y) and x<(bx-ax)*(y-ay)/(by-ay)+ax:
+                result=not result
+        return result
+    verts=[(x,y,gelaende_hoehe(x,y,gelaende,haus_bbox)) for y in ys for x in xs]
+    faces=[]; n=len(xs)
+    for j in range(len(ys)-1):
+        for i in range(n-1):
+            x=(xs[i]+xs[i+1])/2; y=(ys[j]+ys[j+1])/2
+            if any(inside(x,y,poly) for poly in outlines):
+                continue
+            a=j*n+i; faces.append((a,a+1,a+n+1,a+n))
+    return verts, faces
+
+
+def flat_polygon(name, points_mm, z, material, into="Exterior"):
+    verts = [(p[0] * MM, p[1] * MM, z) for p in points_mm]
+    mesh = bpy.data.meshes.new(f"{name}-mesh")
+    mesh.from_pydata(verts, [], [list(range(len(verts)))])
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    collection(into).objects.link(obj)
+    if material:
+        obj.data.materials.append(material)
+    return obj
+
+
+# ------------------------------------------------------- Hub asset import
+# Ported from render-furnished-dollhouse.py's import_model/rest_on_floor:
+# the Hub .blend library holds assets at three different authoring scales
+# (mostly 2.54x, i.e. inches read as Blender units), and a handful bundle a
+# leftover reference "Cube" with a bare "Material" that must not be joined
+# into the real mesh.
+
+def _object_extent(obj):
+    lo = [math.inf] * 3
+    hi = [-math.inf] * 3
+    for corner in obj.bound_box:
+        world = obj.matrix_world @ mathutils.Vector(corner)
+        for axis in range(3):
+            lo[axis] = min(lo[axis], world[axis])
+            hi[axis] = max(hi[axis], world[axis])
+    return [hi[a] - lo[a] for a in range(3)]
+
+
+def import_model(filepath, divisor=1.0, target_mm=None):
+    before = set(bpy.data.objects.keys())
+    lowered = filepath.lower()
+    if lowered.endswith(".blend"):
+        with bpy.data.libraries.load(filepath, link=False) as (source, target):
+            target.objects = list(source.objects)
+        for obj in target.objects:
+            if obj is not None:
+                bpy.context.scene.collection.objects.link(obj)
+        bpy.context.view_layer.update()
+    elif lowered.endswith(".fbx"):
+        bpy.ops.import_scene.fbx(filepath=filepath)
+    else:
+        bpy.ops.import_scene.gltf(filepath=filepath)
+    imported_names = set(bpy.data.objects.keys()) - before
+
+    mesh_names = [n for n in imported_names if bpy.data.objects[n].type == "MESH"]
+
+    junk_names = []
+    for name in mesh_names:
+        obj = bpy.data.objects[name]
+        mats = [m.name if m else None for m in obj.data.materials]
+        if obj.name.split(".")[0] == "Cube" and mats == ["Material"]:
+            junk_names.append(name)
+    if junk_names:
+        for name in junk_names:
+            bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+        mesh_names = [n for n in mesh_names if n not in junk_names]
+        imported_names = imported_names - set(junk_names)
+
+    if lowered.endswith(".blend") and divisor and target_mm:
+        limit = (max(target_mm) / 1000.0) * 2.0
+        kept = []
+        for name in mesh_names:
+            extent = [v / divisor for v in _object_extent(bpy.data.objects[name])]
+            if max(extent) > limit:
+                continue
+            kept.append(name)
+        if kept:
+            for name in set(mesh_names) - set(kept):
+                if name in bpy.data.objects:
+                    bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+            imported_names = imported_names - (set(mesh_names) - set(kept))
+            mesh_names = kept
+    if not mesh_names:
+        for name in imported_names:
+            if name in bpy.data.objects:
+                bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+        return None
+
+    bpy.ops.object.select_all(action="DESELECT")
+    for name in mesh_names:
+        bpy.data.objects[name].select_set(True)
+    bpy.context.view_layer.objects.active = bpy.data.objects[mesh_names[0]]
+    if len(mesh_names) > 1:
+        bpy.ops.object.join()
+    obj = bpy.context.active_object
+
+    for name in imported_names:
+        if name in bpy.data.objects and bpy.data.objects[name] is not obj:
+            bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
+
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+
+    if divisor and divisor != 1.0:
+        obj.scale = (1.0 / divisor, 1.0 / divisor, 1.0 / divisor)
+        bpy.context.view_layer.update()
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return obj
+
+
+def local_dimensions(obj):
+    coords = [mathutils.Vector(c) for c in obj.bound_box]
+    mins = mathutils.Vector((min(c.x for c in coords), min(c.y for c in coords), min(c.z for c in coords)))
+    maxs = mathutils.Vector((max(c.x for c in coords), max(c.y for c in coords), max(c.z for c in coords)))
+    return mins, maxs, (maxs - mins)
+
+
+def rest_on_floor(obj):
+    mins, maxs, _ = local_dimensions(obj)
+    offset = mathutils.Vector(((mins.x + maxs.x) / 2, (mins.y + maxs.y) / 2, mins.z))
+    for vertex in obj.data.vertices:
+        vertex.co -= offset
+    obj.data.update()
+    return obj
+
+
+WINDOW_ASSET_SMALL = {
+    "path": r"E:\_models_hub\_extracted\Metal_Window_1180mm_x_1260mm_BLEND\Metal Window 1180mm x 1260mm.blend",
+    "divisor": 2.54,
+    "size_mm": (1184, 109, 1260),
+}
+WINDOW_ASSET_LARGE = {
+    "path": r"E:\_models_hub\_extracted\Metal_Window_1770mm_x_1800mm_BLEND\Metal Window 1770mm x 1800mm.blend",
+    "divisor": 2.54,
+    "size_mm": (1774, 109, 1800),
+}
+
+# Real front-door model for the MAIN ENTRANCE only -- Rainer, 2026-09-07:
+# "could we use a front door model and leave it closed?" The Hub's "Metal
+# Front Door" family (7961/7962/7968/7976) was rejected once before (2026-
+# 08-22, model 7968: "you also cut the front door, why?") because its
+# materials carry Metallic=0.0 on a near-black flat colour despite the name
+# -- not a missing/broken texture link like the oven fix, just authored
+# without one, so there is nothing to relink. 7961 checked visually with
+# Metallic manually raised: a clean modern black security-door look, real
+# proportions confirmed by measuring the actual mesh after the standard Hub
+# divisor (2.54, same unit mismatch as every other CGaxis asset tonight):
+# 1813x572x2180mm. Fixed here via FRONT_DOOR_METALLIC_FIX below, the same
+# place get_asset_template() already clamps window Specular.
+#
+# Scoped to `role == "main_entrance"` only (see the door-building call site)
+# -- other exterior door openings (terrace doors etc.) keep the existing
+# procedural build_front_door(), unchanged.
+# Rainer, 2026-09-25: "use our newer front door closed and antrazit" --
+# checked all 4 "Metal Front Door" models in the Hub (7961/7962/7968/7976):
+# same exact bounding box (2.845, 0.752, 5.334 Blender units) across all
+# four, confirming they're the same base door shell with different leaf
+# styles/finishes. 7961/7962/7968 are all near-black (basecolor ~0.05);
+# 7976 is the only one with a real anthracite grey (basecolor 0.184,
+# 0.192, 0.212) and the highest model id (newest) -- rendered all 4 to
+# confirm visually, 7976 is a closed, horizontal-slat door with a vertical
+# bar handle, clearly anthracite, not black.
+FRONT_DOOR_ASSET = {
+    "path": r"E:\_models_hub\_extracted\Metal_Front_Door_3D_Model_7976_BLEND\Metal Front Door 3D Model (7976).blend",
+    "divisor": 2.54,
+    "size_mm": (1813, 572, 2180),
+}
+FRONT_DOOR_METALLIC_FIX = 0.9
+
+# Every "Metal Window" model in the Hub library (checked all 5, both
+# extracted and unextracted: 1140x2100, 1180x1260, 1770x1800, 2214x2100,
+# 2824x2360) turned out to be a door-style sliding or hinged patio unit --
+# double leaves, door-style handles, offset overlapping tracks -- not a
+# plain window. Rainer, 2026-08-16, after comparing against a reference
+# photo of a plain equal-pane tilt-turn window: "your 3d version looks like
+# a front door with 2 seitenteile" / confirmed no real asset matches, build
+# one instead of forcing a wrong-but-real model into the opening.
+WINDOW_FRAME_MAT = flat("window-frame", (0.14, 0.15, 0.16), roughness=0.4, metallic=0.6)
+WINDOW_GLASS_MAT = flat("window-glass", (0.78, 0.86, 0.90), roughness=0.15, metallic=0.1)
+
+
+def window_pane_count(width_mm):
+    if width_mm < 900:
+        return 1
+    if width_mm < 1800:
+        return 2
+    return 3
+
+
+def build_window(name, cx, cy, base_z, angle, width_mm, height_mm, into="Exterior"):
+    """Plain frame + N equal glass panes (see WINDOW_FRAME_MAT comment for
+    why this is procedural, not a Hub asset). Pane count by width: narrow
+    openings get one fixed pane, mid-width two, wide openings three --
+    matches the equal-pane look of the reference, not the CG Axis door
+    units' off-centre split."""
+    panes = window_pane_count(width_mm)
+    frame_depth = 0.12
+    ft = 0.06  # outer frame bar thickness
+    mt = 0.05  # mullion thickness between panes
+    w = width_mm * MM
+    h = height_mm * MM
+    cz = base_z + h / 2
+    ux, uy = math.cos(angle), math.sin(angle)
+    objs = []
+
+    def place(local_x, world_z, dim_w, dim_h, material):
+        wx = cx + local_x * ux
+        wy = cy + local_x * uy
+        objs.append(box(f"{name}-{len(objs)}", (wx, wy, world_z),
+                        (dim_w, frame_depth, dim_h), angle, material, into))
+
+    place(0.0, cz + h / 2 - ft / 2, w, ft, WINDOW_FRAME_MAT)
+    place(0.0, cz - h / 2 + ft / 2, w, ft, WINDOW_FRAME_MAT)
+    place(-w / 2 + ft / 2, cz, ft, h, WINDOW_FRAME_MAT)
+    place(w / 2 - ft / 2, cz, ft, h, WINDOW_FRAME_MAT)
+
+    pane_w = (w - 2 * ft - (panes - 1) * mt) / panes
+    glass_h = h - 2 * ft
+    x0 = -w / 2 + ft
+    for i in range(panes):
+        pane_cx = x0 + pane_w / 2 + i * (pane_w + mt)
+        place(pane_cx, cz, pane_w, glass_h, WINDOW_GLASS_MAT)
+        if i < panes - 1:
+            mullion_cx = x0 + pane_w + mt / 2 + i * (pane_w + mt)
+            place(mullion_cx, cz, mt, glass_h, WINDOW_FRAME_MAT)
+
+    # Fensterbank aussen -- Rainer, 2026-09-07: "fensterbanke inside and
+    # out ... aouside anthrazt lile the windows": same material as the
+    # frame (WINDOW_FRAME_MAT), not a separate colour. Skipped for a
+    # bodentief (floor-reaching) window -- base_z near 0 means it starts
+    # at the floor, where a real sill would have nothing to sit above.
+    # No wall thickness is known here (unlike render-furnished-dollhouse.py's
+    # version, which has the wall dict); a generous fixed depth (0.40m,
+    # centred on the wall centreline) clears even the thickest exterior
+    # wall in this project (365mm) with room to spare on both faces,
+    # rather than risk the sill being swallowed inside a thick wall.
+    if base_z > 0.05:
+        objs.append(box(f"{name}-sill-aussen", (cx, cy, base_z - 0.015),
+                        (w + 0.10, 0.40, 0.03), angle, WINDOW_FRAME_MAT, into))
+    return objs
+
+
+DOOR_LEAF_MAT = flat("door-leaf", (0.10, 0.10, 0.11), roughness=0.35, metallic=0.7)
+DOOR_HANDLE_MAT = flat("door-handle", (0.75, 0.76, 0.78), roughness=0.25, metallic=0.9)
+
+
+def build_front_door(name, cx, cy, base_z, angle, width_mm, height_mm, into="Exterior"):
+    """Plain frame + solid metal leaf + lever handle -- procedural for the
+    same reason build_window() is (see its docstring above): the Hub's one
+    "Metal Front Door" asset turned out to carry Metallic=0.0 and a
+    near-black flat colour on both its real materials, despite the name --
+    not metal at all, which is why it rendered as a featureless black
+    rectangle (Rainer, 2026-08-22: "you also cut the front door, why?").
+    Closed only: every exterior shot shows the front door shut, unlike
+    interior leaves which open into their room."""
+    frame_depth = 0.12
+    ft = 0.08  # frame bar thickness, a touch heavier than a window's
+    w = width_mm * MM
+    h = height_mm * MM
+    cz = base_z + h / 2
+    ux, uy = math.cos(angle), math.sin(angle)
+    objs = []
+
+    def place(local_x, world_z, dim_w, dim_h, material):
+        wx = cx + local_x * ux
+        wy = cy + local_x * uy
+        objs.append(box(f"{name}-{len(objs)}", (wx, wy, world_z),
+                        (dim_w, frame_depth, dim_h), angle, material, into))
+
+    # No sill bar -- a door opening is floor-level, unlike a window.
+    place(0.0, cz + h / 2 - ft / 2, w, ft, WINDOW_FRAME_MAT)
+    place(-w / 2 + ft / 2, cz - ft / 2, ft, h - ft, WINDOW_FRAME_MAT)
+    place(w / 2 - ft / 2, cz - ft / 2, ft, h - ft, WINDOW_FRAME_MAT)
+
+    leaf_w = w - 2 * ft
+    leaf_h = h - ft
+    place(0.0, base_z + leaf_h / 2, leaf_w, leaf_h, DOOR_LEAF_MAT)
+
+    # Lever handle near the free edge, matching the interior door leaf's own
+    # handle convention (render-furnished-dollhouse.py add_door_leaf).
+    handle_x = leaf_w / 2 - 0.09
+    objs.append(box(f"{name}-handle", (cx + handle_x * ux, cy + handle_x * uy, base_z + 1.0),
+                    (0.03, 0.14, 0.03), angle, DOOR_HANDLE_MAT, into))
+    return objs
+
+
+_asset_templates = {}
+
+
+def get_asset_template(asset):
+    key = asset["path"]
+    if key not in _asset_templates:
+        if not os.path.exists(asset["path"]):
+            print(f"[exterior] WARNING missing asset: {asset['path']}")
+            _asset_templates[key] = None
+        else:
+            obj = import_model(asset["path"], asset["divisor"], asset["size_mm"])
+            if obj is not None:
+                # These Hub materials carry Specular IOR Level 1.0 on a
+                # near-black base -- under this scene's flat, uniform-strength
+                # sky that Fresnel edge lights up as a solid white smear
+                # (confirmed: base colour alone was near-black, only the
+                # specular slider was maxed). Clamped back to Blender's own
+                # default so the near-black base actually reads as the frame
+                # colour instead of being drowned out by reflection.
+                for mat in obj.data.materials:
+                    if not mat or not mat.use_nodes:
+                        continue
+                    bsdf = next((n for n in mat.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+                    if not bsdf:
+                        continue
+                    for key in ("Specular IOR Level", "Specular"):
+                        if key in bsdf.inputs and bsdf.inputs[key].default_value > 0.5:
+                            bsdf.inputs[key].default_value = 0.5
+                    # FRONT_DOOR_ASSET only: Metallic=0.0 is how this
+                    # material was actually authored, not a broken link
+                    # (checked: no image texture feeds Metallic on any of
+                    # its materials) -- so there is nothing to relink,
+                    # unlike the oven fix. Set directly instead.
+                    if asset is FRONT_DOOR_ASSET and "Metallic" in bsdf.inputs:
+                        bsdf.inputs["Metallic"].default_value = FRONT_DOOR_METALLIC_FIX
+                rest_on_floor(obj)
+                for coll in list(obj.users_collection):
+                    coll.objects.unlink(obj)
+                collection("AssetTemplates").objects.link(obj)
+                obj.hide_render = True
+                obj.hide_viewport = True
+            _asset_templates[key] = obj
+    return _asset_templates[key]
+
+
+def place_asset(asset, cx, cy, base_z, angle, width_mm, height_mm, name, into="Exterior"):
+    template = get_asset_template(asset)
+    if template is None:
+        return None
+    dup = template.copy()
+    dup.data = template.data
+    dup.name = name
+    collection(into).objects.link(dup)
+    dup.hide_render = False
+    dup.hide_viewport = False
+    native_width, _, native_height = asset["size_mm"]
+    sx = max(0.75, min(1.35, width_mm / native_width)) if native_width else 1.0
+    sz = max(0.75, min(1.35, height_mm / native_height)) if native_height else 1.0
+    dup.scale = (sx, 1.0, sz)
+    dup.rotation_euler = (0, 0, angle)
+    dup.location = (cx, cy, base_z)
+    return dup
+
+
+# ---------------------------------------------------------------- materials
+
+FACADE_MODERN = flat("facade-modern", (0.92, 0.91, 0.88), roughness=0.75)
+FACADE_CLASSIC = flat("facade-classic", (0.88, 0.82, 0.70), roughness=0.85)
+FACADE = FACADE_MODERN if plan["style"] == "modern" else FACADE_CLASSIC
+# Zwerchkubus der modernen 1,5-Geschosser-Variante: grau abgesetzter Putz.
+ZWERCHKUBUS = flat("zwerchkubus-putz", (0.42, 0.42, 0.41), roughness=0.85)
+ROOF_MODERN = flat("roof-modern", (0.20, 0.20, 0.22), roughness=0.85)
+ROOF_CLASSIC = flat("roof-classic", (0.35, 0.18, 0.14), roughness=0.7)
+ROOF_MAT = ROOF_MODERN if plan["style"] == "modern" else ROOF_CLASSIC
+COPING_MAT = flat("ext-coping", (0.14, 0.14, 0.15), roughness=0.35, metallic=0.6)
+# Titanzink, vorbewittert: dezentes Blaugrau. Nur fuer die senkrechte Stufe
+# des versetzten Pultdachs (VERSATZ-PULTDACH-ANSCHLUSS-001, 2026-10-24).
+ZINK_MAT = flat("zink-stehfalz", (0.47, 0.50, 0.53), roughness=0.45, metallic=0.6)
+FOUNDATION_MAT = flat("foundation", (0.42, 0.41, 0.40), roughness=0.9)
+
+SITE_MATERIALS = {
+    "einfahrt": flat("site-einfahrt", (0.45, 0.44, 0.43), roughness=0.9),
+    "gehweg": flat("site-gehweg", (0.62, 0.58, 0.52), roughness=0.85),
+    "terrasse": (flat("site-terrasse-modern", (0.55, 0.53, 0.50), roughness=0.6)
+                if plan["style"] == "modern"
+                else flat("site-terrasse-classic", (0.55, 0.38, 0.24), roughness=0.7)),
+}
+# The automatic ground fallback -- anything NOT covered by a drawn site
+# area (terrasse/einfahrt/gehweg) is mown lawn, nothing to draw for it.
+RASEN_MAT = flat("site-rasen", (0.33, 0.45, 0.24), roughness=1.0)
+RASEN_Z = -0.16        # ebener Rasen; Aussenflaechen liegen buendig darin (pflaster-buendig-v1)
+# Garten IST Rasen. Rainer, 2026-10-15: "what ever on the outside is not
+# einfahrt gehweg or terrasse is automatically garten/rasen". Bis dahin war
+# eine gezeichnete Garten-Flaeche ein dunkelbraunes Beet (0.24, 0.20, 0.12,
+# Entscheidung vom 2026-08-13) und lag als Erdband ums Haus. Gezeichnete
+# Garten-Flaechen bleiben gueltig, sehen aber aus wie der Rest des Rasens.
+SITE_MATERIALS["garten"] = RASEN_MAT
+
+# ---------------------------------------------------------------- geometry
+
+CEILING_Z = 2.400  # matches render-furnished-dollhouse.py's interior wall_height (lichte Raumhoehe)
+# Traufhoehe (eave height, ground to where the wall meets the roof) is NOT
+# the bare clear ceiling height -- it also carries the floor/ceiling slab
+# buildup and a small foundation upstand above grade. Real-world reference
+# (fertighaus.de/bungalow.de): a 2.625m Rohbauhoehe nets ~2.50m lichte
+# Raumhoehe, i.e. roughly 0.2-0.3m of structure on top of the clear height,
+# plus a plinth -- 0.35m total buildup lands a single-storey eave around
+# 2.75m, in the normal range instead of the bare-ceiling 2.4m this was
+# using before (Rainer: "roofs look way too low").
+STRUCTURE_BUILDUP = 0.350
+STOREY_Z = CEILING_Z + STRUCTURE_BUILDUP
+EAVE_Z = STOREY_Z * STOREY_COUNT
+PARAPET_HEIGHT = 0.800  # innenliegendes Flachdach: walls run this far above the eave line
+WALL_TOP_Z = EAVE_Z + PARAPET_HEIGHT if roof_type == "flachdach" else EAVE_Z
+PITCH_DEG = 22.0  # walmdach only. Satteldach / Pultdach / versetztes Pult are built
+# from roof_profile.py (default 5 degrees; Rainer, 2026-09-19: "5 degrees" --
+# 22 towered ~2 m above the eave on the near-square twostorey_050).
+
+exterior_walls = [w for w in floor["walls"] if w["wall_type"] == "exterior"]
+exterior_wall_ids = {w.get("id") for w in exterior_walls}
+
+# JEDES Geschoss baut seine EIGENE Aussenhuelle, so wie sein Grundriss
+# gezeichnet ist. Vorher wurde der ERDGESCHOSS-Umriss ueber die volle
+# Haushoehe extrudiert -- ein Haus, dessen Obergeschoss nur ein Rechteck
+# ueber einem groesseren Erdgeschoss ist, wurde als voll zweigeschossiger
+# Klotz gebaut, und die begehbare Erdgeschoss-Dachflaeche (Rainers
+# gezeichneter "Balkon") existierte gar nicht (onehalfstorey_029,
+# 2026-08-22/23: "the outcropping is just on the bottom Floor ... just like
+# the Floorplans are drawn"). Damit entfaellt auch das geometrische
+# Umhaengen der Obergeschoss-Oeffnungen auf Erdgeschoss-Waende: jede
+# Oeffnung sitzt per Id auf der Wand ihres EIGENEN Geschosses.
+storey_exterior_walls = [
+    [w for w in storey.get("walls", []) if w.get("wall_type") == "exterior"]
+    for storey in floors
+]
+
+openings_by_wall = {}
+for level, storey in enumerate(floors):
+    exterior_ids_here = {w.get("id") for w in storey_exterior_walls[level]}
+    for opening in storey.get("openings", []):
+        # Nur Oeffnungen, die selbst in einer AUSSENwand sitzen, gehoeren an
+        # die Fassade (die Schlafzimmertuer auf einer Trennwand nahe der
+        # Huelle war sonst eine "Tuer im ersten Stock der Fassade" --
+        # Rainer, 2026-08-17).
+        if opening.get("wall_id") not in exterior_ids_here:
+            continue
+        openings_by_wall.setdefault((level, opening["wall_id"]), []).append(
+            {**opening, "_storey_base_mm": level * STOREY_Z * 1000})
+
+# Every exterior opening shares one lintel line (top of window/door), the
+# real-architecture convention Rainer pointed out -- annotated sill/height
+# pairs vary per opening and left tops scattered. Sills move to hit a common
+# top; opening heights themselves are kept as annotated.
+exterior_openings = [o for o in floor.get("openings", [])
+                     if o["wall_id"] in exterior_wall_ids]
+LINTEL_Z_MM = max((o["sill_height_mm"] + o["height_mm"] for o in exterior_openings),
+                  default=2100)
+
+min_x = min(min(w["start_mm"][0], w["end_mm"][0]) for w in exterior_walls)
+max_x = max(max(w["start_mm"][0], w["end_mm"][0]) for w in exterior_walls)
+min_y = min(min(w["start_mm"][1], w["end_mm"][1]) for w in exterior_walls)
+max_y = max(max(w["start_mm"][1], w["end_mm"][1]) for w in exterior_walls)
+centre_x = (min_x + max_x) / 2 * MM
+centre_y = (min_y + max_y) / 2 * MM
+span_x = (max_x - min_x) * MM
+span_y = (max_y - min_y) * MM
+
+print(f"[exterior] walls={len(exterior_walls)} bbox=({min_x:.0f}..{max_x:.0f}, "
+      f"{min_y:.0f}..{max_y:.0f}) roof={roof_type} style={plan['style']}")
+
+# The footprint is not one rectangle -- trace the real wall loop and chop it
+# into the pieces that actually have wall beneath them, so the roof follows
+# the real massing (wings + corridor + carport notch) instead of the overall
+# bounding box. Das DACH sitzt auf dem OBERSTEN Geschoss -- dessen Umriss
+# ist massgeblich, nicht der (moeglicherweise groessere) Erdgeschoss-Umriss.
+loops = [regularize_loop(loop)
+         for loop in trace_wall_loops(storey_exterior_walls[-1] or exterior_walls)]
+footprint = max(loops, key=polygon_area) if loops else None
+if footprint and signed_polygon_area(footprint) < 0:
+    footprint = list(reversed(footprint))  # bpypolyskel requires CCW
+# Plan UEBERDACHUNG-001: Ueberdachte Flaechen im obersten Geschoss gehoeren zum
+# Dachgrundriss, das Hauptdach laeuft mit gleicher Neigung und Traufe weiter.
+UEBERDACHT = ueberdachung.flaechen(plan, floors)
+_dach_zusatz = [[(q[0] * MM, q[1] * MM) for q in f["poly"]] for f in UEBERDACHT if f["traeger"] == "dach"]
+if footprint and _dach_zusatz and roof_type != "flachdach":
+    import anderthalb as _ah_vorab  # noqa: E402
+    if _ah_vorab.ist_anderthalb(plan) and roof_type in ("satteldach", "walmdach"):
+        print("[exterior] WARNUNG ueberdachung: 1,5-Geschosser-Dach kann noch nicht weiterlaufen")
+        UEBERDACHT = [f for f in UEBERDACHT if f["traeger"] != "dach"]
+    else:
+        footprint = regularize_loop(ueberdachung.vereinigt(footprint, _dach_zusatz))
+        if signed_polygon_area(footprint) < 0:
+            footprint = list(reversed(footprint))
+if footprint:
+    _all_decomposed = decompose_rectangles(footprint)
+    massing_rects = [r for r in _all_decomposed
+                      if (r[1] - r[0]) > 1.0 and (r[3] - r[2]) > 1.0]
+    # ROOF-SLIVER-COVERAGE-001, 2026-10-04 (bungalow_040_66, Rainer: "that
+    # can't be right"): a 0.3-1.0 m strip is real wall offset, not noise --
+    # dropping it left that strip of the house without any roof. It now
+    # joins a neighbouring wing (or stays its own small one).
+    if len(massing_rects) >= 2 and any(
+            0.3 < min(r[1] - r[0], r[3] - r[2]) <= 1.0 for r in _all_decomposed):
+        massing_rects, _sliver_notes = roof_wings.absorb_slivers(_all_decomposed)
+        for _note in _sliver_notes:
+            print(f"[exterior] {_note}")
+    if len(massing_rects) < 2:
+        # 2026-10-02, bungalow_001: decompose_rectangles() itself correctly
+        # found 2 pieces here -- a ~10.7x11.4m main body plus a genuine
+        # ~5x0.82m notch -- but the >1.0m floor above (meant to discard
+        # numerical-noise slivers from the decomposition, not real
+        # architecture) threw the notch away, leaving only 1 "big enough"
+        # rectangle. That silently skipped chevron entirely (its own gate
+        # below requires len(massing_rects) >= 2) and fell back to the old,
+        # pre-chevron height-field construction -- the exact torn/crossed
+        # roof defect this week's work exists to eliminate, on a house
+        # whose wings just happen to be more different in size than
+        # WB_125's. Retrying with a much smaller floor (0.3m -- still far
+        # above anything float jitter in the decomposition itself would
+        # produce) recovers a genuinely small wing without reopening the
+        # door to noise slivers.
+        _retry = [r for r in _all_decomposed if (r[1] - r[0]) > 0.3 and (r[3] - r[2]) > 0.3]
+        if len(_retry) >= 2:
+            massing_rects = _retry
+else:
+    massing_rects = []
+if not massing_rects:
+    massing_rects = [(min_x * MM, max_x * MM, min_y * MM, max_y * MM)]
+print(f"[exterior] footprint massing: {len(massing_rects)} rectangle(s)")
+for x0, x1, y0, y1 in massing_rects:
+    print(f"  [{x0:.2f}..{x1:.2f}] x [{y0:.2f}..{y1:.2f}]  ({x1 - x0:.2f} x {y1 - y0:.2f} m)")
+
+# ---------------------------------------------------------- 1,5-Geschosser
+# anderthalbgeschosser-dach-v1 (Rainer, 2026-10-20): "the 1,5 story we have to
+# create with kniestock and quergiebel and stuff this is just for 1,5 story
+# houses". Kniestock 1,0 m, 40 Grad, und Variante A: wo im Obergeschoss
+# Oeffnungen in der niedrigen Traufwand stehen, steht ein Zwerchgiebel ueber
+# ihnen. Vorgehen: die Waende des obersten Geschosses werden HOCH gebaut (mit
+# allen Oeffnungen wie immer) und nach dem Dach auf die Dachflaechen
+# zurueckgeschnitten -- ausser im Zwerchgiebel. Die Giebeldreiecke sind damit
+# die eigene Wand samt Fenstern; die Wandstuecke der Dachmaschinerie entfallen.
+# Bisher nur fuer ein RECHTECKIGES Obergeschoss (Satteldach, Walmdach).
+import anderthalb  # noqa: E402
+
+ANDERTHALB = False
+if (anderthalb.ist_anderthalb(plan) and roof_type in ("satteldach", "walmdach")
+        and STOREY_COUNT >= 2):
+    _ah_top = storey_exterior_walls[-1]
+    _ah_xs = [c * MM for w in _ah_top for c in (w["start_mm"][0], w["end_mm"][0])]
+    _ah_ys = [c * MM for w in _ah_top for c in (w["start_mm"][1], w["end_mm"][1])]
+    # Rechteck, oder Rechteck mit flachen Erkern (anderthalb-erker-zwerch-v1,
+    # onehalfstorey_vm2): der Erker wird die Front seines Quergiebels.
+    AH_ERKER = []
+    if len(_ah_top) == 4 and len(massing_rects) == 1:
+        _ah_form = ((min(_ah_xs), max(_ah_xs), min(_ah_ys), max(_ah_ys)), [])
+    else:
+        _ah_form = anderthalb.rechteck_mit_erkern(
+            [((w["start_mm"][0] * MM, w["start_mm"][1] * MM), (w["end_mm"][0] * MM, w["end_mm"][1] * MM))
+             for w in _ah_top])
+    if _ah_form is None:
+        print("[exterior] 1,5-Geschosser WARNUNG: Obergeschoss ist weder Rechteck noch Rechteck mit "
+              "Erkern (%d Aussenwaende) -- Kniestock/Zwerchgiebel noch nicht, Dach wie bisher" % len(_ah_top))
+    else:
+        ANDERTHALB = True
+        AH_BBOX, AH_ERKER = _ah_form
+        if AH_ERKER:
+            # Das Dach sitzt auf dem Hauptkoerper; der Erker bekommt kein eigenes.
+            _hx0, _hx1, _hy0, _hy1 = AH_BBOX
+            footprint = [(_hx0, _hy0), (_hx1, _hy0), (_hx1, _hy1), (_hx0, _hy1)]
+            massing_rects = [(_hx0, _hx1, _hy0, _hy1)]
+            for _e in AH_ERKER:
+                print("[exterior] 1,5-Geschosser  Erker %s %.2f-%.2f, %.2f m tief -- Front seines Quergiebels"
+                      % (_e["seite"], _e["lo"], _e["hi"], _e["tiefe"]))
+        _ah_axis = {"x": True, "y": False}.get(plan.get("roof_axis_override"))
+        AH_ALONG_X = ((AH_BBOX[1] - AH_BBOX[0]) >= (AH_BBOX[3] - AH_BBOX[2])
+                      if _ah_axis is None else _ah_axis)
+        AH_BODEN_Z = (STOREY_COUNT - 1) * STOREY_Z
+        WALL_TOP_Z = anderthalb.traufhoehe(AH_BODEN_Z)
+        AH_TAN = math.tan(math.radians(anderthalb.NEIGUNG_GRAD))
+        PITCH_DEG = anderthalb.NEIGUNG_GRAD
+        if not (isinstance(plan.get("roof_profiles"), dict) and plan["roof_profiles"].get("satteldach")):
+            roof_profile.SATTELDACH_DEFAULT_PITCH_DEG = anderthalb.NEIGUNG_GRAD
+        # Quer zum WIRKLICHEN First, nicht die kurze Seite (doppelhaushaelfte-v1).
+        _ah_kurz = anderthalb.spannweite(AH_BBOX, AH_ALONG_X)
+        AH_FIRST_Z = WALL_TOP_Z + _ah_kurz / 2 * AH_TAN
+        AH_WAND_OBEN = AH_FIRST_Z + 1.0
+        AH_GIEBELWAND_Z = AH_BODEN_Z + STOREY_Z      # Zwerchgiebel-Front: volle Geschosshoehe
+        _ah_level = STOREY_COUNT - 1
+        _ah_oeff = []
+        for _w in _ah_top:
+            _seite, _ = anderthalb.seite_mit_erker(
+                (_w["start_mm"][0] * MM, _w["start_mm"][1] * MM),
+                (_w["end_mm"][0] * MM, _w["end_mm"][1] * MM), AH_BBOX, AH_ERKER)
+            if not _seite:
+                continue
+            for _o in openings_by_wall.get((_ah_level, _w.get("id")), []):
+                _p = _o["position"]
+                _mx = (_w["start_mm"][0] + _p * (_w["end_mm"][0] - _w["start_mm"][0])) * MM
+                _my = (_w["start_mm"][1] + _p * (_w["end_mm"][1] - _w["start_mm"][1])) * MM
+                _entlang = _mx if _seite in ("north", "south") else _my
+                _oben = max(LINTEL_Z_MM, _o["height_mm"]) * MM
+                _ah_oeff.append((_seite, _entlang, _o["width_mm"] * MM, _oben))
+        _ah_merk = [(m.get("subtype"), m.get("orientation"))
+                    for m in plan.get("giebel_merkmale") or []]
+        # Im Annotator gezogene Quergiebel ersetzen die Automatik (quergiebel-ziehen-v1).
+        _ah_gezogen = [((q["a"]["x"], q["a"]["y"]), (q["b"]["x"], q["b"]["y"]))
+                       for q in plan.get("quergiebel") or []]
+        AH_GIEBEL = anderthalb.giebel(AH_BBOX, roof_type, _ah_oeff, _ah_merk, along_x=AH_ALONG_X,
+                                      gezeichnet=_ah_gezogen, erker=AH_ERKER)
+        print("[exterior] 1,5-Geschosser  Kniestock %.2f m, Traufe %.2f m, %g Grad, First ~%.2f m, "
+              "%d Zwerchgiebel %s" % (anderthalb.KNIESTOCK_M, WALL_TOP_Z, anderthalb.NEIGUNG_GRAD,
+                                      AH_FIRST_Z, len(AH_GIEBEL),
+                                      ", ".join("%s %.2f-%.2f (%s)" % (g["seite"], g["lo"], g["hi"], g["grund"])
+                                                for g in AH_GIEBEL)))
+        _ah_hoch = [o for o in _ah_oeff if o[3] > anderthalb.KNIESTOCK_M
+                    and o[0] in anderthalb.traufseiten(AH_BBOX, roof_type, AH_ALONG_X)]
+        for _o in _ah_hoch:
+            if not any(g["seite"] == _o[0] and g["lo"] - 1e-6 <= _o[1] - _o[2] / 2
+                       and _o[1] + _o[2] / 2 <= g["hi"] + 1e-6 for g in AH_GIEBEL):
+                print("[exterior] 1,5-Geschosser WARNUNG: Oeffnung %s bei %.2f m liegt in keinem Giebel"
+                      % (_o[0], _o[1]))
+
+# Bungalow mit Dachboden als Ausbaureserve (dachboden-ausbaureserve-v1,
+# Rainer 2026-10-23, bungalow_generationat): das Satteldach sitzt wie bei
+# jedem Bungalow direkt auf dem Erdgeschoss, aber steil wie beim
+# 1,5-Geschosser -- darunter liegt der Dachboden. Seine Fenster kommen nach
+# dem Dach in die Giebeldreiecke (siehe "Giebelfenster" unten).
+import dachboden  # noqa: E402
+import staffel  # noqa: E402
+
+DACHBODEN = plan.get("dachboden") if (roof_type == "satteldach" and not ANDERTHALB) else None
+
+# Doppelhaushaelfte (doppelhaushaelfte-v1, Rainer 2026-10-23): aussen steht die
+# gespiegelte Nachbarhaelfte, gespiegelt an der Mitte der Trennwand (siehe
+# "Nachbarhaelfte" vor dem Gelaende). Das Dach laeuft quer zur Trennwand
+# (roof_axis_override aus dem Plan-Builder) und damit ueber beide Haelften.
+import doppelhaus  # noqa: E402
+
+DOPPELHAUS = (plan.get("doppelhaus")
+              if (plan.get("doppelhaus") or {}).get("ebene_mm") is not None else None)
+if DACHBODEN:
+    DB_NEIGUNG = DACHBODEN.get("neigung_grad") or dachboden.NEIGUNG_GRAD
+    if not (isinstance(plan.get("roof_profiles"), dict) and plan["roof_profiles"].get("satteldach")):
+        roof_profile.SATTELDACH_DEFAULT_PITCH_DEG = DB_NEIGUNG
+    print("[exterior] Dachboden: Satteldach %g Grad direkt auf dem Erdgeschoss, %d Giebelfenster"
+          % (DB_NEIGUNG, len(DACHBODEN.get("giebelfenster") or [])))
+
+wall_bodies_by_level = {}
+coping_bodies = []
+for level, walls_here in enumerate(storey_exterior_walls):
+  base_z = level * STOREY_Z
+  is_top_storey = level == len(storey_exterior_walls) - 1
+  top_z = WALL_TOP_Z if is_top_storey else (level + 1) * STOREY_Z
+  if ANDERTHALB and is_top_storey:
+    top_z = AH_WAND_OBEN       # wird nach dem Dach auf die Dachflaechen geschnitten
+  # Obergeschoss-Boxen greifen 20mm ins Geschoss darunter: exakt
+  # koplanare Flaechen bringen den EXACT-Union-Solver zum Kippen (siehe
+  # Eckpfosten-Kommentar unten) -- ein kleiner Ueberlapp verhindert das.
+  # CODEX-EXPORT-001 F5: der Ueberlapp ist nicht noetig -- die Geschoss-
+  # Shells laufen nie gemeinsam durch einen Boolean (Union PRO GESCHOSS,
+  # unten). Er erzeugte nur ein koplanares 20-mm-Band in der Fassade
+  # (Z-Fighting, harte Kante auf Geschosshoehe). Jetzt Stoss auf Stoss.
+  storey_height = top_z - base_z
+
+  # Geschossdecke: das oberste Geschoss bekommt sein Dach von der
+  # Dachmaschinerie; jedes DARUNTER liegende schliesst mit einer flachen
+  # Decke auf seinem EIGENEN Umriss ab. Wo das Geschoss darueber kleiner
+  # ist, IST diese Flaeche das sichtbare Flachdach des Vorsprungs -- die
+  # begehbare Terrasse, auf die Rainers gezeichneter Balkon fuehrt.
+  if not is_top_storey:
+    _storey_loops = [regularize_loop(_l) for _l in trace_wall_loops(walls_here)]
+    for _li, _loop in enumerate(_storey_loops):
+      if len(_loop) >= 3:
+        polygon_prism(f"storey-cap-{level}-{_li}",
+                      [(px / MM, py / MM) for px, py in _loop],
+                      top_z - 0.06, top_z + 0.02, COPING_MAT)
+
+  for index, wall in enumerate(walls_here):
+    sx, sy = wall["start_mm"][0] * MM, wall["start_mm"][1] * MM
+    ex, ey = wall["end_mm"][0] * MM, wall["end_mm"][1] * MM
+    length = math.hypot(ex - sx, ey - sy)
+    if length < 0.05:
+        continue
+    thickness = wall["thickness_mm"] * MM
+    angle = math.atan2(ey - sy, ex - sx)
+    # Junction-aware extension: each end reaches exactly to the far face of
+    # whatever wall it meets there, so adjacent wall bodies overlap into a
+    # clean mitred corner instead of two boxes just touching edge-to-edge.
+    ux, uy = (ex - sx) / length, (ey - sy) / length
+    e1 = end_extension_mm(wall["start_mm"], (-ux, -uy), wall, walls_here) * MM
+    e2 = end_extension_mm(wall["end_mm"], (ux, uy), wall, walls_here) * MM
+    cx = (sx + ex) / 2 + ux * (e2 - e1) / 2
+    cy = (sy + ey) / 2 + uy * (e2 - e1) / 2
+    obj = box(f"extwall-{level}-{index}", (cx, cy, base_z + storey_height / 2),
+              (length + e1 + e2, thickness, storey_height), angle, FACADE)
+
+    for opening in openings_by_wall.get((level, wall.get("id")), []):
+        # Sill moves to put this opening's top on the shared LINTEL_Z_MM
+        # line; the opening's own annotated height is kept as-is.
+        storey_base_mm = opening.get("_storey_base_mm", 0.0)
+        sill_mm = storey_base_mm + max(0.0, LINTEL_Z_MM - opening["height_mm"])
+        available = storey_base_mm + CEILING_Z * 1000 - sill_mm
+        if available <= 0:
+            continue
+        cut_height = min(opening["height_mm"], available)
+        centre_local = opening["position"]
+        cx = sx + centre_local * (ex - sx)
+        cy = sy + centre_local * (ey - sy)
+        cz = (sill_mm + cut_height / 2) * MM
+        cutter = box(f"extwall-{index}-cut", (cx, cy, cz),
+                     (opening["width_mm"] * MM, thickness * 3.0, cut_height * MM + 0.04),
+                     angle, None, into="Cutters")
+        apply_boolean_difference(obj, cutter)
+        bpy.data.objects.remove(cutter, do_unlink=True)
+
+        # NICHT "base_z" -- das ist die Geschoss-Basis der AEUSSEREN Schleife.
+        # Genau diese Wiederverwendung hat jede Wand NACH einer Wand mit
+        # Oeffnungen um die letzte Bruestungshoehe angehoben (gemessen:
+        # extwall-Boxen bei z 0.90-3.65 statt 0-2.75 -- das "schwebende
+        # Erdgeschoss", 2026-08-23).
+        opening_base_z = sill_mm * MM
+        if opening["opening_type"] == "door":
+            # Real model only for the main entrance -- Rainer, 2026-09-07:
+            # "could we use a front door model and leave it closed?" Every
+            # other door on the exterior wall (terrace doors etc.) keeps the
+            # existing procedural door untouched.
+            if opening.get("role") == "main_entrance":
+                place_asset(FRONT_DOOR_ASSET, cx, cy, opening_base_z, angle,
+                           opening["width_mm"], cut_height,
+                           f"extwall-{level}-{index}-door")
+            else:
+                build_front_door(f"extwall-{level}-{index}-door", cx, cy, opening_base_z, angle,
+                                 opening["width_mm"], cut_height)
+        elif opening["opening_type"] == "window":
+            build_window(f"extwall-{level}-{index}-window", cx, cy, opening_base_z, angle,
+                         opening["width_mm"], cut_height)
+
+    if roof_type == "flachdach" and is_top_storey:
+        # Blechabdeckung: thin metal coping capping the parapet top edge,
+        # a touch proud of the render on both faces. Nur das OBERSTE
+        # Geschoss traegt die Attika -- darunter deckt die Geschossdecke ab.
+        coping_overhang = 0.03
+        coping_bodies.append(box(f"extwall-{level}-{index}-coping", ((sx + ex) / 2, (sy + ey) / 2, WALL_TOP_Z + 0.02),
+            (length + thickness, thickness + coping_overhang * 2, 0.04), angle, COPING_MAT))
+
+    wall_bodies_by_level.setdefault(level, []).append(obj)
+
+# Corner posts: end_extension_mm mitres each wall end to the far face of
+# whatever it meets, but that's trigonometry on the wall's own angle -- at
+# anything off a clean 90, the two mitred boxes can still leave a sliver
+# gap or a visible seam right at the corner (Rainer, 2026-08-16: "not one
+# single outer corner is correct... or just add real corner elements in
+# every corner then merge them"). A square post at every traced footprint
+# vertex, unioned in with everything else below, physically fills that
+# point regardless of the angle -- the corner is solid by construction,
+# not by getting the mitre trigonometry exactly right.
+# Eckpfosten PRO GESCHOSS auf dessen eigenem Umriss (vorher: einmal auf dem
+# Erdgeschoss-Umriss ueber die volle Hoehe -- mit eigenstaendigen
+# Obergeschoss-Umrissen stuenden sie sonst neben den oberen Ecken).
+for _level, _walls_here in enumerate(storey_exterior_walls):
+    if not _walls_here:
+        continue
+    _base = _level * STOREY_Z
+    _top = WALL_TOP_Z if _level == len(storey_exterior_walls) - 1 else (_level + 1) * STOREY_Z
+    if ANDERTHALB and _level == len(storey_exterior_walls) - 1:
+        _top = AH_WAND_OBEN
+    # Oversized by 20mm in plan and 10mm in height so its faces never sit
+    # exactly coincident with a wall box's face -- Blender's EXACT boolean
+    # solver goes unstable (drops geometry instead of erroring) on unions
+    # between objects that share a perfectly coplanar face.
+    # CODEX-EXPORT-001 F4: 1 mm je Seite statt 10 mm -- unter einem Pixel.
+    corner_thickness = max((w["thickness_mm"] for w in _walls_here), default=240) * MM + 0.002
+    # +1 cm nur oben (unter dem Dach); unter einem weiteren Geschoss endet
+    # der Pfosten auf Geschosshoehe -- sonst blieb dort ein 10-mm-Stueck
+    # Ueberlapp mit der Shell darueber (CODEX-EXPORT-001 F5).
+    corner_height = _top - _base + (0.01 if _level == len(storey_exterior_walls) - 1 else 0.0)
+    for _loop in trace_wall_loops(_walls_here):
+        for corner_index, (cx, cy) in enumerate(_loop):
+            wall_bodies_by_level.setdefault(_level, []).append(box(f"extwall-corner-{_level}-{corner_index}",
+                                    (cx, cy, _base + corner_height / 2),
+                                    (corner_thickness, corner_thickness, corner_height), 0.0, FACADE))
+
+# One continuous wall shell, not 19 separate boxes: even with clean mitred
+# corners (end_extension_mm), collinear wall segments along a straight run
+# still meet at a real internal edge -- invisible in Blender's own shading,
+# but the ComfyUI canny pass picks it up as a genuine line and paints a
+# visible seam into the facade (Rainer, 2026-08-13: "you do see the wall
+# segments right?"). Union removes that internal edge entirely.
+# Union PRO GESCHOSS, nicht ueber Geschosse hinweg: wo Erd- und
+# Obergeschoss-Fassade in derselben Ebene liegen, teilen sich ihre Boxen
+# exakt koplanare SENKRECHTE Flaechen -- genau die Konstellation, bei der
+# der EXACT-Solver Geometrie verwirft statt zu fehlern (beobachtet sofort
+# nach der Umstellung auf Geschoss-Massing: das halbe Erdgeschoss fehlte im
+# Render). Zwei getrennte Geschoss-Shells beruehren sich nur, ohne je durch
+# einen Boolean zu laufen.
+for _level, _bodies in sorted(wall_bodies_by_level.items()):
+    if os.environ.get("EXT_NO_UNION") == "1":
+        break
+    union_objects(_bodies, f"walls-{_level}")
+if coping_bodies:
+    union_objects(coping_bodies, "coping")
+
+# Foundation plinth, slightly proud of the facade at the base.
+polygon_prism("foundation",
+             [(min_x - 100, min_y - 100), (max_x + 100, min_y - 100),
+              (max_x + 100, max_y + 100), (min_x - 100, max_y + 100)],
+             -0.15, 0.0, FOUNDATION_MAT)
+
+
+
+def _polygon_halbebene(poly, achse, wert, unten):
+    """Sutherland-Hodgman gegen die Linie `poly[achse] == wert`."""
+    drin = (lambda q: q[achse] <= wert + 1e-9) if unten else (lambda q: q[achse] >= wert - 1e-9)
+    raus = []
+    for i in range(len(poly)):
+        q0, q1 = poly[i - 1], poly[i]
+        if drin(q1):
+            if not drin(q0):
+                t = (wert - q0[achse]) / (q1[achse] - q0[achse])
+                raus.append((q0[0] + t * (q1[0] - q0[0]), q0[1] + t * (q1[1] - q0[1])))
+            raus.append((q1[0], q1[1]))
+        elif drin(q0):
+            t = (wert - q0[achse]) / (q1[achse] - q0[achse])
+            raus.append((q0[0] + t * (q1[0] - q0[0]), q0[1] + t * (q1[1] - q0[1])))
+    return raus
+
+
+def _schneide_mit_prisma(obj, poly, z0, z1):
+    """`obj` auf ein senkrechtes Prisma ueber `poly` beschneiden."""
+    n = len(poly)
+    pv = [(x, y, z0) for x, y in poly] + [(x, y, z1) for x, y in poly]
+    tris = mathutils.geometry.tessellate_polygon([[(x, y, 0.0) for x, y in poly]])
+    pf = [(t[2], t[1], t[0]) for t in tris] + [(t[0] + n, t[1] + n, t[2] + n) for t in tris]
+    pf += [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)]
+    m = bpy.data.meshes.new("einfirst-clip-mesh")
+    m.from_pydata(pv, [], pf)
+    m.update()
+    recalc_normals(m)
+    cutter = bpy.data.objects.new("einfirst-clip", m)
+    collection("Exterior").objects.link(cutter)
+    mod = obj.modifiers.new("clip", "BOOLEAN")
+    mod.operation = "INTERSECT"
+    mod.solver = "EXACT"
+    mod.object = cutter
+    bake_modifiers(obj)
+    bpy.data.objects.remove(cutter, do_unlink=True)
+
+
+def einfirst_satteldach(footprint, rects, overhang, z_eave, neigung,
+                        walls_oben, walls_alle, along_x_vorgabe=None):
+    """EIN Satteldach ueber einen L-Grundriss aus zwei Rechtecken.
+
+    ANBAU-BEKOMMT-PULTDACH-001, 2026-10-08, gebaut nach Rainers eigener
+    .blend-Fassung von diesem Tag.
+
+    Rainer, an bungalow_040_31: "this satteldach is wrong. it has 2 roofs".
+    Der Chevron-Weg gab jedem Fluegel ein eigenes Dach mit eigenen Giebeln;
+    der Anbau las sich als zweites Haus. Seine eigene Korrektur, Punkt fuer
+    Punkt gemessen: EIN Dach von y 964 bis 12550, Querschnitt Traufe
+    574/2750 - FIRST 8165/4810 - Traufe 13818/2750. Der First sitzt nicht in
+    der Mitte des grossen Schenkels (x=7196), sondern auf der Kante, an der
+    der ANBAU anfaengt. Die Flaeche auf der Anbauseite laeuft ueber den Anbau
+    durch, die andere hoert am grossen Schenkel auf -- ueber dem Anbau ist
+    das Dach damit genau EINE Flaeche in der Ebene des Hauptdachs. Das ist
+    sein "Pultdach parallel zum anderen Dach, auf gleicher Hoehe".
+
+    Die Traufe liegt rundum auf `z_eave`. Weil der First aus der Mitte
+    wandert, werden die beiden Neigungen ungleich -- Rainer dazu: "ist doch
+    egal". Die Firsthoehe wird NICHT aus seiner Fassung uebernommen (er hatte
+    den First verschoben und die Hoehe gelassen und nannte sie selbst "fast
+    zu hoch"), sondern aus der Profilneigung auf der KURZEN Seite gerechnet.
+
+    Gibt `(roof_obj, text)` zurueck, oder None, wenn die beiden Rechtecke
+    nicht die vorausgesetzte Anbau-Form bilden -- dann baut der Aufrufer
+    unveraendert weiter wie bisher.
+    """
+    gross, klein = sorted(rects, key=lambda r: -((r[1] - r[0]) * (r[3] - r[2])))
+    gx0, gx1, gy0, gy1 = gross
+    kx0, kx1, ky0, ky1 = klein
+
+    def _innen(wert, lo, hi, rand=0.35):
+        return lo + rand < wert < hi - rand
+
+    if abs(ky0 - gy1) < 0.35 or abs(ky1 - gy0) < 0.35:
+        along_x = False                      # Anbau verlaengert in y, First laeuft in y
+    elif abs(kx0 - gx1) < 0.35 or abs(kx1 - gx0) < 0.35:
+        along_x = True
+    else:
+        return None                          # kein sauberer Anbau -- nicht raten
+    if along_x_vorgabe is not None:
+        along_x = along_x_vorgabe
+    if along_x:
+        kanten = [k for k in (ky0, ky1) if _innen(k, gy0, gy1)]
+        lo, hi = gy0, gy1
+    else:
+        kanten = [k for k in (kx0, kx1) if _innen(k, gx0, gx1)]
+        lo, hi = gx0, gx1
+    if len(kanten) != 1:
+        return None                          # nicht eindeutig
+    first = kanten[0]
+
+    # Der First gehoert auf die WANDAUSSENKANTE der Anbauwand, nicht auf die
+    # Mittellinie des Grundrisses: sonst liegt ein halbsteinbreiter Streifen
+    # dieser Wand auf der falschen Seite des Firsts, und die Dachflaeche der
+    # anderen Seite wird mit ihm bis ans Hausende gezogen (gemessen: Westflaeche
+    # lief bis y=12485 statt 9174). Rainers eigene Fassung hat den First
+    # ebenfalls dort, nicht auf der Mittellinie.
+    anbau_lo, anbau_hi = (ky0, ky1) if along_x else (kx0, kx1)
+    halb_t = max((w["thickness_mm"] for w in (walls_oben or walls_alle)),
+                 default=240) * MM / 2.0
+    first -= halb_t if abs(first - anbau_lo) < abs(first - anbau_hi) else -halb_t
+
+    kurz, lang = sorted((first - lo, hi - first))
+    if kurz < 0.5:
+        return None
+    # `neigung` ist rise/run und kommt vom Aufrufer aus DERSELBEN
+    # Referenzspannweite, die der uebrige Renderer benutzt. Sie hier aus
+    # `h_mm / (eigene Spannweite / 2)` zu rechnen war falsch: das gespeicherte
+    # Profil ist auf eine andere Spannweite bezogen, und die Neigung kam
+    # dadurch zu flach heraus (16 statt 18,6 Grad).
+    z_first = z_eave + kurz * neigung
+
+    aussen = offset_orthogonal_polygon(footprint, halb_t)
+    ax = [q[0] for q in aussen]
+    ay = [q[1] for q in aussen]
+    rand = (min(ax) - overhang, max(ax) + overhang,
+            min(ay) - overhang, max(ay) + overhang)
+    achse = 1 if along_x else 0
+    ganz = offset_orthogonal_polygon(aussen, overhang)
+    if len(ganz) < 3:
+        return None
+
+    # Ueberstand zur Luecke. Rainer, 2026-10-11, an bungalow_040_39: "the
+    # satteldach doesn't have the right ueberstand going into the gap". Die
+    # Anbau-Wand zur Luecke steht genau unter dem First; ueber ihr lag ein
+    # 0,5-m-Streifen der ANDEREN Dachflaeche auf Firsthoehe (der Ueberstand des
+    # vollen Grundrisses, von der Halbebene der Gegenseite eingesammelt). Seine
+    # Wahl: die Anbauflaeche laeuft in IHRER Ebene ueber den First hinaus in
+    # die Luecke weiter, wie die hohe Kante eines Pultdachs. Der Streifen
+    # beginnt erst hinter dem Giebelueberstand des Hauptdachs (die Ecke bleibt
+    # beim Hauptdach) und reicht bis ans Anbauende -- `ganz` beschneidet ihn
+    # danach auf den Ueberstand.
+    a_achse = 1 - achse
+    g_lo, g_hi = (gross[2], gross[3]) if achse == 0 else (gross[0], gross[1])
+    k_lo, k_hi = (klein[2], klein[3]) if achse == 0 else (klein[0], klein[1])
+    anbau_unten = (anbau_lo + anbau_hi) / 2.0 < first
+    streifen = None
+    if abs(k_lo - g_hi) < 0.35:
+        streifen = (g_hi + halb_t + overhang, 1e9)
+    elif abs(k_hi - g_lo) < 0.35:
+        streifen = (-1e9, g_lo - halb_t - overhang)
+    breite = overhang + 0.05
+
+    stuecke = []
+    for unten in (True, False):
+        anker = lo if unten else hi
+        lauf = abs(first - anker)
+        if lauf < 1e-6:
+            continue
+        steig = (z_first - z_eave) / lauf
+        anbauseite = streifen is not None and unten == anbau_unten
+        von = (rand[2] if along_x else rand[0]) if unten else first
+        bis = first if unten else (rand[3] if along_x else rand[1])
+        if anbauseite:
+            if unten:
+                bis = first + breite
+            else:
+                von = first - breite
+
+        def _z(c):
+            # vorzeichenrichtig: ueber den First hinaus steigt die Flaeche weiter
+            return z_first + (c - first) * steig * (1.0 if unten else -1.0)
+
+        if along_x:
+            ecken = [(rand[0], von, _z(von)), (rand[1], von, _z(von)),
+                     (rand[1], bis, _z(bis)), (rand[0], bis, _z(bis))]
+        else:
+            ecken = [(von, rand[2], _z(von)), (von, rand[3], _z(von)),
+                     (bis, rand[3], _z(bis)), (bis, rand[2], _z(bis))]
+        # Normale muss nach OBEN zeigen, sonst verdickt SOLIDIFY (offset=-1)
+        # nach oben und der First steht 220 mm zu hoch (gemessen: 4633 statt
+        # 4419) -- dieselbe Falle wie im Versatz-Zweig.
+        _v0, _v1, _v2 = (mathutils.Vector(q) for q in ecken[:3])
+        _flaeche = (0, 1, 2, 3) if (_v1 - _v0).cross(_v2 - _v1).z > 0 else (3, 2, 1, 0)
+        m = bpy.data.meshes.new("roof-pitch-mesh")
+        m.from_pydata([tuple(q) for q in ecken], [], [_flaeche])
+        m.update()
+        o = bpy.data.objects.new("roof-pitch-seite", m)
+        collection("Exterior").objects.link(o)
+        o.data.materials.append(ROOF_MAT)
+        sol = o.modifiers.new("thickness", "SOLIDIFY")
+        sol.thickness = 0.22
+        sol.offset = -1.0
+        bake_modifiers(o)
+
+        # ZWEI Schnitte statt einem. Erst die Halbebene zu nehmen und DANN um
+        # den Ueberstand aufzuweiten geht nicht: auf der Firstlinie bleibt ein
+        # nullflaechiger Zipfel der Anbauwand stehen, und
+        # `offset_orthogonal_polygon` blaeht ihn zu einer echten Flaeche auf --
+        # gemessen lief die Westflaeche dadurch bis y=11985 statt 8794, also
+        # ueber den ganzen Anbau. Der Ueberstand wird deshalb auf den
+        # VOLLSTAENDIGEN Grundriss gelegt (dort gibt es keine Zipfel), und die
+        # Halbebene schneidet danach mit einem einfachen Kasten.
+        _schneide_mit_prisma(o, ganz, z_eave - 2.0, z_first + 5.0)
+        if len(o.data.vertices):
+            _k_lo = rand[0] - 1.0 if achse == 0 else rand[2] - 1.0
+            _k_hi = rand[1] + 1.0 if achse == 0 else rand[3] + 1.0
+            _von, _bis = (_k_lo, first) if unten else (first, _k_hi)
+            _quer = ((rand[2] - 1.0, rand[3] + 1.0) if achse == 0
+                     else (rand[0] - 1.0, rand[1] + 1.0))
+            # (c, a): c quer zum First, a entlang. Ohne Luecke ein Rechteck.
+            _q0, _q1 = _quer
+            if streifen is None:
+                _ca = [(_von, _q0), (_bis, _q0), (_bis, _q1), (_von, _q1)]
+            else:
+                # Stufe im Kasten: die Anbauseite bekommt den Streifen hinter
+                # dem First dazu, die Gegenseite verliert ihn.
+                _s = max(_q0, min(_q1, streifen[0])) if streifen[0] > -1e8 else None
+                _e = max(_q0, min(_q1, streifen[1])) if streifen[1] < 1e8 else None
+                # Am Hauptkoerper endet jede Seite am First (_f1), auf Hoehe
+                # des Streifens an seiner Aussenkante (_f2) -- fuer BEIDE
+                # Seiten dieselbe Linie: die eine bekommt, die andere verliert.
+                _rand_c = _von if unten else _bis              # aussen, weg vom First
+                _f1 = first
+                _f2 = first + breite if anbau_unten else first - breite
+                if _s is not None:   # Streifen am oberen a-Ende
+                    _ca = [(_rand_c, _q0), (_f1, _q0), (_f1, _s), (_f2, _s), (_f2, _q1), (_rand_c, _q1)]
+                else:                # Streifen am unteren a-Ende
+                    _ca = [(_rand_c, _q0), (_f2, _q0), (_f2, _e), (_f1, _e), (_f1, _q1), (_rand_c, _q1)]
+            _kasten = [(c, a) if achse == 0 else (a, c) for c, a in _ca]
+            _schneide_mit_prisma(o, _kasten, z_eave - 2.0, z_first + 5.0)
+        if len(o.data.vertices):
+            stuecke.append(o)
+        else:
+            bpy.data.objects.remove(o, do_unlink=True)
+
+    if not stuecke:
+        return None
+    dach = join_objects(stuecke, "roof-pitch")
+
+    # Giebel und Fuellwaende: EIN Koerper mit dem Dachschnitt als Oberkante,
+    # quer ueber das Haus gezogen und auf die Wandaussenkante beschnitten --
+    # dieselbe Machart wie im Versatz-Zweig. Ohne das steht das Haus unter dem
+    # Dach offen: der Chevron-Weg hat diese Waende bisher mitgebaut, und er
+    # laeuft hier nicht mehr.
+    _base_z = z_eave - 0.02
+    _sink = 0.10
+    # Die Neigung je Seite ausdruecklich aus DIESER Seite rechnen, nicht ueber
+    # die sortierten kurz/lang: dabei wurde fuer eine Seite die falsche Laenge
+    # erwischt, und die Wand stand an der Traufe 8 mm ueber dem Dach
+    # (bungalow_040_32, drei Punkte auf der Westtraufe).
+    _lauf_lo = max(first - lo, 1e-6)
+    _lauf_hi = max(hi - first, 1e-6)
+    def _wand_z(c):
+        lauf = _lauf_lo if c < first else _lauf_hi
+        return max(_base_z, z_first - abs(c - first) * (z_first - z_eave) / lauf - _sink)
+    _c_lo = min(q[achse] for q in aussen)
+    _c_hi = max(q[achse] for q in aussen)
+    _schnitt = [(_c_lo, _base_z), (_c_lo, _wand_z(_c_lo)), (first, _wand_z(first)),
+                (_c_hi, _wand_z(_c_hi)), (_c_hi, _base_z)]
+    _a_lo = min(q[1 - achse] for q in aussen) - overhang
+    _a_hi = max(q[1 - achse] for q in aussen) + overhang
+    def _welt(a, c, z):
+        return (a, c, z) if achse == 1 else (c, a, z)
+    _n = len(_schnitt)
+    _av = ([_welt(_a_lo, c, z) for c, z in _schnitt]
+           + [_welt(_a_hi, c, z) for c, z in _schnitt])
+    _tris = mathutils.geometry.tessellate_polygon([[(c, z, 0.0) for c, z in _schnitt]])
+    _af = [tuple(t) for t in _tris] + [(t[2] + _n, t[1] + _n, t[0] + _n) for t in _tris]
+    _af += [(i, (i + 1) % _n, (i + 1) % _n + _n, i + _n) for i in range(_n)]
+    _wm = bpy.data.meshes.new("roof-walls-mesh")
+    _wm.from_pydata(_av, [], _af)
+    _wm.update()
+    recalc_normals(_wm)
+    _wo = bpy.data.objects.new("roof-walls", _wm)
+    collection("Exterior").objects.link(_wo)
+    _wo.data.materials.append(FACADE)
+    _schneide_mit_prisma(_wo, aussen, _base_z - 1.0, z_first + 5.0)
+    if not len(_wo.data.vertices):
+        bpy.data.objects.remove(_wo, do_unlink=True)
+    text = ("First %s=%.3f m (Anbaukante), Firsthoehe %.3f m, Neigungen "
+            "%.1f/%.1f Grad, Traufe %.3f m"
+            % ("y" if along_x else "x", first, z_first,
+               math.degrees(math.atan((z_first - z_eave) / kurz)),
+               math.degrees(math.atan((z_first - z_eave) / lang)), z_eave))
+    return dach, text
+
+
+# ---------------------------------------------------------------- roof
+overhang = (plan.get("roof_overhang_mm") if plan.get("roof_overhang_mm") is not None else 500) * MM
+pitch = math.radians(PITCH_DEG)
+ridge_z = WALL_TOP_Z
+# Faces of roof_obj that are plaster, not roof tiles: the vertical step of a
+# versetztes Pultdach. The gable triangles and a Pultdach's high side are not
+# part of the roof sheet at all -- they are WALL, built below from
+# roof_profile.wall_extension() (Rainer, 2026-09-19: "the left over triangle
+# would be the extended wall ... you cant just have the roof in the air").
+facade_face_indices = []
+wall_prisms = []
+
+if roof_type == "flachdach":
+    deck_inset = 0.20
+    deck_z0 = CEILING_Z + 0.05
+    deck_z1 = CEILING_Z + 0.30
+    deck_pieces = []
+    for i, (x0, x1, y0, y1) in enumerate(massing_rects):
+        piece = polygon_prism(f"roof-deck-{i}",
+                     [((x0 + deck_inset) / MM, (y0 + deck_inset) / MM),
+                      ((x1 - deck_inset) / MM, (y0 + deck_inset) / MM),
+                      ((x1 - deck_inset) / MM, (y1 - deck_inset) / MM),
+                      ((x0 + deck_inset) / MM, (y1 - deck_inset) / MM)],
+                     deck_z0, deck_z1, ROOF_MAT)
+        deck_pieces.append(piece)
+    union_objects(deck_pieces, "roof-deck")
+else:
+    # walmdach: bpypolyskel computes the real straight skeleton of the
+    # actual footprint -- correct valleys where wings meet, one continuous
+    # roof mass, no independent per-piece ridge heights.
+    #
+    # satteldach, pultdach and doppelpultdach are built from a cross-section
+    # (roof_profile.py) on a plain rectangle; on a non-rectangular footprint
+    # there is no straight-skeleton equivalent implemented yet, so they fall
+    # back to the walmdach hip with a clear log line instead of guessing.
+    roof_poly = offset_orthogonal_polygon(footprint, overhang)
+
+    # A rectangular footprint gets its hip/gable/mono-pitch built directly,
+    # not through the straight-skeleton solver. The skeleton is the right
+    # tool for L- and T-shaped houses with valleys; on a plain rectangle it
+    # was returning a near-flat cap once the walls went two storeys up, and
+    # a hip on a rectangle is four faces and a ridge — there is nothing to
+    # solve.
+    xs = sorted({round(x, 3) for x, _ in roof_poly})
+    ys = sorted({round(y, 3) for _, y in roof_poly})
+    is_rectangle = len(roof_poly) == 4 and len(xs) == 2 and len(ys) == 2
+
+    # Zweischenkliges Dach auf einem echten L (born2thrill-local-
+    # workbench/plans/zweischenkliges-satteldach-v1.md). Rainer, 2026-09-22,
+    # an german_catalog_review_bungalow_4_3_1_wb_125: "the doppelpultdach is
+    # a walmdach in blender", dann "but this for example is exactly one of
+    # our standard houses" -- eigene Messung: 31 von 124 auswertbaren
+    # Haeusern sind genau so ein einfaches L.
+    #
+    # War kurzzeitig fuer alle drei Profilformen offen ("fix it dammit",
+    # profile_mesh()/wall_extension() kennen nur profile["points"], keine
+    # Form), dann WIEDER auf nur Satteldach zurueckgenommen: Rainers eigener
+    # Blender-Screenshot UND eigene Ortho-Nachpruefung zeigten fuer
+    # Doppelpultdach (und, schwaecher, Pultdach) eine wirklich kaputte Kehle
+    # -- mehrere sich ueberlappende, einander durchdringende Facetten am
+    # Fluegel-Treffpunkt ("3 roofs in one ... 90 degrees from each other"),
+    # verursacht durch die damalige BOOLEAN-Vereinigung zweier vollstaendiger
+    # Fluegel-Volumen: Satteldachs einzelner First-Punkt unionierte sauber,
+    # Doppelpultdachs Vertikalstufe/Pultdachs Hochkante gaben dem
+    # EXACT-Solver zu viele sich kreuzende Flaechen. Rainer klar: "i dont
+    # want a walmdach instead of the doppelpultdach" -- kein Fallback,
+    # richtig loesen. Der Boolean-Ansatz wurde ersetzt durch ein Hoehenfeld
+    # (`heightfield_roof_mesh()` unten) -- dieselbe Idee wie roof_wings.py
+    # schon fuer die Geometrie-Erkennung nutzt ("z = max(z1,z2)"), jetzt
+    # gegen das echte Profil. Fuer Satteldach UND Pultdach eigens per
+    # Ortho-Nachpruefung bestaetigt sauber (Satteldach: First 1,18m, eine
+    # glatte Kehle; Pultdach: eine einzelne durchgehende Flaeche, kein
+    # First noetig).
+    #
+    # Doppelpultdach BLEIBT ausgeschlossen -- ein neuer, TIEFERER Fund
+    # (nicht dieselbe Union-Ursache): die zwei Fluegel-Rechtecke ueber-
+    # lappen sich per Konstruktion grossflaechig (roof_wings.py, dieselbe
+    # "z=max" Idee erwartet das), das ist fuer Satteldachs sanften,
+    # symmetrischen First unproblematisch (er faellt zu beiden eigenen
+    # Raendern hin ab). Doppelpultdachs SENKRECHTE Stufe dagegen bleibt
+    # eine feste Hoehe, die per scale_profile_to_span() auf den SCHMALEN
+    # Fluegel projiziert wird -- deren First landet dabei oft mitten im
+    # Ueberlappungsbereich des BREITEN Fluegels und "sticht" dort als
+    # duenner, blattartiger Grat durch dessen viel niedrigere Traufe.
+    # Reproduziert (Ortho-Nachpruefung + Vertex-Dump), keine Boolean-Naht
+    # mehr, ein echtes Entwurfsproblem: welcher First "gewinnt" im
+    # Ueberlappungsbereich zweier unterschiedlich hoher Stufenprofile.
+    # Braucht eine bewusste Entwurfsentscheidung (z.B. die Stufenposition
+    # gegen den Ueberlappungsbereich deckeln), keinen Renderer-Trick --
+    # eigener, spaeterer Folgepunkt, siehe Plan.
+    # ROOF-RIDGE-PATH-TOOL-001, 2026-09-27: Rainer, after the per-wing
+    # axis-override mini-map proved confusing to use in practice --
+    # "make it like the kitchen counter, so that i can draw a line in the
+    # floorplan and you extrude a triangulare shape ... along this path".
+    # A drawn ridge path (already converted to world metres by
+    # build-simplifier-render-plan.py, same frame as `roof_poly`) takes
+    # PRIORITY over automatic wing detection when present: it derives the
+    # SAME `wings` shape `recognize_two_wings()` already produces, PLUS
+    # each wing's own ridge axis directly from the drawn segment's own
+    # orientation (`_ridge_along_x`, used below instead of
+    # roof_axis_override(s) for any wing it covers). Doppelpultdach is
+    # explicitly excluded -- its hand-built-box branch needs EXACTLY two
+    # wings (`roof_wings.reflex_point()`/`clip_wing_to_valley()` below
+    # assume that), while a drawn path can produce any number (an L, T,
+    # plus, ...); ridge-path is scoped to satteldach/pultdach only for now
+    # (see plans/ROOF-RIDGE-PATH-TOOL-001.md's own "explicitly out of
+    # scope"). `None` (nothing drawn, or a path that doesn't resolve
+    # against this footprint) falls through to today's unchanged
+    # automatic-detection behaviour.
+    # ROOF-RIDGE-MULTI-PATH-001, 2026-10-01: `roof_ridge_paths` (plural) is
+    # the current field -- a LIST of independent paths. `roof_ridge_path`
+    # (singular) is read as a one-path fallback for a plan built from an
+    # older, not-yet-migrated annotations.json (build-simplifier-render-
+    # plan.py itself does the same fallback one layer up).
+    # ROOF-RIDGE-PER-FORM-001, 2026-10-04 (Rainer: "es muss möglich sein
+    # unterschiedliche Firstlinien pro Dachform einzuzeichnen, Standard wenn
+    # leer"): this form's OWN lines first -- a present-but-empty entry means
+    # automatic on purpose -- then the shared lines, then automatic.
+    _ridge_by_form = plan.get("roof_ridge_paths_by_form") or {}
+    if roof_type in _ridge_by_form:
+        _ridge_paths_raw = _ridge_by_form.get(roof_type) or []
+        _ridge_source = f"eigene ({roof_type})"
+    else:
+        _ridge_paths_raw = plan.get("roof_ridge_paths") or (
+            [plan["roof_ridge_path"]] if plan.get("roof_ridge_path") else [])
+        _ridge_source = "gemeinsam"
+    _ridge_paths_m = [[(p["x"], p["y"]) for p in path] for path in _ridge_paths_raw]
+    if roof_type in ("satteldach", "pultdach", "doppelpultdach") and not is_rectangle:
+        print(f"[exterior] Firstlinien: "
+              f"{_ridge_source if any(len(p) >= 2 for p in _ridge_paths_m) else 'keine -- automatisch'}"
+              f" ({sum(1 for p in _ridge_paths_m if len(p) >= 2)} Linie(n))")
+    _ridge_along_x = None
+    wings = None
+    # Wings derived from the drawn lines; the per-wing (chevron) roof below
+    # uses them for the Versetztes Pultdach too. Only the old height-field
+    # fallback keeps its satteldach/pultdach-only scope (`wings`).
+    _path_result = None
+    if roof_type in ("satteldach", "pultdach", "doppelpultdach") and not is_rectangle and any(
+            len(p) >= 2 for p in _ridge_paths_m):
+        _from_path = roof_wings.roof_wings_from_ridge_paths(_ridge_paths_m, roof_poly)
+        if _from_path is not None:
+            _path_result = (tuple(_from_path[0]), list(_from_path[1]))
+            if roof_type in ("satteldach", "pultdach"):
+                wings, _ridge_along_x = _path_result
+        else:
+            print("[exterior] roof_ridge_paths konnte nicht gegen den Grundriss aufgeloest werden "
+                  "(nicht-rechtwinklige Strecke, ein Konflikt zwischen zwei First-Linien, oder eine "
+                  "Strecke reicht nicht sicher in den Grundriss hinein) -- automatische "
+                  "Fluegel-Erkennung als Rueckfall.")
+    if wings is None:
+        wings = roof_wings.recognize_two_wings(roof_poly) if (
+            roof_type in ("satteldach", "pultdach", "doppelpultdach") and not is_rectangle) else None
+
+    # VERSATZ-WHOLE-HOUSE-001, 2026-10-04. Rainer, on 3_5_1_b_145: "it
+    # creates 4 roofs", pointing at the Dach-tab reference map ("the small
+    # image to the right show where the versatz should be"): a Versetztes
+    # Pultdach on an L is ONE roof over the whole house with ONE Versatz
+    # line -- 2 surfaces -- not one Versetztes Pultdach per wing. Own drawn
+    # Firstlinien for this form keep the per-wing construction.
+    #
+    # Built after Rainer's own hand-corrected .blend of the same day ("look
+    # at it again and see the changes I've made"):
+    #   * two plain roof slabs, no stepped sheet: the HIGH slab runs on in
+    #     its own slope past the Versatz wall by the overhang ("we need an
+    #     Ueberstand at the top"), the LOW slab runs in under that wall;
+    #   * the walls up to the roof (gables, Versatz wall, the L's inner
+    #     corner) are flush with the OUTER wall faces, not the wall centre
+    #     line the footprint is traced on ("why does the closed hole look
+    #     like it isn't flush with the wall");
+    #   * the Versatz wall stands on the outer face of the wall below it
+    #     where one is within 0.3 m (3_5_1_b_145: 7.54 m, profile says 7.59).
+    _versatz_built = False
+    _vp_own_lines = _ridge_source.startswith("eigene") and any(len(p) >= 2 for p in _ridge_paths_m)
+    if roof_type == "doppelpultdach" and not is_rectangle and not _vp_own_lines and footprint:
+        _vx0, _vx1 = min(p[0] for p in roof_poly), max(p[0] for p in roof_poly)
+        _vy0, _vy1 = min(p[1] for p in roof_poly), max(p[1] for p in roof_poly)
+        _v_forced = {"x": True, "y": False}.get(plan.get("roof_axis_override"))
+        _v_along_x, _v_span, (_v_a0, _v_a1), _v_c0 = roof_profile._axes(
+            _vx0, _vx1, _vy0, _vy1, along_x=_v_forced)
+        _v_profile = roof_profile.resolve_profile(plan.get("roof_profiles"), roof_type, _v_span / MM)
+        _vsec = roof_profile._section(_v_profile, _v_span) if _v_profile else []
+        _vsteps = [k for k in range(len(_vsec) - 1) if abs(_vsec[k][0] - _vsec[k + 1][0]) < 1e-9]
+        _ci = 1 if _v_along_x else 0
+
+        def _vertical_prism(name, poly, z0, z1):
+            """Closed vertical prism over a (possibly non-convex) polygon,
+            caps triangulated ourselves (gable_cap_prism's precedent)."""
+            n = len(poly)
+            pv = [(x, y, z0) for x, y in poly] + [(x, y, z1) for x, y in poly]
+            tris = mathutils.geometry.tessellate_polygon([[(x, y, 0.0) for x, y in poly]])
+            pf = [(t[2], t[1], t[0]) for t in tris] + [(t[0] + n, t[1] + n, t[2] + n) for t in tris]
+            pf += [(i, (i + 1) % n, (i + 1) % n + n, i + n) for i in range(n)]
+            m = bpy.data.meshes.new(name + "-mesh")
+            m.from_pydata(pv, [], pf)
+            m.update()
+            recalc_normals(m)
+            o = bpy.data.objects.new(name, m)
+            collection("Exterior").objects.link(o)
+            return o
+
+        def _intersect_with(obj, cutter):
+            mod = obj.modifiers.new("clip", "BOOLEAN")
+            mod.operation = "INTERSECT"
+            mod.solver = "EXACT"
+            mod.object = cutter
+            bake_modifiers(obj)
+            bpy.data.objects.remove(cutter, do_unlink=True)
+
+        def _simplify(poly):
+            pts = []
+            for q in poly:
+                if not pts or abs(q[0] - pts[-1][0]) > 1e-6 or abs(q[1] - pts[-1][1]) > 1e-6:
+                    pts.append(q)
+            if len(pts) > 1 and abs(pts[0][0] - pts[-1][0]) < 1e-6 and abs(pts[0][1] - pts[-1][1]) < 1e-6:
+                pts.pop()
+            changed = True
+            while changed and len(pts) >= 3:
+                changed = False
+                for i in range(len(pts)):
+                    p0, p1, p2 = pts[i - 1], pts[i], pts[(i + 1) % len(pts)]
+                    if abs((p1[0] - p0[0]) * (p2[1] - p1[1]) - (p1[1] - p0[1]) * (p2[0] - p1[0])) < 1e-9:
+                        pts.pop(i)
+                        changed = True
+                        break
+            return pts
+
+        def _halfplane(poly, keep_low, value):
+            """Sutherland-Hodgman against the one axis-aligned line
+            `cross == value`, keeping the low or the high side."""
+            inside = (lambda q: q[_ci] <= value + 1e-9) if keep_low else (lambda q: q[_ci] >= value - 1e-9)
+            out = []
+            for i in range(len(poly)):
+                q0, q1 = poly[i - 1], poly[i]
+                if inside(q1):
+                    if not inside(q0):
+                        t = (value - q0[_ci]) / (q1[_ci] - q0[_ci])
+                        out.append((q0[0] + t * (q1[0] - q0[0]), q0[1] + t * (q1[1] - q0[1])))
+                    out.append(q1)
+                elif inside(q0):
+                    t = (value - q0[_ci]) / (q1[_ci] - q0[_ci])
+                    out.append((q0[0] + t * (q1[0] - q0[0]), q0[1] + t * (q1[1] - q0[1])))
+            return _simplify(out)
+
+        def _aplane(poly, keep_low, value):
+            """Wie _halfplane, aber laengs der FIRSTachse statt quer dazu.
+
+            VERSATZ-WAND-ENDET-MIT-DEM-DACH-001: der Versatz gilt nur ueber
+            dem Stueck des Hauses, das die hohe Flaeche wirklich deckt --
+            links und rechts davon ist es ein gewoehnliches Pultdach.
+            """
+            _ai = 1 - _ci
+            inside = (lambda q: q[_ai] <= value + 1e-9) if keep_low else (lambda q: q[_ai] >= value - 1e-9)
+            out = []
+            for i in range(len(poly)):
+                q0, q1 = poly[i - 1], poly[i]
+                if inside(q1):
+                    if not inside(q0):
+                        t = (value - q0[_ai]) / (q1[_ai] - q0[_ai])
+                        out.append((q0[0] + t * (q1[0] - q0[0]), q0[1] + t * (q1[1] - q0[1])))
+                    out.append(q1)
+                elif inside(q0):
+                    t = (value - q0[_ai]) / (q1[_ai] - q0[_ai])
+                    out.append((q0[0] + t * (q1[0] - q0[0]), q0[1] + t * (q1[1] - q0[1])))
+            return _simplify(out)
+
+        def _aband(poly, a0, a1):
+            return _aplane(_aplane(poly, False, a0), True, a1)
+
+        def _world(a, c, z):
+            return (a, _v_c0 + c, z) if _v_along_x else (_v_c0 + c, a, z)
+
+        def _line_at(piece, c, from_start):
+            """Height of a section piece's first (or last) segment, extended
+            in its own slope to cross position c."""
+            (ca, ha), (cb, hb) = (piece[0], piece[1]) if from_start else (piece[-2], piece[-1])
+            return ha + (hb - ha) * (c - ca) / (cb - ca)
+
+        if _v_profile and len(_vsteps) == 1:
+            _k = _vsteps[0]
+            _cs_rel = _vsec[_k][0]                 # Versatz, section coordinate
+            _cs = _v_c0 + _cs_rel                  # Versatz, world coordinate
+            _side0 = _vsec[:_k + 1]                # c from 0 up to the Versatz
+            _side1 = _vsec[_k + 1:]                # c from the Versatz to the span
+            _high0 = _side0[-1][1] > _side1[0][1]
+
+            # Outer wall faces: the top storey's real wall body vs. the
+            # traced (centre-line) footprint -- exactly what Rainer matched by
+            # hand (14.88 against walls-0's own 14.87).
+            _wobj = bpy.data.objects.get(f"walls-{len(storey_exterior_walls) - 1}") or bpy.data.objects.get("walls-0")
+            _half_t = max((w["thickness_mm"] for w in (storey_exterior_walls[-1] or exterior_walls)),
+                          default=240) * MM / 2.0
+            if _wobj is not None and len(_wobj.data.vertices):
+                _wv = [_wobj.matrix_world @ v.co for v in _wobj.data.vertices]
+                _fx0, _fx1 = min(p[0] for p in footprint), max(p[0] for p in footprint)
+                _fy0, _fy1 = min(p[1] for p in footprint), max(p[1] for p in footprint)
+                _d = [_fx0 - min(v.x for v in _wv), max(v.x for v in _wv) - _fx1,
+                      _fy0 - min(v.y for v in _wv), max(v.y for v in _wv) - _fy1]
+                if all(0.0 < d < 0.5 for d in _d):
+                    _half_t = sum(_d) / 4.0
+            _face_poly = _simplify(offset_orthogonal_polygon(footprint, _half_t))
+
+            # Versatz wall position: the outer face of a wall below it, if one
+            # is within 0.3 m of where the profile puts the Versatz.
+            _near = [q[_ci] for q in _face_poly if abs(q[_ci] - _cs) < 0.3]
+            _cw = min(_near, key=lambda v: abs(v - _cs)) if _near else _cs
+            _cw_rel = _cw - _v_c0
+
+            # ---- roof: two plain slabs
+            _sgn = -1.0 if _high0 else 1.0     # direction from the high side across the Versatz
+            _ext = abs(_cw - _cs) + overhang + 0.05
+            # VERSATZ-WAND-ENDET-MIT-DEM-DACH-001: so weit wie die hohe Seite.
+            # Unter der Versatzwand schneidet _lo_end sie ohnehin auf 6 cm
+            # zurueck; NEBEN der Wand ist das hier die Laenge, aus der ihre
+            # gewoehnliche Traufe wird. Vorher 0.10 -- damit endete die Flaeche
+            # 10 cm hinter dem Versatz, und der Ueberstand konnte gar nicht
+            # entstehen (Rainer: "es fehlt eigentlich der Ueberstand").
+            # Die ECHTE Kante des unteren Bandes: die Grundrisskante, die die
+            # Schnappregel auf die Versatzlinie gezogen hat. Neben der
+            # Versatzwand zaehlt sie wieder, denn dort traegt sie eine normale
+            # Traufe.
+            if _high0:
+                _lo_kante = min((q[_ci] for q in footprint if q[_ci] >= _cw - 0.3), default=_cw)
+            else:
+                _lo_kante = max((q[_ci] for q in footprint if q[_ci] <= _cw + 0.3), default=_cw)
+            _lo_ext = abs(_lo_kante - _cs) + overhang + 0.05
+            if _high0:
+                _hi_piece = list(_side0) + [(_cs_rel + _ext, _line_at(_side0, _cs_rel + _ext, False))]
+                _lo_piece = [(_cs_rel - _lo_ext, _line_at(_side1, _cs_rel - _lo_ext, True))] + list(_side1)
+            else:
+                _hi_piece = [(_cs_rel - _ext, _line_at(_side1, _cs_rel - _ext, True))] + list(_side1)
+                _lo_piece = list(_side0) + [(_cs_rel + _lo_ext, _line_at(_side0, _cs_rel + _lo_ext, False))]
+
+            def _slab(name, piece):
+                pts = [_world(a, c, WALL_TOP_Z + h) for a in (_v_a0, _v_a1) for c, h in piece]
+                n = len(piece)
+                faces = []
+                for i in range(n - 1):
+                    f = (i, i + 1, n + i + 1, n + i)
+                    # keep every face's normal pointing UP so SOLIDIFY offset=-1 goes down
+                    v0, v1, v2 = (mathutils.Vector(pts[j]) for j in f[:3])
+                    if (v1 - v0).cross(v2 - v1).z < 0:
+                        f = tuple(reversed(f))
+                    faces.append(f)
+                m = bpy.data.meshes.new(name + "-mesh")
+                m.from_pydata(pts, [], faces)
+                m.update()
+                o = bpy.data.objects.new(name, m)
+                collection("Exterior").objects.link(o)
+                o.data.materials.append(ROOF_MAT)
+                sol = o.modifiers.new("thickness", "SOLIDIFY")
+                sol.thickness = 0.22
+                sol.offset = -1.0
+                bake_modifiers(o)
+                return o
+
+            # Each slab overhangs only ITS OWN part of the house; the parts
+            # are split at the Versatz WALL, so the high slab's overhang is
+            # measured from that wall (Rainer's own edit: 0.6 m in front of
+            # it). A footprint edge within 0.3 m of the Versatz counts as
+            # lying on it.
+            _fp_snap = _simplify([tuple(_cw if (k == _ci and abs(v - _cs) < 0.3) else v
+                                        for k, v in enumerate(q)) for q in footprint])
+            _parts = {True: _halfplane(_fp_snap, True, _cw), False: _halfplane(_fp_snap, False, _cw)}
+            # the low slab ends 6 cm BEHIND the Versatz wall's face (inside the
+            # wall), never in its plane
+            _lo_end = _cw + (-0.06 if _high0 else 0.06)
+            # VERSATZ-WAND-ENDET-MIT-DEM-DACH-001, 2026-10-07. Rainer, an
+            # 4_1_3_wb_105: "es fehlt eigentlich der Ueberstand an der unteren
+            # Pultdach deswegen geht die Wand hoch". Gemessen in dem Bau: die
+            # Versatzwand lief ueber 14,159 m, die hohe Flaeche darueber nur
+            # ueber 10,032 m -- 4,127 m Wand mit offener Oberkante im Freien,
+            # und die untere Flaeche daneben auf 60 mm Ueberstand gestutzt
+            # statt auf 370 mm. Ueber welchem Stueck der Firstachse es den
+            # Versatz ueberhaupt gibt, sagt die hohe Flaeche selbst; links und
+            # rechts davon ist es ein gewoehnliches Pultdach.
+            _hi_a = None
+            _pieces = []
+            for _is_low_c, _piece, _is_high in ((_high0, _hi_piece, True), (not _high0, _lo_piece, False)):
+                # _is_low_c: does this slab sit on the c < Versatz side?
+                _part = _parts[_is_low_c]
+                if len(_part) < 4:
+                    continue
+                _ai = 1 - _ci
+                _allowed = _simplify(offset_orthogonal_polygon(_part, overhang))
+                if _is_high:
+                    # Die Wandaussenkante der hohen Flaeche: ihr Zuschnitt
+                    # abzueglich des eigenen Ueberstands.
+                    _hi_a = (min(q[_ai] for q in _allowed) + overhang - _half_t,
+                             max(q[_ai] for q in _allowed) - overhang + _half_t)
+                    if _hi_a[1] - _hi_a[0] < 1e-6:
+                        _hi_a = None
+                    _zuschnitte = [("roof-pitch-hi", _allowed)]
+                elif _hi_a is None:
+                    # Kein Versatz erkannt -- wie bisher unter der Wand enden.
+                    _zuschnitte = [("roof-pitch-lo", _halfplane(_allowed, _is_low_c, _lo_end))]
+                else:
+                    # Unter der Versatzwand endet die untere Flaeche wie bisher
+                    # 6 cm dahinter. Daneben steht keine Wand -- dort bekommt
+                    # sie ihre gewoehnliche Traufe ueber den ganzen Grundriss.
+                    _unter = _halfplane(_allowed, _is_low_c, _lo_end)
+                    # NICHT _fp_snap: die 0,3-m-Schnappregel zieht die
+                    # Grundrisskante auf die Versatzlinie, und genau hier gibt
+                    # es keinen Versatz. Mit _fp_snap kam die Traufe auf 237 mm
+                    # statt auf die 370 mm, die jede andere Kante hat.
+                    _frei = _simplify(offset_orthogonal_polygon(
+                        _halfplane(footprint, _is_low_c, _lo_kante), overhang))
+                    _zuschnitte = [("roof-pitch-lo", _aband(_unter, _hi_a[0], _hi_a[1])),
+                                   ("roof-pitch-lo-a0", _aplane(_frei, True, _hi_a[0])),
+                                   ("roof-pitch-lo-a1", _aplane(_frei, False, _hi_a[1]))]
+                for _nm, _poly in _zuschnitte:
+                    if len(_poly) < 4:
+                        continue
+                    _o = _slab(_nm, _piece)
+                    _intersect_with(_o, _vertical_prism("versatz-clip", _poly,
+                                                        WALL_TOP_Z - 2.0, WALL_TOP_Z + 25.0))
+                    if len(_o.data.vertices):
+                        _pieces.append(_o)
+                    else:
+                        bpy.data.objects.remove(_o, do_unlink=True)
+            if _pieces:
+                roof_obj = join_objects(_pieces, "roof-pitch")
+
+                # ---- walls up to the roof: one solid of the same section,
+                # top 0.10 m under the roof surface, Versatz wall at _cw,
+                # clipped to the OUTER wall faces.
+                _base_z = WALL_TOP_Z - 0.02
+                _h0w = _line_at(_side0, _cw_rel, False)
+                _h1w = _line_at(_side1, _cw_rel, True)
+                _loop = ([(0.0, 0.0)]
+                         + [(c, h) for c, h in _side0 if c < _cw_rel - 1e-6]
+                         + [(_cw_rel, _h0w), (_cw_rel, _h1w)]
+                         + [(c, h) for c, h in _side1 if c > _cw_rel + 1e-6]
+                         + [(_v_span, 0.0)])
+                _clean = [(0.0, _base_z)]
+                for c, h in _loop:
+                    _pt = (c, WALL_TOP_Z + max(h - 0.10, 0.0))
+                    if abs(_pt[0] - _clean[-1][0]) > 1e-6 or abs(_pt[1] - _clean[-1][1]) > 1e-6:
+                        _clean.append(_pt)
+                _clean.append((_v_span, _base_z))
+
+                def _schnitt_sauber(loop):
+                    """Ein Schnitt-Linienzug auf Wandhoehen, ohne Doppelpunkte."""
+                    sauber = [(0.0, _base_z)]
+                    for c, h in loop:
+                        pt = (c, WALL_TOP_Z + max(h - 0.10, 0.0))
+                        if abs(pt[0] - sauber[-1][0]) > 1e-6 or abs(pt[1] - sauber[-1][1]) > 1e-6:
+                            sauber.append(pt)
+                    sauber.append((_v_span, _base_z))
+                    return sauber
+
+                def _wand_koerper(name, clean, cut_poly):
+                    _ln = len(clean)
+                    _av = ([_world(_v_a0, c, z) for c, z in clean]
+                           + [_world(_v_a1, c, z) for c, z in clean])
+                    _tris = mathutils.geometry.tessellate_polygon([[(c, z, 0.0) for c, z in clean]])
+                    _af = ([tuple(t) for t in _tris]
+                           + [(t[2] + _ln, t[1] + _ln, t[0] + _ln) for t in _tris])
+                    _af += [(i, (i + 1) % _ln, (i + 1) % _ln + _ln, i + _ln) for i in range(_ln)]
+                    _amesh = bpy.data.meshes.new(name + "-mesh")
+                    _amesh.from_pydata(_av, [], _af)
+                    _amesh.update()
+                    recalc_normals(_amesh)
+                    o = bpy.data.objects.new(name, _amesh)
+                    collection("Exterior").objects.link(o)
+                    o.data.materials.append(FACADE)
+                    _intersect_with(o, _vertical_prism(name + "-clip", cut_poly,
+                                                       WALL_TOP_Z - 1.0, WALL_TOP_Z + 20.0))
+                    return o
+
+                # VERSATZ-WAND-ENDET-MIT-DEM-DACH-001: die Stufe gilt nur ueber
+                # dem Stueck, das die hohe Flaeche deckt. Daneben traegt die
+                # Wand den Schnitt der NIEDRIGEN Seite, in ihrer eigenen
+                # Neigung durchgezogen -- dort ist es ein Pultdach, und die
+                # Wand endet unter dessen Traufe statt offen im Freien.
+                _lo_side = _side1 if _high0 else _side0
+                if _high0:
+                    _loop_flach = ([(0.0, 0.0), (0.0, _line_at(_lo_side, 0.0, True))]
+                                   + [(c, h) for c, h in _lo_side] + [(_v_span, 0.0)])
+                else:
+                    _loop_flach = ([(0.0, 0.0)] + [(c, h) for c, h in _lo_side]
+                                   + [(_v_span, _line_at(_lo_side, _v_span, False)), (_v_span, 0.0)])
+                _waende = []
+                if _hi_a is None:
+                    _waende.append(_wand_koerper("roof-walls", _clean, _face_poly))
+                else:
+                    for _nm, _cl, _poly in (
+                            ("roof-walls", _clean, _aband(_face_poly, _hi_a[0], _hi_a[1])),
+                            ("roof-walls-a0", _schnitt_sauber(_loop_flach),
+                             _aplane(_face_poly, True, _hi_a[0])),
+                            ("roof-walls-a1", _schnitt_sauber(_loop_flach),
+                             _aplane(_face_poly, False, _hi_a[1]))):
+                        if len(_poly) < 3:
+                            continue
+                        _w = _wand_koerper(_nm, _cl, _poly)
+                        if len(_w.data.vertices):
+                            _waende.append(_w)
+                        else:
+                            bpy.data.objects.remove(_w, do_unlink=True)
+                _wall_obj = join_objects(_waende, "roof-walls") if _waende else None
+
+                print(f"[exterior] doppelpultdach: ein Dach ueber das ganze Haus (VERSATZ-WHOLE-HOUSE-001), "
+                      f"First entlang {'x' if _v_along_x else 'y'}, Versatz laut Profil "
+                      f"{'y' if _v_along_x else 'x'}={_cs:.2f} m, Versatzwand auf Wandaussenkante "
+                      f"{_cw:.2f} m, oberes Dach {overhang:.2f} m Ueberstand darueber, "
+                      f"Waende buendig mit Aussenkante ({_half_t:.3f} m vor der Mittellinie), "
+                      + (f"Versatz nur ueber {'x' if _v_along_x else 'y'}="
+                         f"{_hi_a[0]:.3f}..{_hi_a[1]:.3f} m (daneben Pultdach)"
+                         if _hi_a else "Versatz ueber die ganze Breite"))
+                wings = None
+                _versatz_built = True
+
+    # `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29 (Rainer, after the wing-
+    # rectangle/height-field architecture kept producing real, visible
+    # defects despite four separate targeted patches on the SAME day: "you
+    # make the [roof] same width as the footprint and then close the holes
+    # after that you add the dachueberstand" -- build each wing at its TRUE
+    # footprint extent (`massing_rects`, the real non-overlapping rectangle
+    # decomposition already used for the "footprint massing" log line
+    # above -- NOT `recognize_two_wings()`'s own output, which deliberately
+    # EXTENDS each wing to the full other-axis range so the OLD max()-
+    # height-field trick has something to reconcile). Every wing gets its
+    # own ordinary, independent `profile_mesh()`/`wall_extension()` -- no
+    # shared grid, so no dominance crease to approximate or get wrong.
+    # `chevron_roof_construction()` itself refuses (returns `None`) rather
+    # than guess whenever it finds two ADJACENT wings sharing an edge with
+    # the SAME ridge axis (a genuinely harder case, Codex's own "T/plus
+    # junctions need a proper planar arrangement" finding) -- this falls
+    # through to the existing, unchanged height-field path below exactly as
+    # if this whole block were never here. Scoped to satteldach/pultdach
+    # only (doppelpultdach keeps its own already-proven, explicit-thickness
+    # construction -- see that plan's own item 4) and skipped whenever
+    # `roof_axis_override` forces one single axis for the whole building,
+    # since that directly contradicts the "adjacent wings are perpendicular"
+    # requirement this construction relies on.
+    # ANBAU-BEKOMMT-PULTDACH-001, revidiert 2026-10-08. EIN Satteldach ueber
+    # das GANZE Haus, statt eines Dachs je Fluegel.
+    #
+    # Rainer, an bungalow_040_31: "this satteldach is wrong. it has 2 roofs".
+    # Dann hat er die .blend selbst geaendert ("look at it then you will
+    # understand"). Aus seiner Fassung gemessen: ein Dach von y 964 bis 12550,
+    # Querschnitt Traufe 574/2750 - FIRST 8165/4810 - Traufe 13818/2750. Der
+    # First sitzt nicht in der Mitte des grossen Schenkels (x=7196), sondern
+    # auf der Kante, an der der ANBAU anfaengt. Die Flaeche auf der Anbauseite
+    # laeuft ueber den Anbau durch; die andere hoert am grossen Schenkel auf.
+    # Ueber dem Anbau ist das Dach damit genau EINE Flaeche, in derselben
+    # Ebene wie das Hauptdach -- sein "Pultdach parallel zum anderen Dach, auf
+    # gleicher Hoehe".
+    #
+    # Firsthoehe NICHT aus seiner Fassung uebernommen: er hatte den First
+    # verschoben und die Hoehe gelassen, und nannte sie selbst "fast zu hoch".
+    # Sie kommt aus der gespeicherten Neigung auf der KURZEN Seite -- damit
+    # bleibt die steilere Flaeche genau auf dem Profil des Hauses und der
+    # First faellt rund 200 mm tiefer aus.
+    _einfirst_built = False
+    if (roof_type == "satteldach" and not is_rectangle and not _vp_own_lines
+            and footprint and len(massing_rects) == 2):
+        # Neigung aus dem gespeicherten Profil, auf der Referenzspannweite
+        # des Hauses -- dieselbe Rechnung wie im Chevron-Zweig darunter.
+        _ef_ax, _, _, _ = roof_profile._axes(min_x * MM, max_x * MM, min_y * MM, max_y * MM)
+        _, _ef_ref_m, _, _ = roof_profile._axes(
+            min_x * MM, max_x * MM, min_y * MM, max_y * MM, along_x=_ef_ax)
+        _ef_prof = roof_profile.resolve_profile(
+            plan.get("roof_profiles"), roof_type, _ef_ref_m * 1000.0)
+        _ef_neigung = (max(q["h_mm"] for q in _ef_prof["points"]) / 1000.0) / (_ef_ref_m / 2.0)
+        _ef = einfirst_satteldach(
+            footprint, massing_rects, overhang, WALL_TOP_Z,
+            _ef_neigung,
+            storey_exterior_walls[-1] if storey_exterior_walls else exterior_walls,
+            exterior_walls,
+            # "90 Grad drehen" im Dach-Tab setzt die Firstachse fuer das ganze
+            # Haus. Das ist Rainers eigene Vorgabe und schlaegt die aus der
+            # Anbaulage abgeleitete Achse -- bungalow_040_31 steht auf "y",
+            # und genau so hat er die .blend auch von Hand gebaut.
+            {"x": True, "y": False}.get(plan.get("roof_axis_override")))
+        if _ef is None:
+            print("[exterior] satteldach: ein Dach ueber das ganze Haus nicht "
+                  "moeglich (keine eindeutige Anbaukante) -- weiter wie bisher")
+        if _ef is not None:
+            roof_obj, _ef_text = _ef
+            print("[exterior] satteldach: ein Dach ueber das ganze Haus "
+                  "(ANBAU-BEKOMMT-PULTDACH-001), " + _ef_text)
+            wings = None
+            _einfirst_built = True
+
+    _chevron_built = _einfirst_built
+    # 2026-10-02, bungalow_001: doppelpultdach on an L-shape used to skip
+    # this and take a branch below with HARD-CODED world coordinates (two
+    # slabs at (10.213, 5.3435, 3.3283) etc. -- Rainer's hand-placed "3
+    # cubes" for ONE house), which on any other house lands in the wrong
+    # place: a wall far taller than the building and a slab floating in the
+    # air. The per-wing construction derives every piece from the footprint
+    # instead, so it is allowed for the Versetztes Pultdach too.
+    #
+    # A whole-house `roof_axis_override` ("90 Grad drehen") used to make this
+    # whole construction refuse -- and the house silently fell back to the
+    # old, broken paths, which is exactly what happened to bungalow_001 the
+    # moment its axis was turned. It is now honoured the one way that fits
+    # perpendicular wings: it sets the MAIN wing's ridge direction, every
+    # adjoining wing runs perpendicular to it (see the axis assignment below).
+    if (roof_type in ("satteldach", "pultdach", "doppelpultdach") and not is_rectangle
+            and len(massing_rects) >= 2 and not _versatz_built and not _einfirst_built):
+        _chevron_wings = tuple(snap_wings_to_real_walls(
+            massing_rects, storey_exterior_walls[-1] or exterior_walls))
+        # Ridge axis per wing: NOT each rectangle's own independent
+        # width>=depth aspect ratio -- a small branch sticking out from the
+        # main body's long side is very often itself wider than deep too
+        # (confirmed live on WB_125: its own 4.75x2.79m extension), which
+        # would wrongly give it the SAME axis as the main body it attaches
+        # to, when architecturally a branch's ridge runs PERPENDICULAR to
+        # whatever it attaches to (it runs AWAY from the main house, not
+        # parallel to it). Assign by adjacency instead: the LARGEST wing
+        # (by area, the main body) keeps its own natural aspect-ratio axis;
+        # every other wing takes the OPPOSITE axis of whichever already-
+        # assigned wing it shares an edge with, propagated outward (a
+        # simple BFS over the "shares an edge" graph) -- exactly the
+        # perpendicular-neighbours structure `chevron_roof_construction()`
+        # itself requires to avoid a same-axis refusal.
+        _cn = len(_chevron_wings)
+        _order = sorted(range(_cn), key=lambda i: -(_chevron_wings[i][1] - _chevron_wings[i][0])
+                        * (_chevron_wings[i][3] - _chevron_wings[i][2]))
+        _chevron_along_x = [None] * _cn
+        _main_i = _order[0]
+        _main_r = _chevron_wings[_main_i]
+        _chevron_along_x[_main_i] = {"x": True, "y": False}.get(
+            plan.get("roof_axis_override"), (_main_r[1] - _main_r[0]) >= (_main_r[3] - _main_r[2]))
+        _queue = [_main_i]
+        while _queue:
+            _cur = _queue.pop(0)
+            _cur_edges = roof_profile._rect_edges(_chevron_wings[_cur])
+            for _j in range(_cn):
+                if _chevron_along_x[_j] is not None:
+                    continue
+                _j_edges = roof_profile._rect_edges(_chevron_wings[_j])
+                if any(roof_profile._edges_overlap(e1, e2) for e1 in _cur_edges for e2 in _j_edges):
+                    _chevron_along_x[_j] = not _chevron_along_x[_cur]
+                    _queue.append(_j)
+        # Any wing untouched by the BFS (disconnected from the main body --
+        # shouldn't happen for a real footprint, but never guess) falls
+        # back to its own natural axis; the same-axis refusal downstream
+        # still catches a genuine conflict rather than building it wrong.
+        for _i in range(_cn):
+            if _chevron_along_x[_i] is None:
+                _r = _chevron_wings[_i]
+                _chevron_along_x[_i] = (_r[1] - _r[0]) >= (_r[3] - _r[2])
+        # ROOF-RIDGE-PER-FORM-001: drawn Firstlinien decide the cut and every
+        # wing's ridge axis. Before this the chevron roof ignored them
+        # entirely (row slices + biggest-area main wing), which on
+        # 3_5_1_b_145 ran the branch ridge through the main roof.
+        if _path_result is not None and footprint:
+            _swapped = [(y, x) for x, y in footprint]
+            _cand = [
+                [r for r in decompose_rectangles(footprint) if (r[1] - r[0]) > 0.3 and (r[3] - r[2]) > 0.3],
+                [(r[2], r[3], r[0], r[1]) for r in decompose_rectangles(_swapped)
+                 if (r[1] - r[0]) > 0.3 and (r[3] - r[2]) > 0.3],
+            ]
+            _guided = roof_wings.choose_ridge_guided_decomposition(
+                [c for c in _cand if len(c) >= 2], _path_result[0], _path_result[1])
+            if _guided is not None:
+                _chevron_wings = tuple(snap_wings_to_real_walls(
+                    _guided[0], storey_exterior_walls[-1] or exterior_walls))
+                _chevron_along_x = list(_guided[1])
+                _cn = len(_chevron_wings)
+                print("[exterior] Fluegel aus Firstlinien: " + ", ".join(
+                    f"[{r[0]:.2f}..{r[1]:.2f}]x[{r[2]:.2f}..{r[3]:.2f}] First {'x' if a else 'y'}"
+                    for r, a in zip(_chevron_wings, _chevron_along_x)))
+            else:
+                print("[exterior] Firstlinien passen zu keiner Rechteck-Zerlegung -- automatische Fluegel.")
+        _cref_along_x, _, _, _ = roof_profile._axes(min_x * MM, max_x * MM, min_y * MM, max_y * MM)
+        _, _cref_span_m, _, _ = roof_profile._axes(
+            min_x * MM, max_x * MM, min_y * MM, max_y * MM, along_x=_cref_along_x)
+        _cref_profile = roof_profile.resolve_profile(
+            plan.get("roof_profiles"), roof_type, _cref_span_m * 1000.0)
+        _chevron_profiles = []
+        for (cx0, cx1, cy0, cy1), c_along_x in zip(_chevron_wings, _chevron_along_x):
+            _c_span_mm = ((cy1 - cy0) if c_along_x else (cx1 - cx0)) * 1000.0
+            _chevron_profiles.append(roof_profile.scale_profile_to_span(
+                _cref_profile, _cref_span_m * 1000.0, _c_span_mm))
+        _chevron_wall_t = max((w["thickness_mm"] for w in (storey_exterior_walls[-1] or exterior_walls)),
+                              default=240) * MM
+        _chevron_result = roof_profile.chevron_roof_construction(
+            _chevron_wings, _chevron_profiles, _chevron_along_x, WALL_TOP_Z, overhang, _chevron_wall_t)
+        if _chevron_result is not None:
+            (_cv, _cf), _cprisms = _chevron_result
+            _rmesh = bpy.data.meshes.new("roof-pitch-mesh")
+            _rmesh.from_pydata([tuple(v) for v in _cv], [], _cf)
+            _rmesh.update()
+            # Deliberately NOT `weld_and_recalc_normals()` here: tried it
+            # while chasing a DIFFERENT (since-reverted) enhancement and
+            # found it welds MORE than intended -- wing_a and wing_b can
+            # legitimately share one coincident corner point (both eaves
+            # meeting at height 0), and welding it makes SOLIDIFY treat the
+            # two otherwise-independent wings as one connected island,
+            # confusing its own rim-fill there (confirmed: introduced 2 new
+            # self-intersections + 1 non-manifold edge on WB_125's real
+            # rebuild that plain `recalc_normals()` does not have). Each
+            # wing's own SOLIDIFY-capped island staying genuinely separate
+            # is exactly what keeps this construction's own 0-self-
+            # intersection property intact.
+            recalc_normals(_rmesh)
+            roof_obj = bpy.data.objects.new("roof-pitch", _rmesh)
+            collection("Exterior").objects.link(roof_obj)
+            roof_obj.data.materials.append(ROOF_MAT)
+            _sol = roof_obj.modifiers.new("thickness", "SOLIDIFY")
+            _sol.thickness = 0.22
+            _sol.offset = -1.0
+            bake_modifiers(roof_obj)
+
+            _wv, _wf = [], []
+            for _pverts, _pfaces in _cprisms:
+                _base = len(_wv)
+                _wv += [tuple(v) for v in _pverts]
+                _wf += [tuple(i + _base for i in f) for f in _pfaces]
+            if _wv:
+                _wall_mesh = bpy.data.meshes.new("roof-walls-mesh")
+                _wall_mesh.from_pydata(_wv, [], _wf)
+                _wall_mesh.update()
+                _wall_obj = bpy.data.objects.new("roof-walls", _wall_mesh)
+                collection("Exterior").objects.link(_wall_obj)
+                _wall_obj.data.materials.append(FACADE)
+
+            print(f"[exterior] {roof_type} chevron (unabhaengige First-Konstruktion je Fluegel): "
+                  f"{len(_chevron_wings)} Fluegel, {len(_cprisms)} Wandstuecke")
+            wings = None
+            _chevron_built = True
+        else:
+            print(f"[exterior] {roof_type} chevron-Konstruktion abgelehnt (zwei Fluegel teilen sich "
+                  f"eine Kante mit GLEICHER First-Achse -- ein haerterer Fall, siehe Codex-Review) -- "
+                  f"Hoehenfeld-Pfad als Rueckfall.")
+            wings = roof_wings.recognize_two_wings(roof_poly)
+
+    if roof_type in ("satteldach", "pultdach", "doppelpultdach") and not is_rectangle \
+            and not wings and not _chevron_built and not _versatz_built:
+        print(f"[exterior] {roof_type} braucht ein rechteckiges Gebaeude -- "
+              f"dieses hier ist keins, es wird stattdessen ein Walmdach "
+              f"gebaut (plans/four-roof-form-exteriors-v1.md).")
+
+    # Rainer, 2026-09-27: "if it is an L form then the roof also has to be
+    # in the corner of the L you cant leave it empty" -- turned out to be
+    # `walls-0`'s own corner post overshooting the true wall face at the
+    # L's reflex corner (fixed where the corner posts are built), not a
+    # roof-side issue. A same-day SOLIDIFY offset=+1 theory for the
+    # skeleton branch was tried and disproven (see the plain offset=-1
+    # comment below) -- no per-branch flag needed here any more.
+
+    if wings:
+        if os.environ.get("DEBUG_WING_EXPOSURE"):
+            print(f"[exterior] DEBUGWINGS wings={wings} overhang={overhang:.4f} "
+                  f"axis_override={plan.get('roof_axis_override')!r}")
+        # Rainer, 2026-09-22, nachdem die erste (Boolean-Union-) Fassung
+        # hier IMMER den 5-Grad-Standard gebaut hat: "no i want it fixed,
+        # this is BS" -- das gespeicherte "eigene Profil" (Firsthoehe,
+        # Neigung) gilt jetzt auch hier, wie im rechteckigen Pfad unten
+        # (resolve_profile()).
+        #
+        # Zweiter Fund, gleicher Tag: dieselbe absolute Firsthoehe auf JEDEM
+        # Fluegel zu bauen war selbst falsch -- der Dach-Tab-Editor kennt
+        # keine Fluegel, der Nutzer stellt seine Firsthoehe gegen das GANZE
+        # Gebaeude ein. Auf einem viel schmaleren Fluegel zwingt dieselbe
+        # absolute Hoehe eine viel steilere Neigung, sichtbar als "2 flat
+        # roofs on top of each other" (Rainer). Fix: das Profil wird EINMAL
+        # gegen die Spannweite des GANZEN Daches (die Bounding-Box, genau
+        # das, was der Editor zeigt) aufgeloest, dann per
+        # `scale_profile_to_span()` auf jeden Fluegel uebertragen -- das
+        # haelt die NEIGUNG (nicht die absolute Hoehe) ueber beide Fluegel
+        # hinweg gleich, wie ein echtes Dach.
+        #
+        # Dritter, groesserer Fund, gleicher Tag: die urspruengliche
+        # Boolean-Vereinigung (union_objects(), zwei vollstaendige
+        # Fluegel-Volumen per EXACT-Solver zusammengefuegt) unionierte
+        # Satteldachs einzelnen First-Punkt sauber, zerlegte aber
+        # Doppelpultdachs zusaetzliche Vertikalstufe (und, schwaecher,
+        # Pultdachs randstaendige Hochkante) in sich durchdringende
+        # Facetten -- Rainers Screenshot: "3 roofs in one a satteldach aand
+        # 2 doppelpult 90 degrees from each other", dann klar: "i dont want
+        # a walmdach instead of the doppelpultdach". Ersetzt durch ein
+        # Hoehenfeld (`heightfield_roof_mesh()`): JEDER Punkt der Dachflaeche
+        # bekommt GENAU EINE Hoehe -- die groessere der beiden Fluegel-Hoehen
+        # dort (dieselbe "z = max(z1,z2)"-Idee, die roof_wings.py schon fuer
+        # die reine Geometrie-Erkennung nutzt, jetzt gegen das ECHTE Profil
+        # statt nur eine symmetrische Zeltfunktion) -- kein Volumen-Boolean
+        # mehr, also strukturell nichts, was sich ueberlappen oder
+        # durchdringen kann, fuer JEDE Profilform gleich. Die Waende bleiben
+        # unveraendert pro Fluegel (wall_extension(), bereits erprobt), aber
+        # zusammengefuegt per join_objects() (reiner Mesh-Join) statt
+        # union_objects() -- Fluegel-Waende ueberlappen sich ohnehin nie in
+        # 3D, ein Boolean war dafuer nie noetig.
+        # Rainer, 2026-09-24: found while chasing the "boxes mixed up" bug
+        # -- `_design_span_m` used to be resolved against the AUTO-detected
+        # axis (width>=depth), BEFORE `roof_axis_override` was even read
+        # below. For this house that's a real mismatch: auto-detect picks
+        # along_x=True (width 12.89m >= depth ~9.01m using the OLD,
+        # pre-override bounding box), but `roof_axis_override="y"` forces
+        # along_x=False -- the saved profile was then being clamped
+        # (sanitize_profile's MAX_SLOPE * span checks) against the WRONG
+        # span the whole time. Read the override FIRST, resolve the
+        # profile against the axis that's actually going to be used.
+        _axis_raw = plan.get("roof_axis_override")
+        _design_along_x_auto, _, _, _ = roof_profile._axes(xs[0], xs[-1], ys[0], ys[-1])
+        _u_along_x = {"x": True, "y": False}.get(_axis_raw, _design_along_x_auto)
+        _, _design_span_m, _, _ = roof_profile._axes(
+            xs[0], xs[-1], ys[0], ys[-1], along_x=_u_along_x)
+        _design_profile = roof_profile.resolve_profile(
+            plan.get("roof_profiles"), roof_type, _design_span_m * 1000.0)
+        # Rainer, 2026-09-26, PER-WING-AXIS-OVERRIDE-001: "wait, now with
+        # that example i would also need to add another one so 2 for an L
+        # shaped" -- one drawn ridge line per WING instead of one for the
+        # whole house. Keyed "wingA"/"wingB", the SAME naming
+        # roof_wings.recognize_two_wings() itself already guarantees
+        # (wingA = full x-extent, wingB = full y-extent, always in that
+        # order) -- not an arbitrary index, so this never needs its own
+        # separate identity-matching step. A wing with no matching key (or
+        # an invalid value) falls back to `_u_along_x` -- the whole-house
+        # override above, itself already falling back to fully automatic
+        # -- so a house that never uses this new field behaves exactly as
+        # before. `_design_profile`/`_design_span_m` above stay a SINGLE,
+        # whole-building reference deliberately (Codex read-only review,
+        # plans/PER-WING-AXIS-OVERRIDE-001-codex-review.md, point 2:
+        # "keeping the existing whole-building reference is a contained
+        # choice" -- mixing per-wing axes into the reference profile's own
+        # resolution was never asked for and is not needed for per-wing
+        # RIDGE DIRECTION, only per-wing PROFILE SCALING, which already
+        # happens below via `scale_profile_to_span()`).
+        _wing_axis_overrides = plan.get("roof_axis_overrides") or {}
+        _WING_OVERRIDE_KEYS = ("wingA", "wingB")
+        # ROOF-RIDGE-PATH-TOOL-001: a drawn ridge path already gives each
+        # wing's own axis directly (the segment's own drawn orientation --
+        # there is no "override" to fall back through, the path IS the
+        # definition) -- takes priority over the older wingA/wingB
+        # override keys, which stay for houses that never draw a path.
+        _wing_along_x = (
+            list(_ridge_along_x) if _ridge_along_x is not None else
+            [
+                {"x": True, "y": False}.get(
+                    _wing_axis_overrides.get(_WING_OVERRIDE_KEYS[_wi]) if _wi < len(_WING_OVERRIDE_KEYS) else None,
+                    _u_along_x)
+                for _wi in range(len(wings))
+            ]
+        )
+        _wall_t = max((w["thickness_mm"] for w in (storey_exterior_walls[-1] or exterior_walls)),
+                      default=240) * MM
+        _heightfield_step = 0.3
+
+        # Rainer, 2026-09-24: after a whole day of height-field/notch/
+        # gap-fill/two-slab detours, back to the ORIGINAL, already-
+        # verified-for-weeks approach for every two-wing roof form
+        # (doppelpultdach included) -- each wing gets the SAME saved
+        # profile, scaled to its own span (`scale_profile_to_span()`,
+        # preserves pitch, not absolute height). The ONLY real, ever-
+        # confirmed bug in this approach (Codex second-opinion review,
+        # verified by hand against this house's own numbers) was that
+        # every `_axes()` call here auto-detected each wing's OWN ridge
+        # axis independently instead of using the single, forced axis
+        # `roof_axis_override` sets for the whole building -- on an L,
+        # that could point two wings' ridges PERPENDICULAR to each
+        # other. Fixed at the one root cause instead of layering more
+        # special-casing on top: `_u_along_x` (forced above, falls back
+        # to auto only when no override is set) is threaded through
+        # every `_axes()` call in this whole branch.
+        if roof_profile.has_vertical_step(_design_profile):
+            # Rainer, 2026-09-25: "sorry my mistake delete your last 2
+            # cubes and add these three cubes with the dimensions" -- the
+            # first 2-cube handoff used Scale (relative to a 2m default
+            # cube), which came out tiny/floating since X/Y scale was
+            # left at 1.0. This handoff gives Dimensions instead -- the
+            # true world-space size Blender's own N-panel shows,
+            # independent of the underlying mesh -- plus rotation is now
+            # a real Y-tilt matching the actual pitch angles (8.3 and
+            # 21.3deg). Third cube is the small versatz wall between the
+            # two roof planes ("the small wall between the 2 roofs you
+            # can leave"). Setting `obj.dimensions` directly (a real
+            # Blender API, resolves the scale needed for that exact
+            # world AABB given the current rotation) instead of
+            # reverse-engineering scale by hand.
+            def _make_box(name, mat, loc, rot_deg, dim):
+                _mesh = bpy.data.meshes.new(f"{name}-mesh")
+                _bm = bmesh.new()
+                bmesh.ops.create_cube(_bm, size=1.0)
+                _bm.to_mesh(_mesh)
+                _bm.free()
+                _obj = bpy.data.objects.new(name, _mesh)
+                collection("Exterior").objects.link(_obj)
+                _obj.location = loc
+                _obj.rotation_euler = tuple(math.radians(d) for d in rot_deg)
+                bpy.context.view_layer.update()
+                _obj.dimensions = dim
+                _obj.data.materials.append(mat)
+                return _obj
+
+            def _world_verts(obj):
+                _d = bpy.context.evaluated_depsgraph_get()
+                _e = obj.evaluated_get(_d)
+                _m = _e.to_mesh()
+                _w = obj.matrix_world
+                _vs = [_w @ v.co for v in _m.vertices]
+                _e.to_mesh_clear()
+                return _vs
+
+            _hand_built_boxes = [
+                {"name": "roof-wing-1-slab", "mat": ROOF_MAT,
+                 "loc": (10.213, 5.3435, 3.3283), "rot_deg": (0.0, 8.3, 0.0),
+                 "dim": (8.8, 8.9, 0.15)},
+                {"name": "roof-wing-2-slab", "mat": ROOF_MAT,
+                 "loc": (3.52, 6.7388, 3.735), "rot_deg": (0.0, -21.3, 0.0),
+                 "dim": (7.02, 11.8, 0.15)},
+            ]
+            _slab_pieces = []
+            for _spec in _hand_built_boxes:
+                _obj = _make_box(_spec["name"], _spec["mat"], _spec["loc"],
+                                  _spec["rot_deg"], _spec["dim"])
+                _spec["obj"] = _obj
+                _slab_pieces.append(_obj)
+
+            # Rainer, 2026-09-25: "right form, wrong position maybe you
+            # make the dachueberstand 0 then close the holes and after
+            # that you add the dachueberstand" -- got Codex's read on this
+            # (4 findings, all confirmed, all applied): every wall/infill
+            # position in this branch was being read off the ROOF SLABS'
+            # own geometry (which already includes the overhang), instead
+            # of computed directly from the wing rectangles minus overhang
+            # (the true, zero-overhang wall footprint). That's true for X
+            # AND Y, for the versatz wall AND the notch's own east wall.
+            # Compute every true-footprint coordinate ONCE, here, straight
+            # from `wings` -- nothing downstream reads roof-slab geometry
+            # for POSITION again (only for roof underside HEIGHT, which
+            # legitimately does depend on the slab's own slope).
+            _shallow_spec = next(s for s in _hand_built_boxes if s["name"] == "roof-wing-1-slab")
+            _steep_spec = next(s for s in _hand_built_boxes if s["name"] == "roof-wing-2-slab")
+
+            def _underside_z_at_x(slab_obj, target_x):
+                _vs = _world_verts(slab_obj)
+                _xs = sorted(set(round(v.x, 4) for v in _vs))
+                _x_lo, _x_hi = _xs[0], _xs[-1]
+                _z_lo = min(v.z for v in _vs if abs(v.x - _x_lo) < 1e-3)
+                _z_hi = min(v.z for v in _vs if abs(v.x - _x_hi) < 1e-3)
+                _frac = (target_x - _x_lo) / (_x_hi - _x_lo) if _x_hi > _x_lo else 0.0
+                return _z_lo + (_z_hi - _z_lo) * _frac
+
+            _notch_idx = 0 if (wings[0][1] - wings[0][0]) < (wings[1][1] - wings[1][0]) else 1
+            _main_idx = 1 - _notch_idx
+            _true_west = wings[_main_idx][0] + overhang
+            _true_east = wings[_main_idx][1] - overhang
+            _true_reflex_x = wings[_notch_idx][1] - overhang
+            _main_y0 = wings[_main_idx][2] + overhang
+            _main_y1 = wings[_main_idx][3] - overhang
+            _notch_y0 = wings[_notch_idx][2] + overhang
+            _notch_y1 = wings[_notch_idx][3] - overhang
+
+            _shallow_h_at_reflex = _underside_z_at_x(_shallow_spec["obj"], _true_reflex_x)
+            _steep_h_at_reflex = _underside_z_at_x(_steep_spec["obj"], _true_reflex_x)
+            _half_t = _wall_t / 2.0
+            _versatz_obj_new = _make_box(
+                "roof-versatz-wall", FACADE,
+                (_true_reflex_x, (_main_y0 + _main_y1) / 2.0,
+                 (WALL_TOP_Z + max(_shallow_h_at_reflex, _steep_h_at_reflex)) / 2.0),
+                (0.0, 0.0, 0.0),
+                (_wall_t, (_main_y1 - _main_y0) + _wall_t,
+                 max(_shallow_h_at_reflex, _steep_h_at_reflex) - WALL_TOP_Z))
+            _hand_built_boxes.append(
+                {"name": "roof-versatz-wall", "mat": FACADE, "obj": _versatz_obj_new})
+            _slab_pieces.append(_versatz_obj_new)
+
+            # The notch's own east wall (steep slab's high side) only
+            # meets the shallow slab -- and needs the versatz bridge --
+            # across the main body's own Y range. North of that (up to the
+            # notch's own true far wall) there is no shallow slab to
+            # bridge to at all; the steep slab's high side is simply
+            # exposed there and needs its own wall, at the SAME true-wall
+            # X as the versatz (not the roof's own overhung outer edge).
+            if _notch_y1 - _main_y1 > 0.1:
+                _notch_h = _underside_z_at_x(_steep_spec["obj"], _true_reflex_x)
+                _gable_t = _wall_t
+                _notch_wall = _make_box(
+                    "roof-notch-east-wall", FACADE,
+                    (_true_reflex_x, (_main_y1 + _notch_y1) / 2.0, (WALL_TOP_Z + _notch_h) / 2.0),
+                    (0.0, 0.0, 0.0),
+                    (_wall_t, (_notch_y1 + _gable_t / 2.0) - (_main_y1 - _gable_t / 2.0),
+                     _notch_h - WALL_TOP_Z))
+                _slab_pieces.append(_notch_wall)
+
+            # Rainer, 2026-09-25: "can you also fill the triangalar holes
+            # between the walls and roofs?" -- each tilted slab's own
+            # gable ends (the true outer ridge-axis extremes, not the
+            # versatz seam) rise above the flat WALL_TOP_Z, leaving a
+            # triangular gap between the wall-top and the sloped
+            # underside. Read the SLAB's own actual baked geometry
+            # (evaluated mesh, world space) instead of recomputing the
+            # slope from the rotation angle by hand -- guarantees the
+            # infill's top edge is pixel-exact against the real roof
+            # underside, no separate formula that could drift from it.
+            def _gable_infill_panels(_slab_obj):
+                _depsgraph = bpy.context.evaluated_depsgraph_get()
+                _eval_obj = _slab_obj.evaluated_get(_depsgraph)
+                _eval_mesh = _eval_obj.to_mesh()
+                _world = _slab_obj.matrix_world
+                _verts = [_world @ v.co for v in _eval_mesh.vertices]
+                _eval_obj.to_mesh_clear()
+                _y_vals = [round(v.y, 4) for v in _verts]
+                _panels = []
+                for _y_end in (min(_y_vals), max(_y_vals)):
+                    _face = [v for v in _verts if abs(v.y - _y_end) < 1e-3]
+                    if len(_face) < 2:
+                        continue
+                    _x_lo, _x_hi = min(v.x for v in _face), max(v.x for v in _face)
+                    if _x_hi - _x_lo < 1e-3:
+                        continue
+                    _z_lo = min(v.z for v in _face if abs(v.x - _x_lo) < 1e-3)
+                    _z_hi = min(v.z for v in _face if abs(v.x - _x_hi) < 1e-3)
+                    _panels.append((_y_end, _x_lo, _z_lo, _x_hi, _z_hi))
+                return _panels
+
+            # Rainer, 2026-09-25: "the holes have to be fixed at the
+            # position where the walls are, picture the positioning of
+            # the holes as if the Dachueberstand would be 0" -- the slab's
+            # OWN mesh extent already includes the overhang baked into
+            # `wings` (roof_wings.recognize_two_wings() adds it on every
+            # side of every wing, including the internal versatz side,
+            # which is not a real eave at all). Using that extended
+            # extent for the infill's X-range is exactly why the two
+            # slabs' gable walls overlapped: both slabs' overhang reaches
+            # past the true versatz line into each other's territory.
+            #
+            # Codex second-opinion review, 2026-09-25 (4 findings, all
+            # applied): the fix above only corrected X -- `_py` (the
+            # infill's own Y-position) was STILL read from the roof
+            # slab's own mesh extrema, which also includes overhang. Same
+            # bug, un-fixed axis. And the X fix itself was reading the
+            # versatz wall's geometry as "ground truth" for the boundary,
+            # but that wall's own geometry used to be roof-derived too --
+            # circular. Every true-footprint coordinate (X and Y, for
+            # every piece) is now computed ONCE, above, straight from
+            # `wings` minus `overhang` -- nothing here reads position off
+            # a roof slab or the versatz wall again. Match each slab to
+            # its own wing's true Y-ends explicitly instead of trusting
+            # whatever Y the slab's own mesh happens to end at.
+            _wing_y_ends = {
+                "roof-wing-2-slab": (_notch_y0, _notch_y1),   # steep = notch wing
+                "roof-wing-1-slab": (_main_y0, _main_y1),     # shallow = main-body wing
+            }
+
+            _infill_pieces = []
+            for _spec in _hand_built_boxes:
+                if _spec["mat"] is not ROOF_MAT:
+                    continue
+                _is_steep = _spec["rot_deg"][1] < 0
+                _wall_x_lo, _wall_x_hi = (
+                    (_true_west, _true_reflex_x) if _is_steep else (_true_reflex_x, _true_east))
+                _true_y_lo, _true_y_hi = _wing_y_ends[_spec["name"]]
+                for (_py_raw, _px_lo, _pz_lo, _px_hi, _pz_hi) in _gable_infill_panels(_spec["obj"]):
+                    if max(_pz_lo, _pz_hi) - WALL_TOP_Z < 0.02:
+                        continue
+                    _run = _px_hi - _px_lo
+                    if _run < 1e-6:
+                        continue
+                    _new_lo = max(_px_lo, _wall_x_lo)
+                    _new_hi = min(_px_hi, _wall_x_hi)
+                    if _new_hi - _new_lo < 0.05:
+                        continue
+                    _pz_lo, _pz_hi = (
+                        _pz_lo + (_pz_hi - _pz_lo) * (_new_lo - _px_lo) / _run,
+                        _pz_lo + (_pz_hi - _pz_lo) * (_new_hi - _px_lo) / _run)
+                    _px_lo, _px_hi = _new_lo, _new_hi
+                    # Snap to whichever true wall Y-end this panel's raw
+                    # (overhang-extended) Y is closest to -- the wing
+                    # centerline recovered by (wing bound +- overhang),
+                    # not the roof slab's own overhung edge.
+                    _py = _true_y_lo if abs(_py_raw - _true_y_lo) <= abs(_py_raw - _true_y_hi) \
+                        else _true_y_hi
+                    _half_t = _wall_t / 2.0
+                    _y_a, _y_b = _py - _half_t, _py + _half_t
+                    _iv = [
+                        (_px_lo, _y_a, WALL_TOP_Z), (_px_hi, _y_a, WALL_TOP_Z),
+                        (_px_hi, _y_a, _pz_hi), (_px_lo, _y_a, _pz_lo),
+                        (_px_lo, _y_b, WALL_TOP_Z), (_px_hi, _y_b, WALL_TOP_Z),
+                        (_px_hi, _y_b, _pz_hi), (_px_lo, _y_b, _pz_lo),
+                    ]
+                    _if_faces = [
+                        (0, 1, 2, 3), (4, 7, 6, 5),
+                        (0, 4, 5, 1), (1, 5, 6, 2), (2, 6, 7, 3), (3, 7, 4, 0),
+                    ]
+                    _imesh = bpy.data.meshes.new("roof-gable-infill-mesh")
+                    _imesh.from_pydata(_iv, [], _if_faces)
+                    _imesh.update()
+                    recalc_normals(_imesh)
+                    _iobj = bpy.data.objects.new("roof-gable-infill", _imesh)
+                    collection("Exterior").objects.link(_iobj)
+                    _iobj.data.materials.append(FACADE)
+                    _infill_pieces.append(_iobj)
+            if _infill_pieces:
+                join_objects(_infill_pieces, "roof-gable-infill")
+
+            roof_obj = join_objects(_slab_pieces, "roof-pitch")
+            print("[exterior] %s 3 von Hand platzierte Koerper (2 Dachplatten + "
+                  "1 Versatzwand, Rainers eigene Dimensions, keine Profil-Berechnung), "
+                  "%d Giebel-Fuellungen" % (roof_type, len(_infill_pieces)))
+        else:
+            _wing_profiles, _ridge_zs = [], []
+            for _wi, (wx0, wx1, wy0, wy1) in enumerate(wings):
+                _w_along_x, _w_span_m, _, _ = roof_profile._axes(
+                    wx0, wx1, wy0, wy1, along_x=_wing_along_x[_wi])
+                _w_profile = roof_profile.scale_profile_to_span(
+                    _design_profile, _design_span_m * 1000.0, _w_span_m * 1000.0)
+                _wing_profiles.append(_w_profile)
+                _ridge_zs.append(WALL_TOP_Z + max(p["h_mm"] for p in _w_profile["points"]) / 1000.0)
+
+            # Rainer, still on Doppelpultdach: "you are back to the 2
+            # doppelpultdach roofs" -- a DIFFERENT bug than the wing-overlap
+            # spike above: a height field has no well-defined value AT a true
+            # zero-width vertical jump, wherever it falls (this one was at the
+            # BIGGER wing's own far gable, nothing to do with the other wing
+            # at all) -- neighbouring grid columns land arbitrarily on one
+            # side or the other, reading as a jagged tear right at the
+            # silhouette. `soften_vertical_steps()` widens any true step into
+            # a short, continuous ramp (>=1.5x the grid `step`) ONLY for the
+            # height-field roof sheet -- the walls below keep the ORIGINAL,
+            # exact profile (wall_extension() builds a true vertical
+            # clerestory face directly, it has no sampling ambiguity to fix).
+            _sheet_profiles = []
+            for _wi, (_p, (wx0, wx1, wy0, wy1)) in enumerate(zip(_wing_profiles, wings)):
+                _, _w_span_m, _, _ = roof_profile._axes(
+                    wx0, wx1, wy0, wy1, along_x=_wing_along_x[_wi])
+                _sheet_profiles.append(roof_profile.soften_vertical_steps(
+                    _p, _w_span_m * 1000.0, _heightfield_step * 1.5 * 1000.0))
+
+            # Rainer, still on Doppelpultdach after the self-overlap fix: "i
+            # dont want a walmdach instead of the doppelpultdach". Remaining
+            # break: the SMALLER wing's own ridge runs constant along the
+            # axis its rectangle spans past the true valley (that spanning is
+            # correct and needed for plain coverage -- roof_wings.py's own
+            # "z=max" model expects it), so its height doesn't fade out
+            # approaching the BIGGER wing's own eave, far from the real
+            # valley -- "3 roofs in one ... 90 degrees from each other" was
+            # the self-intersecting symptom; this is the (different) spike
+            # that survived that fix. Only the smaller wing gets clipped: the
+            # bigger one legitimately dominates the shared body (that's
+            # exactly why Satteldach already looked right without any of
+            # this), and clipping only one of the two guarantees the other,
+            # untouched wing still covers the whole shared zone -- no holes.
+            #
+            # Only a profile with a genuine discontinuity needs any of this:
+            # tried it unconditionally first, and a 1m MARGIN regressed
+            # Satteldach -- its smooth max() crossing already looked right
+            # (that's exactly why it shipped first, unclipped); the clip's
+            # own hard cutoff replaced that continuous valley with a new,
+            # visible seam right at the margin boundary, a meter away from
+            # any real wall. Gated on has_vertical_step() so only
+            # Doppelpultdach's real discontinuity gets clipped.
+            #
+            # Rainer, 2026-09-23, the actual rule: "when there is a break in
+            # the normal cubus of the house as in an L shape, the wall that
+            # is part of the break is the wall used as a division line ...
+            # and the pultdach lays on top of the walls" -- the division
+            # belongs exactly ON the true wall (the reflex point), not a
+            # metre-wide margin away from it. margin=0: the smaller wing's
+            # own height stops exactly at the wall it shares with the bigger
+            # wing; the bigger wing (never clipped) already covers that
+            # whole shared area on its own, so there is still no gap.
+            _height_wings = list(wings)
+            if len(wings) == 2:
+                _smaller = 0 if (wings[0][1] - wings[0][0]) * (wings[0][3] - wings[0][2]) <= \
+                    (wings[1][1] - wings[1][0]) * (wings[1][3] - wings[1][2]) else 1
+                if roof_profile.has_vertical_step(_wing_profiles[_smaller]):
+                    _rx, _ry = roof_wings.reflex_point(wings[0], wings[1])
+                    if _rx is not None and _ry is not None:
+                        _clipped = roof_wings.clip_wing_to_valley(
+                            wings[_smaller], wings[1 - _smaller], _rx, _ry, 0.0)
+                        # Rainer, 2026-09-23, bungalow_001 (a near-rectangle
+                        # with only a sliver of an L, the reflex point sitting
+                        # close to the smaller wing's OWN true gable, not near
+                        # the bigger wing): clipping there left almost nothing
+                        # of the smaller wing standing -- a few decimetres
+                        # between its own real gable and the wall -- and its
+                        # explicit gable cap (built for the FULL wing, see
+                        # below) had to bridge that whole gap on its own,
+                        # producing new garbage, not a clean division. Only
+                        # apply the wall-exact clip when what is LEFT of the
+                        # smaller wing is still a real, sane span -- otherwise
+                        # leave it unclipped (back to the plain max()
+                        # crossing; still better than a fresh mess).
+                        if min(_clipped[1] - _clipped[0], _clipped[3] - _clipped[2]) >= 1.5:
+                            _height_wings[_smaller] = _clipped
+
+            # Rainer, 2026-09-24, german_catalog_review_bungalow_4_3_1_wb_125:
+            # "come on dude you didnt fix anything" -- a real, DIFFERENT bug from
+            # the height-field spike fixed above (verified via a real go.py
+            # render, not just reasoning): _height_wings only ever fed
+            # combined_height_at() (the roof SHEET's own height sampling). The
+            # gable cap and wall_extension() below still used the smaller wing's
+            # ORIGINAL, unclipped rectangle -- so its own gable end-wall and
+            # explicit cap kept landing at its true original far end, which for
+            # the smaller wing is squarely inside the BIGGER wing's own
+            # territory, poking a solid wall/cap up through that wing's much
+            # lower roof (the white spike Rainer saw).
+            #
+            # First attempt: suppress that end's wall/cap entirely (reasoning:
+            # "the other wing already covers it there"). Wrong -- verified by
+            # rendering it: the height FIELD does cover it (a continuous
+            # surface, per combined_height_at()'s max()), but that surface is a
+            # thin 0.22 m roof SHEET, not a wall closing the vertical jump from
+            # the bigger wing's low eave up to the smaller wing's own step
+            # height at that same line (wing1's height does not ramp up from
+            # the valley -- wing_height_at() gives it its full cross-section
+            # height at every y inside its own rectangle, since its profile
+            # only varies across x). Suppressing the wall left exactly that
+            # jump uncovered on the underside, an oblique camera angle looking
+            # straight through it to the sky (confirmed: a top-down ray-cast
+            # over the notch hit roof on every sample, so it is not a hole in
+            # the sheet itself -- the sheet's own thin near-vertical "cliff"
+            # facet at the jump has nothing solid behind it from the side).
+            #
+            # Rainer's own rule ("the wall that is part of the break is used as
+            # a division line ... the pultdach lays on top of the walls") is
+            # the actual fix: build the wing's end-wall/cap AT THE CLIPPED
+            # boundary (the true wall/division line) instead of at its
+            # original far end -- not suppressed, RELOCATED. At that exact
+            # line the wing's own profile height already matches the roof
+            # surface there (height_wings makes it dominate from the boundary
+            # onward), so the wall's top meets the roof with no gap and no
+            # poke-through either.
+            _wall_wings = list(_height_wings)
+
+            # Codex read-only review, 2026-09-26, german_catalog_review_
+            # bungalow_4_3_1_wb_125 built as satteldach (a QA build via
+            # go.py, not this house's real configured type): every OTHER
+            # geometry call in this branch (profile scaling at line 1643,
+            # the gable cap loop, wall_extension()) passes `_u_along_x` so
+            # every wing agrees on which axis the ridge runs along under a
+            # forced `roof_axis_override`. This call alone omitted it,
+            # letting the sheet fall back to auto-detecting EACH wing's own
+            # ridge axis independently -- the exact bug wing_height_at()'s
+            # own docstring already warned about at a different call site.
+            # For WB_125 (roof_axis_override="y") the smaller wing's
+            # auto-detect happened to agree with "y" by coincidence; the
+            # bigger wing's did not, so its roof sheet was built against a
+            # completely different cross-section than its own wall/gable
+            # below it -- an open hole into the attic and torn facets where
+            # the two disagreed, not a Blender SOLIDIFY rim-fill limitation
+            # (Codex: Fill Rim only closes the sheet's own thickness, never
+            # the whole attic opening down to the wall top -- the comment
+            # below describing it as the reason satteldach/pultdach don't
+            # need an explicit cap was itself never the real explanation).
+            _pv, _pf = roof_profile.heightfield_roof_mesh(
+                wings, _sheet_profiles, WALL_TOP_Z, step=_heightfield_step, height_wings=_height_wings,
+                along_x=_wing_along_x)
+
+            # Rainer, still on Doppelpultdach: "you are back to the 2
+            # doppelpultdach roofs" -- a THIRD, different bug, after the
+            # wing-overlap spike (fixed above) and a wrong guess about height
+            # sampling (soften_vertical_steps(), harmless but not the real
+            # fix, left in place). The actual cause: SOLIDIFY's own automatic
+            # "Fill Rim" caps the height field's open GABLE boundary for us,
+            # but its fill algorithm is not reliable on a NON-CONVEX outline
+            # -- satteldach/pultdach's gable cross-section is always convex,
+            # doppelpultdach's step folds it concave, and only THAT one
+            # showed a jagged tear. wall_extension() never had this problem
+            # because it builds the gable wall explicitly, never via an
+            # auto-fill; giving the ROOF SHEET the same treatment at its own
+            # gable ends -- explicit faces via a real triangulator, before
+            # solidify ever runs -- removes the one case SOLIDIFY struggled
+            # with instead of asking it to try harder.
+            # Rainer, 2026-09-24: the tessellate-and-weld cap below used to be
+            # merged straight into this mesh's own vertices, which occasionally
+            # produced real self-intersecting faces on an off-centre step (found
+            # with a real bmesh.bvhtree overlap query, confirmed by a Codex
+            # second opinion) -- caught by the safety net below, but the
+            # fallback it lands on (SOLIDIFY's own rim-fill) is the known
+            # unreliable-on-a-concave-outline tear this whole cap exists to
+            # avoid. `gable_cap_prism()` (already proven elsewhere, zero
+            # overlaps across every axis/step-direction/end combination tested)
+            # builds the SAME cap as its own separately-closed solid instead --
+            # nothing to weld into this mesh at all, so there is nothing left
+            # for that failure mode to reappear from.
+            _rmesh = bpy.data.meshes.new("roof-pitch-mesh")
+            _rmesh.from_pydata([tuple(v) for v in _pv], [], _pf)
+            _rmesh.update()
+            recalc_normals(_rmesh)
+            roof_obj = bpy.data.objects.new("roof-pitch", _rmesh)
+            collection("Exterior").objects.link(roof_obj)
+            roof_obj.data.materials.append(ROOF_MAT)
+            _sol = roof_obj.modifiers.new("thickness", "SOLIDIFY")
+            _sol.thickness = 0.22
+            _sol.offset = -1.0
+            bake_modifiers(roof_obj)
+
+            _cap_pieces = []
+            for _wi, (wx0, wx1, wy0, wy1) in enumerate(_wall_wings):
+                if not roof_profile.has_vertical_step(_wing_profiles[_wi]):
+                    continue
+                _w_along_x, _, _, _ = roof_profile._axes(*wings[_wi], along_x=_wing_along_x[_wi])
+                for _end in ("a0", "a1"):
+                    _cap_verts, _cap_faces = roof_profile.gable_cap_prism(
+                        wx0, wx1, wy0, wy1, WALL_TOP_Z, _wing_profiles[_wi], _end, 0.22,
+                        along_x=_w_along_x)
+                    _capmesh = bpy.data.meshes.new(f"roof-wing-{_wi}-{_end}-cap-mesh")
+                    _capmesh.from_pydata([tuple(v) for v in _cap_verts], [], _cap_faces)
+                    _capmesh.update()
+                    _capobj = bpy.data.objects.new(f"roof-wing-{_wi}-{_end}-cap", _capmesh)
+                    collection("Exterior").objects.link(_capobj)
+                    _capobj.data.materials.append(ROOF_MAT)
+                    _cap_pieces.append(_capobj)
+            if _cap_pieces:
+                join_objects(_cap_pieces, "roof-gable-caps")
+
+            # Rainer, 2026-09-26: "the [walls] always have to be in the
+            # Floorplan footprint seen from the top" -- without `other_wing`,
+            # wall_extension() built every end-wall/soffit/long-wall across
+            # this wing's ENTIRE own extent, including whichever side
+            # borders the OTHER wing, where part (sometimes all) of that
+            # extent is not exterior at all -- the other wing's own volume
+            # is already there. Passing the other wing's own rectangle
+            # (`wings[1-_wi]`, only when there really are 2, matching
+            # `_wall_wings`'s own current convention) lets wall_extension()
+            # trim each piece to its actually-exposed sub-range via
+            # exposed_ranges(). A Codex read-only review confirmed the
+            # mechanism (plans/WING-END-EXPOSURE-001-codex-review.md), but
+            # its design alone still built NOTHING at WB_125's own true
+            # south wall (hand-verified against the real numbers after the
+            # render regressed): `recognize_two_wings()` makes one wing
+            # span the FULL x-extent and the other the FULL y-extent, so
+            # under a forced axis override BOTH wings can have an end tied
+            # at the exact same true coordinate -- each one saw the other
+            # also reaching that point and deferred, leaving neither built.
+            # `dominant` (the bigger-by-area wing, same comparison already
+            # used just above for the doppelpultdach clip decision) breaks
+            # that tie: the bigger wing always builds its true end, the
+            # smaller one defers to it there.
+            _bigger_wi = 0 if (wings[0][1] - wings[0][0]) * (wings[0][3] - wings[0][2]) >= \
+                (wings[1][1] - wings[1][0]) * (wings[1][3] - wings[1][2]) else 1
+            _wall_pieces = []
+            for _wi, (wx0, wx1, wy0, wy1) in enumerate(_wall_wings):
+                _w_along_x, _w_span_m, _, _ = roof_profile._axes(*wings[_wi], along_x=_wing_along_x[_wi])
+                _other_wing = wings[1 - _wi] if len(wings) == 2 else None
+                for _pverts, _pfaces in roof_profile.wall_extension(
+                        wx0, wx1, wy0, wy1, WALL_TOP_Z, overhang, _wing_profiles[_wi], _wall_t,
+                        along_x=_w_along_x, other_wing=_other_wing, dominant=(_wi == _bigger_wi),
+                        all_wings=_height_wings, all_profiles=_sheet_profiles, all_along_x=_wing_along_x,
+                        roof_mesh=(_pv, _pf), build_soffit=False):
+                    _wallmesh = bpy.data.meshes.new(f"roof-wing-{_wi}-wall-mesh")
+                    _wallmesh.from_pydata([tuple(v) for v in _pverts], [], _pfaces)
+                    _wallmesh.update()
+                    _wallobj = bpy.data.objects.new(f"roof-wing-{_wi}-wall", _wallmesh)
+                    collection("Exterior").objects.link(_wallobj)
+                    _wallobj.data.materials.append(FACADE)
+                    _wall_pieces.append(_wallobj)
+
+            if _wall_pieces:
+                join_objects(_wall_pieces, "roof-walls")
+            ridge_z = max(_ridge_zs)
+            print("[exterior] %s zweischenklig (Hoehenfeld): First %.2fm ueber der Traufe, %d Fluegel, "
+                  "%d Wandstuecke" % (roof_type, ridge_z - WALL_TOP_Z, len(wings), len(_wall_pieces)))
+    elif is_rectangle:
+        x0, x1 = xs[0], xs[1]
+        y0, y1 = ys[0], ys[1]
+        width = x1 - x0
+        depth = y1 - y0
+        cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+        corners = [(x0, y0, WALL_TOP_Z), (x1, y0, WALL_TOP_Z),
+                   (x1, y1, WALL_TOP_Z), (x0, y1, WALL_TOP_Z)]
+
+        # Side-view roof editor (Dach tab): satteldach, pultdach and
+        # doppelpultdach ("versetztes Pult") are always built from a
+        # cross-section -- the saved one for that form, else its default. The
+        # roof is the folded sheet only; the wall up to it is wall_extension().
+        #
+        # roof_axis_override (Rainer, 2026-09-22: "also mybe have a
+        # possibility to rotate the roof 90 degrees"): null/"x"/"y" -> the
+        # ridge direction is a property of the BUILDING, plan-level, not per
+        # roof form -- None keeps today's automatic "along the longer side"
+        # rule exactly (_axes() itself defaults to that), "x"/"y" forces it.
+        _axis_raw = plan.get("roof_axis_override")
+        _forced_along_x = {"x": True, "y": False}.get(_axis_raw)
+        _along_x, _span_m, _, _ = roof_profile._axes(x0, x1, y0, y1, along_x=_forced_along_x)
+        profile_override = roof_profile.resolve_profile(
+            plan.get("roof_profiles"), roof_type, _span_m / MM)
+
+        if profile_override:
+            _wall_t = max((w["thickness_mm"] for w in (storey_exterior_walls[-1] or exterior_walls)),
+                          default=240) * MM
+            # Versetztes Pultdach: die Stufenwand endet an den Giebeln buendig
+            # mit der Aussenkante der Wand, das Dach steht darueber vor
+            # (Rainer, 2026-10-24: "the vertical part has to be flush with the
+            # outer wall not with the other roof"). Die Dachkante liegt
+            # `overhang` vor der Wandmitte, die Aussenkante t/2 davor.
+            _stufe_einzug = (max(overhang - _wall_t / 2.0, 0.0)
+                             if roof_type == "doppelpultdach" else 0.0)
+            # Und oben laeuft das hoehere Dach ueber die Stufenwand hinaus,
+            # derselbe Ueberstand wie an der Traufe (Rainer, 2026-10-24: "the
+            # upper roof still needs to overlap the wall on the top"); die
+            # Stufenwand endet dann unter der Dachplatte (0.22 = Dachdicke).
+            _pv, faces, facade_face_indices = roof_profile.profile_mesh(
+                x0, x1, y0, y1, WALL_TOP_Z, profile_override, along_x=_along_x,
+                step_wall_a_inset=_stufe_einzug,
+                step_overhang=overhang if roof_type == "doppelpultdach" else 0.0,
+                step_wall_top_inset=0.22 if roof_type == "doppelpultdach" else 0.0)
+            verts = [mathutils.Vector(v) for v in _pv]
+            # 2026-10-02, bungalow_039: the Giebelwand "hung out over the
+            # wall" -- wall_extension()'s soffit prisms are solid slabs, one
+            # overhang thick (0.5 m), standing OUT past the real wall at each
+            # gable end. Rainer's own hand-fixed model deleted them and kept
+            # everything else ("the way it is in this blender file is
+            # correct"); the chevron path already builds without them, this
+            # plain-rectangle path (most houses) still did.
+            wall_prisms = roof_profile.wall_extension(
+                x0, x1, y0, y1, WALL_TOP_Z, overhang, profile_override, _wall_t, along_x=_along_x,
+                build_soffit=False)
+            print("[exterior] Dachprofil %s %s, %d Wandstuecke bis zum Dach%s" % (
+                profile_override["form"],
+                ", ".join("u=%.2f h=%dmm" % (p["u"], p["h_mm"])
+                          for p in profile_override["points"]),
+                len(wall_prisms),
+                " (Dachrichtung von Hand: %s)" % _axis_raw if _forced_along_x is not None else ""))
+        else:
+            # walmdach on a rectangle: four faces and a ridge inset from both
+            # short ends, so the short ends slope inward to a point.
+            inset = min(width, depth) / 2.0
+            rise = inset * math.tan(pitch)
+            if width >= depth:
+                ridge_a = (x0 + inset, cy, WALL_TOP_Z + rise)
+                ridge_b = (x1 - inset, cy, WALL_TOP_Z + rise)
+            else:
+                ridge_a = (cx, y0 + inset, WALL_TOP_Z + rise)
+                ridge_b = (cx, y1 - inset, WALL_TOP_Z + rise)
+            verts = [mathutils.Vector(c) for c in corners] + [
+                mathutils.Vector(ridge_a), mathutils.Vector(ridge_b)]
+            if width >= depth:
+                faces = [(0, 1, 5, 4), (2, 3, 4, 5), (1, 2, 5), (3, 0, 4)]
+            else:
+                faces = [(0, 1, 4), (2, 3, 5), (1, 2, 5, 4), (3, 0, 4, 5)]
+    else:
+        # bpypolyskel computes the real straight skeleton of the footprint —
+        # correct valleys where wings meet, one continuous roof mass.
+        verts = [mathutils.Vector((x, y, WALL_TOP_Z)) for x, y in roof_poly]
+        faces = polyskel.polygonize(verts, 0, len(roof_poly), None, 0.0, math.tan(pitch), None, None)
+
+        # Rainer, 2026-09-27: real Blender viewport screenshot of an
+        # L-shaped walmdach (WB_125) showed a crossed/pinched outline right
+        # at the valley where the wings meet -- one of the hip-roof faces
+        # bpypolyskel returns there is a genuinely CONCAVE polygon (the
+        # valley notch bends inward), confirmed live: checked every
+        # returned face for planarity (all fine, sub-cm) and for a truly
+        # self-intersecting vertex ORDER (a real bowtie) -- neither is
+        # actually wrong, both came back clean once a bug in my own first
+        # checker (treating adjacent shared-vertex edges as "crossing") was
+        # fixed). So the points and their order are correct; what's fragile
+        # is handing a concave n-gon straight to Blender's `from_pydata()`
+        # and then a SOLIDIFY modifier, both of which internally have to
+        # tessellate it themselves to draw/offset it, with no guarantee
+        # they triangulate a concave loop the same way twice (viewport
+        # selection-outline display, EEVEE, and Cycles do not all share one
+        # tessellator) -- exactly the class of risk `gable_cap_prism()`'s
+        # own docstring already documents and avoids elsewhere in this
+        # file ("build it ourselves, don't trust Blender's auto-fill on a
+        # non-convex loop"). Triangulating every non-triangle face
+        # ourselves here, with the same `mathutils.geometry.tessellate_
+        # polygon()` that precedent already uses, removes the ambiguity at
+        # its source instead of hoping every consumer resolves it the same
+        # way -- same final shape, same vertices, just described as
+        # triangles instead of an n-gon Blender has to guess how to split.
+        _tri_faces = []
+        for _face in faces:
+            if len(_face) <= 3:
+                _tri_faces.append(tuple(_face))
+                continue
+            _loop = [tuple(verts[_i]) for _i in _face]
+            for _tri in mathutils.geometry.tessellate_polygon([_loop]):
+                _tri_faces.append(tuple(_face[_j] for _j in _tri))
+        faces = _tri_faces
+
+    if not wings and not _chevron_built and not _versatz_built:
+        # Der zweischenklige Zweig oben hat roof_obj/ridge_z/die Wandobjekte
+        # schon selbst gebaut und vereinigt -- dieser gemeinsame Weg (fuer
+        # Rechteck und Walmdach) bleibt fuer ihn aus. `_chevron_built`
+        # (ROOF-SWEEP-CONSTRUCTOR-001) is the SAME kind of exclusion: it
+        # also already built roof_obj/roof-walls itself, further up, and
+        # sets `wings = None` afterwards purely so the OLD wings-based
+        # branch below skips cleanly -- without this guard that same
+        # `wings = None` would ALSO satisfy this walmdach/rectangle
+        # fallback, building a SECOND roof on top of the first.
+        pitch_mesh = bpy.data.meshes.new("roof-pitch-mesh")
+        pitch_mesh.from_pydata([tuple(v) for v in verts], [], faces)
+        pitch_mesh.update()
+        recalc_normals(pitch_mesh)
+        # Die Stufenwand des versetzten Pultdachs ist (seit sie buendig an der
+        # Aussenwand endet) ein eigenes Stueck -- recalc_normals kennt dann
+        # kein Innen/Aussen mehr und drehte sie um: Dicke und Stehfalze lagen
+        # auf der Seite des hoeheren Dachs. profile_mesh() hat ihre Richtung
+        # schon richtig gelegt (zum niedrigen Dach); die gilt.
+        for _i in (facade_face_indices or []):
+            _soll = mathutils.Vector(roof_profile._newell([tuple(verts[j]) for j in faces[_i]]))
+            if pitch_mesh.polygons[_i].normal.dot(_soll) < 0:
+                pitch_mesh.polygons[_i].flip()
+        pitch_mesh.update()
+        roof_obj = bpy.data.objects.new("roof-pitch", pitch_mesh)
+        collection("Exterior").objects.link(roof_obj)
+        roof_obj.data.materials.append(ROOF_MAT)
+        _zink_falze = []
+        if facade_face_indices:
+            # Versetztes Pultdach: die Stufe ist mit Zink-Stehfalz verkleidet,
+            # nicht verputzt (VERSATZ-PULTDACH-ANSCHLUSS-001). Andere Formen
+            # haben keine solche Flaeche.
+            _stufe_mat = ZINK_MAT if roof_type == "doppelpultdach" else FACADE
+            roof_obj.data.materials.append(_stufe_mat)
+            for _i in facade_face_indices:
+                pitch_mesh.polygons[_i].material_index = 1
+            if roof_type == "doppelpultdach":
+                for _i in facade_face_indices:
+                    _poly = pitch_mesh.polygons[_i]
+                    _co = [pitch_mesh.vertices[_v].co for _v in _poly.vertices]
+                    _n = _poly.normal
+                    _ax = 0 if _along_x else 1          # entlang des Firsts
+                    _a_lo, _a_hi = min(c[_ax] for c in _co), max(c[_ax] for c in _co)
+                    _z_lo, _z_hi = min(c.z for c in _co), max(c.z for c in _co)
+                    _quer = _co[0][1 - _ax]
+                    for _k, _a in enumerate(roof_profile.stehfalz_lagen(_a_lo, _a_hi, 0.5)):
+                        _mitte = [0.0, 0.0]
+                        _mitte[_ax] = _a
+                        _mitte[1 - _ax] = _quer + (_n[1 - _ax]) * 0.0125
+                        bpy.ops.mesh.primitive_cube_add(size=1, location=(_mitte[0], _mitte[1], (_z_lo + _z_hi) / 2))
+                        _f = bpy.context.object
+                        _f.name = "zink-falz-%d" % _k
+                        _dims = [0.0, 0.0, _z_hi - _z_lo]
+                        _dims[_ax] = 0.02
+                        _dims[1 - _ax] = 0.025
+                        _f.dimensions = _dims
+                        for _c in list(_f.users_collection):
+                            _c.objects.unlink(_f)
+                        collection("Exterior").objects.link(_f)
+                        _f.data.materials.append(ZINK_MAT)
+                        _zink_falze.append(_f)
+                print("[exterior] Versatzstufe: Zink-Stehfalz, %d Falze" % len(_zink_falze))
+        solidify = roof_obj.modifiers.new("thickness", "SOLIDIFY")
+        solidify.thickness = 0.22
+        # offset=-1: original mesh stays the TOP, thickness goes down/inward.
+        # (A same-day theory that the skeleton branch needed offset=+1 near
+        # its reflex corner, to stop the underside dipping below WALL_TOP_Z,
+        # was disproven by a before/after raycast at the actual defect --
+        # walls-0 was hit at the identical world coordinates either way. The
+        # real cause was the wall's own corner post overshooting the true
+        # face at that reflex vertex, fixed where the corner posts are built.)
+        solidify.offset = -1.0
+        bake_modifiers(roof_obj)
+        # Prove the roof by its geometry, not by squinting at one camera angle.
+        _roof_world_z = [(roof_obj.matrix_world @ v.co).z for v in roof_obj.data.vertices]
+        print(f"[exterior] roof rise={max(_roof_world_z) - WALL_TOP_Z:.3f}m "
+              f"eave={WALL_TOP_Z:.3f}m ridge={max(_roof_world_z):.3f}m")
+        ridge_z = max(v.z for v in verts)
+
+        # The wall that carries the roof: gable triangles, a Pultdach's high side.
+        # Flush with the walls below, plaster, one object.
+        if wall_prisms:
+            _wv, _wf = [], []
+            for _pverts, _pfaces in wall_prisms:
+                _base = len(_wv)
+                _wv += [tuple(v) for v in _pverts]
+                _wf += [tuple(i + _base for i in f) for f in _pfaces]
+            _wall_mesh = bpy.data.meshes.new("roof-walls-mesh")
+            _wall_mesh.from_pydata(_wv, [], _wf)
+            _wall_mesh.update()
+            _wall_obj = bpy.data.objects.new("roof-walls", _wall_mesh)
+            collection("Exterior").objects.link(_wall_obj)
+            _wall_obj.data.materials.append(FACADE)
+
+# ------------------------------------------- 1,5-Geschosser: zuschneiden
+def _ah_mesh_obj(name, verts, faces, material, into="Exterior"):
+    mesh = bpy.data.meshes.new(name + "-mesh")
+    mesh.from_pydata([tuple(v) for v in verts], [], faces)
+    mesh.update()
+    obj = bpy.data.objects.new(name, mesh)
+    collection(into).objects.link(obj)
+    if material:
+        obj.data.materials.append(material)
+    return obj
+
+
+def _ah_prisma(name, querschnitt, seite, von, bis, into="Cutters"):
+    """Prisma: Querschnitt (s, z) quer zur Fassade `seite`, laengs von..bis.
+
+    s ist der Abstand NACH INNEN von der Fassadenlinie der Seite.
+    """
+    x0, x1, y0, y1 = AH_BBOX
+
+    def welt(entlang, s_, z_):
+        if seite == "north":
+            return (entlang, y1 - s_, z_)
+        if seite == "south":
+            return (entlang, y0 + s_, z_)
+        if seite == "east":
+            return (x1 - s_, entlang, z_)
+        return (x0 + s_, entlang, z_)
+    n = len(querschnitt)
+    verts = [welt(von, s_, z_) for s_, z_ in querschnitt] + [welt(bis, s_, z_) for s_, z_ in querschnitt]
+    faces = [list(range(n))[::-1], list(range(n, 2 * n))]
+    faces += [[i, (i + 1) % n, n + (i + 1) % n, n + i] for i in range(n)]
+    obj = _ah_mesh_obj(name, verts, faces, None, into=into)
+    recalc_normals(obj.data)
+    return obj
+
+
+def _ah_extent(seite):
+    x0, x1, y0, y1 = AH_BBOX
+    return (x0, x1) if seite in ("north", "south") else (y0, y1)
+
+
+if ANDERTHALB:
+    # a) Die Wandstuecke der Dachmaschinerie entfallen -- die hohe Wand ist der Giebel.
+    for _o in [o for o in bpy.data.objects if o.name.startswith(("roof-walls", "roof-gable-infill"))]:
+        bpy.data.objects.remove(_o, do_unlink=True)
+    _ah_tief = max(AH_BBOX[1] - AH_BBOX[0], AH_BBOX[3] - AH_BBOX[2]) + 4.0
+    _ah_hoch = AH_WAND_OBEN + 5.0
+    _ah_walls = bpy.data.objects.get("walls-%d" % (STOREY_COUNT - 1))
+    _ah_roofs = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith("roof")]
+    # Wo liegt das Dach WIRKLICH an der Wandlinie? Das Profil misst seine
+    # Neigung ab der Traufkante des Ueberstands -- angenommen statt gemessen
+    # blieb ein 14-cm-Schlitz zwischen Wandkrone und Dach (onehalfstorey_044).
+    # Geschnitten wird in der Mitte der Dachplatte, je Traufseite gemessen.
+    from mathutils.bvhtree import BVHTree as _AhBVH
+    _ah_v, _ah_p = [], []
+    _dg = bpy.context.evaluated_depsgraph_get()
+    for _r in _ah_roofs:
+        _rm = _r.evaluated_get(_dg).to_mesh()
+        _b = len(_ah_v)
+        _ah_v += [_r.matrix_world @ _v.co for _v in _rm.vertices]
+        _ah_p += [[_b + _i for _i in _f.vertices] for _f in _rm.polygons]
+    _ah_baum = _AhBVH.FromPolygons(_ah_v, _ah_p) if _ah_p else None
+
+    def _ah_dach_mitte(seite, s_=0.05):
+        """z der Dachplattenmitte knapp innen an der Fassadenlinie, Seitenmitte."""
+        lo, hi = _ah_extent(seite)
+        e = (lo + hi) / 2
+        x0_, x1_, y0_, y1_ = AH_BBOX
+        x, y = {"north": (e, y1_ - s_), "south": (e, y0_ + s_),
+                "east": (x1_ - s_, e), "west": (x0_ + s_, e)}[seite]
+        if _ah_baum is None:
+            return None
+        oben = _ah_baum.ray_cast(mathutils.Vector((x, y, AH_WAND_OBEN + 20.0)), mathutils.Vector((0, 0, -1)))
+        unten = _ah_baum.ray_cast(mathutils.Vector((x, y, WALL_TOP_Z - 3.0)), mathutils.Vector((0, 0, 1)))
+        if oben[0] is None or unten[0] is None:
+            return None
+        return (oben[0].z + unten[0].z) / 2 - s_ * AH_TAN
+    AH_DACH_AN_WAND = {}
+    # Kniestock heisst: Dachplatte an der Wand 1,0 m ueber dem Fussboden. Das
+    # Profil legt sie etwas hoeher (Neigung ab der Ueberstandskante) -- das
+    # Dach wird um den gemessenen Unterschied abgesenkt, einmal fuer alle Seiten.
+    _ah_gemessen = [z for z in (_ah_dach_mitte(_s) for _s in anderthalb.traufseiten(AH_BBOX, roof_type, AH_ALONG_X))
+                    if z is not None]
+    if _ah_gemessen:
+        _ah_senken = sum(_ah_gemessen) / len(_ah_gemessen) - (AH_BODEN_Z + anderthalb.KNIESTOCK_M)
+        for _r in _ah_roofs:
+            _r.location.z -= _ah_senken
+        bpy.context.view_layer.update()
+        _ah_v = [mathutils.Vector((_v.x, _v.y, _v.z - _ah_senken)) for _v in _ah_v]
+        _ah_baum = _AhBVH.FromPolygons(_ah_v, _ah_p)
+        print("[exterior] 1,5-Geschosser  Dach um %.3f m abgesenkt (Kniestock an der Wand)" % _ah_senken)
+    # a2) Eck-Erker (other_vito, 2026-10-24: "why is there a quergiebel on
+    # this thing?"): kein Zwerchgiebel -- das Hauptdach laeuft in seiner
+    # Neigung ueber den Vorsprung weiter. Die Ebene wird an der echten
+    # Dachoberseite gemessen (zwei Strahlen), der Streifen setzt an der
+    # Traufkante des Hauptdachs an und reicht bis Erkerfront + Ueberstand.
+    # Die Erkerwaende schneidet danach Schritt b) auf diese Ebene (das
+    # Schnittprofil reicht 3 m nach aussen) -- dort ist der Kniestock niedriger.
+    for _e in [e for e in AH_ERKER if e.get("ecke")
+               and e["seite"] in anderthalb.traufseiten(AH_BBOX, roof_type, AH_ALONG_X)]:
+        _x0e, _x1e, _y0e, _y1e = AH_BBOX
+        _sd = _e["seite"]
+
+        def _welt_e(entlang, s_, z_, _sd=_sd):
+            return {"north": (entlang, _y1e - s_, z_), "south": (entlang, _y0e + s_, z_),
+                    "east": (_x1e - s_, entlang, z_), "west": (_x0e + s_, entlang, z_)}[_sd]
+
+        _mitte = (_e["lo"] + _e["hi"]) / 2
+        _proben = []
+        for _s in (0.3, 0.9):
+            _px, _py, _ = _welt_e(_mitte, _s, 0.0)
+            _hit = _ah_baum.ray_cast(mathutils.Vector((_px, _py, AH_WAND_OBEN + 20.0)),
+                                     mathutils.Vector((0, 0, -1))) if _ah_baum else (None,)
+            if _hit[0] is not None:
+                _proben.append((_s, _hit[0].z))
+        if len(_proben) < 2:
+            print("[exterior] 1,5-Geschosser WARNUNG: Dachebene ueber dem Eck-Erker %s nicht messbar" % _sd)
+            continue
+        # Deckt das Hauptdach die Erkerfront schon (bei other_vito ja: das
+        # Dach liegt ueber der ganzen Huelle), kein zweiter Streifen -- er
+        # laege deckungsgleich darauf und flimmerte.
+        _fx, _fy, _ = _welt_e(_mitte, -(_e["tiefe"] + overhang / 2), 0.0)
+        _schon = _ah_baum.ray_cast(mathutils.Vector((_fx, _fy, AH_WAND_OBEN + 20.0)),
+                                   mathutils.Vector((0, 0, -1))) if _ah_baum else (None,)
+        if _schon[0] is not None:
+            print("[exterior] 1,5-Geschosser  Eck-Erker %s %.2f-%.2f: Hauptdach deckt ihn schon "
+                  "(kein Zwerchgiebel, kein Zusatzstreifen)" % (_sd, _e["lo"], _e["hi"]))
+            continue
+        (_sa, _za), (_sb, _zb) = _proben
+        _steig = (_zb - _za) / (_sb - _sa)
+
+        def _z_dach(s_):
+            return _za + (s_ - _sa) * _steig
+
+        _ecken = (_x0e, _x1e) if _sd in ("north", "south") else (_y0e, _y1e)
+        _lo = _e["lo"] - (overhang if any(abs(_e["lo"] - c) < 0.05 for c in _ecken) else 0.0)
+        _hi = _e["hi"] + (overhang if any(abs(_e["hi"] - c) < 0.05 for c in _ecken) else 0.2)
+        _s_aussen = -(_e["tiefe"] + overhang)
+        _s_innen = -overhang
+        _qv = [_welt_e(_lo, _s_aussen, _z_dach(_s_aussen)), _welt_e(_hi, _s_aussen, _z_dach(_s_aussen)),
+               _welt_e(_hi, _s_innen, _z_dach(_s_innen)), _welt_e(_lo, _s_innen, _z_dach(_s_innen))]
+        _qm = bpy.data.meshes.new("roof-eckerker-mesh")
+        _qm.from_pydata(_qv, [], [(0, 1, 2, 3)])
+        _qm.update()
+        if _qm.polygons[0].normal.z < 0:
+            _qm.polygons[0].flip()
+        _qo = bpy.data.objects.new("roof-eckerker-%s" % _sd, _qm)
+        collection("Exterior").objects.link(_qo)
+        _qo.data.materials.append(ROOF_MAT)
+        _qs = _qo.modifiers.new("thickness", "SOLIDIFY")
+        _qs.thickness = 0.22
+        _qs.offset = -1.0
+        bake_modifiers(_qo)
+        print("[exterior] 1,5-Geschosser  Eck-Erker %s %.2f-%.2f: Hauptdach laeuft darueber "
+              "(kein Zwerchgiebel), Traufe dort %.2f m tiefer"
+              % (_sd, _e["lo"], _e["hi"], _z_dach(_s_innen) - _z_dach(_s_aussen)))
+
+    # b) Je Traufseite: alles OBERHALB ihrer Dachflaeche weg -- ausser im Zwerchgiebel.
+    for _seite in anderthalb.traufseiten(AH_BBOX, roof_type, AH_ALONG_X):
+        _lo, _hi = _ah_extent(_seite)
+        _z0 = _ah_dach_mitte(_seite)
+        if _z0 is None:
+            _z0 = WALL_TOP_Z
+            print("[exterior] 1,5-Geschosser WARNUNG: Dach an der %s-Wand nicht gefunden -- Schnitt auf der Traufhoehe"
+                  % _seite)
+        AH_DACH_AN_WAND[_seite] = _z0
+        print("[exterior] 1,5-Geschosser  %s: Dachplatte an der Wand %.3f m = Kniestock %.2f m ueber dem Fussboden"
+              % (_seite, _z0, _z0 - AH_BODEN_Z))
+        _schnitt = _ah_prisma("ah-ueber-dach-" + _seite,
+                              anderthalb.ueber_dach_profil(_z0, _ah_tief, _ah_hoch, AH_TAN),
+                              _seite, _lo - 5.0, _hi + 5.0)
+        if _ah_walls is not None:
+            apply_boolean_difference(_ah_walls, _schnitt)
+            if os.environ.get("AH_DEBUG") == "1":
+                _zs = [(_ah_walls.matrix_world @ v.co).z for v in _ah_walls.data.vertices]
+                print("[ah-debug] nach %s: Waende %d Verts, z %.2f..%.2f, Schnitt %d Verts"
+                      % (_seite, len(_zs), min(_zs or [0]), max(_zs or [0]), len(_schnitt.data.vertices)))
+        bpy.data.objects.remove(_schnitt, do_unlink=True)
+    # c) Zwerchgiebel: Frontwand (Fuenfeck, mit ihren Oeffnungen), Dach darauf,
+    #    Haupttraufe davor geoeffnet. Die Frontwand wird NEU gebaut statt aus
+    #    dem Schnitt ausgespart: ein Boolean auf den Schnittkoerper selbst
+    #    ergab beim Walmdach (onehalfstorey_044, West) einen kaputten Koerper,
+    #    der die ganze Obergeschosswand mitnahm.
+    _ah_wand_t = max((w["thickness_mm"] for w in storey_exterior_walls[-1]), default=240) * MM
+    for _gi, _g in enumerate(AH_GIEBEL):
+        _seite = _g["seite"]
+        _m = anderthalb.zwerch_masse(_g["lo"], _g["hi"], AH_DACH_AN_WAND.get(_seite, WALL_TOP_Z),
+                                     AH_GIEBELWAND_Z)
+        _mitte = (_g["lo"] + _g["hi"]) / 2
+        _kubus = AH_ZWERCH_FORM == "kubus"
+        _erker_vor = _g.get("vor", 0.0)     # > 0: die Front steht auf einer Erkerfront
+        # Ueber einem Erker beginnt die neue Front am Obergeschossboden: die
+        # alte Erkerwand hat der Traufschnitt dort tiefer gekappt als die Traufe.
+        _front_unten = AH_BODEN_Z if _erker_vor > 0 else WALL_TOP_Z - 0.10
+        if _kubus:
+            _k = anderthalb.kubus_masse(_g["lo"], _g["hi"], AH_DACH_AN_WAND.get(_seite, WALL_TOP_Z),
+                                        AH_GIEBELWAND_Z)
+            # Rechteck statt Fuenfeck, vom Boden bis unter das Flachdach und
+            # KUBUS_VOR_M vor der Fassade -- wie im Vorbild ein grau abgesetzter
+            # Baukoerper ueber beide Geschosse (Rainer, 2026-10-21).
+            _umriss = ((_g["lo"], 0.0), (_g["hi"], 0.0),
+                       (_g["hi"], AH_GIEBELWAND_Z), (_g["lo"], AH_GIEBELWAND_Z))
+        else:
+            _umriss = ((_g["lo"], _front_unten), (_g["hi"], _front_unten),
+                       (_g["hi"], AH_GIEBELWAND_Z), (_mitte, _m["first_z"]), (_g["lo"], AH_GIEBELWAND_Z))
+        _n = len(_umriss)
+        _fv = []
+        _vor = (anderthalb.KUBUS_VOR_M if _kubus else 0.0) + _erker_vor
+        for _s_ in (-_ah_wand_t / 2 - _vor, _ah_wand_t / 2 - _erker_vor):
+            for _e, _z in _umriss:
+                x0_, x1_, y0_, y1_ = AH_BBOX
+                _fv.append({"north": (_e, y1_ - _s_, _z), "south": (_e, y0_ + _s_, _z),
+                            "east": (x1_ - _s_, _e, _z), "west": (x0_ + _s_, _e, _z)}[_seite])
+        _front = _ah_mesh_obj("extwall-zwerch-%d" % _gi, _fv,
+                              [list(range(_n)), list(range(2 * _n - 1, _n - 1, -1))]
+                              + [[k, (k + 1) % _n, _n + (k + 1) % _n, _n + k] for k in range(_n)],
+                              ZWERCHKUBUS if _kubus else FACADE)
+        recalc_normals(_front.data)
+        # die Oeffnungen dieser Seite im Giebelbereich -- gleiche Rechnung wie in der Wandschleife.
+        # Der Kubus reicht bis zum Boden: dann auch die Oeffnungen der unteren Geschosse.
+        _ebenen = range(STOREY_COUNT) if _kubus else [STOREY_COUNT - 1]
+        for _lv, _w in [(_lv, _w) for _lv in _ebenen for _w in storey_exterior_walls[_lv]]:
+            if anderthalb.seite_mit_erker((_w["start_mm"][0] * MM, _w["start_mm"][1] * MM),
+                                          (_w["end_mm"][0] * MM, _w["end_mm"][1] * MM), AH_BBOX,
+                                          AH_ERKER)[0] != _seite:
+                continue
+            _wsx, _wsy = _w["start_mm"][0] * MM, _w["start_mm"][1] * MM
+            _wex, _wey = _w["end_mm"][0] * MM, _w["end_mm"][1] * MM
+            for _o in openings_by_wall.get((_lv, _w.get("id")), []):
+                _ox = _wsx + _o["position"] * (_wex - _wsx)
+                _oy = _wsy + _o["position"] * (_wey - _wsy)
+                _entlang = _ox if _seite in ("north", "south") else _oy
+                if not (_g["lo"] <= _entlang <= _g["hi"]):
+                    continue
+                _base_mm = _o.get("_storey_base_mm", 0.0)
+                _sill = _base_mm + max(0.0, LINTEL_Z_MM - _o["height_mm"])
+                _hoehe = min(_o["height_mm"], _base_mm + CEILING_Z * 1000 - _sill)
+                if _hoehe <= 0:
+                    continue
+                _cut = box("ah-zwerch-cut", (_ox, _oy, (_sill + _hoehe / 2) * MM),
+                           (_o["width_mm"] * MM, _ah_wand_t * 3.0, _hoehe * MM + 0.04),
+                           math.atan2(_wey - _wsy, _wex - _wsx), None, into="Cutters")
+                apply_boolean_difference(_front, _cut)
+                bpy.data.objects.remove(_cut, do_unlink=True)
+        if _kubus:
+            # Seitenwaende: vom Hauptdach bis unter das Flachdach.
+            for _von in ((_g["lo"] - _ah_wand_t / 2, _g["hi"] - _ah_wand_t / 2) if _erker_vor > 0
+                         else (_g["lo"], _g["hi"] - _ah_wand_t)):
+                _seite_w = _ah_prisma("extwall-zwerch-%d-seite" % _gi,
+                                      anderthalb.zwerch_seitenprofil(
+                                          _ah_wand_t / 2 + _vor, _erker_vor, 0.0, WALL_TOP_Z,
+                                          _k["tiefe_wand"], AH_GIEBELWAND_Z),
+                                      _seite, _von, _von + _ah_wand_t, into="Exterior")
+                _seite_w.data.materials.append(ZWERCHKUBUS)
+            # Flachdach mit Attika: sitzt auf der Frontwand, reicht bis unter das Hauptdach.
+            _platte = _ah_prisma("roof-zwerch-%d-flach" % _gi,
+                                 [(-_ah_wand_t / 2 - _vor - 0.05, AH_GIEBELWAND_Z),
+                                  (_k["tiefe_dach"] + 0.30, AH_GIEBELWAND_Z),
+                                  (_k["tiefe_dach"] + 0.30, _k["dach_z"]),
+                                  (-_ah_wand_t / 2 - _vor - 0.05, _k["dach_z"])],
+                                 _seite, _g["lo"] - 0.05 - (_ah_wand_t / 2 if _erker_vor > 0 else 0.0),
+                                 _g["hi"] + 0.05 + (_ah_wand_t / 2 if _erker_vor > 0 else 0.0), into="Exterior")
+            _platte.data.materials.append(ZWERCHKUBUS)
+            # Hauptdach unter dem Kubus weg -- bis zur Oberkante des Flachdachs.
+            _auf = _ah_prisma("ah-traufe-auf",
+                              [(-overhang - 0.5 - _erker_vor, WALL_TOP_Z - 1.5), (_k["tiefe_dach"], WALL_TOP_Z - 1.5),
+                               (_k["tiefe_dach"], _k["dach_z"] - 0.02),
+                               (-overhang - 0.5 - _erker_vor, _k["dach_z"] - 0.02)],
+                              _seite, _g["lo"] - 0.01, _g["hi"] + 0.01)
+            for _r in _ah_roofs:
+                if _r.name in bpy.data.objects:
+                    apply_boolean_difference(_r, _auf)
+            bpy.data.objects.remove(_auf, do_unlink=True)
+            print("[exterior] 1,5-Geschosser  Zwerchkubus %s %.2f-%.2f: Flachdach %.2f m, %.2f m tief ins Dach"
+                  % (_seite, _g["lo"], _g["hi"], _k["dach_z"], _k["tiefe_dach"]))
+            continue
+        _seit_ueber = 0.3
+        _vorn = -overhang - _erker_vor              # s < 0: vor der Fassade (bzw. dem Erker)
+        _innen_first = _m["tiefe_first"] + 0.4
+        _innen_traufe = _m["tiefe_traufe"] + 0.4
+        _z_rand = AH_GIEBELWAND_Z - _seit_ueber * AH_TAN
+        x0_, x1_, y0_, y1_ = AH_BBOX
+
+        def _w(e, s_, z_):
+            if _seite == "north":
+                return (e, y1_ - s_, z_)
+            if _seite == "south":
+                return (e, y0_ + s_, z_)
+            if _seite == "east":
+                return (x1_ - s_, e, z_)
+            return (x0_ + s_, e, z_)
+        _flaechen = []
+        for _rand in (_g["lo"] - _seit_ueber, _g["hi"] + _seit_ueber):
+            _flaechen.append([_w(_rand, _vorn, _z_rand), _w(_mitte, _vorn, _m["first_z"]),
+                              _w(_mitte, _innen_first, _m["first_z"]), _w(_rand, _innen_traufe, _z_rand)])
+        for _fi, _quad in enumerate(_flaechen):
+            # halbe Plattendicke hoeher: die Giebelwand endet IN der Platte, nicht an ihrer Oberseite
+            _quad = [(_q[0], _q[1], _q[2] + 0.08) for _q in _quad]
+            _d = _ah_mesh_obj("roof-zwerch-%d-%d" % (_gi, _fi), _quad, [[0, 1, 2, 3]], ROOF_MAT)
+            _mod = _d.modifiers.new("dicke", "SOLIDIFY")
+            _mod.thickness = 0.16
+            _mod.offset = -1.0
+            bake_modifiers(_d)
+            recalc_normals(_d.data)
+        # Seitenwangen: das Dreieck zwischen Hauptdach und Zwerchtraufe, links
+        # und rechts -- sonst sieht man seitlich in den Giebel hinein.
+        _wange_t = max((w["thickness_mm"] for w in storey_exterior_walls[-1]), default=240) * MM
+        for _von in ((_g["lo"] - _wange_t / 2, _g["hi"] - _wange_t / 2) if _erker_vor > 0
+                     else (_g["lo"], _g["hi"] - _wange_t)):
+            _wange = _ah_prisma("ah-wange-%d" % _gi,
+                                anderthalb.zwerch_seitenprofil(
+                                    0.02 + (_wange_t / 2 + _erker_vor if _erker_vor > 0 else 0.0),
+                                    _erker_vor, AH_BODEN_Z, WALL_TOP_Z, _m["tiefe_traufe"], AH_GIEBELWAND_Z),
+                                _seite, _von, _von + _wange_t, into="Exterior")
+            _wange.data.materials.append(FACADE)
+        # Haupttraufe vor dem Giebel oeffnen: alles Hauptdach unter der Giebelwand-Oberkante.
+        _auf = _ah_prisma("ah-traufe-auf", [(-overhang - 0.5 - _erker_vor, WALL_TOP_Z - 1.5),
+                                            (_m["tiefe_traufe"], WALL_TOP_Z - 1.5),
+                                            (_m["tiefe_traufe"], AH_GIEBELWAND_Z - 0.02),
+                                            (-overhang - 0.5 - _erker_vor, AH_GIEBELWAND_Z - 0.02)],
+                          _seite, _g["lo"] - 0.01, _g["hi"] + 0.01)
+        for _r in _ah_roofs:
+            if _r.name in bpy.data.objects:
+                apply_boolean_difference(_r, _auf)
+        bpy.data.objects.remove(_auf, do_unlink=True)
+    print("[exterior] 1,5-Geschosser  Obergeschosswaende auf das Dach geschnitten, %d %s gebaut"
+          % (len(AH_GIEBEL), "Zwerchkubus" if AH_ZWERCH_FORM == "kubus" else "Zwerchgiebel"))
+
+# ---------------------------------------------------------------- Giebelfenster
+# Dachboden (dachboden-ausbaureserve-v1): jedes gezeichnete Dachbodenfenster
+# sitzt in der naechsten Erdgeschoss-Aussenwand, ab Dachbodenboden (Wandkrone),
+# und wird an der traufnaeheren Kante unter der Dachschraege gekuerzt. Die
+# Giebeldreiecke sind die Wandstuecke der Dachmaschinerie (roof-walls /
+# roof-gable-infill) -- dort wird ausgeschnitten.
+def _db_lose_teile(obj):
+    """Ein gejointes Objekt in seine zusammenhaengenden Teile zerlegen.
+
+    roof-walls ist EIN Mesh aus beiden Giebeln und den Traufstreifen; der
+    EXACT-Boolean auf diesem nicht-mannigfaltigen Ganzen hat den Westgiebel
+    geloescht (bungalow_generationat, 2026-10-23). Geschnitten wird darum nur
+    das Teil, in dem das Fenster sitzt.
+    """
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    gesehen, gruppen = set(), []
+    for flaeche in bm.faces:
+        if flaeche.index in gesehen:
+            continue
+        gesehen.add(flaeche.index)
+        stapel, gruppe = [flaeche], []
+        while stapel:
+            g = stapel.pop()
+            gruppe.append(g)
+            for v in g.verts:
+                for h in v.link_faces:
+                    if h.index not in gesehen:
+                        gesehen.add(h.index)
+                        stapel.append(h)
+        gruppen.append(gruppe)
+    teile = []
+    for k, gruppe in enumerate(gruppen):
+        nb, vmap = bmesh.new(), {}
+        for g in gruppe:
+            ecken = []
+            for v in g.verts:
+                if v not in vmap:
+                    vmap[v] = nb.verts.new(v.co)
+                ecken.append(vmap[v])
+            try:
+                nf = nb.faces.new(ecken)
+                nf.material_index = g.material_index
+            except ValueError:
+                pass
+        me = bpy.data.meshes.new("%s-teil%d" % (obj.name, k))
+        nb.to_mesh(me)
+        nb.free()
+        for mat in obj.data.materials:
+            me.materials.append(mat)
+        teil = bpy.data.objects.new("%s-teil%d" % (obj.name, k), me)
+        teil.matrix_world = obj.matrix_world.copy()
+        for c in obj.users_collection:
+            c.objects.link(teil)
+        teile.append(teil)
+    bm.free()
+    return teile
+
+
+if DACHBODEN:
+    _db_waende = []
+    for _o in [o for o in bpy.data.objects
+               if o.type == "MESH" and o.name.startswith(("roof-walls", "roof-gable-infill"))]:
+        _db_name = _o.name
+        _db_teile = _db_lose_teile(_o)
+        bpy.data.objects.remove(_o, do_unlink=True)
+        _db_waende.append((_db_name, _db_teile))
+    for _i, _f in enumerate(DACHBODEN.get("giebelfenster") or []):
+        _mx, _my = _f["mitte_mm"]
+        _best = None
+        for _w in exterior_walls:
+            (_sx, _sy), (_ex, _ey) = _w["start_mm"], _w["end_mm"]
+            _len = math.hypot(_ex - _sx, _ey - _sy)
+            if _len < 1.0:
+                continue
+            _t = max(0.0, min(1.0, ((_mx - _sx) * (_ex - _sx) + (_my - _sy) * (_ey - _sy)) / _len ** 2))
+            _d = math.hypot(_sx + _t * (_ex - _sx) - _mx, _sy + _t * (_ey - _sy) - _my)
+            if _best is None or _d < _best[0]:
+                _best = (_d, _w, _t, _len)
+        if _best is None:
+            continue
+        _d, _w, _t, _len = _best
+        (_sx, _sy), (_ex, _ey) = _w["start_mm"], _w["end_mm"]
+        _cx = (_sx + _t * (_ex - _sx)) * MM
+        _cy = (_sy + _t * (_ey - _sy)) * MM
+        _winkel = math.atan2(_ey - _sy, _ex - _sx)
+        _breite = _f["breite_mm"] * MM
+        _hoehe = dachboden.fenster_hoehe(_t * _len * MM, _breite, 0.0, _len * MM, DB_NEIGUNG,
+                                         (_f["hoehe_mm"]) * MM)
+        if _hoehe is None:
+            print("[exterior] Dachboden WARNUNG: Giebelfenster %s passt nicht unter die Dachschraege"
+                  % _f.get("id"))
+            continue
+        _basis = WALL_TOP_Z + (_f.get("bruestung_mm") or 0) * MM
+        _schnitt = box("giebelfenster-%d-cut" % _i, (_cx, _cy, _basis + _hoehe / 2),
+                       (_breite, _w["thickness_mm"] * MM * 3.0, _hoehe + 0.04), _winkel, None,
+                       into="Cutters")
+        for _db_name, _db_teile in _db_waende:
+            for _o in _db_teile:
+                _k = [_o.matrix_world @ mathutils.Vector(v) for v in _o.bound_box]
+                if (min(p.x for p in _k) - 0.05 <= _cx <= max(p.x for p in _k) + 0.05
+                        and min(p.y for p in _k) - 0.05 <= _cy <= max(p.y for p in _k) + 0.05
+                        and max(p.z for p in _k) > _basis + 0.1):
+                    apply_boolean_difference(_o, _schnitt)
+        bpy.data.objects.remove(_schnitt, do_unlink=True)
+        build_window("giebelfenster-%d-window" % _i, _cx, _cy, _basis, _winkel,
+                     _f["breite_mm"], _hoehe * 1000.0)
+        print("[exterior] Dachboden  Giebelfenster %s: Wand %s, %.2f m breit, %.2f m hoch, %.0f mm neben der Wandlinie"
+              % (_f.get("id"), _w.get("id"), _breite, _hoehe, _d))
+    for _db_name, _db_teile in _db_waende:
+        if _db_teile:
+            join_objects(_db_teile, _db_name)
+
+# ---------------------------------------------------------------- balconies
+# Gezeichnete Balkone (Annotator-Typ "balcony", vom Plan-Builder als
+# floors[n].balconies durchgereicht -- vorher hat KEIN Skript den Typ
+# gelesen; Rainer, 2026-08-22, onehalfstorey_029: "didnt create a balkony
+# in the upperfloor westside"). Platte auf Geschossbodenhoehe, Bruestung
+# (900mm, DIN-nah) auf allen Kanten, die NICHT an der Fassade liegen.
+BALCONY_SLAB_MAT = flat("balcony-slab", (0.55, 0.54, 0.52), roughness=0.8)
+# Bruestung nach Stil, nicht als Mauer: "no walls as a Bruestung, add a
+# classic edelstahl bruestung for the classic and a glass one for the
+# modern" (Rainer, 2026-08-23). Edelstahl = Handlauf auf schlanken Pfosten,
+# Glas = Ganzglas mit Klemmprofil unten und Handlauf oben.
+RAIL_STEEL_MAT = flat("rail-steel", (0.78, 0.79, 0.81), roughness=0.22, metallic=0.95)
+RAIL_GLASS_MAT = flat("rail-glass", (0.80, 0.87, 0.90), roughness=0.08, metallic=0.0)
+BRUESTUNG_H = 1.00              # DIN 18065: absturzsichernd
+HANDLAUF_D = 0.042              # Rundrohr-Anmutung, quadratisch gebaut
+GLAS_STAERKE = 0.016
+POSTEN_ABSTAND = 1.20
+
+
+def _edge_to_segment_mm(px, py, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay
+    span = dx * dx + dy * dy
+    t = 0.0 if not span else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / span))
+    return math.hypot(px - (ax + t * dx), py - (ay + t * dy))
+
+
+def bruestung(name, mx_m, my_m, laenge, winkel, basis_z, stil):
+    """Ein Bruestungsfeld auf einer Balkonkante."""
+    if stil == "modern":
+        # Ganzglas: Scheibe zwischen Klemmprofil und Handlauf.
+        box(f"{name}-klemm", (mx_m, my_m, basis_z + 0.05),
+            (laenge, 0.06, 0.10), winkel, RAIL_STEEL_MAT)
+        box(f"{name}-glas", (mx_m, my_m, basis_z + BRUESTUNG_H / 2 + 0.03),
+            (laenge - 0.02, GLAS_STAERKE, BRUESTUNG_H - 0.16), winkel, RAIL_GLASS_MAT)
+        box(f"{name}-handlauf", (mx_m, my_m, basis_z + BRUESTUNG_H),
+            (laenge, HANDLAUF_D, HANDLAUF_D), winkel, RAIL_STEEL_MAT)
+        return
+    # classic: Edelstahl-Pfosten, Handlauf, zwei Fuellstaebe laengs.
+    box(f"{name}-handlauf", (mx_m, my_m, basis_z + BRUESTUNG_H),
+        (laenge, HANDLAUF_D, HANDLAUF_D), winkel, RAIL_STEEL_MAT)
+    for anteil in (0.38, 0.68):
+        box(f"{name}-fuellstab-{int(anteil * 100)}",
+            (mx_m, my_m, basis_z + BRUESTUNG_H * anteil),
+            (laenge, 0.022, 0.022), winkel, RAIL_STEEL_MAT)
+    anzahl = max(2, int(laenge / POSTEN_ABSTAND) + 1)
+    for index in range(anzahl):
+        t = -laenge / 2 + laenge * index / max(1, anzahl - 1)
+        px_ = mx_m + math.cos(winkel) * t
+        py_ = my_m + math.sin(winkel) * t
+        box(f"{name}-pfosten-{index}", (px_, py_, basis_z + BRUESTUNG_H / 2),
+            (0.042, 0.042, BRUESTUNG_H), winkel, RAIL_STEEL_MAT)
+
+
+for _level, _storey in enumerate(floors):
+    for _balkon in _storey.get("balconies") or []:
+        _poly = _balkon.get("polygon_mm") or []
+        if len(_poly) < 3:
+            continue
+        _base = _level * STOREY_Z
+        # Der Boden IST die Geschossdecke des Vorsprungs darunter; nur ein
+        # duenner Belag markiert die begehbare Flaeche.
+        polygon_prism(f"balcony-deck-{_level}", _poly, _base + 0.02, _base + 0.05,
+                      BALCONY_SLAB_MAT)
+        # Nur die Wand DIESES Geschosses schliesst den Balkon ab. Die Wand des Vorsprungs
+        # darunter ersetzte sonst die Bruestung (twostorey_xvv2_2: 0 Felder).
+        _facade_segments = [
+            (w["start_mm"], w["end_mm"])
+            for w in _storey.get("walls", [])
+            if w.get("wall_type") == "exterior"
+        ]
+        _felder = 0
+        _wahl = _balkon.get("gelaender_kanten")   # im Zeichner gewaehlt, [] = keines
+        for _i in range(len(_poly)):
+            ax, ay = _poly[_i]
+            bx, by = _poly[(_i + 1) % len(_poly)]
+            mx, my = (ax + bx) / 2, (ay + by) / 2
+            if _wahl is not None:
+                if _i not in _wahl:
+                    continue
+            elif any(_edge_to_segment_mm(mx, my, s[0], s[1], e[0], e[1]) < 300
+                     for s, e in _facade_segments):
+                continue                      # Anschluss an die Fassade: offen
+            _len = math.hypot(bx - ax, by - ay) * MM
+            if _len < 0.15:
+                continue
+            bruestung(f"balcony-rail-{_level}-{_i}", mx * MM, my * MM, _len,
+                      math.atan2(by - ay, bx - ax), _base, plan["style"])
+            _felder += 1
+        print(f"[exterior] balcony        level {_level}: Belag + {_felder} Bruestungsfeld(er) "
+              f"({'Glas' if plan['style'] == 'modern' else 'Edelstahl'})")
+
+# ---------------------------------------------------------------- Staffelgeschoss
+# STAFFELGESCHOSS-001, Rainer 2026-11-01: die freie Decke unter dem
+# Staffelgeschoss ist Kies, die gezeichnete Dachterrasse hat einen Belag,
+# rundherum die Attika aus staffel.attika_stuecke().
+STAFFEL = plan.get("staffelgeschoss")
+if STAFFEL and roof_type == "flachdach":
+    _z = (len(floors) - 1) * STOREY_Z
+    _kies = flat("staffel-kies", (0.40, 0.39, 0.37), roughness=0.95)
+    if len(STAFFEL["umriss_unten_mm"]) >= 3:
+        polygon_prism("staffel-kies", STAFFEL["umriss_unten_mm"], _z + 0.02, _z + 0.05, _kies)
+    for _i, _poly in enumerate(STAFFEL["terrassen_mm"]):
+        polygon_prism(f"staffel-terrasse-{_i}", _poly, _z + 0.02, _z + 0.07, BALCONY_SLAB_MAT)
+    for _i, _s in enumerate(STAFFEL["attika"]):
+        _sx, _sy = _s["start_mm"][0] * MM, _s["start_mm"][1] * MM
+        _ex, _ey = _s["end_mm"][0] * MM, _s["end_mm"][1] * MM
+        _d = _s["thickness_mm"] * MM
+        _len = math.hypot(_ex - _sx, _ey - _sy) + _d
+        _w = math.atan2(_ey - _sy, _ex - _sx)
+        box(f"staffel-attika-{_i}", ((_sx + _ex) / 2, (_sy + _ey) / 2, _z + staffel.ATTIKA_HOEHE_M / 2),
+            (_len, _d, staffel.ATTIKA_HOEHE_M), _w, FACADE)
+        box(f"staffel-attika-{_i}-abdeckung", ((_sx + _ex) / 2, (_sy + _ey) / 2, _z + staffel.ATTIKA_HOEHE_M + 0.02),
+            (_len, _d + 0.06, 0.04), _w, COPING_MAT)
+    print(f"[exterior] staffelgeschoss Kies, {len(STAFFEL['terrassen_mm'])} Dachterrasse(n), "
+          f"{len(STAFFEL['attika'])} Attika-Stueck(e)")
+
+# ---------------------------------------------------------------- Nachbarhaelfte
+# Erst wird jedes Netz, das ueber die Trennwand-Mitte hinausragt, genau dort
+# abgeschnitten (Dachueberstand, halbe Trennwand, Sockel) -- ohne Boolean,
+# mit bisect_plane. Dann steht die gespiegelte Kopie Kante an Kante daneben:
+# kein doppelter Ueberstand, keine flimmernden Doppelflaechen.
+DH_BBOX = None
+if DOPPELHAUS:
+    _dh_seite = DOPPELHAUS["trennwand"]
+    _dh_i = 0 if _dh_seite in ("east", "west") else 1
+    _dh_e = DOPPELHAUS["ebene_mm"] * MM
+    _dh_aussen = 1.0 if _dh_seite in ("east", "north") else -1.0   # Richtung zum Nachbarn
+    _dh_n = mathutils.Vector((_dh_aussen if _dh_i == 0 else 0.0, _dh_aussen if _dh_i == 1 else 0.0, 0.0))
+    _dh_co = mathutils.Vector((_dh_e if _dh_i == 0 else 0.0, _dh_e if _dh_i == 1 else 0.0, 0.0))
+    _dh_achse = mathutils.Vector((1.0, 0.0, 0.0)) if _dh_i == 0 else mathutils.Vector((0.0, 1.0, 0.0))
+    _dh_spiegel = (mathutils.Matrix.Translation(_dh_co) @ mathutils.Matrix.Scale(-1.0, 4, _dh_achse)
+                   @ mathutils.Matrix.Translation(-_dh_co))
+    _dh_ext = bpy.data.collections.get("Exterior")
+    _dh_objekte = [o for o in (_dh_ext.objects if _dh_ext else [])
+                   if o.type == "MESH" and not o.name.startswith(("ground", "site-"))]
+    for _o in _dh_objekte:
+        _k = [_o.matrix_world @ mathutils.Vector(v) for v in _o.bound_box]
+        _weit = max((p - _dh_co).dot(_dh_n) for p in _k)
+        if _weit <= 1e-4:
+            continue
+        if _o.data.users > 1:
+            _o.data = _o.data.copy()
+        _m = _o.matrix_world
+        _co_lokal = _m.inverted() @ _dh_co
+        _n_lokal = (_m.to_3x3().transposed() @ _dh_n).normalized()
+        _bm = bmesh.new()
+        _bm.from_mesh(_o.data)
+        bmesh.ops.bisect_plane(_bm, geom=list(_bm.verts) + list(_bm.edges) + list(_bm.faces),
+                               plane_co=_co_lokal, plane_no=_n_lokal, clear_outer=True)
+        _bm.to_mesh(_o.data)
+        _bm.free()
+        _o.data.update()
+    _dh_zwillinge = 0
+    for _o in _dh_objekte:
+        if not _o.data or not len(_o.data.vertices):
+            continue
+        _t = _o.copy()
+        _t.name = "nachbar-" + _o.name
+        _t.matrix_world = _dh_spiegel @ _o.matrix_world
+        _t["nachbar"] = True
+        for _c in _o.users_collection:
+            _c.objects.link(_t)
+        _dh_zwillinge += 1
+    _a0, _a1 = (min_x, max_x) if _dh_i == 0 else (min_y, max_y)
+    _ebene_mm = DOPPELHAUS["ebene_mm"]
+    _b0, _b1 = min(_a0, 2 * _ebene_mm - _a1), max(_a1, 2 * _ebene_mm - _a0)
+    DH_BBOX = ((_b0, _b1, min_y, max_y) if _dh_i == 0 else (min_x, max_x, _b0, _b1))
+    print("[exterior] Doppelhaushaelfte: Trennwand %s, Nachbarhaelfte gespiegelt (%d Objekte)"
+          % (_dh_seite, _dh_zwillinge))
+
+# ---------------------------------------------------------------- ground
+ground_pad = max(span_x, span_y) * 1.4
+if DH_BBOX:
+    ground_pad += max(DH_BBOX[1] - DH_BBOX[0] - (max_x - min_x),
+                      DH_BBOX[3] - DH_BBOX[2] - (max_y - min_y)) * MM
+terrain = plan.get("gelaende") or {"art": "eben"}
+terrain_bbox = (min_x*MM, min_y*MM, max_x*MM, max_y*MM)
+if terrain.get("art") == "hang":
+    ground_loops = trace_wall_loops(exterior_walls)
+    verts, faces = gelaende_gitter(terrain, terrain_bbox, ground_loops, ground_pad)
+    mesh = bpy.data.meshes.new("ground-mesh")
+    mesh.from_pydata(verts, [], faces)
+    mesh.update()
+    ground = bpy.data.objects.new("ground", mesh)
+    collection("Exterior").objects.link(ground)
+    mesh.materials.append(RASEN_MAT)
+    buried = []
+    for opening in exterior_openings:
+        wall = next(w for w in exterior_walls if w["id"] == opening["wall_id"])
+        t = opening["position"]
+        x,y = [(wall["start_mm"][i]+t*(wall["end_mm"][i]-wall["start_mm"][i]))*MM for i in (0,1)]
+        buried.append({"id": opening["id"], "x": x, "y": y,
+                       "z": max(0.0,LINTEL_Z_MM-opening["height_mm"])*MM})
+    for warning in gelaende_warnungen(terrain, terrain_bbox, buried, plan.get("exterior_areas") or []):
+        print("[exterior] " + warning)
+else:
+    flat_polygon("ground",
+                [(min_x - ground_pad / MM, min_y - ground_pad / MM),
+                 (max_x + ground_pad / MM, min_y - ground_pad / MM),
+                 (max_x + ground_pad / MM, max_y + ground_pad / MM),
+                 (min_x - ground_pad / MM, max_y + ground_pad / MM)],
+                RASEN_Z, RASEN_MAT)
+
+# Draw broad/background area types (garten) low, specific-use surfaces
+# (einfahrt, gehweg, terrasse) higher, so a garden polygon that spans the
+# whole plot doesn't z-fight the driveway/walkway/terrace sitting inside it.
+#
+# Must sit ABOVE the foundation plinth's top face (z=0, solid from -0.15 to
+# 0), not below it: any site area whose footprint falls inside the
+# foundation's bbox+100mm margin -- which driveway/walkway/terrace always
+# do, being right against the building -- was getting entombed inside that
+# solid block and never rendering (Rainer, 2026-08-13: "there is just
+# grass, all of the garden portions are gone"). Small positive offsets keep
+# them clearly above both the foundation top and the general ground plane
+# (z=-0.16) while still avoiding z-fighting each other.
+AREA_STACK_Z = {"garten": 0.001, "einfahrt": 0.006, "gehweg": 0.011, "terrasse": 0.016}
+
+
+def flaechen_z(typ, art, base_z_m):
+    """Hoehe einer Aussenflaeche: buendig im Rasen, nur um den Stapelversatz hoeher.
+
+    pflaster-buendig-v1 (Rainer, 2026-10-22: "huge slabs of stuff" -> "Flush
+    with the lawn"): auf ebenem Gelaende lagen Terrasse/Gehweg/Einfahrt bei
+    0 m, der Rasen bei -0,16 m -- sie schwebten. Am Hang gilt weiter die
+    Hoehe der Flaeche selbst (base_z_m).
+    """
+    versatz = AREA_STACK_Z.get(typ)
+    if art == "hang":
+        return base_z_m + (versatz if versatz is not None else -0.14)
+    return RASEN_Z + (versatz if versatz is not None else 0.0005)
+
+
+for area in sorted(plan.get("exterior_areas") or [], key=lambda a: AREA_STACK_Z.get(a["type"], -0.14)):
+    material = SITE_MATERIALS.get(area["type"], RASEN_MAT)
+    flat_polygon(f"site-{area['id']}", area["points_mm"],
+                 flaechen_z(area["type"], terrain.get("art"), area.get("base_z_m", 0.0)), material)
+
+# ---------------------------------------------------------------- Ueberdachung
+# Plan UEBERDACHUNG-001. Rainer, 2026-10-31: "it cant look like playwood it has
+# to be the floor above it extended or the roof above it extended". Das Dach
+# laeuft schon ueber den Dachgrundriss weiter; hier kommen die Decke unter einem
+# Geschoss und die Stuetzen dazu, beides in Fassadenfarbe.
+bpy.context.view_layer.update()
+_tiefe = bpy.context.evaluated_depsgraph_get()
+
+
+def stuetze_bis(x, y, boden_z, standard_z):
+    """Hoehe der Unterseite darueber; am Giebel liegt das Dach hoeher als die Traufe."""
+    treffer, ort, *_ = scene.ray_cast(_tiefe, (x, y, boden_z + 0.1), (0, 0, 1))
+    return ort.z if treffer and ort.z < standard_z + 4.0 else standard_z
+
+
+for _f in UEBERDACHT:
+    _ebene = _f["ebene"]
+    _name = f"ueberdachung-{_f['id']}"
+    if _f["art"] == "terrasse":
+        _basis = (next((a.get("base_z_m", 0.0) for a in plan["exterior_areas"] if a["id"] == _f["id"]), 0.0)
+                  if terrain.get("art") == "hang" else 0.0)
+        _boden = flaechen_z("terrasse", terrain.get("art"), _basis)
+    else:
+        _boden = _ebene * STOREY_Z + 0.05
+    # Beim Flachdach laufen oben Decke und Attika weiter, wie an der Fassade daneben.
+    _flach_oben = _f["traeger"] == "dach" and roof_type == "flachdach"
+    _ist_decke = _f["traeger"] == "decke" or _flach_oben
+    _decke = (_ebene * STOREY_Z + CEILING_Z, WALL_TOP_Z if _flach_oben else (_ebene + 1) * STOREY_Z)
+    if _ist_decke:
+        polygon_prism(f"{_name}-decke", _f["poly"], _decke[0], _decke[1], FACADE)
+    if _flach_oben:
+        polygon_prism(f"{_name}-attika", _f["poly"], _decke[1], _decke[1] + 0.04, COPING_MAT)
+    _fassaden = [(w["start_mm"], w["end_mm"]) for w in floors[_ebene].get("walls", [])
+                 if w.get("wall_type") == "exterior"]
+    _stuetzen = ueberdachung.pfosten(_f["poly"], _fassaden)
+    _standard = _decke[0] if _ist_decke else EAVE_Z
+    _breite = ueberdachung.PFOSTEN_BREITE_M
+    for _i, (_x, _y) in enumerate(_stuetzen):
+        _oben = _standard if _ist_decke else stuetze_bis(_x * MM, _y * MM, _boden, _standard)
+        box(f"{_name}-stuetze-{_i}", (_x * MM, _y * MM, (_boden + _oben) / 2),
+            (_breite, _breite, _oben - _boden), 0, FACADE)
+    print(f"[exterior] ueberdachung   {_name}: {_f['traeger']} laeuft weiter, {len(_stuetzen)} Stuetzen")
+
+# ---------------------------------------------------------------- camera + light
+span = max(span_x, span_y, 6.0)
+key = bpy.data.objects.new("key-sun", bpy.data.lights.new("key-sun", "SUN"))
+key.data.energy = 4.5
+key.data.angle = math.radians(3.0)
+# RULE: early or late DIRECTIONAL light on the chosen facade, never harsh
+# midday. 55 degrees was near-noon and flattened the elevation; 26 degrees is
+# a low sun that rakes the facade and gives the massing its shadows.
+key.location = (centre_x + span, centre_y - span, span * 0.6)
+key.rotation_euler = (math.radians(26), 0, math.radians(135))
+collection("Exterior").objects.link(key)
+
+world = bpy.data.worlds.new("ext-world")
+world.use_nodes = True
+bg = world.node_tree.nodes["Background"]
+bg.inputs["Color"].default_value = (0.55, 0.68, 0.85, 1.0)
+bg.inputs["Strength"].default_value = 1.1
+scene.world = world
+
+# ------------------------------------------- hero shot, to Rainer's spec
+#
+# HARD RULES (Rainer, 2026-08-18), enforced here, not approximated:
+#   Full frame - 24-35mm - tripod - ISO 100 - f/8-f/11 - LEVEL camera -
+#   3/4 view - STRAIGHT VERTICALS - best facade - COMPLETE building.
+#
+# What that changes versus what was here before: the old camera aimed with
+# `look.to_track_quat(...)`, which TILTS it. A tilted camera converges the
+# vertical lines of the building -- the single thing an architectural
+# photographer will not do. This camera is level and frames with SHIFT, which
+# is what a 24mm tilt-shift lens is for.
+SENSOR_WIDTH_MM = 36.0          # full frame
+HERO_LENS_MM = 28.0             # inside the 24-35 band; 24 is the wide limit
+HERO_MARGIN = 1.18              # the whole building, comfortably, never cropped
+TRIPOD_HEIGHT_M = 1.6
+
+camera_data = bpy.data.cameras.new("ext-camera")
+camera_data.type = "PERSP"
+camera_data.sensor_fit = "HORIZONTAL"
+camera_data.sensor_width = SENSOR_WIDTH_MM
+camera_data.lens = HERO_LENS_MM
+# f/8-f/11 on a real camera means EVERYTHING sharp at this distance. The
+# faithful equivalent is no defocus at all, with the aperture recorded.
+camera_data.dof.use_dof = False
+camera_data.dof.aperture_fstop = 9.0
+camera = bpy.data.objects.new("ext-camera", camera_data)
+collection("Exterior").objects.link(camera)
+
+# --- Schokoladenseite: chosen, not assumed --------------------------------
+# The best face is the one with the most glazing, measured off the exterior
+# openings. The 3/4 view then pairs it with whichever perpendicular face has
+# the most glazing of its own, so the second face earns its place too.
+glazing = {"+x": 0.0, "-x": 0.0, "+y": 0.0, "-y": 0.0}
+
+
+def _seite_von(mx, my):
+    """Auf welcher Gebaeudeseite liegt dieser Punkt?"""
+    dx, dy = mx - centre_x / MM, my - centre_y / MM
+    return ("+x" if dx > 0 else "-x") if abs(dx) > abs(dy) else ("+y" if dy > 0 else "-y")
+
+
+# Verglasung ueber ALLE Geschosse. openings_by_wall ist seit der
+# Geschoss-Umstellung mit (level, wall_id) verschluesselt -- die alte
+# Abfrage mit der blossen wall_id fand nichts mehr, jede Seite hatte 0 m2
+# und die "Schokoladenseite" war effektiv geraten (gemessen an
+# onehalfstorey_029: "+x (0.0 m2 glazing)").
+for _level, _walls_here in enumerate(storey_exterior_walls):
+    for wall in _walls_here:
+        sx, sy = wall["start_mm"]
+        ex, ey = wall["end_mm"]
+        length = math.hypot(ex - sx, ey - sy)
+        if length < 1:
+            continue
+        nx, ny = -(ey - sy) / length, (ex - sx) / length
+        mx, my = (sx + ex) / 2, (sy + ey) / 2
+        if (mx - centre_x / MM) * nx + (my - centre_y / MM) * ny < 0:
+            nx, ny = -nx, -ny
+        side = ("+x" if nx > 0 else "-x") if abs(nx) > abs(ny) else ("+y" if ny > 0 else "-y")
+        for opening in openings_by_wall.get((_level, wall.get("id")), []):
+            glazing[side] += (opening.get("width_mm", 0) or 0) * (opening.get("height_mm", 0) or 0)
+
+# Die Schauseite ist da, wo man wohnt: Terrasse und Balkon schlagen jede
+# Fensterflaeche (Rainer, 2026-08-23: "the schokoladen seite for the camera
+# position would have to be where you look at the terasse and the balkony
+# part"). Beides ist gezeichnet -- Balkone als Element, Terrassen als
+# Aussenanlage -- also wird es gemessen, nicht geraten.
+wohnseite = {"+x": 0.0, "-x": 0.0, "+y": 0.0, "-y": 0.0}
+for _storey in floors:
+    for _balkon in _storey.get("balconies") or []:
+        _poly = _balkon.get("polygon_mm") or []
+        if len(_poly) < 3:
+            continue
+        _mx = sum(q[0] for q in _poly) / len(_poly)
+        _my = sum(q[1] for q in _poly) / len(_poly)
+        wohnseite[_seite_von(_mx, _my)] += abs(polygon_area(_poly)) if "polygon_area" in dir() else 1.0
+for _flaeche in plan.get("exterior_areas") or []:
+    if "terrasse" not in str(_flaeche.get("label", "")).lower():
+        continue
+    _poly = _flaeche.get("polygon_mm") or []
+    if len(_poly) < 3:
+        continue
+    _mx = sum(q[0] for q in _poly) / len(_poly)
+    _my = sum(q[1] for q in _poly) / len(_poly)
+    wohnseite[_seite_von(_mx, _my)] += 1.0
+
+if max(wohnseite.values()) > 0:
+    primary = max(wohnseite, key=lambda s: (wohnseite[s], glazing[s]))
+    print("[exterior] Schauseite nach Terrasse/Balkon: %s" % primary)
+else:
+    primary = max(glazing, key=glazing.get)
+perpendicular = ("+y", "-y") if primary in ("+x", "-x") else ("+x", "-x")
+secondary = max(perpendicular, key=lambda s: glazing[s])
+
+
+def kerben_ecke(rects, tol=0.35):
+    """L-Haus: (Hauptseite, Nebenseite) zur offenen Ecke des L, sonst None.
+
+    Rainer, 2026-10-13, nach dem Vergleich seiner Handkameras mit dieser:
+    in 11 von 12 Haeusern stand seine Kamera an der ANDEREN vorderen Ecke --
+    auf der Seite, zu der der Anbau vorsteht, und von dort an der Ecke, an der
+    er NICHT sitzt. Man sieht in das offene L hinein, beide Fluegel und die
+    Innenecke; der Anbau steht hinten. Die Seite, zu der er vorsteht, bleibt
+    die dominante. Ein mittiger Anbau (T, zwei Kerben) hat keine eindeutige
+    Ecke -- dort bleibt es bei Terrasse/Verglasung (040_33 hat er so gelassen).
+    """
+    if len(rects) != 2:
+        return None
+    gross, klein = sorted(rects, key=lambda r: -((r[1] - r[0]) * (r[3] - r[2])))
+    gx0, gx1, gy0, gy1 = gross
+    kx0, kx1, ky0, ky1 = klein
+    if abs(ky0 - gy1) < tol or abs(ky1 - gy0) < tol:      # steht in y vor
+        haupt = "+y" if abs(ky0 - gy1) < tol else "-y"
+        am_lo, am_hi = abs(kx0 - gx0) < tol, abs(kx1 - gx1) < tol
+        if am_lo == am_hi:
+            return None
+        return haupt, ("+x" if am_lo else "-x")
+    if abs(kx0 - gx1) < tol or abs(kx1 - gx0) < tol:      # steht in x vor
+        haupt = "+x" if abs(kx0 - gx1) < tol else "-x"
+        am_lo, am_hi = abs(ky0 - gy0) < tol, abs(ky1 - gy1) < tol
+        if am_lo == am_hi:
+            return None
+        return haupt, ("+y" if am_lo else "-y")
+    return None
+
+
+_kerbe = kerben_ecke(massing_rects) if (footprint and not DOPPELHAUS) else None
+# Doppelhaushaelfte: nie von der Trennwand-Seite aus -- dort steht der Nachbar.
+# Die Kamera steht an der freien Ecke, "unsere" Haelfte vorn.
+if DOPPELHAUS:
+    _dh_k = doppelhaus.kamera_seite(DOPPELHAUS["trennwand"])
+    _dh_gegen = {"+x": "-x", "-x": "+x", "+y": "-y", "-y": "+y"}[_dh_k]
+    if primary == _dh_k:
+        primary = max((s for s in glazing if s != _dh_k), key=lambda s: (wohnseite[s], glazing[s]))
+        perpendicular = ("+y", "-y") if primary in ("+x", "-x") else ("+x", "-x")
+    if secondary == _dh_k or secondary not in perpendicular:
+        secondary = _dh_gegen if _dh_gegen in perpendicular else max(perpendicular, key=lambda s: glazing[s])
+    print("[exterior] Doppelhaushaelfte: Kamera %s/%s (Trennwand %s)" % (primary, secondary, _dh_k))
+if _kerbe:
+    primary, secondary = _kerbe
+    print("[exterior] L-Haus: Kamera an der offenen Ecke des L (%s, %s)" % _kerbe)
+AXIS = {"+x": (1.0, 0.0), "-x": (-1.0, 0.0), "+y": (0.0, 1.0), "-y": (0.0, -1.0)}
+px, py = AXIS[primary]
+sx_, sy_ = AXIS[secondary]
+# Two-point perspective: stand off the corner, but weighted toward the
+# primary facade so it stays visually DOMINANT and the side only gives depth.
+# 0.75 statt 0.52: bei 0.52 steht die Kamera nur rund 27 Grad von der
+# Frontalen weg, und das liest sich fast wie eine Aufrissansicht -- eine lange
+# blanke Wand quer durchs Bild. 0.75 sind rund 37 Grad, eine echte
+# Zweifluchtpunkt-Perspektive: die Schokoladenseite bleibt dominant, die
+# Nebenseite gibt dem Haus Tiefe.
+dir_x, dir_y = px * 1.0 + sx_ * 0.75, py * 1.0 + sy_ * 0.75
+d_len = math.hypot(dir_x, dir_y) or 1.0
+direction_xy = mathutils.Vector((dir_x / d_len, dir_y / d_len, 0.0))
+print(f"[exterior] Schokoladenseite {primary} "
+      f"({glazing[primary] / 1e6:.1f} m2 glazing), side {secondary} "
+      f"({glazing[secondary] / 1e6:.1f} m2)")
+
+# --- distance: move BACK rather than go wider ------------------------------
+# RULE: the whole building fits comfortably -- no cropped roof edge, corner,
+# facade edge or ground line -- and if it does not fit, the camera retreats
+# rather than the lens widening.
+#
+# The first version solved for distance from the building's CENTRE and framed
+# a wall at 11m: the camera was inside the building's own footprint radius.
+# Distance is now solved by PROJECTING the eight corners of the building box
+# and stepping back until every one of them is inside the frame, which is the
+# rule itself expressed as the test.
+# Doppelhaushaelfte: gerahmt wird das GANZE Doppelhaus (beide Haelften).
+if DH_BBOX:
+    min_x, max_x, min_y, max_y = DH_BBOX
+    centre_x, centre_y = (min_x + max_x) / 2 * MM, (min_y + max_y) / 2 * MM
+    span_x, span_y = (max_x - min_x) * MM, (max_y - min_y) * MM
+building_top = STOREY_Z * STOREY_COUNT + 1.6
+if DACHBODEN:
+    # Das steile Dach steht weit ueber "ein Geschoss + 1,6 m" -- gerahmt wird
+    # bis zum wirklichen First (dachboden-ausbaureserve-v1).
+    for _o in bpy.data.objects:
+        if _o.type == "MESH" and _o.name.startswith("roof"):
+            building_top = max(building_top, max((_o.matrix_world @ mathutils.Vector(v)).z
+                                                 for v in _o.bound_box))
+half_fov_h = math.atan(SENSOR_WIDTH_MM / 2.0 / HERO_LENS_MM)
+render_aspect = scene.render.resolution_x / float(scene.render.resolution_y)
+half_fov_v = math.atan(math.tan(half_fov_h) / render_aspect)
+
+corners = [mathutils.Vector((x, y, z))
+           for x in (min_x * MM, max_x * MM)
+           for y in (min_y * MM, max_y * MM)
+           for z in (0.0, building_top)]
+right = mathutils.Vector((direction_xy.y, -direction_xy.x, 0.0))
+
+
+def frames_everything(distance, shift):
+    """Every corner inside the frame, with HERO_MARGIN of air around it."""
+    eye = mathutils.Vector((centre_x, centre_y, TRIPOD_HEIGHT_M)) + direction_xy * distance
+    for corner in corners:
+        offset = corner - eye
+        forward = -offset.dot(direction_xy)
+        if forward < 1.0:
+            return False
+        u = offset.dot(right) / forward
+        v = (offset.z) / forward
+        if abs(u) > math.tan(half_fov_h) / HERO_MARGIN:
+            return False
+        if not (-math.tan(half_fov_v) / HERO_MARGIN
+                < v - shift * 2.0 * math.tan(half_fov_h)
+                < math.tan(half_fov_v) / HERO_MARGIN):
+            return False
+    return True
+
+
+cam_distance = math.hypot(span_x, span_y) / 2.0 + 4.0
+shift_y = 0.0
+for _ in range(240):
+    # Frame the building with SHIFT, the way a tilt-shift lens does, so the
+    # roof is included without tilting and the verticals stay vertical.
+    shift_y = ((building_top / 2.0) - TRIPOD_HEIGHT_M) / (2.0 * cam_distance
+                                                          * math.tan(half_fov_h))
+    if frames_everything(cam_distance, shift_y):
+        break
+    cam_distance += 0.5
+
+camera.location = (mathutils.Vector((centre_x, centre_y, TRIPOD_HEIGHT_M))
+                   + direction_xy * cam_distance)
+# LEVEL. X = 90 degrees puts the optical axis horizontal; yaw only.
+# At rotation_euler.x = 90 deg the camera looks along +Y; a yaw of `a` turns
+# that to (-sin a, cos a). The camera stands at centre + direction and must
+# look back at the building, i.e. along -direction:
+#     -sin a = -dx,  cos a = -dy   ->   a = atan2(dx, -dy)
+# The first version used atan2(dy, dx) - 90 deg, which is exactly 180 deg out
+# and pointed the hero shot at empty sky.
+yaw = math.atan2(direction_xy.x, -direction_xy.y)
+camera.rotation_euler = (math.pi / 2.0, 0.0, yaw)
+camera_data.shift_y = shift_y
+
+# --- Rainers eigene Kamera ------------------------------------------------
+# Rainer, 2026-10-13: Eine von Hand gesetzte Kamera ueberlebte bisher keinen
+# Neubau -- `save_as_mainfile` unten schreibt die .blend neu, seine Fassung
+# blieb nur als .blend1 liegen und war beim zweiten Bau fort (10 von 12
+# Haeusern standen schon so). Jetzt:
+#   1. Vor dem Ueberschreiben die alte .blend lesen. Hat jemand ihre Kamera
+#      bewegt, wird sie nach `kamera-aussen.json` (neben renders/) gerettet.
+#      Erkannt am Stempel `zf_kamera`, den dieser Renderer jeder Kamera
+#      mitgibt; aeltere Dateien ohne Stempel gelten als von Hand, wenn sie
+#      nicht genau auf Stativhoehe und waagerecht stehen.
+#   2. Gibt es die Datei, steht die Kamera dort -- Ort, Blickrichtung,
+#      Brennweite, Shift --, aber WAAGERECHT ("level is correct").
+KAMERA_JSON = os.environ.get("EXT_KAMERA_JSON") or (
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(out_path)))),
+                 "kamera-aussen.json")
+    if os.path.basename(os.path.dirname(os.path.abspath(out_path))) == "go-baseline" else None)
+
+
+def _alte_kamera(pfad):
+    """Kamera der bisherigen .blend unter `pfad`, oder None."""
+    if not os.path.exists(pfad):
+        return None
+    try:
+        with bpy.data.libraries.load(pfad, link=False) as (quelle, ziel):
+            ziel.objects = [n for n in quelle.objects if n == "ext-camera"]
+    except Exception as fehler:
+        print("[exterior] alte Kamera nicht lesbar: %s" % fehler)
+        return None
+    obj = next((o for o in ziel.objects if o is not None), None)
+    if obj is None:
+        return None
+    m = obj.matrix_basis.copy()
+    e = m.to_euler()
+    werte = {"loc": [round(v, 4) for v in m.translation],
+             "rot_deg": [round(math.degrees(v), 3) for v in e],
+             "lens": round(obj.data.lens, 3),
+             "shift": [round(obj.data.shift_x, 5), round(obj.data.shift_y, 5)],
+             "stempel": obj.get("zf_kamera")}
+    daten = obj.data
+    bpy.data.objects.remove(obj, do_unlink=True)
+    if daten and daten.users == 0:
+        bpy.data.cameras.remove(daten)
+    # Der Verweis auf die Quelldatei bleibt sonst stehen, und das Speichern
+    # unten weigert sich, eine "benutzte Bibliothek" zu ueberschreiben.
+    for _lib in list(bpy.data.libraries):
+        if os.path.normcase(os.path.abspath(bpy.path.abspath(_lib.filepath))) == os.path.normcase(os.path.abspath(pfad)):
+            bpy.data.libraries.remove(_lib)
+    return werte
+
+
+def _von_hand(alt):
+    if alt["stempel"]:
+        try:
+            st = json.loads(alt["stempel"])
+        except Exception:
+            return True
+        return (max(abs(a - b) for a, b in zip(alt["loc"], st["loc"])) > 0.002
+                or max(abs(a - b) for a, b in zip(alt["rot_deg"], st["rot_deg"])) > 0.05)
+    return (abs(alt["loc"][2] - TRIPOD_HEIGHT_M) > 0.001
+            or abs(alt["rot_deg"][0] - 90.0) > 0.01 or abs(alt["rot_deg"][1]) > 0.01)
+
+
+_blend_ziel = os.path.splitext(out_path)[0] + ".blend"
+if KAMERA_JSON:
+    _alt = _alte_kamera(_blend_ziel)
+    if _alt and _von_hand(_alt):
+        _mtime = os.path.getmtime(_blend_ziel)
+        _bisher = None
+        try:
+            _bisher = json.load(open(KAMERA_JSON, encoding="utf-8"))
+        except Exception:
+            pass
+        if not _bisher or _mtime > float(_bisher.get("aus_mtime", 0)):
+            _rettung = {"schema": "zf-kamera-aussen-v1", "loc": _alt["loc"],
+                        "rot_deg": _alt["rot_deg"], "lens": _alt["lens"],
+                        "shift": _alt["shift"], "aus_datei": _blend_ziel,
+                        "aus_mtime": _mtime}
+            with open(KAMERA_JSON, "w", encoding="utf-8") as _f:
+                json.dump(_rettung, _f, indent=1)
+            print("[exterior] Handkamera aus der bisherigen .blend gerettet -> %s" % KAMERA_JSON)
+    if os.path.exists(KAMERA_JSON):
+        try:
+            _hand = json.load(open(KAMERA_JSON, encoding="utf-8"))
+            camera.location = tuple(_hand["loc"])
+            camera.rotation_euler = (math.pi / 2.0, 0.0, math.radians(_hand["rot_deg"][2]))
+            camera_data.lens = float(_hand.get("lens") or HERO_LENS_MM)
+            camera_data.shift_x, camera_data.shift_y = (float(v) for v in _hand.get("shift") or (0.0, shift_y))
+            shift_y = camera_data.shift_y
+            print("[exterior] Kamera von Hand (%s): Ort %s, Blick %.1f Grad, waagerecht"
+                  % (os.path.basename(KAMERA_JSON), _hand["loc"], _hand["rot_deg"][2]))
+        except Exception as _fehler:
+            print("[exterior] kamera-aussen.json unlesbar, Regelkamera bleibt: %s" % _fehler)
+camera["zf_kamera"] = json.dumps({
+    "loc": [round(v, 4) for v in camera.location],
+    "rot_deg": [round(math.degrees(v), 3) for v in camera.rotation_euler]})
+print(f"[exterior] hero camera: {HERO_LENS_MM:.0f}mm full-frame, level "
+      f"(verticals straight), shift_y {shift_y:+.3f}, {cam_distance:.1f}m back, "
+      f"f/{camera_data.dof.aperture_fstop:.0f}, tripod {TRIPOD_HEIGHT_M}m, "
+      f"whole building framed: {frames_everything(cam_distance, shift_y)}")
+scene.camera = camera
+
+for engine in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
+    try:
+        scene.render.engine = engine
+        break
+    except TypeError:
+        continue
+try:
+    scene.eevee.use_raytracing = True
+except AttributeError:
+    pass
+try:
+    scene.eevee.use_shadows = True
+    scene.eevee.taa_render_samples = 64
+except AttributeError:
+    pass
+try:
+    scene.view_settings.view_transform = "AgX"
+except TypeError:
+    pass
+scene.view_settings.exposure = 0.1
+
+# 16:9 statt 3:2. Die Breite bestimmt den Abstand -- ein 14 m breites Haus
+# zwingt die Kamera so weit zurueck, dass bei 3:2 rund 15 m Bildhoehe sichtbar
+# sind, wovon das Haus keine 4 m fuellt. Der Rest war Himmel und Rasen
+# (Rainer, 2026-08-20: "the image is frome a comepletely unsusable angle").
+# 16:9 schneidet ein Drittel davon weg, ohne am Objektiv oder am Abstand zu
+# drehen -- die Regel "24-35 mm, waagerecht, ganzes Gebaeude" bleibt erfuellt.
+scene.render.resolution_x = 1920
+scene.render.resolution_y = 1080
+scene.render.film_transparent = False
+scene.render.image_settings.file_format = "PNG"
+scene.render.filepath = os.path.abspath(out_path)
+bpy.ops.render.render(write_still=True)
+print(f"[exterior] wrote {out_path}")
+
+# --------------------------------------------- depth + edge passes
+# Same technique as render-furnished-dollhouse.py's Stage 5: a second cheap
+# render with every material replaced by a camera-depth emission shader (no
+# lights, few samples), then a numpy Sobel on that depth for the edge map.
+# Feeds the ComfyUI canny+depth ControlNet polish pass. DMH_NO_PASSES=1 skips.
+if os.environ.get("DMH_NO_PASSES") != "1":
+    base = os.path.splitext(os.path.abspath(out_path))[0]
+
+    depth_mat = bpy.data.materials.new("depth-emission")
+    depth_mat.use_nodes = True
+    nodes = depth_mat.node_tree.nodes
+    nodes.clear()
+    cam_data = nodes.new("ShaderNodeCameraData")
+    map_range = nodes.new("ShaderNodeMapRange")
+    map_range.inputs["From Min"].default_value = 0.0
+    map_range.inputs["From Max"].default_value = span * 3.0
+    map_range.inputs["To Min"].default_value = 1.0
+    map_range.inputs["To Max"].default_value = 0.0
+    emission = nodes.new("ShaderNodeEmission")
+    output = nodes.new("ShaderNodeOutputMaterial")
+    links = depth_mat.node_tree.links
+    links.new(cam_data.outputs["View Z Depth"], map_range.inputs["Value"])
+    links.new(map_range.outputs["Result"], emission.inputs["Color"])
+    links.new(emission.outputs["Emission"], output.inputs["Surface"])
+
+    overridden = []
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        # VERSATZ-WHOLE-HOUSE-001, 2026-10-04: materials.clear() resets every
+        # face's material_index to 0, so the saved .blend lost every facade
+        # face on a roof (the Versatz wall opened dark in Blender). Keep them.
+        overridden.append((obj, list(obj.data.materials), [p.material_index for p in obj.data.polygons]))
+        obj.data.materials.clear()
+        obj.data.materials.append(depth_mat)
+
+    old_world_nodes = world.use_nodes
+    world.use_nodes = False
+    world.color = (0.0, 0.0, 0.0)
+    try:
+        scene.view_settings.view_transform = "Standard"
+    except TypeError:
+        pass
+    scene.view_settings.exposure = 0.0
+    try:
+        scene.eevee.taa_render_samples = 8
+    except AttributeError:
+        pass
+    scene.render.filepath = base + "-depth.png"
+    bpy.ops.render.render(write_still=True)
+
+    for obj, mats, idx in overridden:
+        obj.data.materials.clear()
+        for m in mats:
+            obj.data.materials.append(m)
+        obj.data.polygons.foreach_set("material_index", idx)
+    world.use_nodes = old_world_nodes
+
+    try:
+        import numpy as np
+        img = bpy.data.images.load(base + "-depth.png")
+        w, h = img.size
+        px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
+        grey = px[:, :, 0]
+        background = grey[0, 0]
+        fg = np.abs(grey - background) > 0.02
+        core = fg.copy()
+        core[1:, :] &= fg[:-1, :]; core[:-1, :] &= fg[1:, :]
+        core[:, 1:] &= fg[:, :-1]; core[:, :-1] &= fg[:, 1:]
+        grown = core.copy()
+        grown[1:, :] |= core[:-1, :]; grown[:-1, :] |= core[1:, :]
+        grown[:, 1:] |= core[:, :-1]; grown[:, :-1] |= core[:, 1:]
+        fg = grown
+        if fg.any():
+            lo = np.percentile(grey[fg], 1.0)
+            hi = np.percentile(grey[fg], 99.0)
+            if hi > lo:
+                grey = np.clip((grey - lo) / (hi - lo), 0.0, 1.0)
+                grey[~fg] = 0.0
+        px[:, :, 0] = px[:, :, 1] = px[:, :, 2] = grey
+        img.pixels = px.ravel().tolist()
+        img.filepath_raw = base + "-depth.png"
+        img.file_format = "PNG"
+        img.save()
+        gx = np.zeros_like(grey); gy = np.zeros_like(grey)
+        gx[:, 1:-1] = grey[:, 2:] - grey[:, :-2]
+        gy[1:-1, :] = grey[2:, :] - grey[:-2, :]
+        mag = np.sqrt(gx ** 2 + gy ** 2)
+        top = np.percentile(mag, 99.5) or 1.0
+        mag = np.clip(mag / top, 0.0, 1.0)
+        out = np.zeros((h, w, 4), dtype=np.float32)
+        out[:, :, 0] = out[:, :, 1] = out[:, :, 2] = mag
+        out[:, :, 3] = 1.0
+        img.pixels = out.ravel().tolist()
+        img.filepath_raw = base + "-edge.png"
+        img.file_format = "PNG"
+        img.save()
+        print(f"[exterior] passes          {base}-depth.png / -edge.png")
+    except Exception as error:  # noqa: BLE001
+        print(f"[exterior] edge pass FAILED: {error}")
+
+    # --------------------------------------------- structure mask pass
+    # White = the built structure (walls, roof, coping, foundation, door/
+    # window assets) -- must never be repainted by the ComfyUI polish pass,
+    # since that has hallucinated different window/door layouts at high
+    # denoise (Rainer, 2026-08-13: "the renderer can't add windows and
+    # walls"). Black = sky/ground/site dressing, free for the polish pass to
+    # reinvent as photographic atmosphere. Named-prefix split, not
+    # collection: ground/site polygons share the "Exterior" collection with
+    # the real structure.
+    mask_white = bpy.data.materials.new("mask-white")
+    mask_white.use_nodes = True
+    mask_white.node_tree.nodes.clear()
+    mw_emission = mask_white.node_tree.nodes.new("ShaderNodeEmission")
+    mw_emission.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+    mw_output = mask_white.node_tree.nodes.new("ShaderNodeOutputMaterial")
+    mask_white.node_tree.links.new(mw_emission.outputs["Emission"], mw_output.inputs["Surface"])
+    FREE_PREFIXES = ("ground", "site-")
+
+    mask_overridden = []
+    mask_hidden = []
+    for obj in bpy.context.scene.objects:
+        if obj.type != "MESH" or obj.hide_render:
+            continue
+        if obj.name.startswith(FREE_PREFIXES):
+            mask_hidden.append(obj)
+            obj.hide_render = True
+        else:
+            mask_overridden.append((obj, list(obj.data.materials), [p.material_index for p in obj.data.polygons]))
+            obj.data.materials.clear()
+            obj.data.materials.append(mask_white)
+
+    # world.use_nodes = False is silently ignored by EEVEE Next (confirmed:
+    # inspecting the saved .blend showed use_nodes still True, original sky
+    # colour still on the Background node) -- set the node's own Color/
+    # Strength directly instead, the same mechanism the main colour render
+    # already uses reliably.
+    mask_bg_node = world.node_tree.nodes["Background"]
+    old_bg_color = tuple(mask_bg_node.inputs["Color"].default_value)
+    old_bg_strength = mask_bg_node.inputs["Strength"].default_value
+    mask_bg_node.inputs["Color"].default_value = (0.0, 0.0, 0.0, 1.0)
+    mask_bg_node.inputs["Strength"].default_value = 0.0
+    scene.render.filepath = base + "-mask.png"
+    bpy.ops.render.render(write_still=True)
+    mask_bg_node.inputs["Color"].default_value = old_bg_color
+    mask_bg_node.inputs["Strength"].default_value = old_bg_strength
+
+    for obj, mats, idx in mask_overridden:
+        obj.data.materials.clear()
+        for m in mats:
+            obj.data.materials.append(m)
+        obj.data.polygons.foreach_set("material_index", idx)
+    for obj in mask_hidden:
+        obj.hide_render = False
+    print(f"[exterior] structure mask   {base}-mask.png")
+
+blend_out = os.path.splitext(out_path)[0] + ".blend"
+bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(blend_out), compress=True)
+print(f"[exterior] saved {blend_out}")

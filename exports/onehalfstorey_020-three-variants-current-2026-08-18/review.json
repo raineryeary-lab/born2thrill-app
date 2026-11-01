@@ -1,0 +1,60 @@
+{
+  "schema": "dmh-image-review-v1",
+  "updated_at": "2026-08-18T14:22:29.102Z",
+  "reviews": [
+    {
+      "image": "01-eg-soft-scandinavian.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:21:58.258Z"
+    },
+    {
+      "image": "02-og-soft-scandinavian.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:00.888Z"
+    },
+    {
+      "image": "03-eg-modern-architectural.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:02.775Z"
+    },
+    {
+      "image": "04-og-modern-architectural.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:04.061Z"
+    },
+    {
+      "image": "05-eg-dark-modern.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:05.147Z"
+    },
+    {
+      "image": "06-og-dark-modern.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:05.946Z"
+    },
+    {
+      "image": "07-exterior-modern-v2.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:09.340Z"
+    },
+    {
+      "image": "07-exterior-modern.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:14.358Z"
+    },
+    {
+      "image": "08-exterior-classic-v2.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:22:29.102Z"
+    }
+  ]
+}
