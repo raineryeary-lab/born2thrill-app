@@ -1,0 +1,5 @@
+Status: APPROVED by explicit user image job. Scope: bungalow_033 annotation eee30cbbb1223b5c, 8 images + catalog and upload per job, no send. Source blends immutable. Exact camera/architecture/furniture footprints. Baseline HEAD5be1a4e; pre-existing dirty work untouched. Verify source hashes, actual mesh counts, dimensions and visual markers honestly; existing delivery checker. No code/tests/rights changes. Rollback separate generated files only. Preserve other_vito and bungalow_037 pending. No commit.
+
+2026-10-25 user scope update: exteriors and upload. Four exterior files published IDs1253-1256 with matching remote hashes, send=false. catalog records complete_package=false and exterior-only scope. Interior fixes/validation remain pending. Sources and prior review images retained; no runtime or rights changes. Evidence renders/audit-20261025/upload-verification.json.
+
+User explicitly approved upload of all current preview images with disclosed residual defects. All8 uploaded/remote-hash verified IDs1253-1260, send=false. No false marker acceptance issued. Known quality follow-ups retained in ROADMAP and catalog.

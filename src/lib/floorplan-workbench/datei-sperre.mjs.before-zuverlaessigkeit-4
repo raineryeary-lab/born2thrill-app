@@ -1,0 +1,115 @@
+// Datei-Sperren fuer die Workbench-Routen (ZUVERLAESSIGKEIT-001, Runde 3).
+//
+// Eine Sperre ist eine Datei, die mit "wx" angelegt wird (scheitert, wenn
+// sie schon da ist) und pid, Startzeit, Zweck und ein Token enthaelt.
+// - Eine Sperre eines LEBENDEN Prozesses wird nie uebernommen, egal wie alt.
+// - Die eines toten Prozesses wird uebernommen: erst atomar beiseite
+//   umbenannt, dann geprueft, ob das wirklich die tote war (zwei Uebernehmer
+//   gleichzeitig duerfen sich nicht gegenseitig eine frische Sperre nehmen).
+// - Loesen entfernt nur die eigene (Token-Vergleich).
+import { open, readFile, rename, unlink, link, stat } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+
+// Eine gerade angelegte, noch leere Datei ist kein Muell: erst nach dieser
+// Zeit gilt eine unlesbare Sperrdatei als verwaist.
+const UNLESBAR_VERWAIST_MS = 5_000;
+
+export function prozessLebt(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (e) {
+    // EPERM: es gibt ihn, wir duerfen ihm nur nichts senden.
+    return e && e.code === "EPERM";
+  }
+}
+
+async function lies(pfad) {
+  try {
+    const roh = await readFile(pfad, "utf8");
+    const info = JSON.parse(roh);
+    return info && typeof info === "object" ? info : null;
+  } catch {
+    return null;
+  }
+}
+
+async function verwaist(pfad, info) {
+  if (info) return !prozessLebt(info.pid);
+  try {
+    const st = await stat(pfad);
+    return Date.now() - st.mtimeMs > UNLESBAR_VERWAIST_MS;
+  } catch {
+    return true;   // schon weg
+  }
+}
+
+async function anlegen(pfad, inhalt) {
+  let fh;
+  try {
+    fh = await open(pfad, "wx");
+  } catch (e) {
+    if (e && e.code === "EEXIST") return false;
+    throw e;
+  }
+  try {
+    await fh.writeFile(JSON.stringify(inhalt), "utf8");
+  } finally {
+    await fh.close();
+  }
+  return true;
+}
+
+/**
+ * @returns {Promise<{ok: true, loesen: () => Promise<void>} | {ok: false, besitzer: any}>}
+ */
+export async function sperreNehmen(pfad, { zweck = "" } = {}) {
+  const token = randomUUID();
+  const inhalt = { pid: process.pid, seit: Date.now(), zweck, token };
+  const erfolg = () => ({
+    ok: true,
+    async loesen() {
+      const jetzt = await lies(pfad);
+      if (jetzt && jetzt.token === token) {
+        try { await unlink(pfad); } catch { /* schon weg */ }
+      }
+    },
+  });
+
+  if (await anlegen(pfad, inhalt)) return erfolg();
+
+  const alt = await lies(pfad);
+  if (!(await verwaist(pfad, alt))) return { ok: false, besitzer: alt || {} };
+
+  // Verwaist: beiseite schieben und pruefen, dass es die geprueft tote war.
+  const beiseite = `${pfad}.verwaist.${token}`;
+  try {
+    await rename(pfad, beiseite);
+  } catch {
+    return { ok: false, besitzer: (await lies(pfad)) || {} };
+  }
+  const verschoben = await lies(beiseite);
+  const dieselbe = alt ? (verschoben && verschoben.token === alt.token
+                          && verschoben.pid === alt.pid && verschoben.seit === alt.seit)
+                       : !verschoben || !prozessLebt(verschoben.pid);
+  if (!dieselbe) {
+    // Wir haben eine frische, lebende Sperre erwischt: zuruecklegen.
+    try { await link(beiseite, pfad); } catch { /* inzwischen neu belegt */ }
+    try { await unlink(beiseite); } catch { /* egal */ }
+    return { ok: false, besitzer: verschoben || {} };
+  }
+  try { await unlink(beiseite); } catch { /* egal */ }
+  if (await anlegen(pfad, inhalt)) return erfolg();
+  return { ok: false, besitzer: (await lies(pfad)) || {} };
+}
+
+/** Ledger zusammenfuehren: die Platte ist die Basis, nur die von DIESER
+ *  Anfrage geaenderten Haeuser werden ueberschrieben. */
+export function ledgerZusammenfuehren(platte, meins, geaendert) {
+  const basis = platte && typeof platte === "object" && !Array.isArray(platte) ? { ...platte } : {};
+  for (const plan of geaendert) {
+    if (meins[plan]) basis[plan] = meins[plan];
+  }
+  return basis;
+}

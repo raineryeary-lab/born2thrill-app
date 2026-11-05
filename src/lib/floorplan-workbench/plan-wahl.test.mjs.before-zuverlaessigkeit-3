@@ -1,0 +1,120 @@
+// node src/lib/floorplan-workbench/plan-wahl.test.mjs
+import assert from "node:assert/strict";
+import { planAusUrl, waehlePlan, pruefeStateAntwort, anfrageZaehler, PIPELINE_FRIST_MS,
+  stateWarnungen, freigabeErgebnis, istZustandUnbekannt } from "./plan-wahl.mjs";
+
+const erledigt = (s) => s === "fertig";
+const liste = [
+  { plan: "a_fertig", state: "fertig" },
+  { plan: "b_offen", state: "baubereit" },
+  { plan: "c_offen", state: "warten_auf_codex" },
+];
+let n = 0;
+function fall(name, f) { f(); n += 1; console.log("ok -", name); }
+
+fall("URL-Plan wird sofort genommen, ohne Liste", () => {
+  assert.deepEqual(waehlePlan({ jetzt: "", urlPlan: "c_offen", liste: [], istErledigt: erledigt }),
+    { plan: "c_offen", hinweis: "" });
+});
+
+fall("URL-Plan, der in der Liste fehlt, bleibt -- mit Hinweis", () => {
+  const r = waehlePlan({ jetzt: "", urlPlan: "zz_weg", liste, istErledigt: erledigt });
+  assert.equal(r.plan, "zz_weg");
+  assert.match(r.hinweis, /nicht in der Hausliste/);
+});
+
+fall("schon gewaehlter Plan schlaegt die URL", () => {
+  assert.equal(waehlePlan({ jetzt: "b_offen", urlPlan: "c_offen", liste, istErledigt: erledigt }).plan,
+    "b_offen");
+});
+
+fall("ohne Wunsch: erstes unerledigtes Haus", () => {
+  assert.equal(waehlePlan({ jetzt: "", urlPlan: "", liste, istErledigt: erledigt }).plan, "b_offen");
+});
+
+fall("ohne Wunsch und leere Liste: kein Plan", () => {
+  assert.equal(waehlePlan({ jetzt: "", urlPlan: "", liste: [], istErledigt: erledigt }).plan, "");
+});
+
+fall("planAusUrl", () => {
+  assert.equal(planAusUrl("?plan=other_vito&x=1"), "other_vito");
+  assert.equal(planAusUrl(""), "");
+  assert.equal(planAusUrl("?plan="), "");
+});
+
+fall("State-Antwort: HTTP-Fehler wirft lesbar", () => {
+  assert.throws(() => pruefeStateAntwort(false, 500, { error: "kaputt" }), /HTTP 500: kaputt/);
+});
+
+fall("State-Antwort: {} wirft statt leerer Liste", () => {
+  assert.throws(() => pruefeStateAntwort(true, 200, {}), /ohne houses/);
+});
+
+fall("State-Antwort: gueltig", () => {
+  assert.deepEqual(pruefeStateAntwort(true, 200, { houses: liste }), liste);
+});
+
+fall("Anfragezaehler: nur die juengste gilt", () => {
+  const z = anfrageZaehler();
+  const erste = z.neu();
+  const zweite = z.neu();
+  assert.equal(z.aktuell(erste), false);
+  assert.equal(z.aktuell(zweite), true);
+});
+
+fall("Browser-Frist laenger als das Routen-Zeitlimit; Bauen/Hochladen >= 60 min", () => {
+  const route = { freigeben: 10, codex: 5, treppe: 3 };   // pipeline/route.ts ZEITLIMIT_MS
+  for (const [schritt, minuten] of Object.entries(route)) {
+    assert.ok(PIPELINE_FRIST_MS[schritt] > minuten * 60_000, schritt);
+  }
+  assert.ok(PIPELINE_FRIST_MS.bauen >= 60 * 60_000);
+  assert.ok(PIPELINE_FRIST_MS.hochladen >= 60 * 60_000);
+});
+
+// --- Runde 2 (Codex-Re-Review 2026-10-25) ---
+
+fall("geladene, aber leere Liste: verlangtes Haus bekommt trotzdem den Hinweis", () => {
+  const r = waehlePlan({ jetzt: "", urlPlan: "zz_weg", liste: [], istErledigt: erledigt,
+                         listeGeladen: true });
+  assert.equal(r.plan, "zz_weg");
+  assert.match(r.hinweis, /nicht in der Hausliste/);
+});
+
+fall("State-Antwort: kaputte Zeile wirft, statt spaeter beim Zeichnen abzustuerzen", () => {
+  assert.throws(() => pruefeStateAntwort(true, 200, { houses: [null] }), /Zeile 1/);
+  assert.throws(() => pruefeStateAntwort(true, 200, { houses: [{ state: "x" }] }), /Zeile 1/);
+  assert.throws(() => pruefeStateAntwort(true, 200, { houses: [liste[0], { plan: "p", state: 3 }] }),
+    /Zeile 2/);
+});
+
+fall("Warnungen der Route: zustand_fehler und katalog_fehler werden sichtbar", () => {
+  assert.deepEqual(stateWarnungen({ houses: [] }), []);
+  const w = stateWarnungen({ houses: [], zustand_fehler: "Python tot", katalog_fehler: "Timeout" });
+  assert.equal(w.length, 2);
+  assert.match(w[0], /Python tot/);
+  assert.match(w[1], /Timeout/);
+});
+
+fall("Haus mit unbekanntem Zustand ist erkennbar", () => {
+  assert.equal(istZustandUnbekannt({ plan: "a", state: "baubereit", zustand_unbekannt: true }), true);
+  assert.equal(istZustandUnbekannt({ plan: "a", state: "baubereit" }), false);
+  assert.equal(istZustandUnbekannt(undefined), false);
+});
+
+fall("Freigabe-Antwort: ok / bestaetigt=false (Warnung) / Fehler", () => {
+  assert.deepEqual(freigabeErgebnis({ ok: true, bestaetigt: true }), { art: "ok", text: "" });
+  const w = freigabeErgebnis({ ok: true, bestaetigt: false, warnung: "Bestätigung fehlt" });
+  assert.equal(w.art, "warnung");
+  assert.match(w.text, /Bestätigung fehlt/);
+  assert.equal(freigabeErgebnis({ ok: true, bestaetigt: false }).art, "warnung");
+  const f = freigabeErgebnis({ ok: false, error: "HTTP 502: nicht bestaetigt" });
+  assert.equal(f.art, "fehler");
+  assert.match(f.text, /502/);
+  assert.equal(freigabeErgebnis(null).art, "fehler");
+});
+
+fall("Freigeben: Browser wartet laenger als zwei Routen-Schritte zu je 10 min", () => {
+  assert.ok(PIPELINE_FRIST_MS.freigeben >= 25 * 60_000);
+});
+
+console.log(`${n} Faelle gruen`);

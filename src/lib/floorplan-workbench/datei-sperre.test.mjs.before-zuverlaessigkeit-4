@@ -1,0 +1,97 @@
+// node src/lib/floorplan-workbench/datei-sperre.test.mjs
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, writeFile, rm, utimes } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { spawn } from "node:child_process";
+import { sperreNehmen, ledgerZusammenfuehren } from "./datei-sperre.mjs";
+
+let n = 0;
+async function fall(name, f) { await f(); n += 1; console.log("ok -", name); }
+
+const ordner = await mkdtemp(join(tmpdir(), "sperre-"));
+try {
+  await fall("freie Sperre wird genommen und beim Loesen entfernt", async () => {
+    const pfad = join(ordner, "a.lock");
+    const s = await sperreNehmen(pfad, { zweck: "bauen" });
+    assert.ok(s.ok);
+    const info = JSON.parse(await readFile(pfad, "utf8"));
+    assert.equal(info.pid, process.pid);
+    assert.equal(info.zweck, "bauen");
+    await s.loesen();
+    assert.equal(existsSync(pfad), false);
+  });
+
+  await fall("zweite Sperre auf derselben Datei wird verweigert, mit Besitzer", async () => {
+    const pfad = join(ordner, "b.lock");
+    const erste = await sperreNehmen(pfad, { zweck: "hochladen" });
+    const zweite = await sperreNehmen(pfad, { zweck: "bauen" });
+    assert.equal(zweite.ok, false);
+    assert.equal(zweite.besitzer.pid, process.pid);
+    assert.equal(zweite.besitzer.zweck, "hochladen");
+    await erste.loesen();
+    const dritte = await sperreNehmen(pfad, {});
+    assert.ok(dritte.ok);
+    await dritte.loesen();
+  });
+
+  await fall("Sperre eines toten Prozesses wird uebernommen", async () => {
+    const pfad = join(ordner, "c.lock");
+    const kind = spawn(process.execPath, ["-e", "process.exit(0)"]);
+    const totePid = kind.pid;
+    await new Promise((r) => kind.on("close", r));
+    await writeFile(pfad, JSON.stringify({ pid: totePid, seit: Date.now() - 1000 }));
+    const s = await sperreNehmen(pfad, {});
+    assert.ok(s.ok);
+    await s.loesen();
+  });
+
+  await fall("Sperre eines lebenden Prozesses wird nie uebernommen, auch wenn alt", async () => {
+    const pfad = join(ordner, "d.lock");
+    const kind = spawn(process.execPath, ["-e", "setTimeout(()=>{}, 20000)"]);
+    try {
+      await writeFile(pfad, JSON.stringify({ pid: kind.pid, seit: Date.now() - 10 * 3600_000 }));
+      const s = await sperreNehmen(pfad, {});
+      assert.equal(s.ok, false);
+      assert.equal(s.besitzer.pid, kind.pid);
+    } finally {
+      kind.kill();
+    }
+  });
+
+  await fall("unlesbare Sperrdatei blockiert nicht dauerhaft", async () => {
+    const pfad = join(ordner, "e.lock");
+    await writeFile(pfad, "kaputt");
+    // frisch angelegt und noch leer/halb: nicht anfassen
+    assert.equal((await sperreNehmen(pfad, {})).ok, false);
+    const alt = new Date(Date.now() - 60_000);
+    await utimes(pfad, alt, alt);
+    const s = await sperreNehmen(pfad, {});
+    assert.ok(s.ok);
+    await s.loesen();
+  });
+
+  await fall("loesen entfernt keine fremde Sperre", async () => {
+    const pfad = join(ordner, "f.lock");
+    const s = await sperreNehmen(pfad, {});
+    await writeFile(pfad, JSON.stringify({ pid: 999999, seit: Date.now(), token: "fremd" }));
+    await s.loesen();
+    assert.equal(existsSync(pfad), true);
+  });
+
+  await fall("Ledger: nur eigene Aenderungen ueberschreiben, fremde bleiben", () => {
+    const platte = { a: { version: "1.0" }, b: { version: "2.0" }, c: { version: "1.1" } };
+    const meins = { a: { version: "1.0" }, b: { version: "2.1" } };
+    assert.deepEqual(ledgerZusammenfuehren(platte, meins, new Set(["b"])),
+      { a: { version: "1.0" }, b: { version: "2.1" }, c: { version: "1.1" } });
+  });
+
+  await fall("Ledger: kaputte Platte wird nicht zu {} plattgemacht, eigene kommen dazu", () => {
+    assert.deepEqual(ledgerZusammenfuehren(null, { x: { version: "1.0" } }, new Set(["x"])),
+      { x: { version: "1.0" } });
+  });
+} finally {
+  await rm(ordner, { recursive: true, force: true });
+}
+console.log(`${n} Faelle ok`);

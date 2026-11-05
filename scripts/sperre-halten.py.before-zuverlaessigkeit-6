@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+"""Eine Betriebssystem-Sperre fuer einen anderen Prozess halten (ZUVERLAESSIGKEIT-001, Runde 5).
+
+    python sperre-halten.py <sperrdatei> [--frist SEKUNDEN]
+
+Node kann keine Betriebssystem-Sperre auf eine Datei legen. Die Statusroute
+startet deshalb dieses Skript als Kind:
+
+- Es nimmt die Sperre (os_sperre, wie go.py und publish-renders.py) und
+  wartet dafuer hoechstens --frist Sekunden (Vorgabe 10).
+- Hat es sie, schreibt es "GESPERRT" auf stdout und haelt sie, bis stdin
+  zugeht. Die Route schliesst stdin, wenn sie fertig geschrieben hat.
+- Stirbt die Route (oder der ganze Next-Server), geht stdin ebenfalls zu,
+  und das Skript gibt frei. Stirbt das Skript selbst, gibt das
+  Betriebssystem frei.
+- Bekommt es die Sperre nicht rechtzeitig: "BESETZT<besitzer>", Ausgang 2.
+
+Es gibt keinen Zeitablauf: eine Sperre, deren Halter lebt, bekommt niemand
+(Codex Runde 5, N1 -- die Generationen-Sperre der Runde 4 uebernahm nach
+120 s auch von einem lebenden, nur langsamen Besitzer).
+"""
+import os
+import sys
+import time
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import os_sperre  # noqa: E402
+
+
+def main(argv):
+    if not argv:
+        print("Aufruf: sperre-halten.py <sperrdatei> [--frist SEKUNDEN]", file=sys.stderr)
+        return 64
+    pfad = argv[0]
+    frist = 10.0
+    if "--frist" in argv:
+        frist = float(argv[argv.index("--frist") + 1])
+    ende = time.monotonic() + frist
+    while True:
+        sperre = os_sperre.nehmen(pfad)
+        if sperre is not None:
+            break
+        if time.monotonic() >= ende:
+            print("BESETZT" + os_sperre.besitzer_text(pfad), flush=True)
+            return 2
+        time.sleep(0.05)
+    try:
+        print("GESPERRT", flush=True)
+        # Halten, bis der Auftraggeber stdin schliesst (oder stirbt).
+        while sys.stdin.buffer.read(65536):
+            pass
+    finally:
+        os_sperre.freigeben(sperre)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

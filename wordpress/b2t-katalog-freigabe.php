@@ -1,0 +1,303 @@
+<?php
+/**
+ * Plugin Name: B2T Katalog-Freigabe
+ * Description: Grundriss im Katalog sichtbar machen (b2t/v1/katalog) und fehlende Grundriss-Zeilen anlegen (b2t/v1/grundriss-anlegen).
+ * Version:     1.3.0
+ *
+ * WARUM ES DAS GIBT
+ *
+ * Das Katalog-Plugin kann Bilder hochladen (wp/v2/media), sie pro Bild
+ * anhaken (b2t/v1/freigabe) und Blender-Pfade speichern (b2t/v1/pfade).
+ * Was es NICHT kann: am Grundriss selbst `bilder` und `approved` setzen.
+ * Genau diese zwei Spalten entscheiden aber, ob ein Haus im Katalog erscheint.
+ *
+ * Gemessen am 2026-08-20: bungalow_039 hatte 9 Bilder in der Mediathek, alle
+ * neun angehakt, Blender-Pfade eingetragen -- und stand trotzdem auf `im: 0,
+ * ok: offen`. Von 310 Grundrissen war genau EINER freigegeben, und der war es
+ * von Hand. Deshalb blieb der Ablauf auf dem letzten Schritt stehen, egal wie
+ * viel davor stimmte.
+ *
+ * SEIT 1.1.0 (2026-10-20): b2t/v1/grundriss-anlegen
+ *
+ * Die Grundriss-Tabelle wurde im August EINMAL befuellt; jedes spaeter
+ * gezeichnete Haus brauchte ein INSERT von Hand in WP Data Access, sonst
+ * verweigerte der Upload (Rainer: "you have to get this fixed why all the
+ * extra work"). publish-renders.py baut die Zeile jetzt selbst (katalogzeile.py,
+ * dieselbe Regel wie der Augustimport) und schickt sie hierher. Diese Route
+ * legt NUR an, was fehlt: eine vorhandene Zeile wird nie veraendert, und
+ * `approved` / `bilder` setzt sie nie (Rechte und Freigabe bleiben bei ihren
+ * eigenen Schritten). Plan: born2thrill-local-workbench/plans/
+ * katalogzeile-automatisch-v1.md.
+ *
+ * EINBAUEN
+ *
+ *   Auf born2thrill.de laeuft diese Datei als NORMALES Plugin (seit August,
+ *   ueber wp-admin installiert) -- nicht aus mu-plugins. Also: in wp-admin
+ *   Plugins -> Installieren -> Plugin hochladen -> b2t-katalog-freigabe.zip,
+ *   "Aktuelle mit hochgeladener ersetzen". Ab 1.1.1 schadet auch eine zweite
+ *   geladene Kopie nicht mehr (alles nur einmal definiert).
+ *
+ * SICHERHEIT
+ *
+ *   Beide Routen verlangen `edit_posts` -- dieselbe Anmeldung wie der Upload
+ *   (Application Password). Ohne Anmeldung passiert nichts.
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Darf zweimal geladen werden (alte Plugin-Kopie + neue, oder Plugin +
+// mu-plugins), ohne dass WordPress abstuerzt: jede Funktion nur einmal
+// definieren, die Routen nur einmal anmelden.
+if (!defined('B2T_KATALOG_FREIGABE_GELADEN')) {
+define('B2T_KATALOG_FREIGABE_GELADEN', '1.1.1');
+
+add_action('rest_api_init', function () {
+    register_rest_route('b2t/v1', '/katalog', [
+        'methods'             => 'POST',
+        'permission_callback' => function () {
+            return current_user_can('edit_posts');
+        },
+        'args' => [
+            'plan'     => ['required' => true,  'type' => 'string'],
+            'bilder'   => ['required' => false, 'type' => 'integer'],
+            'approved' => ['required' => false, 'type' => 'string'],
+            // doppelhaushaelfte-v1: Haustyp einer vorhandenen Zeile nachziehen.
+            'haustyp'  => ['required' => false, 'type' => 'string'],
+        ],
+        'callback' => 'b2t_katalog_freigeben',
+    ]);
+    register_rest_route('b2t/v1', '/grundriss-anlegen', [
+        'methods'             => 'POST',
+        'permission_callback' => function () {
+            return current_user_can('edit_posts');
+        },
+        'callback' => 'b2t_grundriss_anlegen',
+    ]);
+});
+
+/**
+ * Die Grundriss-Tabelle. Auf born2thrill.de ist $wpdb->prefix bereits 'kon_'
+ * -- ein fest angehaengtes 'kon_grundrisse' ergab dort 'kon_kon_grundrisse'
+ * (gemessen 2026-08-22). Deshalb Kandidaten durchprobieren.
+ */
+if (!function_exists('b2t_grundriss_tabelle')) {
+function b2t_grundriss_tabelle()
+{
+    global $wpdb;
+    foreach ([$wpdb->prefix . 'grundrisse',
+              $wpdb->prefix . 'kon_grundrisse',
+              'kon_grundrisse'] as $kandidat) {
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $kandidat)) === $kandidat) {
+            return $kandidat;
+        }
+    }
+    return null;
+}
+}
+
+if (!function_exists('b2t_plan_id_gueltig')) {
+function b2t_plan_id_gueltig($plan)
+{
+    return $plan !== '' && preg_match('/^[A-Za-z0-9_.\-]+$/', $plan);
+}
+}
+
+if (!function_exists('b2t_haustypen')) {
+/** Die Haustypen, nach denen der Katalog sucht (doppelhaushaelfte-v1: + Doppelhaushälfte). */
+function b2t_haustypen()
+{
+    // + Bauen am Hang (Rainer, 2026-10-25: als Kategorie im Katalog)
+    return ['Bungalow', 'Zweigeschosser', '1,5-Geschosser', 'Sonstige',
+            'Zweigeschosser mit Keller', 'Doppelhaushälfte', 'Bauen am Hang'];
+}
+}
+
+if (!function_exists('b2t_katalog_freigeben')) {
+function b2t_katalog_freigeben($request)
+{
+    global $wpdb;
+
+    $plan = sanitize_text_field((string) $request->get_param('plan'));
+    if (!b2t_plan_id_gueltig($plan)) {
+        return new WP_Error('b2t_plan', 'Plan fehlt oder enthaelt unerlaubte Zeichen.',
+                            ['status' => 400]);
+    }
+
+    $tabelle = b2t_grundriss_tabelle();
+    if ($tabelle === null) {
+        return new WP_Error('b2t_tabelle', 'Keine Grundriss-Tabelle gefunden '
+                            . '(gesucht: *grundrisse mit Prefix ' . $wpdb->prefix . ').',
+                            ['status' => 500]);
+    }
+
+    $zeile = $wpdb->get_row($wpdb->prepare(
+        "SELECT id, bilder, approved FROM {$tabelle} WHERE plan_id = %s", $plan));
+    if (!$zeile) {
+        return new WP_Error('b2t_unbekannt', 'Kein Grundriss mit plan_id ' . $plan,
+                            ['status' => 404]);
+    }
+
+    // Die Anzahl kommt vom Aufrufer, weil er die Mediathek ohnehin gerade
+    // gezaehlt hat. Fehlt sie, bleibt der bisherige Wert stehen -- diese Route
+    // setzt nur, was ihr ausdruecklich gesagt wurde.
+    $daten  = [];
+    $format = [];
+
+    $bilder = $request->get_param('bilder');
+    if ($bilder !== null) {
+        $daten['bilder'] = max(0, (int) $bilder);
+        $format[]        = '%d';
+    }
+
+    $approved = $request->get_param('approved');
+    if ($approved !== null) {
+        $approved = strtolower(trim((string) $approved));
+        if (!in_array($approved, ['ja', 'offen'], true)) {
+            return new WP_Error('b2t_approved', 'approved muss "ja" oder "offen" sein.',
+                                ['status' => 400]);
+        }
+        $daten['approved'] = $approved;
+        $format[]          = '%s';
+    }
+
+    $haustyp = $request->get_param('haustyp');
+    if ($haustyp !== null) {
+        $haustyp = (string) $haustyp;
+        if (!in_array($haustyp, b2t_haustypen(), true)) {
+            return new WP_Error('b2t_haustyp', 'Unbekannter haustyp: ' . $haustyp,
+                                ['status' => 400]);
+        }
+        $daten['haustyp'] = $haustyp;
+        $format[]         = '%s';
+    }
+
+    if (!$daten) {
+        return new WP_Error('b2t_leer', 'Weder bilder, approved noch haustyp angegeben.',
+                            ['status' => 400]);
+    }
+
+    $wpdb->update($tabelle, $daten, ['plan_id' => $plan], $format, ['%s']);
+    if ($wpdb->last_error) {
+        return new WP_Error('b2t_db', $wpdb->last_error, ['status' => 500]);
+    }
+
+    // Zurueckgemeldet wird, was danach WIRKLICH in der Zeile steht, nicht was
+    // geschickt wurde.
+    $danach = $wpdb->get_row($wpdb->prepare(
+        "SELECT bilder, approved FROM {$tabelle} WHERE plan_id = %s", $plan));
+
+    return [
+        'ok'       => true,
+        'plan'     => $plan,
+        'vorher'   => ['bilder' => (int) $zeile->bilder,  'approved' => $zeile->approved],
+        'jetzt'    => ['bilder' => (int) $danach->bilder, 'approved' => $danach->approved],
+    ];
+}
+}
+
+/**
+ * Eine fehlende Grundriss-Zeile anlegen. Nur INSERT, nie UPDATE.
+ *
+ * Erwartet (JSON): plan_id, haustyp, geschosse, keller (0/1), raeume,
+ * ausstattung, schlafzimmer, kinderzimmer, baeder; optional hash,
+ * blender_pfade. Alles wird gegen feste Listen bzw. als Ganzzahl geprueft.
+ */
+if (!function_exists('b2t_grundriss_anlegen')) {
+function b2t_grundriss_anlegen($request)
+{
+    global $wpdb;
+
+    $p = $request->get_json_params();
+    if (!is_array($p)) {
+        return new WP_Error('b2t_json', 'JSON-Koerper erwartet.', ['status' => 400]);
+    }
+
+    $plan = sanitize_text_field((string) ($p['plan_id'] ?? ''));
+    if (!b2t_plan_id_gueltig($plan)) {
+        return new WP_Error('b2t_plan', 'plan_id fehlt oder enthaelt unerlaubte Zeichen.',
+                            ['status' => 400]);
+    }
+
+    $tabelle = b2t_grundriss_tabelle();
+    if ($tabelle === null) {
+        return new WP_Error('b2t_tabelle', 'Keine Grundriss-Tabelle gefunden.', ['status' => 500]);
+    }
+
+    // Vorhanden? Dann nichts tun -- und sagen, was dasteht.
+    $vorhanden = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$tabelle} WHERE plan_id = %s", $plan), ARRAY_A);
+    if ($vorhanden) {
+        return ['ok' => true, 'angelegt' => false, 'plan' => $plan, 'zeile' => $vorhanden];
+    }
+
+    $haustypen = b2t_haustypen();
+    $haustyp = (string) ($p['haustyp'] ?? '');
+    if (!in_array($haustyp, $haustypen, true)) {
+        return new WP_Error('b2t_haustyp', 'Unbekannter haustyp: ' . $haustyp, ['status' => 400]);
+    }
+
+    $worte = ['Bad', 'Schlafzimmer', 'Kinderzimmer', 'Ankleide', 'Gästezimmer', 'Arbeitszimmer',
+              'Gäste-WC', 'Wohnen', 'Essen', 'Küche', 'Speisekammer', 'HWR', 'storage',
+              'hobby_room', 'garage', 'carport', 'balcony', 'roof_terrace'];
+    $ausstattung = array_filter(array_map('trim', explode(',', (string) ($p['ausstattung'] ?? ''))),
+                                'strlen');
+    foreach ($ausstattung as $wort) {
+        if (!in_array($wort, $worte, true)) {
+            return new WP_Error('b2t_ausstattung', 'Unbekanntes Ausstattungswort: ' . $wort,
+                                ['status' => 400]);
+        }
+    }
+
+    $zahlen = [];
+    foreach (['geschosse', 'raeume', 'schlafzimmer', 'kinderzimmer', 'baeder'] as $feld) {
+        if (!isset($p[$feld]) || !is_numeric($p[$feld]) || (int) $p[$feld] < 0 || (int) $p[$feld] > 99) {
+            return new WP_Error('b2t_zahl', $feld . ' muss eine Zahl 0..99 sein.', ['status' => 400]);
+        }
+        $zahlen[$feld] = (int) $p[$feld];
+    }
+    $keller = !empty($p['keller']) ? 'ja' : 'nein';
+
+    $pfad = str_replace('\\', '/', sanitize_text_field((string) ($p['blender_pfade'] ?? '')));
+
+    $daten = [
+        'plan_id'       => $plan,
+        'haustyp'       => $haustyp,
+        'geschosse'     => $zahlen['geschosse'],
+        'keller'        => $keller,
+        'raeume'        => $zahlen['raeume'],
+        'qualitaet'     => 'geprüft',
+        'ausstattung'   => implode(', ', $ausstattung),
+        'schlafzimmer'  => $zahlen['schlafzimmer'],
+        'kinderzimmer'  => $zahlen['kinderzimmer'],
+        'baeder'        => $zahlen['baeder'],
+        'blender_pfade' => $pfad,
+    ];
+    $format = ['%s', '%s', '%d', '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%s'];
+
+    // Der Zeichnungs-Hash hat im Augustimport eine eigene Spalte; ihr Name
+    // ist hier nicht bekannt. Nur wenn es eine passende gibt, wird er gesetzt.
+    $hash = preg_replace('/[^0-9a-f]/', '', strtolower((string) ($p['hash'] ?? '')));
+    if ($hash !== '') {
+        foreach (['annotation_hash', 'zeichnung_hash', 'hash'] as $spalte) {
+            if ($wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM {$tabelle} LIKE %s", $spalte))) {
+                $daten[$spalte] = substr($hash, 0, 12);
+                $format[]       = '%s';
+                break;
+            }
+        }
+    }
+
+    $wpdb->insert($tabelle, $daten, $format);
+    if ($wpdb->last_error) {
+        return new WP_Error('b2t_db', $wpdb->last_error, ['status' => 500]);
+    }
+
+    $neu = $wpdb->get_row($wpdb->prepare(
+        "SELECT * FROM {$tabelle} WHERE plan_id = %s", $plan), ARRAY_A);
+    return ['ok' => true, 'angelegt' => true, 'plan' => $plan, 'zeile' => $neu];
+}
+}
+
+} // B2T_KATALOG_FREIGABE_GELADEN

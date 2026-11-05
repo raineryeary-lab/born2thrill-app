@@ -1,0 +1,686 @@
+"""Two-wing gable roof on an L-shaped footprint (born2thrill-local-workbench/
+plans/zweischenkliges-satteldach-v1.md).
+
+Rainer, 2026-09-22, an `german_catalog_review_bungalow_4_3_1_wb_125` (eine
+echte L-Form, eine ueberdachte Terrasse als Einschnitt): "the doppelpultdach
+is a walmdach in blender" -- bestaetigt: render-exterior.py faellt fuer jede
+nicht-rechteckige Form auf ein Walmdach zurueck (siehe dort, ~1163-1166).
+Dann: "but this for example is exactly one of our standard houses" -- eigene
+Messung (2026-09-22) bestaetigte das: von 124 auswertbaren Haeusern zerlegen
+sich 39 (31 %) in genau zwei Rechtecke.
+
+Dieses Modul deckt STUFE 1 des Plans: die WANDGEOMETRIE erkennen (welche zwei
+sich ueberlappenden Rechtecke ergeben zusammen genau diesen Grundriss). Reine
+Funktionen, kein bpy -- testbar ohne Blender, nach dem Vorbild von
+roof_profile.py. Die eigentliche Dachflaeche (Grat/Kehle-Vernetzung,
+Wandanschluss) ist Stufe 2 und noch NICHT hier -- siehe die "Unresolved
+questions" im Plan: die Kehlengeometrie zwischen zwei ungleich breiten
+Fluegeln hat mehrere Faelle (welcher First zuerst erreicht wird), und die
+falsch zu bauen waere schlimmer als weiterhin ein Walmdach zu zeigen.
+
+Nur EIN Reflexpunkt wird unterstuetzt (ein einfaches L) -- T-Formen (zwei
+Reflexpunkte) sind ausdruecklich ausserhalb von Version 1 (Plan, "Explicitly
+out of scope"). Ein Grundriss, der sich nicht eindeutig in zwei sich
+ueberlappende Rechtecke zerlegen laesst, liefert None -- der Aufrufer faellt
+dann auf das bestehende Walmdach zurueck, wie heute.
+"""
+import math
+
+# Wieviel eine Ecke von der wirklichen Grundflaeche abweichen darf (Meter) --
+# dieselbe Groessenordnung wie render-exterior.py regularize_loop()s
+# Standard-Toleranz (0.35 m), aus demselben Grund: eine getracte Wandschleife
+# ist nie pixelgenau.
+DEFAULT_TOL_M = 0.35
+
+
+def point_in_polygon(x, y, poly):
+    """Reiner Nachbau von render-exterior.py point_in_polygon() -- absichtlich
+    eine eigene, unabhaengige Kopie: dieses Modul bleibt bpy-frei und darf
+    render-exterior.py (importiert bpy) nicht importieren."""
+    inside = False
+    n = len(poly)
+    j = n - 1
+    for i in range(n):
+        xi, yi = poly[i]
+        xj, yj = poly[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
+
+
+def polygon_area(poly):
+    total = 0.0
+    for i in range(len(poly)):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % len(poly)]
+        total += x1 * y2 - x2 * y1
+    return abs(total) / 2
+
+
+def _signed_area(poly):
+    total = 0.0
+    for i in range(len(poly)):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % len(poly)]
+        total += x1 * y2 - x2 * y1
+    return total / 2
+
+
+def _reflex_vertices(poly):
+    """Indizes der einspringenden (reflex) Ecken eines EINFACHEN, CCW
+    orientierten, rechtwinkligen Polygons. Ein rechteckiger Grundriss hat
+    keine; ein einfaches L genau eine; ein T oder Z zwei."""
+    n = len(poly)
+    out = []
+    for i in range(n):
+        a, b, c = poly[(i - 1) % n], poly[i], poly[(i + 1) % n]
+        cross = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0])
+        if cross < -1e-9:
+            out.append(i)
+    return out
+
+
+def _grid_coverage_matches(poly, wing_a, wing_b, tol):
+    """Stimmt die Vereinigung der zwei Rechtecke mit dem Grundriss ueberein?
+    Rastersuche wie render-exterior.py decompose_rectangles() (dort schon
+    akzeptiert und getestet) statt analytischer Polygon-Differenz -- diese
+    Codebase hat keine Polygon-Bibliothek (kein shapely, siehe
+    aussenflaechen-ausrichten.js-Arbeit desselben Tages).
+
+    Samples ZELLMITTEN, nie Rasterlinien: point_in_polygon() (Ray-Casting)
+    ist auf einer Kante nicht eindeutig definiert, und Rasterlinien treffen
+    hier fast immer eine Kante (die Bounding-Box-Raender SIND ja Kanten des
+    Polygons). decompose_rectangles() vermeidet das aus demselben Grund
+    schon so."""
+    xs = [p[0] for p in poly]
+    ys = [p[1] for p in poly]
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    step = max(tol / 3, 0.02)
+    nx = max(4, int((x1 - x0) / step))
+    ny = max(4, int((y1 - y0) / step))
+
+    def in_wing(x, y, wing):
+        wx0, wx1, wy0, wy1 = wing
+        return wx0 - 1e-6 <= x <= wx1 + 1e-6 and wy0 - 1e-6 <= y <= wy1 + 1e-6
+
+    for i in range(nx):
+        for j in range(ny):
+            x = x0 + (x1 - x0) * (i + 0.5) / nx
+            y = y0 + (y1 - y0) * (j + 0.5) / ny
+            innen = point_in_polygon(x, y, poly)
+            gedeckt = in_wing(x, y, wing_a) or in_wing(x, y, wing_b)
+            if innen != gedeckt:
+                return False
+    return True
+
+
+def recognize_two_wings(poly, tol=DEFAULT_TOL_M):
+    """Versucht, `poly` (geschlossen, CCW, rechtwinklig, Meter) als
+    Vereinigung von zwei sich ueberlappenden achsparallelen Rechtecken zu
+    lesen, die an GENAU einem Reflexpunkt zusammenstossen (ein einfaches L).
+
+    `wing_a` spannt immer die VOLLE x-Ausdehnung der Bounding-Box (sein First
+    laeuft also entlang x); `wing_b` die volle y-Ausdehnung (First entlang y)
+    -- dieselbe along_x-Konvention wie roof_profile.py _axes().
+
+    Rueckgabe: (wing_a, wing_b), je (x0,x1,y0,y1), oder None, wenn sich der
+    Grundriss nicht eindeutig so zerlegen laesst (kein L, ein T/Z, oder die
+    Vereinigung deckt den Grundriss nicht exakt).
+    """
+    if len(poly) < 3:
+        return None
+    if _signed_area(poly) < 0:
+        poly = list(reversed(poly))
+    reflex = _reflex_vertices(poly)
+    if len(reflex) != 1:
+        return None
+
+    xs = [p[0] for p in poly]
+    ys = [p[1] for p in poly]
+    x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+    rx, ry = poly[reflex[0]]
+    if not (x0 + tol < rx < x1 - tol and y0 + tol < ry < y1 - tol):
+        return None   # Reflexpunkt zu nah am Rand: entartet, kein sauberes L
+
+    inset = tol / 2
+    corners = {
+        (x0, y0): (x0 + inset, y0 + inset),
+        (x1, y0): (x1 - inset, y0 + inset),
+        (x0, y1): (x0 + inset, y1 - inset),
+        (x1, y1): (x1 - inset, y1 - inset),
+    }
+    missing = [corner for corner, probe in corners.items()
+              if not point_in_polygon(probe[0], probe[1], poly)]
+    if len(missing) != 1:
+        return None
+    mx, my = missing[0]
+
+    wing_a = (x0, x1, ry, y1) if my == y0 else (x0, x1, y0, ry)
+    wing_b = (x0, rx, y0, y1) if mx == x1 else (rx, x1, y0, y1)
+
+    if not _grid_coverage_matches(poly, wing_a, wing_b, tol):
+        return None
+    return wing_a, wing_b
+
+
+def _vertical_scan_bracket(poly, x, y):
+    """The two nearest HORIZONTAL-edge y-crossings of `poly` at column `x`
+    that bracket `y` from below and above -- the footprint's own
+    cross-extent at this (x,y), used by `roof_wings_from_ridge_path()` to
+    find a horizontal ridge segment's wing width. `None` if `x` isn't
+    spanned by a bracketing pair (shouldn't happen for a point genuinely
+    inside a simple rectilinear polygon)."""
+    crossings = []
+    n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        if abs(y1 - y2) > 1e-9:
+            continue          # not a horizontal edge
+        lo, hi = (x1, x2) if x1 <= x2 else (x2, x1)
+        if lo - 1e-6 <= x <= hi + 1e-6:
+            crossings.append(y1)
+    below = [c for c in crossings if c <= y + 1e-6]
+    above = [c for c in crossings if c >= y - 1e-6]
+    if not below or not above:
+        return None
+    return max(below), min(above)
+
+
+def _horizontal_scan_bracket(poly, y, x):
+    """Mirror of `_vertical_scan_bracket()` for a VERTICAL ridge segment
+    (fixed x, scanning at height y against VERTICAL edges)."""
+    crossings = []
+    n = len(poly)
+    for i in range(n):
+        x1, y1 = poly[i]
+        x2, y2 = poly[(i + 1) % n]
+        if abs(x1 - x2) > 1e-9:
+            continue          # not a vertical edge
+        lo, hi = (y1, y2) if y1 <= y2 else (y2, y1)
+        if lo - 1e-6 <= y <= hi + 1e-6:
+            crossings.append(x1)
+    left = [c for c in crossings if c <= x + 1e-6]
+    right = [c for c in crossings if c >= x - 1e-6]
+    if not left or not right:
+        return None
+    return max(left), min(right)
+
+
+def _nearest_crossing_along_horizontal(other_paths, y, x_from, x_to, tol=1e-6):
+    """`ROOF-RIDGE-MULTI-PATH-001` follow-up, 2026-10-01. Rainer: "if you do
+    that then we end up with an X instead of a T" -- a free end extending
+    all the way to the outer wall ignores that ANOTHER independent path's
+    own line might cross it first; two wings that actually meet at a T
+    (one ridge stopping where it hits the other) would otherwise get
+    stretched into a plus/X, with one wing's ridge running straight through
+    the other's own territory. Finds the nearest OTHER path's vertical
+    segment that crosses height `y` strictly between `x_from` and `x_to`
+    -- the first thing this extension would actually hit -- or `None` if
+    none does (ordinary free gable end, extend to the wall as before)."""
+    lo_bound, hi_bound = (x_from, x_to) if x_from <= x_to else (x_to, x_from)
+    best = None
+    for other in other_paths:
+        for (ox1, oy1), (ox2, oy2) in zip(other, other[1:]):
+            if abs(ox1 - ox2) > tol:
+                continue  # not a vertical segment
+            oy_lo, oy_hi = (oy1, oy2) if oy1 <= oy2 else (oy2, oy1)
+            if not (oy_lo - tol <= y <= oy_hi + tol):
+                continue
+            if lo_bound + tol < ox1 < hi_bound - tol:
+                if best is None or abs(ox1 - x_from) < abs(best - x_from):
+                    best = ox1
+    return best
+
+
+def _nearest_crossing_along_vertical(other_paths, x, y_from, y_to, tol=1e-6):
+    """Mirror of `_nearest_crossing_along_horizontal()` for a VERTICAL
+    extension, checking other paths' HORIZONTAL segments instead."""
+    lo_bound, hi_bound = (y_from, y_to) if y_from <= y_to else (y_to, y_from)
+    best = None
+    for other in other_paths:
+        for (ox1, oy1), (ox2, oy2) in zip(other, other[1:]):
+            if abs(oy1 - oy2) > tol:
+                continue  # not a horizontal segment
+            ox_lo, ox_hi = (ox1, ox2) if ox1 <= ox2 else (ox2, ox1)
+            if not (ox_lo - tol <= x <= ox_hi + tol):
+                continue
+            if lo_bound + tol < oy1 < hi_bound - tol:
+                if best is None or abs(oy1 - y_from) < abs(best - y_from):
+                    best = oy1
+    return best
+
+
+def _extend_ridge_end(end_pt, inward_pt, footprint, other_paths=None):
+    """Pushes ONE free end of a drawn ridge path out to the footprint's
+    own true edge (overhang included, since `footprint` here is already
+    the overhang-extended polygon), along the axis `end_pt` -> `inward_pt`
+    already runs -- UNLESS another independent path's own line crosses
+    first, in which case it stops there instead (a real T-junction between
+    two separately-drawn wings, not a free gable end).
+
+    Rainer, 2026-09-27, ROOF-RIDGE-PATH-TOOL-001 second pass: "so it also
+    takes on the width of the Floorplan footprint plus tha dachueberstand
+    inclidun at the start and finish" -- a hand-drawn point on a 160x160px
+    mini-canvas is never going to land pixel-perfect on the true wall
+    corner (confirmed live: WB_125's own test path stopped ~0.9m short of
+    the real gable, leaving a visible gap between the roof sheet's edge
+    and the wall/overhang beneath it). Reuses the SAME scan-bracket
+    helpers `roof_wings_from_ridge_path()` already trusts for the CROSS
+    axis, just swapped to the ALONG axis: `_horizontal_scan_bracket()` for
+    a horizontal segment's own x-extent, `_vertical_scan_bracket()` for a
+    vertical segment's own y-extent. `None` (scan failed) leaves the point
+    untouched rather than guessing.
+
+    `other_paths`, 2026-10-01: every OTHER independently-drawn path (never
+    this same one -- its own interior corners are handled separately, see
+    below), checked via `_nearest_crossing_along_horizontal()`/`_vertical()`
+    for a crossing closer than the wall.
+
+    Only ever called on `path[0]`/`path[-1]` -- an INTERIOR corner (shared
+    by two segments of the SAME path, an L/T/plus junction drawn as one
+    continuous stroke) must stay exactly as drawn, or extending it would
+    push one wing's ridge past where the other wing's own roof actually
+    ends."""
+    x1, y1 = end_pt
+    x2, y2 = inward_pt
+    horiz = abs(y1 - y2) <= 1e-6 and abs(x1 - x2) > 1e-6
+    vert = abs(x1 - x2) <= 1e-6 and abs(y1 - y2) > 1e-6
+    if horiz:
+        bracket = _horizontal_scan_bracket(footprint, y1, x1)
+        if bracket is None:
+            return end_pt
+        lo, hi = bracket
+        wall_x = lo if x1 <= x2 else hi
+        if other_paths:
+            crossing = _nearest_crossing_along_horizontal(other_paths, y1, x1, wall_x)
+            if crossing is not None:
+                wall_x = crossing
+        return (wall_x, y1)
+    if vert:
+        bracket = _vertical_scan_bracket(footprint, x1, y1)
+        if bracket is None:
+            return end_pt
+        lo, hi = bracket
+        wall_y = lo if y1 <= y2 else hi
+        if other_paths:
+            crossing = _nearest_crossing_along_vertical(other_paths, x1, y1, wall_y)
+            if crossing is not None:
+                wall_y = crossing
+        return (x1, wall_y)
+    return end_pt              # diagonal/degenerate -- caller's own segment check rejects this
+
+
+def _same_axis_wings_disagree(wings, along_x_list, tol=DEFAULT_TOL_M):
+    """Find two wings that share a ridge axis (both along_x or both
+    along_y), overlap along that axis, but disagree on their CROSS extent
+    -- i.e. their height functions genuinely conflict over shared ground
+    instead of one being a harmless redundant subset of the other.
+    Returns the offending `(i, j)` index pair, or `None` if every
+    same-axis overlap agrees.
+
+    `ROOF-SWEEP-CONSTRUCTOR-001`, 2026-09-29: `german_catalog_review_
+    bungalow_4_3_1_wb_125`'s real, previously-saved ridge path (Rainer's
+    own Blender viewport: "that doesnt look like a working roof") produced
+    exactly this: a segment drawn partway across the main wing, inside the
+    side wing's own x-range, had its perpendicular scan pick up the side
+    wing's much taller reach -- a wing with a wildly different cross-extent
+    than the very next segment's own, correctly-scanned main-wing wing,
+    despite both running along the same axis and overlapping in x. Taking
+    max() of two conflicting symmetric ridge functions over that shared
+    area is what produced the crossed/jagged surface.
+
+    A same-axis overlap that does NOT reach this far is legitimate and
+    already relied on by an existing test: a redundant sub-rectangle wing
+    (IDENTICAL cross-extent -- e.g. a T-shape's backtracked bar segment,
+    `roof_wings.test.py`'s `test_a_t_shaped_path_...`) contributes no new
+    area and is harmless. A DIFFERENT-axis overlap (an ordinary L/T corner
+    elbow, where one wing's ridge runs along x and the other along y) is
+    the normal, expected junction shape and is never flagged here."""
+    for i in range(len(wings)):
+        for j in range(i + 1, len(wings)):
+            if along_x_list[i] != along_x_list[j]:
+                continue                          # perpendicular ridges: a normal corner
+            a, b = wings[i], wings[j]
+            if along_x_list[i]:
+                lo_i, hi_i, cross_i = a[0], a[1], (a[2], a[3])
+                lo_j, hi_j, cross_j = b[0], b[1], (b[2], b[3])
+            else:
+                lo_i, hi_i, cross_i = a[2], a[3], (a[0], a[1])
+                lo_j, hi_j, cross_j = b[2], b[3], (b[0], b[1])
+            if min(hi_i, hi_j) - max(lo_i, lo_j) <= tol:
+                continue                          # touch at a point at most, not a real overlap
+            if abs(cross_i[0] - cross_j[0]) > tol or abs(cross_i[1] - cross_j[1]) > tol:
+                return (i, j)
+    return None
+
+
+def roof_wings_from_ridge_path(path, footprint, tol=DEFAULT_TOL_M, other_paths=None):
+    """`ROOF-RIDGE-PATH-TOOL-001`, 2026-09-27. Rainer: "make it like the
+    kitchen counter, so that i can draw a line in the floorplan and you
+    extrude a triangulare shape ... along this path" -- instead of
+    AUTO-DETECTING wing rectangles from the footprint alone
+    (`recognize_two_wings()`, L-shapes only, one reflex point), derive
+    them from a ridge line the user drew directly, with corners allowed
+    (an L, T, plus, or any other rectilinear shape -- not limited to one
+    reflex point the way automatic detection is).
+
+    `path`: >=2 points (metres), ONE continuous polyline -- each
+    consecutive pair is a ridge segment. Every segment must be axis-
+    aligned (same y = horizontal segment, ridge along x; same x =
+    vertical segment, ridge along y) -- a free-angle segment is
+    explicitly out of scope (see the plan doc) and makes this function
+    return `None` rather than silently building the wrong roof.
+
+    `footprint`: the real building outline (metres, CCW, rectilinear --
+    same convention as `recognize_two_wings()`'s own `poly`).
+
+    The path's own two FREE ENDS (`path[0]` and `path[-1]`) are pushed out
+    to the footprint's true edge first (`_extend_ridge_end()` -- overhang
+    included), so the drawn ridge always reaches the real gable regardless
+    of exactly where the user clicked -- UNLESS `other_paths` (every other
+    INDEPENDENTLY drawn path, see `roof_wings_from_ridge_paths()`) has its
+    own line crossing first, in which case the free end stops there
+    instead: a real T-junction between two separately-drawn wings, not a
+    gable sailing through the other wing's own territory (`ROOF-RIDGE-
+    MULTI-PATH-001` follow-up, 2026-10-01: "if you do that then we end up
+    with an X instead of a T"). Every OTHER (interior) point of THIS SAME
+    path is an L/T/plus junction between two wings and is never moved.
+
+    For each segment: the ridge axis and the wing's extent ALONG that
+    axis come directly from the segment's own two endpoints (after the
+    free-end extension above, for the path's first/last segment) -- so an
+    interior corner intentionally drawn short of a T-junction's own far
+    wall is still a valid partial gable, not an error. The wing's extent
+    ACROSS the ridge axis comes from scanning the footprint perpendicular
+    to the segment at each of its endpoints AND its midpoint, then taking
+    the NARROWEST result across those three samples (the same "safe =
+    never poke through" precedent already established this session for
+    `_long_wall_ramp()`) -- exact for a segment whose footprint width is
+    genuinely constant along its length (verified against `recognize_two_
+    wings()`'s own known-good numbers on `SIMPLE_L`), a safe under-estimate
+    otherwise.
+
+    Returns `(wings, along_x)` -- the exact shapes `heightfield_roof_
+    mesh()`/`combined_height_at()`/`wall_extension()` already consume,
+    unchanged by this function -- or `None` if the path is too short, has
+    a non-orthogonal or degenerate segment, or a segment's footprint scan
+    fails (e.g. an endpoint sits exactly on the footprint's own boundary,
+    not safely inside it)."""
+    if len(path) < 2:
+        return None
+    path = list(path)
+    path[0] = _extend_ridge_end(path[0], path[1], footprint, other_paths)
+    path[-1] = _extend_ridge_end(path[-1], path[-2], footprint, other_paths)
+    wings = []
+    along_x_list = []
+    for (x1, y1), (x2, y2) in zip(path, path[1:]):
+        horiz = abs(y1 - y2) <= 1e-6
+        vert = abs(x1 - x2) <= 1e-6
+        if horiz == vert:      # both or neither -- diagonal, or zero-length
+            return None
+        if horiz:
+            x_lo, x_hi = (x1, x2) if x1 <= x2 else (x2, x1)
+            if x_hi - x_lo < tol:
+                return None
+            y_mid = (y1 + y2) / 2.0
+            brackets = [_vertical_scan_bracket(footprint, sx, y_mid)
+                       for sx in (x_lo, x_hi, (x_lo + x_hi) / 2.0)]
+            if any(b is None for b in brackets):
+                return None
+            cross_lo = max(b[0] for b in brackets)
+            cross_hi = min(b[1] for b in brackets)
+            if cross_hi - cross_lo < tol:
+                return None
+            wings.append((x_lo, x_hi, cross_lo, cross_hi))
+            along_x_list.append(True)
+        else:
+            y_lo, y_hi = (y1, y2) if y1 <= y2 else (y2, y1)
+            if y_hi - y_lo < tol:
+                return None
+            x_mid = (x1 + x2) / 2.0
+            brackets = [_horizontal_scan_bracket(footprint, sy, x_mid)
+                       for sy in (y_lo, y_hi, (y_lo + y_hi) / 2.0)]
+            if any(b is None for b in brackets):
+                return None
+            cross_lo = max(b[0] for b in brackets)
+            cross_hi = min(b[1] for b in brackets)
+            if cross_hi - cross_lo < tol:
+                return None
+            wings.append((cross_lo, cross_hi, y_lo, y_hi))
+            along_x_list.append(False)
+    conflict = _same_axis_wings_disagree(wings, along_x_list, tol)
+    if conflict is not None:
+        i, j = conflict
+        print(f"[roof_wings] ridge path rejected: segments {i} and {j} "
+              f"share a ridge axis and overlap, but their footprint-scanned "
+              f"cross-extents disagree ({wings[i]} vs {wings[j]}) -- the "
+              f"path likely backtracks through ground a later segment "
+              f"re-covers differently. Falling back to automatic wing "
+              f"detection instead of building this path.")
+        return None
+    return wings, along_x_list
+
+
+def roof_wings_from_ridge_paths(paths, footprint, tol=DEFAULT_TOL_M):
+    """`ROOF-RIDGE-MULTI-PATH-001`, 2026-10-01. Generalizes
+    `roof_wings_from_ridge_path()` to a LIST of independent paths -- each
+    path's own segments need not connect to any other path's. Rainer:
+    "we said we would build a 'countertop' line maker, where i can also
+    draw independent lines", after WB_125's own two wings (whose ridges
+    don't share a joint point) had to be faked into one connected,
+    self-overlapping 4-point path that produced a crossed/jagged roof in
+    Blender ("that doesnt look like a working roof") -- see the plan doc
+    for the exact path.
+
+    Each path is derived independently via `roof_wings_from_ridge_path()`
+    (so a single path still gets its own free-end extension and internal
+    same-axis conflict check), then every wing across ALL paths is
+    checked together for the same cross-path conflict
+    `_same_axis_wings_disagree()` already guards within one path -- two
+    independently-drawn ridges can still disagree about shared ground
+    even though neither one disagrees with itself.
+
+    Returns `(wings, along_x)` in the same shape as the singular
+    function, concatenated across all paths in the order given, or `None`
+    if any path is invalid or any pair of wings (same-path or cross-path)
+    conflicts -- same "refuse rather than guess" fallback the singular
+    function already has."""
+    paths = [list(p) for p in paths if p]
+    if not paths:
+        return None
+    # 2026-10-01 follow-up, Rainer: "if you do that then we end up with an
+    # X instead of a T" -- a free end used to extend straight to the outer
+    # wall even when another independent path's own line crossed first,
+    # stretching a real T-junction into a plus/X with one wing's ridge
+    # running through the other wing's own territory (a real risk of
+    # _same_axis_wings_disagree()-style height conflicts, not just a bad
+    # picture). Fixed with two passes: pass 1 extends every path against
+    # the footprint ALONE (today's single-path behaviour) to get each
+    # OTHER path's own provisional final extent; pass 2 re-extends each
+    # path using those as other_paths, so a free end stops at the nearest
+    # crossing instead of the wall whenever one exists -- avoids the
+    # chicken-and-egg problem of a path that itself needed extending
+    # before it could reach the crossing point.
+    provisional = []
+    for path in paths:
+        extended = list(path)
+        if len(extended) >= 2:
+            extended[0] = _extend_ridge_end(extended[0], extended[1], footprint)
+            extended[-1] = _extend_ridge_end(extended[-1], extended[-2], footprint)
+        provisional.append(extended)
+
+    all_wings = []
+    all_along_x = []
+    for i, path in enumerate(paths):
+        other_paths = [provisional[j] for j in range(len(paths)) if j != i]
+        result = roof_wings_from_ridge_path(path, footprint, tol, other_paths=other_paths)
+        if result is None:
+            return None
+        wings, along_x = result
+        all_wings.extend(wings)
+        all_along_x.extend(along_x)
+    conflict = _same_axis_wings_disagree(all_wings, all_along_x, tol)
+    if conflict is not None:
+        i, j = conflict
+        print(f"[roof_wings] ridge paths rejected: wings {i} and {j} (from "
+              f"the same or different drawn paths) share a ridge axis and "
+              f"overlap, but their footprint-scanned cross-extents disagree "
+              f"({all_wings[i]} vs {all_wings[j]}) -- falling back to "
+              f"automatic wing detection instead of building these paths.")
+        return None
+    return all_wings, all_along_x
+
+
+def _ridge_length_inside(rect, wing, along_x):
+    """Length of `wing`'s own ridge line (its centre line along its ridge
+    axis) that runs through the interior of `rect`."""
+    x0, x1, y0, y1 = rect
+    wx0, wx1, wy0, wy1 = wing
+    if along_x:
+        y = (wy0 + wy1) / 2.0
+        if not (y0 < y < y1):
+            return 0.0
+        return max(0.0, min(x1, wx1) - max(x0, wx0))
+    x = (wx0 + wx1) / 2.0
+    if not (x0 < x < x1):
+        return 0.0
+    return max(0.0, min(y1, wy1) - max(y0, wy0))
+
+
+def choose_ridge_guided_decomposition(candidates, path_wings, path_along_x):
+    """`ROOF-RIDGE-PER-FORM-001`, 2026-10-04. Rainer, on 3_5_1_b_145: drawn
+    Firstlinien had no effect, because the per-wing (chevron) roof cut the
+    footprint into its OWN rectangles (always row slices) and gave the
+    biggest-AREA piece the main ridge -- on an L whose wide wing is the
+    smaller one, the branch ridge came out higher than the main roof and
+    ran straight through it.
+
+    `candidates`: alternative non-overlapping rectangle decompositions of
+    the true footprint (e.g. row slices and column slices). `path_wings` /
+    `path_along_x`: what `roof_wings_from_ridge_paths()` derived from the
+    drawn lines. Each rectangle takes the ridge axis of the drawn ridge
+    that runs furthest through it; a decomposition scores the drawn ridge
+    length that agrees with its rectangles' axes minus the length that
+    crosses them the other way (a branch ridge running on into the main
+    roof up to the valley is that small disagreement). The best score
+    wins, the first candidate on a tie.
+
+    Returns `(rects, along_x_list)`, or `None` if no candidate has a
+    rectangle that any drawn ridge runs through at all."""
+    best = None
+    for rects in candidates:
+        along = []
+        score = 0.0
+        ok = True
+        for rect in rects:
+            lx = sum(_ridge_length_inside(rect, w, True) for w, a in zip(path_wings, path_along_x) if a)
+            ly = sum(_ridge_length_inside(rect, w, False) for w, a in zip(path_wings, path_along_x) if not a)
+            if lx <= 1e-9 and ly <= 1e-9:
+                ok = False
+                break
+            along.append(lx >= ly)
+            score += abs(lx - ly)
+        if not ok:
+            continue
+        if best is None or score > best[0] + 1e-9:
+            best = (score, list(rects), along)
+    if best is None:
+        return None
+    return best[1], best[2]
+
+
+def wing_ridge_along_x(wing):
+    """Laeuft dieser Fluegels First entlang x (volle x-Ausdehnung, First
+    quer zur y-Achse) oder entlang y? Mirrors roof_profile.py _axes()."""
+    x0, x1, y0, y1 = wing
+    return (x1 - x0) >= (y1 - y0)
+
+
+def wing_height_m(wing, pitch_tan, x, y):
+    """Dachhoehe UEBER der Traufe an (x,y) fuer diesen EINEN Fluegel -- ein
+    mittiger, symmetrischer Giebel (wie roof_profile.py Satteldach mit
+    u=0.5), 0 ausserhalb des Fluegel-Rechtecks (damit max() ueber mehrere
+    Fluegel diesen Fluegel dort korrekt ignoriert)."""
+    x0, x1, y0, y1 = wing
+    if not (x0 - 1e-6 <= x <= x1 + 1e-6 and y0 - 1e-6 <= y <= y1 + 1e-6):
+        return 0.0
+    if wing_ridge_along_x(wing):
+        return max(0.0, min(y - y0, y1 - y)) * pitch_tan
+    return max(0.0, min(x - x0, x1 - x)) * pitch_tan
+
+
+def combined_height_m(wings, pitch_tan, x, y):
+    """Dachhoehe an (x,y) ueber ALLEN Fluegeln -- das obere Blatt der sich
+    ueberlagernden Dachflaechen (Codex-Design-Review, 2026-09-22: "z =
+    max(z1, z2)")."""
+    return max((wing_height_m(w, pitch_tan, x, y) for w in wings), default=0.0)
+
+
+def reflex_point(wing_a, wing_b):
+    """Die einspringende Ecke, an der zwei von recognize_two_wings()
+    erkannte Fluegel zusammenstossen -- aus den beiden Rechtecken
+    zurueckgerechnet (robust gegen alle 4 Ecken-Orientierungen aus
+    recognize_two_wings(), ohne das urspruengliche Polygon erneut zu
+    brauchen).
+
+    Rainer, 2026-09-22, Doppelpultdach auf einem L: "i dont want a
+    walmdach instead of the doppelpultdach" -- gebraucht fuer
+    `roof_profile.py`s Hoehenfeld, um den First-des-durchgehenden-
+    Fluegels (siehe `HEIGHT_VALLEY_MARGIN_M` dort) nicht ueber die volle
+    Rechteck-Ausdehnung wirken zu lassen, sondern nur nahe der echten
+    Kehle."""
+    x0 = min(wing_a[0], wing_b[0])
+    x1 = max(wing_a[1], wing_b[1])
+    y0 = min(wing_a[2], wing_b[2])
+    y1 = max(wing_a[3], wing_b[3])
+    rx = ry = None
+    for w in (wing_a, wing_b):
+        wx0, wx1, wy0, wy1 = w
+        full_x = abs(wx0 - x0) < 1e-6 and abs(wx1 - x1) < 1e-6
+        full_y = abs(wy0 - y0) < 1e-6 and abs(wy1 - y1) < 1e-6
+        if full_x and not full_y:
+            ry = wy0 if abs(wy0 - y0) > 1e-6 else wy1
+        if full_y and not full_x:
+            rx = wx0 if abs(wx0 - x0) > 1e-6 else wx1
+    return rx, ry
+
+
+def clip_wing_to_valley(wing, other_wing, rx, ry, margin):
+    """Wenn `wing` die volle Ausdehnung EINER Achse hat (der "durchgehende"
+    Fluegel, x0..x1 oder y0..y1), waehrend `other_wing` an der Kehle
+    (rx,ry) endet, reicht `wing`s eigenes Rechteck per Konstruktion tief in
+    `other_wing`s wahres Gebiet hinein (das ist fuer die REINE Flaechen-
+    Abdeckung richtig und noetig -- `other_wing` deckt seinen Teil schon
+    selbst ab). Fuer die HOEHE ist das falsch: `wing`s First laeuft dort
+    konstant weiter und "sticht" durch `other_wing`s viel niedrigere
+    eigene Traufe (Rainer, 2026-09-22, Doppelpultdach: "3 roofs in one ...
+    90 degrees from each other" -- der Grat des durchgehenden Fluegels lag
+    weit in fremdem Gebiet).
+
+    Deckelt `wing`s Rechteck auf dieser Achse auf `margin` Abstand von der
+    Kehle -- nur auf der Seite, die in `other_wing`s eigenes Gebiet reicht.
+    Reine Geometrie, keine Ahnung von Dachform/Profil; wird nur fuer die
+    HOEHENBERECHNUNG benutzt, nie fuer die Flaechen-Abdeckung (`covered()`
+    in `roof_profile.heightfield_roof_mesh()` bekommt weiterhin das
+    UNGEKUERZTE `wing`)."""
+    wx0, wx1, wy0, wy1 = wing
+    ox0, ox1, oy0, oy1 = other_wing
+
+    def spans_full(lo, hi, olo, ohi):
+        full = min(lo, olo) == lo and max(hi, ohi) == hi
+        other_full = abs(olo - lo) < 1e-6 and abs(ohi - hi) < 1e-6
+        return full and not other_full
+
+    if spans_full(wy0, wy1, oy0, oy1):
+        if abs(oy1 - ry) < 1e-6:
+            wy0 = max(wy0, ry - margin)
+        elif abs(oy0 - ry) < 1e-6:
+            wy1 = min(wy1, ry + margin)
+    if spans_full(wx0, wx1, ox0, ox1):
+        if abs(ox1 - rx) < 1e-6:
+            wx0 = max(wx0, rx - margin)
+        elif abs(ox0 - rx) < 1e-6:
+            wx1 = min(wx1, rx + margin)
+    return (wx0, wx1, wy0, wy1)

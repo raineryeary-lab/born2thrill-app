@@ -3,9 +3,15 @@
   "configurations": [
     {
       "name": "born2thrill-workbench",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["exec", "next", "dev", "-H", "127.0.0.1", "-p", "3020"],
+      "port": 3020
+    },
+    {
+      "name": "fragebogen-videos",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8790", "--bind", "127.0.0.1", "-d", "docs/fragebogen-videos/seite"],
+      "port": 8790
     }
   ]
 }
