@@ -1,0 +1,143 @@
+"""Doppelhaushaelfte (doppelhaushaelfte-v1).
+
+Rainer, 2026-10-23, onehalfstorey_046: "could we create a new class of house
+this is a doppelhaushälfte" -- und: "we have to also declare the
+doppelhaushälfte als haustyp durchsuchbar". Eine Markierung auf dem
+Geschosstyp (Trennwand-Seite), im Katalog der Haustyp "Doppelhaushälfte",
+aussen die gespiegelte Nachbarhaelfte unter einem Dach.
+"""
+import importlib.util
+import json
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+os.environ.setdefault("FLOORPLAN_WORKBENCH_DATA_DIR", r"E:\born2thrill-local-workbench-data")
+
+
+def lade(name, datei):
+    spec = importlib.util.spec_from_file_location(name, HERE / datei)
+    modul = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modul)
+    return modul
+
+
+def wand(wid, a, b, dicke=240, typ="exterior"):
+    return {"id": wid, "start_mm": list(a), "end_mm": list(b),
+            "thickness_mm": dicke, "wall_type": typ}
+
+
+class TrennwandTests(unittest.TestCase):
+    def setUp(self):
+        self.mod = lade("doppelhaus", "doppelhaus.py")
+        # 7 x 11,5 m, Ost = Trennwand
+        self.waende = [
+            wand("s", (0, 0), (7000, 0)), wand("o", (7000, 0), (7000, 11500)),
+            wand("n", (7000, 11500), (0, 11500)), wand("w", (0, 11500), (0, 0)),
+            wand("i", (3500, 0), (3500, 11500), 120, "interior"),
+        ]
+
+    def test_ostwand_wird_trennwand(self):
+        warn = self.mod.trennwand_markieren(self.waende, [], "east")
+        o = next(w for w in self.waende if w["id"] == "o")
+        self.assertTrue(o["trennwand"])
+        self.assertEqual(o["thickness_mm"], self.mod.DICKE_MM)
+        self.assertEqual(o["wall_type"], "exterior")
+        self.assertEqual(warn, [])
+
+    def test_andere_waende_bleiben(self):
+        self.mod.trennwand_markieren(self.waende, [], "east")
+        for w in self.waende:
+            if w["id"] != "o":
+                self.assertNotIn("trennwand", w)
+        self.assertEqual(next(w for w in self.waende if w["id"] == "w")["thickness_mm"], 240)
+
+    def test_oeffnung_in_der_trennwand_wird_gemeldet(self):
+        warn = self.mod.trennwand_markieren(self.waende, [{"id": "f9", "wall_id": "o"}], "east")
+        self.assertEqual(warn, ["f9"])
+
+    def test_ebene_ist_die_wandmitte(self):
+        self.mod.trennwand_markieren(self.waende, [], "east")
+        self.assertEqual(self.mod.ebene_mm(self.waende, "east"), 7000)
+        w2 = [wand("n", (0, 9000), (6000, 9000)), wand("s", (0, 0), (6000, 0)),
+              wand("o", (6000, 0), (6000, 9000)), wand("w", (0, 9000), (0, 0))]
+        self.mod.trennwand_markieren(w2, [], "north")
+        self.assertEqual(self.mod.ebene_mm(w2, "north"), 9000)
+
+    def test_dachachse_quer_zur_trennwand(self):
+        self.assertEqual(self.mod.dachachse("east"), "x")
+        self.assertEqual(self.mod.dachachse("west"), "x")
+        self.assertEqual(self.mod.dachachse("north"), "y")
+
+    def test_kamera_seite(self):
+        self.assertEqual(self.mod.kamera_seite("east"), "+x")
+        self.assertEqual(self.mod.kamera_seite("south"), "-y")
+
+    def test_unbekannte_seite_wird_nichts(self):
+        self.assertIsNone(self.mod.normalisieren({"trennwand": "oben"}))
+        self.assertEqual(self.mod.normalisieren({"trennwand": "west"}), {"trennwand": "west"})
+        self.assertIsNone(self.mod.normalisieren(None))
+
+
+class KatalogTests(unittest.TestCase):
+    def _projekt(self, tmp, doppelhaus):
+        ann = {"project_id": "onehalfstorey_999", "annotations": [
+            {"floor_level": "groundfloor", "room_id": "wohnen", "points": [{}, {}, {}]}],
+            "elements": []}
+        if doppelhaus:
+            ann["doppelhaus"] = {"trennwand": "east"}
+        Path(tmp, "annotations.json").write_text(json.dumps(ann), encoding="utf-8")
+        Path(tmp, "data.json").write_text(json.dumps({"house_type": "1.5-storey"}), encoding="utf-8")
+
+    def test_doppelhaushaelfte_ist_der_haustyp(self):
+        kz = lade("katalogzeile", "katalogzeile.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            self._projekt(tmp, True)
+            self.assertEqual(kz.zeile_aus_projekt(tmp)["haustyp"], "Doppelhaushälfte")
+
+    def test_ohne_markierung_unveraendert(self):
+        kz = lade("katalogzeile", "katalogzeile.py")
+        with tempfile.TemporaryDirectory() as tmp:
+            self._projekt(tmp, False)
+            self.assertEqual(kz.zeile_aus_projekt(tmp)["haustyp"], "1,5-Geschosser")
+
+    def test_plugin_kennt_den_wert_und_kann_ihn_aendern(self):
+        php = (HERE.parent / "wordpress" / "b2t-katalog-freigabe.php").read_text(encoding="utf-8")
+        self.assertGreaterEqual(php.count("'Doppelhaushälfte'"), 1)
+        start = php.index("function b2t_katalog_freigeben(")
+        koerper = php[start:php.index("\nfunction ", start + 10)]
+        self.assertIn("get_param('haustyp')", koerper)
+
+    def test_hochladen_zieht_den_haustyp_nach(self):
+        pr = (HERE / "publish-renders.py").read_text(encoding="utf-8")
+        self.assertIn("def haustyp_nachziehen(", pr)
+        start = pr.index("def check_plan(")
+        koerper = pr[start:pr.index("\ndef ", start + 10)]
+        self.assertIn("haustyp_nachziehen(", koerper)
+
+
+class NahtTests(unittest.TestCase):
+    def test_plan_builder(self):
+        q = (HERE / "build-simplifier-render-plan.py").read_text(encoding="utf-8")
+        self.assertIn("doppelhaus.trennwand_markieren(", q)
+        self.assertIn('"doppelhaus": doppelhaus_plan(', q)
+
+    def test_renderer(self):
+        q = (HERE / "render-exterior.py").read_text(encoding="utf-8")
+        self.assertIn('plan.get("doppelhaus")', q)
+        self.assertIn('"nachbar-"', q)
+        self.assertIn("bisect_plane", q)
+        self.assertIn("doppelhaus.kamera_seite(", q)
+
+    def test_codex_auftrag(self):
+        mcj = lade("make_codex_job", "make-codex-job.py")
+        self.assertEqual(mcj.aussen_regel({}), mcj.HERO)
+        text = mcj.aussen_regel({"doppelhaus": {"trennwand": "east"}})
+        self.assertIn("Doppelhaus", text)
+        self.assertIn("Nachbarhaelfte", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

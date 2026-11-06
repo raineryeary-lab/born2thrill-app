@@ -1,0 +1,1007 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Häuser ohne Haustür</title>
+<style>
+ :root{--bg:#faf9f7;--ink:#23282c;--soft:#6b7280;--rule:#dcd8d2;--warn:#b45309;
+       --gut:#0f6656;--panel:#ffffff;--link:#0f6656}
+ @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#17191c;--ink:#e8e6e3;
+   --soft:#9aa0a6;--rule:#33373c;--panel:#1f2226;--link:#5eead4;--gut:#5eead4}}
+ :root[data-theme=dark]{--bg:#17191c;--ink:#e8e6e3;--soft:#9aa0a6;--rule:#33373c;
+   --panel:#1f2226;--link:#5eead4;--gut:#5eead4}
+ body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,sans-serif;margin:0;padding:2rem}
+ h1{font-size:1.5rem;margin:0 0 .3rem}
+ .lead{color:var(--soft);max-width:64ch;margin:0 0 1rem}
+ .wie{background:var(--panel);border:1px solid var(--rule);border-left:3px solid var(--warn);
+      border-radius:6px;padding:.9rem 1.1rem;margin:0 0 1.6rem;max-width:64ch;font-size:.9rem}
+ .wie b{color:var(--warn)}
+ .k{background:var(--panel);border:1px solid var(--rule);border-radius:8px;padding:1rem;
+    margin-bottom:1rem;display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);
+    gap:1.2rem;align-items:start}
+ .k h2{font:600 .95rem ui-monospace,Consolas,monospace;margin:0 0 .5rem;overflow-wrap:anywhere}
+ .k h2 a{color:var(--link);text-decoration:none}
+ .k h2 a:hover{text-decoration:underline}
+ .bild{background:#ffffff;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+ .bild svg{display:block;width:100%;height:auto;max-width:100%}
+ table{border-collapse:collapse;font-size:.85rem;width:100%}
+ th{text-align:left;font-weight:600;color:var(--soft);padding:.15rem .7rem .15rem 0;
+    font-size:.75rem;text-transform:uppercase;letter-spacing:.04em}
+ td{padding:.15rem .7rem .15rem 0;font-variant-numeric:tabular-nums}
+ tr.beste td{font-weight:600;color:var(--gut)}
+ .urteil{font-size:.85rem;margin:.1rem 0 .6rem}
+ .eindeutig{color:var(--gut)}
+ .unklar{color:var(--warn)}
+ .leer{color:var(--soft);padding:2.5rem;text-align:center;background:var(--panel);
+       border:1px solid var(--rule);border-radius:8px;max-width:64ch}
+ @media (max-width:720px){.k{grid-template-columns:1fr}}
+</style>
+<h1>Häuser ohne Haustür</h1>
+<p class="lead">20 Häuser hängen an der Warnung &bdquo;House has no exterior/front door marker&ldquo;. Bei 6 davon ist die Kandidatin eindeutig, die übrigen brauchen einen Blick.</p>
+<p class="lead">Dazu 1 Haus/Häuser übergangen, deren Räume überwiegend Platzhalternamen tragen. Denen fehlt nicht die Haustür, sondern die Zeichnung.</p>
+<div class="wie"><b>Nichts hiervon ist gesetzt.</b> Die Tabelle zeigt
+nur, was für welche Tür spricht: Breite, Abstand zur Außenkante, Raum dahinter.
+Eine Haustür ist <b>0,9 bis 1,4&nbsp;m</b> breit &mdash; darunter ist es eine
+Zimmertür, darüber ein Garagentor. Setzen im Zeichner: Tür anklicken, Rolle auf
+&bdquo;Haustür (Haupteingang)&ldquo;.</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1369" viewBox="0 0 1600 1369">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">bungalow_008 groundfloor concept</text>
+<polygon points="673.2,811.7 521.2,811.7 521.2,170.0 100.2,170.0 100.2,1289.0 673.2,1289.0" fill="#d8efdc" stroke="none"/>
+<polygon points="673.2,811.7 1127.0,811.7 1127.0,1289.0 673.2,1289.0" fill="#e7e1f3" stroke="none"/>
+<polygon points="1127.0,1009.4 1499.8,1009.4 1499.8,1289.0 1127.0,1289.0" fill="#d6d1e0" stroke="none"/>
+<polygon points="1127.0,591.8 1499.8,591.8 1499.8,1009.4 1127.0,1009.4" fill="#dceef8" stroke="none"/>
+<polygon points="1127.0,170.0 1499.8,170.0 1499.8,591.8 1127.0,591.8" fill="#f2e1d4" stroke="none"/>
+<polygon points="521.2,170.0 858.7,170.0 858.7,591.8 521.2,591.8" fill="#fff1b8" stroke="none"/>
+<polygon points="1127.0,289.0 858.7,289.0 858.7,591.8 521.2,591.8 521.2,811.7 1127.0,811.7 1127.0,591.8" fill="#eeeae2" stroke="none"/>
+<polygon points="100.2,170.0 1499.8,170.0 1499.8,1289.0 100.2,1289.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="1056.1" y1="289.0" x2="923.9" y2="289.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="738.5" y1="591.8" x2="629.0" y2="591.8" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="980.1" y1="811.7" x2="1101.7" y2="811.7" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1127.0" y1="786.2" x2="1127.0" y2="687.2" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1127.0" y1="478.0" x2="1127.0" y2="387.4" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="521.2" y1="780.0" x2="521.2" y2="650.8" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="621.4" y1="170.0" x2="738.5" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="238.5" y1="170.0" x2="413.3" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="279.5" y1="1289.0" x2="486.2" y2="1289.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="945.1" y1="1289.0" x2="1053.0" y2="1289.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1499.8" y1="1112.8" x2="1499.8" y2="1214.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1499.8" y1="711.6" x2="1499.8" y2="816.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1267.2" y1="170.0" x2="1357.1" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="348.9" y="772.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="348.9">Wohnen / Essen / Kochen</tspan></text>
+<text x="900.1" y="1050.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="900.1">Eltern / Schlafen</tspan></text>
+<text x="1313.4" y="1149.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1313.4">Ankleide</tspan></text>
+<text x="1313.4" y="800.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1313.4">Bad</tspan></text>
+<text x="1313.4" y="380.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1313.4">HWR / HTR</tspan></text>
+<text x="690.0" y="380.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="690.0">Büro</tspan></text>
+<text x="888.0" y="602.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="888.0">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=bungalow_008&floor=groundfloor" target="_blank">bungalow_008 &nearr;</a></h2>
+  <div class="urteil eindeutig">eindeutig &mdash; die oberste</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.99 m</td><td>1.09 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.97 m</td><td>3.10 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>0.91 m</td><td>3.46 m davon</td><td>Eltern / Schlafen</td></tr>
+  <tr class=""><td>0.68 m</td><td>2.37 m davon</td><td>HWR / HTR</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">bungalow_012 groundfloor concept</text>
+<polygon points="627.7,423.6 627.7,170.0 287.7,170.0 287.7,366.2 376.1,366.2 376.1,423.6" fill="#f2e1d4" stroke="none"/>
+<polygon points="526.9,584.1 526.9,423.6 376.1,423.6 376.1,366.2 287.7,366.2 287.7,584.1" fill="#dceef8" stroke="none"/>
+<polygon points="287.7,584.1 627.7,584.1 627.7,835.3 287.7,835.3" fill="#fff1b8" stroke="none"/>
+<polygon points="287.7,835.3 627.7,835.3 627.7,1079.3 287.7,1079.3" fill="#e7e1f3" stroke="none"/>
+<polygon points="287.7,1079.3 813.1,1079.3 813.1,1310.0 287.7,1310.0" fill="#cddce4" stroke="none"/>
+<polygon points="813.1,1079.3 992.8,1079.3 992.8,1310.0 813.1,1310.0" fill="#d6d1e0" stroke="none"/>
+<polygon points="627.7,835.3 992.8,835.3 992.8,1079.3 627.7,1079.3" fill="#eadeaf" stroke="none"/>
+<polygon points="526.9,423.6 526.9,584.1 627.7,584.1 627.7,835.3 1312.3,835.3 1312.3,423.6 1205.3,423.6 1205.3,170.0 885.0,170.0 885.0,423.6" fill="#d8efdc" stroke="none"/>
+<polygon points="627.7,170.0 885.0,170.0 885.0,423.6 627.7,423.6" fill="#eeeae2" stroke="none"/>
+<polygon points="287.7,170.0 1312.3,170.0 1312.3,1310.0 287.7,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="287.7" y1="259.0" x2="287.7" y2="323.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="287.7" y1="483.8" x2="287.7" y2="539.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="287.7" y1="656.7" x2="287.7" y2="721.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="287.7" y1="876.8" x2="287.7" y2="1030.4" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="430.8" y1="1310.0" x2="496.1" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="705.3" y1="1310.0" x2="780.3" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="992.8" y1="987.5" x2="992.8" y2="1054.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1081.3" y1="835.3" x2="1250.6" y2="835.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1312.3" y1="511.7" x2="1312.3" y2="742.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1205.3" y1="292.7" x2="1205.3" y2="228.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="971.3" y1="170.0" x2="1127.3" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="681.1" y1="170.0" x2="805.6" y2="170.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="760.9" y1="423.6" x2="681.1" y2="423.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="627.7" y1="347.2" x2="627.7" y2="274.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="526.9" y1="499.5" x2="526.9" y2="439.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="549.3" y1="584.1" x2="626.7" y2="584.1" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="656.9" y1="835.3" x2="742.8" y2="835.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="711.3" y1="1079.3" x2="794.8" y2="1079.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="627.7" y1="978.9" x2="627.7" y2="1060.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="864.9" y1="1079.3" x2="942.3" y2="1079.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="692.0" y1="170.0" x2="794.8" y2="170.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<text x="465.6" y="290.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="465.6">HWR / HTR</tspan></text>
+<text x="398.5" y="491.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="398.5">DU-WC</tspan></text>
+<text x="457.7" y="709.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="457.7">Büro</tspan></text>
+<text x="457.7" y="957.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="457.7">Eltern / Schlafen</tspan></text>
+<text x="550.4" y="1194.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="550.4">Bad</tspan></text>
+<text x="903.0" y="1194.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="903.0">Ankleide</tspan></text>
+<text x="810.3" y="957.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="810.3">Zimmer</tspan></text>
+<text x="969.4" y="552.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="969.4">Wohnen / Essen / Kochen</tspan></text>
+<text x="756.4" y="296.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="756.4">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=bungalow_012&floor=groundfloor" target="_blank">bungalow_012 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>1.12 m</td><td>0.66 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>1.36 m</td><td>0.70 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>0.91 m</td><td>2.43 m davon</td><td>Bad</td></tr>
+  <tr class=""><td>0.94 m</td><td>4.56 m davon</td><td>Zimmer</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">bungalow_017 groundfloor concept</text>
+<polygon points="231.2,1018.1 584.7,1018.1 584.7,1310.0 231.2,1310.0" fill="#fff1b8" stroke="none"/>
+<polygon points="231.2,818.4 439.4,818.4 439.4,1018.1 231.2,1018.1" fill="#e7e1f3" stroke="none"/>
+<polygon points="231.2,499.4 584.7,499.4 584.7,818.4 231.2,818.4" fill="#d6d1e0" stroke="none"/>
+<polygon points="584.7,499.4 820.4,499.4 820.4,170.0 1368.8,170.0 1368.8,736.7 1076.1,736.7 1076.1,865.8 584.7,865.8" fill="#d8efdc" stroke="none"/>
+<polygon points="1076.1,736.7 1368.8,736.7 1368.8,1084.3 1076.1,1084.3" fill="#eadeaf" stroke="none"/>
+<polygon points="1076.1,1084.3 1368.8,1084.3 1368.8,1310.0 1076.1,1310.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="889.1,1018.1 584.7,1018.1 584.7,1310.0 820.4,1310.0 820.4,1138.5 889.1,1138.5" fill="#dceef8" stroke="none"/>
+<polygon points="820.4,1138.5 934.1,1138.5 934.1,1310.0 820.4,1310.0" fill="#cddce4" stroke="none"/>
+<polygon points="439.4,865.8 1076.1,865.8 1076.1,1138.5 889.1,1138.5 889.1,1018.1 439.4,1018.1" fill="#eeeae2" stroke="none"/>
+<polygon points="934.1,1138.5 1076.1,1138.5 1076.1,1310.0 934.1,1310.0" fill="#dcd8d2" stroke="none"/>
+<polygon points="231.2,170.0 1368.8,170.0 1368.8,1310.0 231.2,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="276.6" y1="818.4" x2="384.1" y2="818.4" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="483.6" y1="865.8" x2="554.8" y2="865.8" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="484.8" y1="1018.1" x2="557.5" y2="1018.1" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="755.0" y1="1018.1" x2="681.1" y2="1018.1" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1076.1" y1="967.8" x2="1076.1" y2="896.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1076.1" y1="1227.1" x2="1076.1" y2="1165.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="934.1" y1="1215.0" x2="934.1" y2="1291.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1368.8" y1="850.8" x2="1368.8" y2="955.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1174.3" y1="1310.0" x2="1285.9" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="828.9" y1="1310.0" x2="878.7" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="676.9" y1="1310.0" x2="761.9" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="372.0" y1="1310.0" x2="498.4" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="358.5" y1="499.4" x2="526.6" y2="499.4" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="674.4" y1="499.4" x2="760.4" y2="499.4" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="820.4" y1="390.0" x2="820.4" y2="260.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="901.4" y1="170.0" x2="1056.1" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1158.2" y1="170.0" x2="1308.7" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1368.8" y1="563.1" x2="1368.8" y2="657.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1054.7" y1="865.8" x2="914.9" y2="865.8" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<text x="407.9" y="1164.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="407.9">Kind</tspan></text>
+<text x="335.3" y="918.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="335.3">Ankleide</tspan></text>
+<text x="407.9" y="658.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="407.9">Eltern / Schlafen</tspan></text>
+<text x="1004.7" y="526.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1004.7">Wohnen / Essen / Kochen</tspan></text>
+<text x="1222.5" y="910.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1222.5">Kind</tspan></text>
+<text x="1222.5" y="1197.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1222.5">HWR / HTR</tspan></text>
+<text x="718.9" y="1154.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="718.9">Bad</tspan></text>
+<text x="877.2" y="1224.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="877.2">WC</tspan></text>
+<text x="800.1" y="967.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="800.1">Flur</tspan></text>
+<text x="1005.1" y="1224.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1005.1">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=bungalow_017&floor=groundfloor" target="_blank">bungalow_017 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.96 m</td><td>0.86 m davon</td><td>WC</td></tr>
+  <tr class=""><td>0.91 m</td><td>3.69 m davon</td><td>Kind</td></tr>
+  <tr class=""><td>0.93 m</td><td>3.95 m davon</td><td>Bad</td></tr>
+  <tr class=""><td>0.89 m</td><td>3.66 m davon</td><td>Flur</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">bungalow_031 groundfloor concept</text>
+<polygon points="1103.1,745.7 1483.8,745.7 1483.8,1310.0 1103.1,1310.0" fill="#d8efdc" stroke="none"/>
+<polygon points="687.4,492.5 1103.1,492.5 1103.1,972.3 687.4,972.3" fill="#cadccd" stroke="none"/>
+<polygon points="1103.1,972.3 1103.1,1310.0 751.8,1310.0 751.8,1114.0 834.6,1114.0 834.6,972.3" fill="#e4f4e7" stroke="none"/>
+<polygon points="687.4,972.3 834.6,972.3 834.6,1114.0 687.4,1114.0" fill="#eeeeee" stroke="none"/>
+<polygon points="424.3,972.3 687.4,972.3 687.4,1310.0 424.3,1310.0" fill="#fff1b8" stroke="none"/>
+<polygon points="116.2,972.3 424.3,972.3 424.3,1310.0 116.2,1310.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="282.9,972.3 687.4,972.3 687.4,492.5 522.4,492.5 522.4,684.3 282.9,684.3" fill="#eeeae2" stroke="none"/>
+<polygon points="116.2,492.5 522.4,492.5 522.4,684.3 116.2,684.3" fill="#dceef8" stroke="none"/>
+<polygon points="116.2,170.0 522.4,170.0 522.4,492.5 116.2,492.5" fill="#cddce4" stroke="none"/>
+<polygon points="522.4,170.0 751.8,170.0 751.8,384.6 522.4,384.6" fill="#e7e1f3" stroke="none"/>
+<polygon points="522.4,492.5 1103.1,492.5 1103.1,170.0 751.8,170.0 751.8,384.6 522.4,384.6" fill="#d6d1e0" stroke="none"/>
+<polygon points="116.2,170.0 1483.8,170.0 1483.8,1310.0 116.2,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="432.4" y1="170.0" x2="490.4" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="116.2" y1="403.5" x2="116.2" y2="338.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="156.8" y1="492.5" x2="230.7" y2="492.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="322.0" y1="1310.0" x2="390.0" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="522.3" y1="1310.0" x2="681.0" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="903.3" y1="1310.0" x2="1064.8" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1158.1" y1="745.7" x2="1428.6" y2="745.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1483.8" y1="794.1" x2="1483.8" y2="1006.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1103.1" y1="546.1" x2="1103.1" y2="690.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1103.1" y1="413.6" x2="1103.1" y2="247.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="522.4" y1="323.5" x2="522.4" y2="403.4" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="639.9" y1="492.5" x2="546.3" y2="492.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="665.4" y1="384.6" x2="522.4" y2="384.6" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="522.4" y1="515.5" x2="522.4" y2="583.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="282.9" y1="777.2" x2="282.9" y2="860.4" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="332.1" y1="972.3" x2="407.2" y2="972.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="539.5" y1="972.3" x2="628.0" y2="972.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="834.6" y1="1057.6" x2="834.6" y2="1008.2" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="687.4" y1="870.6" x2="687.4" y2="792.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1103.1" y1="926.8" x2="1103.1" y2="772.0" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="1066.6" y1="972.3" x2="874.3" y2="972.3" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<text x="1293.5" y="1027.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1293.5">Wohnen</tspan></text>
+<text x="895.3" y="732.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="895.3">Essen</tspan></text>
+<text x="942.2" y="1151.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="942.2">Kochen</tspan></text>
+<text x="761.0" y="1043.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="761.0">Speisekammer</tspan></text>
+<text x="555.9" y="1141.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="555.9">Büro</tspan></text>
+<text x="270.2" y="1141.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="270.2">HWR / HTR</tspan></text>
+<text x="510.8" y="777.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="510.8">Diele</tspan></text>
+<text x="319.3" y="588.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="319.3">DU-WC</tspan></text>
+<text x="319.3" y="331.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="319.3">Bad</tspan></text>
+<text x="637.1" y="277.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="637.1">Ankleide</tspan></text>
+<text x="875.3" y="350.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="875.3">Eltern / Schlafen</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=bungalow_031&floor=groundfloor" target="_blank">bungalow_031 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.96 m</td><td>4.65 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.91 m</td><td>4.82 m davon</td><td>Büro</td></tr>
+  <tr class=""><td>0.85 m</td><td>1.60 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.77 m</td><td>2.61 m davon</td><td>Diele</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1359" viewBox="0 0 1600 1359">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">bungalow_040_41 groundfloor concept</text>
+<polygon points="1161.6,881.1 1498.7,881.1 1498.7,1279.0 1161.6,1279.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="1073.6,535.3 1498.7,535.3 1498.7,881.1 1073.6,881.1" fill="#fff1b8" stroke="none"/>
+<polygon points="512.4,881.1 855.6,881.1 855.6,1279.0 512.4,1279.0" fill="#dceef8" stroke="none"/>
+<polygon points="101.3,881.1 512.4,881.1 512.4,1279.0 101.3,1279.0" fill="#e7e1f3" stroke="none"/>
+<polygon points="101.3,535.3 372.0,535.3 372.0,881.1 101.3,881.1" fill="#eeeeee" stroke="none"/>
+<polygon points="372.0,170.0 1073.6,170.0 1073.6,703.4 372.0,703.4" fill="#d8efdc" stroke="none"/>
+<polygon points="372.0,703.4 1073.6,703.4 1073.6,881.1 1161.6,881.1 1161.6,1279.0 855.6,1279.0 855.6,881.1 372.0,881.1" fill="#eeeae2" stroke="none"/>
+<polygon points="101.3,170.0 1498.7,170.0 1498.7,1279.0 101.3,1279.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="804.1" y1="703.4" x2="680.4" y2="703.4" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="372.0" y1="730.1" x2="372.0" y2="826.0" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="392.8" y1="881.1" x2="474.8" y2="881.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="586.2" y1="881.1" x2="680.4" y2="881.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1065.6" y1="1279.0" x2="950.5" y2="1279.0" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1161.6" y1="1059.7" x2="1161.6" y2="944.6" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1073.6" y1="833.0" x2="1073.6" y2="731.8" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="525.2" y1="170.0" x2="631.6" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="727.4" y1="170.0" x2="913.9" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1073.6" y1="252.1" x2="1073.6" y2="348.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1239.6" y1="535.3" x2="1318.5" y2="535.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1498.7" y1="1038.6" x2="1498.7" y2="1115.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="598.4" y1="1279.0" x2="683.9" y2="1279.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="101.3" y1="1021.3" x2="101.3" y2="1127.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="101.3" y1="693.5" x2="101.3" y2="784.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="1330.1" y="1080.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1330.1">HWR / HTR</tspan></text>
+<text x="1286.1" y="708.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1286.1">Kind</tspan></text>
+<text x="684.0" y="1080.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="684.0">Bad</tspan></text>
+<text x="306.9" y="1080.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="306.9">Eltern / Schlafen</tspan></text>
+<text x="236.7" y="708.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="236.7">Gast</tspan></text>
+<text x="722.8" y="436.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="722.8">Wohnen / Essen / Kochen</tspan></text>
+<text x="864.0" y="934.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="864.0">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=bungalow_040_41&floor=groundfloor" target="_blank">bungalow_040_41 &nearr;</a></h2>
+  <div class="urteil eindeutig">eindeutig &mdash; die oberste</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>1.00 m</td><td>0.66 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>1.00 m</td><td>2.95 m davon</td><td>HWR / HTR</td></tr>
+  <tr class=""><td>1.08 m</td><td>5.55 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>0.84 m</td><td>2.38 m davon</td><td>Gast</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">bungalow_040_42 groundfloor concept</text>
+<polygon points="161.9,170.0 448.0,170.0 448.0,549.2 161.9,549.2" fill="#fff1b8" stroke="none"/>
+<polygon points="161.9,549.2 448.0,549.2 448.0,929.2 161.9,929.2" fill="#f2e1d4" stroke="none"/>
+<polygon points="661.7,549.2 954.7,549.2 954.7,929.2 661.7,929.2" fill="#dceef8" stroke="none"/>
+<polygon points="448.0,170.0 859.4,170.0 859.4,427.5 448.0,427.5" fill="#e7e1f3" stroke="none"/>
+<polygon points="1144.3,328.2 1438.1,328.2 1438.1,549.2 1144.3,549.2" fill="#cddce4" stroke="none"/>
+<polygon points="954.7,549.2 1438.1,549.2 1438.1,1310.0 954.7,1310.0" fill="#d8efdc" stroke="none"/>
+<polygon points="859.4,427.5 1144.3,427.5 1144.3,328.2 1438.1,328.2 1438.1,170.0 859.4,170.0" fill="#eadeaf" stroke="none"/>
+<polygon points="448.0,929.2 661.7,929.2 661.7,549.2 1144.3,549.2 1144.3,427.5 448.0,427.5" fill="#eeeae2" stroke="none"/>
+<polygon points="161.9,170.0 1438.1,170.0 1438.1,1310.0 161.9,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="977.0" y1="549.2" x2="1139.8" y2="549.2" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="448.0" y1="568.4" x2="448.0" y2="691.5" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="448.0" y1="441.6" x2="448.0" y2="526.7" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="826.9" y1="427.5" x2="732.6" y2="427.5" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="878.5" y1="427.5" x2="966.8" y2="427.5" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1144.3" y1="539.4" x2="1144.3" y2="456.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="763.4" y1="549.2" x2="854.0" y2="549.2" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="506.3" y1="929.2" x2="604.5" y2="929.2" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="161.9" y1="271.4" x2="161.9" y2="448.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="354.8" y1="929.2" x2="274.8" y2="929.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="892.0" y1="929.2" x2="796.0" y2="929.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="573.5" y1="170.0" x2="756.2" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1067.4" y1="170.0" x2="1237.5" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1438.1" y1="454.0" x2="1438.1" y2="514.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1438.1" y1="658.8" x2="1438.1" y2="754.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1067.4" y1="1310.0" x2="1322.5" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="954.7" y1="1118.7" x2="954.7" y2="1022.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="304.9" y="359.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="304.9">Kind</tspan></text>
+<text x="304.9" y="739.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="304.9">HWR / HTR</tspan></text>
+<text x="808.2" y="739.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="808.2">Bad</tspan></text>
+<text x="653.7" y="298.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="653.7">Eltern / Schlafen</tspan></text>
+<text x="1291.2" y="438.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1291.2">DU-WC</tspan></text>
+<text x="1196.4" y="929.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1196.4">Wohnen / Essen / Kochen</tspan></text>
+<text x="1114.1" y="279.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1114.1">Büro</tspan></text>
+<text x="678.1" y="611.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="678.1">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=bungalow_040_42&floor=groundfloor" target="_blank">bungalow_040_42 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.97 m</td><td>3.90 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>1.21 m</td><td>2.83 m davon</td><td>HWR / HTR</td></tr>
+  <tr class=""><td>0.93 m</td><td>2.87 m davon</td><td>Eltern / Schlafen</td></tr>
+  <tr class=""><td>0.87 m</td><td>2.81 m davon</td><td>Büro</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">bungalow_040_47 groundfloor concept</text>
+<polygon points="165.6,170.0 429.8,170.0 429.8,464.3 165.6,464.3" fill="#fff1b8" stroke="none"/>
+<polygon points="165.6,464.3 429.8,464.3 429.8,776.4 496.2,776.4 429.8,878.9 165.6,878.9" fill="#eadeaf" stroke="none"/>
+<polygon points="165.6,1310.0 429.8,1310.0 429.8,1068.0 496.2,989.1 429.8,878.9 165.6,878.9 165.6,1268.0" fill="#fff5cf" stroke="none"/>
+<polygon points="429.8,1068.0 496.2,989.1 747.1,989.1 747.1,1310.0 429.8,1310.0" fill="#dceef8" stroke="none"/>
+<polygon points="747.1,989.1 910.3,989.1 910.3,1310.0 747.1,1310.0" fill="#e7e1f3" stroke="none"/>
+<polygon points="1122.8,932.0 1434.4,932.0 1434.4,1188.9 1122.8,1188.9" fill="#f2e1d4" stroke="none"/>
+<polygon points="1236.6,821.9 1434.4,821.9 1434.4,932.0 1236.6,932.0" fill="#cddce4" stroke="none"/>
+<polygon points="1122.8,464.3 1434.4,464.3 1434.4,821.9 1122.8,821.9" fill="#d6d1e0" stroke="none"/>
+<polygon points="1122.8,464.3 910.3,464.3 910.3,170.0 429.8,170.0 429.8,776.4 576.9,878.9 910.3,878.9 910.3,821.9 1122.8,821.9" fill="#d8efdc" stroke="none"/>
+<polygon points="1236.6,821.9 910.3,821.9 910.3,878.9 576.9,878.9 496.2,776.4 429.8,878.9 496.2,989.1 910.3,989.1 910.3,1188.9 1122.8,1188.9 1122.8,932.0 1236.6,932.0" fill="#eeeae2" stroke="none"/>
+<polygon points="165.6,170.0 1434.4,170.0 1434.4,1310.0 165.6,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="682.9" y1="878.9" x2="867.7" y2="878.9" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="479.2" y1="802.7" x2="437.6" y2="866.9" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="481.7" y1="964.9" x2="445.9" y2="905.7" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="535.9" y1="989.1" x2="604.3" y2="989.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="771.8" y1="989.1" x2="840.3" y2="989.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1236.6" y1="912.4" x2="1236.6" y2="852.5" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1011.1" y1="1188.9" x2="1105.3" y2="1188.9" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1122.8" y1="1097.3" x2="1122.8" y2="1012.9" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="267.5" y1="170.0" x2="358.1" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="532.5" y1="170.0" x2="703.5" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="910.3" y1="387.5" x2="910.3" y2="238.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1062.6" y1="464.3" x2="961.6" y2="464.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1170.2" y1="464.3" x2="1317.3" y2="464.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1434.4" y1="847.4" x2="1434.4" y2="897.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1434.4" y1="1006.3" x2="1434.4" y2="1073.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1276.3" y1="1188.9" x2="1173.6" y2="1188.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="797.5" y1="1310.0" x2="843.7" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="520.2" y1="1310.0" x2="609.7" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="165.6" y1="985.9" x2="165.6" y2="1136.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="165.6" y1="597.8" x2="165.6" y2="720.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1218.1" y1="821.9" x2="1137.7" y2="821.9" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<text x="297.7" y="317.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="297.7">Büro</tspan></text>
+<text x="302.3" y="675.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="302.3">Kind</tspan></text>
+<text x="305.7" y="1088.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="305.7">Kind</tspan></text>
+<text x="592.0" y="1153.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="592.0">Bad</tspan></text>
+<text x="828.7" y="1149.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="828.7">Ankleide</tspan></text>
+<text x="1278.6" y="1060.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1278.6">HWR / HTR</tspan></text>
+<text x="1335.5" y="877.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1335.5">WC</tspan></text>
+<text x="1278.6" y="643.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1278.6">Eltern / Schlafen</tspan></text>
+<text x="737.9" y="540.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="737.9">Wohnen / Essen / Kochen</tspan></text>
+<text x="893.6" y="961.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="893.6">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=bungalow_040_47&floor=groundfloor" target="_blank">bungalow_040_47 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>1.15 m</td><td>1.63 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.98 m</td><td>3.16 m davon</td><td>Eltern / Schlafen</td></tr>
+  <tr class=""><td>0.96 m</td><td>3.57 m davon</td><td>Kind</td></tr>
+  <tr class=""><td>1.04 m</td><td>3.60 m davon</td><td>HWR / HTR</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">.cubicasa_review_high_quality_architectural_832-83rva9oh groundfloor concept</text>
+<polygon points="697.5,503.5 857.9,503.5 857.9,716.7 806.9,771.4 697.5,771.4" fill="#dceef8" stroke="none"/>
+<polygon points="697.5,346.1 697.5,170.0 994.9,170.0 994.9,346.1" fill="#eeeeee" stroke="none"/>
+<polygon points="549.0,1310.0 234.3,1310.0 234.3,716.7 488.3,716.7 549.0,716.7" fill="#f2e1d4" stroke="none"/>
+<polygon points="806.9,1169.1 806.9,1310.0 1083.4,1310.0 1083.4,1169.1" fill="#dcdcdc" stroke="none"/>
+<polygon points="806.9,1310.0 549.0,1310.0 549.0,1024.0 806.9,1024.0" fill="#d8efdc" stroke="none"/>
+<polygon points="806.9,1024.0 806.9,852.1 806.9,1024.0 549.0,1024.0 549.0,771.4 806.9,771.4" fill="#cadccd" stroke="none"/>
+<polygon points="994.9,1024.0 806.9,1024.0 806.9,771.4 857.9,716.7 994.9,716.7" fill="#eeeae2" stroke="none"/>
+<polygon points="1365.7,716.7 857.9,716.7 857.9,346.1 1365.7,346.1" fill="#e4f4e7" stroke="none"/>
+<polygon points="697.5,503.5 697.5,346.1 697.5,771.4 549.0,771.4 549.0,716.7 488.3,716.7 488.3,346.1 697.5,346.1" fill="#f3f3f3" stroke="none"/>
+<polygon points="857.9,503.5 697.5,503.5 697.5,346.1 857.9,346.1" fill="#d1d1d1" stroke="none"/>
+<polygon points="1365.7,1169.1 994.9,1169.1 994.9,852.1 1365.7,852.1" fill="#fff1b8" stroke="none"/>
+<polygon points="1365.7,852.1 1170.8,852.1 1170.8,716.7 1365.7,716.7" fill="#f6f6f6" stroke="none"/>
+<polygon points="1170.8,852.1 994.9,852.1 994.9,716.7 1170.8,716.7" fill="#cddce4" stroke="none"/>
+<polygon points="994.9,1169.1 806.9,1169.1 806.9,1024.0 994.9,1024.0" fill="#c9c9c9" stroke="none"/>
+<polygon points="234.3,170.0 1365.7,170.0 1365.7,1310.0 234.3,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="488.3" y1="438.6" x2="488.3" y2="362.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="549.0" y1="835.7" x2="549.0" y2="993.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="713.6" y1="1310.0" x2="630.3" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="978.6" y1="1169.1" x2="888.1" y2="1169.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1292.6" y1="1169.1" x2="1135.3" y2="1169.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="978.5" y1="346.1" x2="889.4" y2="346.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="559.5" y1="346.1" x2="646.2" y2="346.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="838.4" y1="346.1" x2="779.8" y2="346.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1077.5" y1="346.1" x2="1263.0" y2="346.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="851.5" y1="723.6" x2="808.7" y2="769.4" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="780.5" y1="503.5" x2="846.6" y2="503.5" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="994.9" y1="858.9" x2="994.9" y2="946.8" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="994.9" y1="772.6" x2="994.9" y2="837.6" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="1240.0" y1="852.1" x2="1306.3" y2="852.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="977.0" y1="1024.0" x2="888.5" y2="1024.0" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<text x="775.6" y="633.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="775.6">Bad</tspan></text>
+<text x="846.2" y="258.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="846.2">Outdoor</tspan></text>
+<text x="391.7" y="1013.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="391.7">Garage / Carport</tspan></text>
+<text x="945.1" y="1239.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="945.1">Outdoor</tspan></text>
+<text x="678.0" y="1167.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="678.0">Kochen</tspan></text>
+<text x="678.0" y="897.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="678.0">Essen</tspan></text>
+<text x="902.8" y="873.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="902.8">Diele</tspan></text>
+<text x="1111.8" y="531.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1111.8">Wohnen</tspan></text>
+<text x="595.8" y="551.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="595.8">Abstellraum</tspan></text>
+<text x="777.7" y="424.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="777.7">Undefined</tspan></text>
+<text x="1180.3" y="1010.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1180.3">Zimmer</tspan></text>
+<text x="1268.3" y="784.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1268.3">Abstellraum</tspan></text>
+<text x="1082.9" y="784.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1082.9">Bad</tspan></text>
+<text x="900.9" y="1096.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="900.9">DraughtLobby</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=cubicasa_review_high_quality_architectural_832&floor=groundfloor" target="_blank">cubicasa_review_high_quality_architectural_832 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.93 m</td><td>2.67 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.92 m</td><td>3.95 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.95 m</td><td>1.42 m davon</td><td>Outdoor</td></tr>
+  <tr class=""><td>0.94 m</td><td>1.74 m davon</td><td>Outdoor</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">onehalfstorey_010 groundfloor concept</text>
+<polygon points="423.1,1310.0 217.6,1310.0 217.6,760.5 696.7,760.5 696.7,1023.1 560.4,1023.1 560.4,911.9 423.1,911.9 423.1,1023.1" fill="#f2e1d4" stroke="none"/>
+<polygon points="696.7,1310.0 696.7,1165.1 560.4,1165.1 560.4,911.9 423.1,911.9 423.1,1310.0" fill="#dceef8" stroke="none"/>
+<polygon points="696.7,1310.0 989.1,1310.0 989.1,971.5 845.0,971.5 845.0,630.8 696.7,630.8 696.7,1023.1" fill="#eeeae2" stroke="none"/>
+<polygon points="989.1,859.6 1382.4,859.6 1382.4,1310.0 989.1,1310.0" fill="#eeeeee" stroke="none"/>
+<polygon points="217.6,760.5 696.7,760.5 696.7,630.8 845.0,630.8 845.0,971.5 989.1,971.5 989.1,859.6 1382.4,859.6 1382.4,336.5 989.1,336.5 989.1,170.0 560.4,170.0 560.4,336.5 217.6,336.5" fill="#d8efdc" stroke="none"/>
+<polygon points="217.6,170.0 1382.4,170.0 1382.4,1310.0 217.6,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="812.0,1084.0 812.0,638.0 736.0,638.0 736.0,1084.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="774.0,1084.0 774.0,638.0" fill="none" stroke="#5b554d" stroke-width="7" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="217.6" y1="570.4" x2="217.6" y2="683.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="425.6" y1="336.5" x2="304.7" y2="336.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="560.4" y1="207.5" x2="560.4" y2="281.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="678.2" y1="170.0" x2="864.9" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="989.1" y1="286.2" x2="989.1" y2="197.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1258.8" y1="336.5" x2="1172.1" y2="336.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1382.4" y1="404.4" x2="1382.4" y2="582.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1382.4" y1="899.8" x2="1382.4" y2="1027.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="217.6" y1="1001.2" x2="217.6" y2="1110.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="217.6" y1="824.8" x2="217.6" y2="945.4" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="668.0" y1="1023.1" x2="576.8" y2="1023.1" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="560.4" y1="1136.5" x2="560.4" y2="1060.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="989.1" y1="1241.1" x2="989.1" y2="1128.9" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="972.2" y1="971.5" x2="863.4" y2="971.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<text x="406.5" y="980.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="406.5">HWR / HTR</tspan></text>
+<text x="528.0" y="1144.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="528.0">DU-WC</tspan></text>
+<text x="818.6" y="1026.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="818.6">Diele</tspan></text>
+<text x="1185.8" y="1084.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1185.8">Gast</tspan></text>
+<text x="828.2" y="541.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="828.2">Wohnen / Essen / Kochen</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=onehalfstorey_010&floor=groundfloor" target="_blank">onehalfstorey_010 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.99 m</td><td>1.28 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.95 m</td><td>3.41 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.67 m</td><td>2.14 m davon</td><td>HWR / HTR</td></tr>
+  <tr class=""><td>0.80 m</td><td>2.85 m davon</td><td>HWR / HTR</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">onehalfstorey_021 groundfloor concept</text>
+<polygon points="336.2,170.0 815.4,170.0 815.4,259.6 1263.8,259.6 1263.8,702.8 336.2,702.8" fill="#d8efdc" stroke="none"/>
+<polygon points="815.4,702.8 1263.8,702.8 1263.8,1001.5 815.4,1001.5" fill="#cadccd" stroke="none"/>
+<polygon points="815.4,1213.6 815.4,702.8 336.2,702.8 336.2,1001.5 602.9,1001.5 602.9,1213.6" fill="#eeeae2" stroke="none"/>
+<polygon points="336.2,1001.5 602.9,1001.5 602.9,1213.6 336.2,1213.6" fill="#dceef8" stroke="none"/>
+<polygon points="815.4,1001.5 1263.8,1001.5 1263.8,1310.0 815.4,1310.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="336.2,170.0 1263.8,170.0 1263.8,1310.0 336.2,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="597.0,880.0 446.0,880.0 446.0,817.0 591.0,817.0 591.0,755.0 384.0,755.0 384.0,942.0 597.0,942.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="597.0,911.0 415.0,911.0 415.0,786.0 591.0,786.0" fill="none" stroke="#5b554d" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="602.9" y1="1071.1" x2="602.9" y2="1170.9" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="815.4" y1="1175.3" x2="815.4" y2="1059.3" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="633.8" y1="1213.6" x2="761.5" y2="1213.6" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="795.8" y1="702.8" x2="611.2" y2="702.8" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="455.6" y1="170.0" x2="682.1" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="907.5" y1="259.6" x2="1166.2" y2="259.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1263.8" y1="364.6" x2="1263.8" y2="604.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1263.8" y1="778.2" x2="1263.8" y2="959.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="976.0" y1="1310.0" x2="1127.7" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="513.6" y1="1213.6" x2="429.8" y2="1213.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="778.8" y="456.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="778.8">Wohnen / Essen</tspan></text>
+<text x="1039.6" y="852.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1039.6">Kochen</tspan></text>
+<text x="607.7" y="913.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="607.7">Diele</tspan></text>
+<text x="469.6" y="1107.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="469.6">WC</tspan></text>
+<text x="1039.6" y="1155.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1039.6">HWR / HTR</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=onehalfstorey_021&floor=groundfloor" target="_blank">onehalfstorey_021 &nearr;</a></h2>
+  <div class="urteil eindeutig">eindeutig &mdash; die oberste</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.95 m</td><td>0.67 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.75 m</td><td>1.25 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.87 m</td><td>1.28 m davon</td><td>Diele</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">onehalfstorey_027 groundfloor concept</text>
+<polygon points="302.2,674.0 753.8,674.0 753.8,924.5 302.2,924.5" fill="#f2e1d4" stroke="none"/>
+<polygon points="302.2,170.0 1297.8,170.0 1297.8,674.0 302.2,674.0" fill="#d8efdc" stroke="none"/>
+<polygon points="753.8,924.5 302.2,924.5 302.2,1310.0 608.3,1310.0 608.3,1072.6 753.8,1072.6" fill="#dfd1c6" stroke="none"/>
+<polygon points="608.3,1072.6 753.8,1072.6 753.8,1310.0 608.3,1310.0" fill="#dceef8" stroke="none"/>
+<polygon points="930.7,924.5 1297.8,924.5 1297.8,1310.0 930.7,1310.0" fill="#fff1b8" stroke="none"/>
+<polygon points="753.8,674.0 1297.8,674.0 1297.8,924.5 930.7,924.5 930.7,1310.0 753.8,1310.0" fill="#eeeae2" stroke="none"/>
+<polygon points="302.2,170.0 1297.8,170.0 1297.8,1310.0 302.2,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="1054.0,901.0 1245.0,901.0 1245.0,704.0 1067.0,704.0 1067.0,772.0 1177.0,772.0 1177.0,833.0 1054.0,833.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="1054.0,867.0 1211.0,867.0 1211.0,738.0 1067.0,738.0" fill="none" stroke="#5b554d" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="925.2" y1="674.0" x2="793.3" y2="674.0" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="409.7" y1="674.0" x2="651.6" y2="674.0" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<line x1="753.8" y1="1047.3" x2="753.8" y2="945.8" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="753.8" y1="1101.5" x2="753.8" y2="1185.4" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="930.7" y1="1090.3" x2="930.7" y2="973.7" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="470.5" y1="170.0" x2="556.6" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="722.2" y1="170.0" x2="896.2" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1042.9" y1="170.0" x2="1135.3" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1297.8" y1="759.5" x2="1297.8" y2="837.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="987.1" y1="1310.0" x2="1177.1" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="637.6" y1="1310.0" x2="694.7" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="490.7" y1="1310.0" x2="559.2" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="302.2" y1="700.2" x2="302.2" y2="833.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="528.0" y="799.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="528.0">Abstellraum</tspan></text>
+<text x="800.0" y="422.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="800.0">Wohnen / Essen</tspan></text>
+<text x="490.1" y="1098.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="490.1">HWR / HTR</tspan></text>
+<text x="681.0" y="1191.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="681.0">WC</tspan></text>
+<text x="1114.2" y="1117.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1114.2">Büro</tspan></text>
+<text x="964.6" y="905.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="964.6">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=onehalfstorey_027&floor=groundfloor" target="_blank">onehalfstorey_027 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>1.05 m</td><td>2.70 m davon</td><td>Büro</td></tr>
+  <tr class=""><td>0.91 m</td><td>3.03 m davon</td><td>HWR / HTR</td></tr>
+  <tr class=""><td>0.75 m</td><td>1.63 m davon</td><td>HWR / HTR</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">onehalfstorey_031 groundfloor concept</text>
+<polygon points="962.8,933.4 1353.7,933.4 1353.7,170.0 246.3,170.0 246.3,707.6 962.8,707.6" fill="#d8efdc" stroke="none"/>
+<polygon points="962.8,933.4 1353.7,933.4 1353.7,1310.0 962.8,1310.0" fill="#fff1b8" stroke="none"/>
+<polygon points="246.3,933.4 604.4,933.4 604.4,1310.0 246.3,1310.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="246.3,707.6 440.9,707.6 440.9,933.4 246.3,933.4" fill="#dceef8" stroke="none"/>
+<polygon points="440.9,707.6 962.8,707.6 962.8,1310.0 604.4,1310.0 604.4,933.4 440.9,933.4" fill="#eeeae2" stroke="none"/>
+<polygon points="246.3,170.0 1353.7,170.0 1353.7,1310.0 246.3,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="789.0,1200.0 713.0,1200.0 713.0,897.0 645.0,897.0 645.0,1268.0 789.0,1268.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="789.0,1234.0 679.0,1234.0 679.0,897.0" fill="none" stroke="#5b554d" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="440.9" y1="811.2" x2="440.9" y2="896.8" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="462.6" y1="933.4" x2="571.3" y2="933.4" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="786.3" y1="707.6" x2="891.6" y2="707.6" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="962.8" y1="740.3" x2="962.8" y2="828.4" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="962.8" y1="1163.0" x2="962.8" y2="1054.2" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="399.0" y1="170.0" x2="521.2" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="682.5" y1="170.0" x2="904.9" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1073.5" y1="170.0" x2="1197.0" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1353.7" y1="652.8" x2="1353.7" y2="814.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1091.8" y1="1310.0" x2="1233.7" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="639.8" y1="1310.0" x2="754.6" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="403.9" y1="1310.0" x2="535.9" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="246.3" y1="780.7" x2="246.3" y2="891.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="846.3" y="488.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="846.3">Wohnen / Essen / Kochen</tspan></text>
+<text x="1158.2" y="1121.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1158.2">Büro</tspan></text>
+<text x="425.4" y="1121.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="425.4">HWR / HTR</tspan></text>
+<text x="343.6" y="820.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="343.6">WC</tspan></text>
+<text x="745.5" y="981.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="745.5">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=onehalfstorey_031&floor=groundfloor" target="_blank">onehalfstorey_031 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.98 m</td><td>1.85 m davon</td><td>Büro</td></tr>
+  <tr class=""><td>0.98 m</td><td>2.46 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>0.95 m</td><td>4.65 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>0.77 m</td><td>1.75 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">onehalfstorey_043 groundfloor concept</text>
+<polygon points="374.6,930.6 779.7,930.6 779.7,1310.0 374.6,1310.0" fill="#d8efdc" stroke="none"/>
+<polygon points="779.7,930.6 950.2,930.6 950.2,1310.0 779.7,1310.0" fill="#eeeeee" stroke="none"/>
+<polygon points="950.2,930.6 228.4,930.6 228.4,575.2 374.6,575.2 374.6,170.0 950.2,170.0" fill="#cadccd" stroke="none"/>
+<polygon points="950.2,881.7 1152.3,881.7 1152.3,1077.6 1371.6,1077.6 1371.6,1310.0 950.2,1310.0" fill="#fff1b8" stroke="none"/>
+<polygon points="950.2,170.0 1371.6,170.0 1371.6,527.1 950.2,527.1" fill="#f2e1d4" stroke="none"/>
+<polygon points="950.2,527.1 1371.6,527.1 1371.6,881.7 950.2,881.7" fill="#eeeae2" stroke="none"/>
+<polygon points="1152.3,881.7 1371.6,881.7 1371.6,1077.6 1152.3,1077.6" fill="#dceef8" stroke="none"/>
+<polygon points="228.4,170.0 1371.6,170.0 1371.6,1310.0 228.4,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="1358.0,725.0 1358.0,537.0 1091.0,537.0 1091.0,621.0 1274.0,621.0 1274.0,725.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="1316.0,725.0 1316.0,579.0 1091.0,579.0" fill="none" stroke="#5b554d" stroke-width="8" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="374.6" y1="420.1" x2="374.6" y2="284.2" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="590.9" y1="170.0" x2="785.3" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1001.3" y1="170.0" x2="1166.3" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1371.6" y1="598.7" x2="1371.6" y2="690.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1371.6" y1="936.5" x2="1371.6" y2="1015.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1042.9" y1="1310.0" x2="1224.0" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="515.9" y1="1310.0" x2="708.2" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="228.4" y1="648.2" x2="228.4" y2="829.4" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="374.6" y1="1224.7" x2="374.6" y2="1027.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="950.2" y1="664.3" x2="950.2" y2="851.7" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<text x="577.2" y="1120.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="577.2">Kochen</tspan></text>
+<text x="865.0" y="1120.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="865.0">Speisekammer</tspan></text>
+<text x="624.1" y="571.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="624.1">Wohnen / Essen</tspan></text>
+<text x="1129.3" y="1132.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1129.3">Büro</tspan></text>
+<text x="1160.9" y="348.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1160.9">HWR / HTR</tspan></text>
+<text x="1160.9" y="704.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1160.9">Diele</tspan></text>
+<text x="1261.9" y="979.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1261.9">DU-WC</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=onehalfstorey_043&floor=groundfloor" target="_blank">onehalfstorey_043 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1223" viewBox="0 0 1600 1223">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">twostorey_003 groundfloor concept</text>
+<polygon points="753.3,428.6 950.6,428.6 950.6,721.4 753.3,721.4" fill="#f2e1d4" stroke="none"/>
+<polygon points="850.8,721.4 950.6,721.4 950.6,912.0 850.8,912.0" fill="#dceef8" stroke="none"/>
+<polygon points="113.1,830.6 646.1,830.6 646.1,1143.0 113.1,1143.0" fill="#d8efdc" stroke="none"/>
+<polygon points="332.3,830.6 332.3,721.4 753.3,721.4 753.3,428.6 113.1,428.6 113.1,830.6" fill="#eeeeee" stroke="none"/>
+<polygon points="646.1,721.4 850.8,721.4 850.8,1143.0 646.1,1143.0" fill="#eeeae2" stroke="none"/>
+<polygon points="805.9,912.0 950.6,912.0 950.6,1143.0 805.9,1143.0" fill="#eeeae2" stroke="none"/>
+<polygon points="990.1,170.0 1486.9,170.0 1486.9,650.5 990.1,650.5" fill="#f2e1d4" stroke="none"/>
+<polygon points="113.1,170.0 1486.9,170.0 1486.9,1143.0 113.1,1143.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="1441.4" y1="650.5" x2="1028.2" y2="650.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="990.1" y1="346.5" x2="990.1" y2="262.9" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="663.6" y1="721.4" x2="735.7" y2="721.4" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="843.8" y1="721.4" x2="777.3" y2="721.4" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="850.8" y1="840.5" x2="850.8" y2="785.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="646.1" y1="890.3" x2="646.1" y2="961.9" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="627.6" y1="428.6" x2="455.7" y2="428.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="834.0" y1="428.6" x2="914.6" y2="428.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="113.1" y1="492.3" x2="113.1" y2="647.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="113.1" y1="918.7" x2="113.1" y2="1084.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="185.3" y1="1143.0" x2="348.9" y2="1143.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="851.9" y="575.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="851.9">HWR / HTR</tspan></text>
+<text x="900.7" y="816.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="900.7">WC</tspan></text>
+<text x="379.6" y="986.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="379.6">Wohnen</tspan></text>
+<text x="409.4" y="597.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="409.4">Essen / Kochen</tspan></text>
+<text x="748.4" y="932.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="748.4">Diele</tspan></text>
+<text x="878.2" y="1027.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="878.2">Diele</tspan></text>
+<text x="1238.5" y="410.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1238.5">Garage</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=twostorey_003&floor=groundfloor" target="_blank">twostorey_003 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.82 m</td><td>1.80 m davon</td><td>Garage</td></tr>
+  <tr class=""><td>4.05 m</td><td>2.47 m davon</td><td>Garage</td></tr>
+  <tr class=""><td>0.71 m</td><td>2.89 m davon</td><td>Wohnen</td></tr>
+  <tr class=""><td>0.55 m</td><td>4.41 m davon</td><td>WC</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1237" viewBox="0 0 1600 1237">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">twostorey_008 groundfloor concept</text>
+<polygon points="1109.1,450.9 1488.2,450.9 1488.2,1157.0 888.1,1157.0 888.1,850.6 1109.1,850.6 1109.1,792.6" fill="#d8efdc" stroke="none"/>
+<polygon points="831.8,450.9 1109.1,450.9 1109.1,745.5 831.8,745.5" fill="#eeeeee" stroke="none"/>
+<polygon points="630.7,450.9 831.8,450.9 831.8,638.3 630.7,638.3" fill="#dceef8" stroke="none"/>
+<polygon points="1109.1,745.5 831.8,745.5 831.8,638.3 630.7,638.3 630.7,968.6 888.1,968.6 888.1,850.6 1109.1,850.6" fill="#eeeae2" stroke="none"/>
+<polygon points="630.7,968.6 888.1,968.6 888.1,1157.0 630.7,1157.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="111.8,170.0 595.4,170.0 595.4,745.5 111.8,745.5" fill="#dfd1c6" stroke="none"/>
+<polygon points="111.8,170.0 1488.2,170.0 1488.2,1157.0 111.8,1157.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="762.0,824.0 1107.0,824.0 1107.0,754.0 762.0,754.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="762.0,789.0 1107.0,789.0" fill="none" stroke="#5b554d" stroke-width="7" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="630.7" y1="845.6" x2="630.7" y2="925.7" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="787.8" y1="968.6" x2="865.1" y2="968.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1022.5" y1="850.6" x2="1091.1" y2="850.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="831.8" y1="724.0" x2="831.8" y2="656.7" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="809.3" y1="638.3" x2="740.5" y2="638.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="687.3" y1="450.9" x2="769.4" y2="450.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="923.5" y1="450.9" x2="1009.8" y2="450.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1488.2" y1="542.3" x2="1488.2" y2="641.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1488.2" y1="744.0" x2="1488.2" y2="868.5" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1488.2" y1="961.4" x2="1488.2" y2="1068.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1227.0" y1="1157.0" x2="1307.3" y2="1157.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="972.4" y1="1157.0" x2="1081.1" y2="1157.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="746.3" y1="1157.0" x2="825.0" y2="1157.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="630.7" y1="761.2" x2="630.7" y2="812.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="524.5" y1="745.5" x2="179.6" y2="745.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="595.4" y1="297.6" x2="595.4" y2="390.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="888.1" y1="954.4" x2="888.1" y2="875.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<text x="1238.1" y="844.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1238.1">Wohnen / Essen / Kochen</tspan></text>
+<text x="970.4" y="598.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="970.4">Gast</tspan></text>
+<text x="731.2" y="544.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="731.2">DU-WC</tspan></text>
+<text x="807.8" y="808.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="807.8">Diele</tspan></text>
+<text x="759.4" y="1062.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="759.4">HWR / HTR</tspan></text>
+<text x="353.6" y="457.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="353.6">Garage</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=twostorey_008&floor=groundfloor" target="_blank">twostorey_008 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.99 m</td><td>2.40 m davon</td><td>Garage</td></tr>
+  <tr class=""><td>0.83 m</td><td>2.78 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.86 m</td><td>3.77 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>3.69 m</td><td>2.57 m davon</td><td>Garage</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">twostorey_015 groundfloor concept</text>
+<polygon points="226.9,170.0 1373.1,170.0 1373.1,847.0 647.6,847.0 647.6,702.5 226.9,702.5" fill="#d8efdc" stroke="none"/>
+<polygon points="226.9,702.5 647.6,702.5 647.6,847.0 226.9,847.0" fill="#eeeeee" stroke="none"/>
+<polygon points="226.9,894.9 647.6,894.9 647.6,1310.0 226.9,1310.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="1235.2,847.0 1373.1,847.0 1373.1,1189.4 1235.2,1189.4" fill="#dceef8" stroke="none"/>
+<polygon points="1235.2,847.0 647.6,847.0 647.6,1310.0 937.6,1310.0 937.6,1189.4 1235.2,1189.4" fill="#eeeae2" stroke="none"/>
+<polygon points="226.9,170.0 1373.1,170.0 1373.1,1310.0 226.9,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="689.0,1052.0 689.0,1277.0 910.0,1277.0 910.0,1059.0 842.0,1059.0 842.0,1209.0 757.0,1209.0 757.0,1052.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="723.0,1052.0 723.0,1243.0 876.0,1243.0 876.0,1059.0" fill="none" stroke="#5b554d" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="647.6" y1="922.3" x2="647.6" y2="1028.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="483.2" y1="702.5" x2="393.1" y2="702.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="907.0" y1="847.0" x2="695.7" y2="847.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1235.2" y1="1061.1" x2="1235.2" y2="967.3" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1015.7" y1="1189.4" x2="1210.8" y2="1189.4" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="328.1" y1="170.0" x2="434.4" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1013.2" y1="170.0" x2="1232.0" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="226.9" y1="322.5" x2="226.9" y2="502.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="343.1" y1="1310.0" x2="558.2" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1373.1" y1="940.3" x2="1373.1" y2="1126.7" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="830.8" y="485.9" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="830.8">Wohnen / Essen / Kochen</tspan></text>
+<text x="437.3" y="774.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="437.3">Speisekammer</tspan></text>
+<text x="437.3" y="1102.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="437.3">HWR / HTR</tspan></text>
+<text x="1304.1" y="1018.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1304.1">WC</tspan></text>
+<text x="919.4" y="1052.5" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="919.4">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=twostorey_015&floor=groundfloor" target="_blank">twostorey_015 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.91 m</td><td>2.90 m davon</td><td>HWR / HTR</td></tr>
+  <tr class=""><td>1.66 m</td><td>1.03 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.80 m</td><td>1.28 m davon</td><td>WC</td></tr>
+  <tr class=""><td>0.77 m</td><td>1.83 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">twostorey_021 groundfloor concept</text>
+<polygon points="176.2,170.0 551.3,170.0 551.3,778.5 176.2,778.5" fill="#f2e1d4" stroke="none"/>
+<polygon points="176.2,778.5 348.3,778.5 348.3,1181.8 176.2,1181.8" fill="#dceef8" stroke="none"/>
+<polygon points="348.3,778.5 717.8,778.5 717.8,1181.8 348.3,1181.8" fill="#eeeae2" stroke="none"/>
+<polygon points="551.3,778.5 717.8,778.5 717.8,1310.0 1423.8,1310.0 1423.8,170.0 551.3,170.0" fill="#d8efdc" stroke="none"/>
+<polygon points="176.2,170.0 1423.8,170.0 1423.8,1310.0 176.2,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="704.0,732.5 1276.0,732.5 1276.0,657.5 704.0,657.5" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="704.0,695.0 1276.0,695.0" fill="none" stroke="#5b554d" stroke-width="7" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="264.3" y1="170.0" x2="367.6" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="751.0" y1="170.0" x2="1012.9" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1423.8" y1="283.9" x2="1423.8" y2="507.4" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1423.8" y1="971.2" x2="1423.8" y2="1189.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="176.2" y1="1025.1" x2="176.2" y2="918.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="554.4" y1="1181.8" x2="410.1" y2="1181.8" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="348.3" y1="931.2" x2="348.3" y2="1029.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="551.3" y1="615.9" x2="551.3" y2="715.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="717.8" y1="842.1" x2="717.8" y2="949.8" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="592.5" y1="778.5" x2="684.6" y2="778.5" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<text x="363.7" y="474.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="363.7">HWR / HTR</tspan></text>
+<text x="262.2" y="980.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="262.2">WC</tspan></text>
+<text x="533.0" y="980.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="533.0">Flur</tspan></text>
+<text x="1022.0" y="710.3" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1022.0">Wohnen / Essen / Kochen</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=twostorey_021&floor=groundfloor" target="_blank">twostorey_021 &nearr;</a></h2>
+  <div class="urteil eindeutig">eindeutig &mdash; die oberste</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>1.15 m</td><td>1.10 m davon</td><td>Flur</td></tr>
+  <tr class=""><td>0.86 m</td><td>3.60 m davon</td><td>Flur</td></tr>
+  <tr class=""><td>0.74 m</td><td>3.71 m davon</td><td>Flur</td></tr>
+  <tr class=""><td>0.78 m</td><td>1.33 m davon</td><td>WC</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">twostorey_022 groundfloor concept</text>
+<polygon points="825.9,976.5 1287.9,976.5 1287.9,170.0 312.1,170.0 312.1,627.2 825.9,627.2" fill="#d8efdc" stroke="none"/>
+<polygon points="825.9,976.5 1287.9,976.5 1287.9,1310.0 825.9,1310.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="312.1,1025.6 549.7,1025.6 549.7,1310.0 312.1,1310.0" fill="#dceef8" stroke="none"/>
+<polygon points="312.1,627.2 825.9,627.2 825.9,1310.0 549.7,1310.0 549.7,1025.6 312.1,1025.6 312.1,884.4" fill="#eeeae2" stroke="none"/>
+<polygon points="312.1,170.0 1287.9,170.0 1287.9,1310.0 312.1,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="546.0,661.0 336.0,661.0 336.0,864.0 534.0,864.0 534.0,800.0 400.0,800.0 400.0,725.0 546.0,725.0" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="546.0,693.0 368.0,693.0 368.0,832.0 534.0,832.0" fill="none" stroke="#5b554d" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="636.6" y1="627.2" x2="731.5" y2="627.2" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="825.9" y1="782.8" x2="825.9" y2="877.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="825.9" y1="1128.3" x2="825.9" y2="1038.9" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="764.2" y1="1310.0" x2="653.0" y2="1310.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="549.7" y1="1091.9" x2="549.7" y2="1184.2" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="312.1" y1="1103.0" x2="312.1" y2="1167.6" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1287.9" y1="1027.5" x2="1287.9" y2="1191.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1287.9" y1="719.5" x2="1287.9" y2="879.8" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="956.1" y1="170.0" x2="1143.6" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="455.6" y1="170.0" x2="643.2" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<text x="868.2" y="505.7" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="868.2">Wohnen / Essen / Kochen</tspan></text>
+<text x="1056.9" y="1143.2" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1056.9">HWR / HTR</tspan></text>
+<text x="430.9" y="1167.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="430.9">WC</tspan></text>
+<text x="602.0" y="921.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="602.0">Diele</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=twostorey_022&floor=groundfloor" target="_blank">twostorey_022 &nearr;</a></h2>
+  <div class="urteil eindeutig">eindeutig &mdash; die oberste</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>1.07 m</td><td>0.81 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.91 m</td><td>3.60 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>0.91 m</td><td>4.03 m davon</td><td>Wohnen / Essen / Kochen</td></tr>
+  <tr class=""><td>0.89 m</td><td>1.44 m davon</td><td>WC</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">twostorey_031 groundfloor concept</text>
+<polygon points="136.6,170.0 470.9,170.0 470.9,429.6 354.6,570.2 136.6,570.2" fill="#f2e1d4" stroke="none"/>
+<polygon points="136.6,570.2 136.6,816.9 470.9,816.9 470.9,697.1 1136.7,697.1 1136.7,570.2 729.3,570.2 729.3,429.6 470.9,429.6 354.6,570.2" fill="#eeeae2" stroke="none"/>
+<polygon points="470.9,697.1 470.9,1182.9 1074.2,1182.9 1074.2,1310.0 1463.4,1310.0 1463.4,752.0 1136.7,752.0 1136.7,697.1" fill="#d8efdc" stroke="none"/>
+<polygon points="1136.7,170.0 1463.4,170.0 1463.4,752.0 1136.7,752.0" fill="#cadccd" stroke="none"/>
+<polygon points="729.3,170.0 1136.7,170.0 1136.7,570.2 729.3,570.2" fill="#eeeeee" stroke="none"/>
+<polygon points="470.9,170.0 729.3,170.0 729.3,429.6 470.9,429.6" fill="#dceef8" stroke="none"/>
+<polygon points="136.6,170.0 1463.4,170.0 1463.4,1310.0 136.6,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<line x1="136.6" y1="489.0" x2="136.6" y2="560.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="510.5" y1="170.0" x2="610.1" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="813.6" y1="170.0" x2="1005.6" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1463.4" y1="224.9" x2="1463.4" y2="421.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1463.4" y1="801.0" x2="1463.4" y2="902.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1463.4" y1="1076.8" x2="1463.4" y2="1159.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1122.5" y1="1310.0" x2="1421.4" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="536.5" y1="1182.9" x2="932.0" y2="1182.9" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="446.3" y1="459.4" x2="381.1" y2="538.2" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="584.2" y1="429.6" x2="514.8" y2="429.6" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1092.4" y1="570.2" x2="996.9" y2="570.2" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="493.2" y1="697.1" x2="701.1" y2="697.1" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="246.3" y1="816.9" x2="370.5" y2="816.9" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<line x1="1369.4" y1="752.0" x2="1171.6" y2="752.0" stroke="#00796b" stroke-width="5" stroke-linecap="round"/>
+<text x="295.4" y="360.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="295.4">HWR / HTR</tspan></text>
+<text x="559.4" y="629.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="559.4">Diele</tspan></text>
+<text x="984.6" y="977.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="984.6">Wohnen / Essen</tspan></text>
+<text x="1300.0" y="461.0" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1300.0">Kochen</tspan></text>
+<text x="933.0" y="370.1" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="933.0">Gast</tspan></text>
+<text x="600.1" y="299.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="600.1">DU-WC</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=twostorey_031&floor=groundfloor" target="_blank">twostorey_031 &nearr;</a></h2>
+  <div class="urteil unklar">nicht eindeutig &mdash; ansehen</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>1.21 m</td><td>1.70 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>0.93 m</td><td>4.09 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>1.00 m</td><td>2.78 m davon</td><td>HWR / HTR</td></tr>
+  <tr class=""><td>0.67 m</td><td>2.68 m davon</td><td>Diele</td></tr>
+  </table>
+ </div>
+</div>
+<div class="k">
+ <div class="bild"><svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1390" viewBox="0 0 1600 1390">
+<rect width="100%" height="100%" fill="white"/>
+<text x="80" y="52" font-family="Arial, sans-serif" font-size="34" font-weight="700" fill="#222">twostorey_035 groundfloor concept</text>
+<polygon points="263.3,739.2 627.4,739.2 627.4,1149.5 263.3,1149.5" fill="#d8efdc" stroke="none"/>
+<polygon points="263.3,170.0 1336.7,170.0 1336.7,739.2 263.3,739.2" fill="#cadccd" stroke="none"/>
+<polygon points="627.4,739.2 998.3,739.2 998.3,1310.0 627.4,1310.0" fill="#eeeae2" stroke="none"/>
+<polygon points="263.3,1149.5 627.4,1149.5 627.4,1310.0 263.3,1310.0" fill="#dceef8" stroke="none"/>
+<polygon points="998.3,739.2 1336.7,739.2 1336.7,1310.0 998.3,1310.0" fill="#f2e1d4" stroke="none"/>
+<polygon points="263.3,170.0 1336.7,170.0 1336.7,1310.0 263.3,1310.0" fill="none" stroke="#2b2b2b" stroke-width="5"/>
+<polygon points="832.0,1278.5 962.5,1278.5 962.5,897.0 895.5,897.0 895.5,1211.5 832.0,1211.5" fill="#d0c2ad" stroke="#5b554d" stroke-width="4" stroke-linejoin="miter"/>
+<polyline points="832.0,1245.0 929.0,1245.0 929.0,897.0" fill="none" stroke="#5b554d" stroke-width="6" stroke-linecap="butt" stroke-linejoin="miter"/>
+<line x1="421.8" y1="170.0" x2="638.2" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="959.3" y1="170.0" x2="1190.9" y2="170.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1336.7" y1="472.5" x2="1336.7" y2="600.3" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="1071.5" y1="1310.0" x2="1193.3" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="416.0" y1="1310.0" x2="534.2" y2="1310.0" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="263.3" y1="911.6" x2="263.3" y2="1043.1" stroke="#008ee6" stroke-width="8" stroke-linecap="round"/>
+<line x1="851.9" y1="739.2" x2="753.8" y2="739.2" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="627.4" y1="1287.7" x2="627.4" y2="1192.1" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="998.3" y1="781.6" x2="998.3" y2="890.2" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="627.4" y1="1011.9" x2="627.4" y2="1117.0" stroke="#d32f2f" stroke-width="5" stroke-linecap="round"/>
+<line x1="336.0" y1="739.2" x2="546.1" y2="739.2" stroke="#c77700" stroke-width="7" stroke-linecap="round" stroke-dasharray="18 12"/>
+<text x="445.3" y="944.4" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="445.3">Kochen</tspan></text>
+<text x="800.0" y="454.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="800.0">Wohnen / Essen</tspan></text>
+<text x="812.8" y="1024.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="812.8">Diele</tspan></text>
+<text x="445.3" y="1229.8" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="445.3">WC</tspan></text>
+<text x="1167.5" y="1024.6" text-anchor="middle" dominant-baseline="middle" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#222"><tspan x="1167.5">HWR / HTR</tspan></text>
+</svg>
+</div>
+ <div>
+  <h2><a href="http://localhost:8765/annotate.html?project=twostorey_035&floor=groundfloor" target="_blank">twostorey_035 &nearr;</a></h2>
+  <div class="urteil eindeutig">eindeutig &mdash; die oberste</div>
+  <table>
+   <tr><th>Breite</th><th>Abstand zur Außenwand</th><th>Raum dahinter</th></tr>
+  <tr class="beste"><td>0.94 m</td><td>0.70 m davon</td><td>Diele</td></tr>
+  <tr class=""><td>1.03 m</td><td>2.39 m davon</td><td>Kochen</td></tr>
+  <tr class=""><td>1.07 m</td><td>3.19 m davon</td><td>HWR / HTR</td></tr>
+  <tr class=""><td>0.96 m</td><td>5.25 m davon</td><td>Wohnen / Essen</td></tr>
+  </table>
+ </div>
+</div>

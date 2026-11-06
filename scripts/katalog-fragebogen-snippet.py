@@ -1,0 +1,166 @@
+"""Baut das WordPress-Zusatz-Snippet "Katalog Fragebogen-Filter".
+
+Rainer, 2026-11-05: "could you also make a checkbox for the dropdowns on top
+to replicate the questions?" -- auf born2thrill.de/grundriss-katalog, "da wo
+alles andere schon ist". Das Snippet haengt eine Zeile unter die Filter von
+Snippet 9 (Grundriss-Katalog): Haekchen "Wie im Fragebogen", Hausart, Zimmer
+(EFH/DHH nur 4/5, Frage 7), Gaeste-WC mit Dusche, "nur im Preisfenster".
+Snippet 9 bleibt unberuehrt; der Filter blendet Karten nur aus.
+
+Die Werte kommen aus konfigurator-matrix.csv (konfigurator-matrix.py,
+REGELN 37) und stehen als Liste im Snippet. Neu laufen lassen, wenn sich die
+Matrix aendert, dann das Snippet in Code Snippets ersetzen.
+
+Ausgabe: wordpress/katalog-fragebogen-filter.php
+"""
+
+import csv
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = os.environ.get("FLOORPLAN_WORKBENCH_DATA_DIR")
+if not DATA:
+    sys.exit("FLOORPLAN_WORKBENCH_DATA_DIR ist nicht gesetzt -- siehe .env.local.")
+ZIEL = os.path.join(HERE, "..", "wordpress", "katalog-fragebogen-filter.php")
+
+
+def werte(pfad):
+    daten = {}
+    with open(pfad, encoding="utf-8") as f:
+        for z in csv.DictReader(f, delimiter=";"):
+            try:
+                zimmer = min(int(float(z.get("zimmer") or 0)), 5)
+            except ValueError:
+                continue
+            daten[z["plan"]] = [z.get("haustyp") or "", zimmer, int(float(z.get("preis_eur") or 0)),
+                                1 if z.get("budget") == "passt" else 0,
+                                1 if z.get("gaeste_wc_dusche") == "ja" else 0]
+    return daten
+
+
+JS = r"""
+(function () {
+	var D = __DATEN__;
+	var ERLAUBT = { efh: ['4', '5'], dhh: ['4', '5'], bungalow: ['3', '4', '5'], zfh: ['3', '4', '5'] };
+	function start() {
+		var form = document.querySelector('.gk-wrap form.gk-search');
+		var grid = document.querySelector('.gk-wrap');
+		if (!form || form.querySelector('.gk-fb')) return;
+		var zeile = document.createElement('div');
+		zeile.className = 'gk-row gk-fb';
+		zeile.innerHTML =
+			'<div class="gk-field gk-fb-an"><label><input type="checkbox" data-fb="an"> Wie im Fragebogen</label></div>' +
+			'<div class="gk-field"><label>Hausart</label><select data-fb="art" disabled><option value="">egal</option>' +
+			'<option value="efh">Einfamilienhaus</option><option value="bungalow">Bungalow</option>' +
+			'<option value="dhh">Doppelhaus / Doppelhaushälfte</option><option value="zfh">Zweifamilienhaus</option></select></div>' +
+			'<div class="gk-field"><label>Zimmer</label><select data-fb="zi" disabled><option value="">egal</option>' +
+			'<option value="3">3 Zimmer</option><option value="4">4 Zimmer</option><option value="5">5 Zimmer</option></select></div>' +
+			'<div class="gk-field"><label>Gäste-WC mit Dusche</label><select data-fb="du" disabled><option value="">egal</option>' +
+			'<option value="1">Ja</option><option value="0">Nein</option></select></div>' +
+			'<div class="gk-field gk-fb-an"><label><input type="checkbox" data-fb="preis" checked disabled> nur im Preisfenster</label></div>' +
+			'<div class="gk-field gk-fb-zahl" data-fb="zahl"></div>';
+		form.appendChild(zeile);
+		var q = function (n) { return zeile.querySelector('[data-fb="' + n + '"]'); };
+		var an = q('an'), art = q('art'), zi = q('zi'), du = q('du'), preis = q('preis'), zahl = q('zahl');
+		function passt(id) {
+			var w = D[id];
+			if (!w) return false;
+			if (art.value && w[0] !== art.value) return false;
+			if (zi.value && String(w[1]) !== zi.value) return false;
+			if (du.value && String(w[4]) !== du.value) return false;
+			if (preis.checked && !w[3]) return false;
+			return true;
+		}
+		var beob = new MutationObserver(function () { if (an.checked) anwenden(); });
+		function beobachten() { beob.observe(grid, { childList: true, subtree: true }); }
+		function anwenden() {
+			// Waehrend wir selbst Karten aendern, nicht auf uns selbst reagieren.
+			beob.disconnect();
+			var sichtbar = 0;
+			grid.querySelectorAll('.gk-card').forEach(function (karte) {
+				var h = karte.querySelector('h3');
+				var id = h ? h.textContent.trim() : '';
+				var ok = !an.checked || passt(id);
+				karte.style.display = ok ? '' : 'none';
+				var alt = karte.querySelector('.gk-fb-info');
+				if (alt) alt.remove();
+				if (an.checked && ok && D[id]) {
+					var info = document.createElement('p');
+					info.className = 'gk-fb-info';
+					info.textContent = D[id][1] + ' Zimmer · ca. ' + Math.round(D[id][2] / 1000) + ' Tsd. €' +
+						(D[id][4] ? ' · Gäste-WC mit Dusche' : '');
+					var kopf = karte.querySelector('.gk-meta') || h;
+					kopf.parentNode.insertBefore(info, kopf.nextSibling);
+				}
+				if (ok) sichtbar++;
+			});
+			zahl.textContent = an.checked ? sichtbar + ' passende Häuser' : '';
+			beobachten();
+		}
+		function schalten() {
+			[art, zi, du, preis].forEach(function (el) { el.disabled = !an.checked; });
+			var erlaubt = ERLAUBT[art.value] || ['3', '4', '5'];
+			Array.prototype.forEach.call(zi.options, function (o) {
+				o.disabled = !!o.value && erlaubt.indexOf(o.value) < 0;
+			});
+			if (zi.value && erlaubt.indexOf(zi.value) < 0) zi.value = '';
+			anwenden();
+		}
+		[an, art, zi, du, preis].forEach(function (el) { el.addEventListener('change', schalten); });
+		// Snippet 9 zeichnet die Karten bei jedem Filter neu.
+		beobachten();
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+	else start();
+	setTimeout(start, 1500);
+})();
+"""
+
+CSS = """.gk-fb{margin-top:.6rem;padding-top:.6rem;border-top:1px solid rgba(255,255,255,.12);align-items:end}
+.gk-fb .gk-fb-an label{display:flex;align-items:center;gap:.4rem;text-transform:none;letter-spacing:0;min-height:2.4rem}
+.gk-fb select:disabled{opacity:.45}
+.gk-fb-zahl{align-self:center;opacity:.8}
+.gk-fb-info{margin:.3rem 0 0;font-size:.85rem;font-weight:600}"""
+
+
+def main():
+    daten = werte(os.path.join(DATA, "konfigurator-matrix.csv"))
+    js = JS.replace("__DATEN__", json.dumps(daten, separators=(",", ":"), sort_keys=True))
+    php = f"""<?php
+/**
+ * Katalog Fragebogen-Filter (Zusatz zu Snippet 9 "Grundriss-Katalog").
+ * Erzeugt von born2thrill-local-workbench/scripts/katalog-fragebogen-snippet.py
+ * -- nicht von Hand aendern, neu erzeugen. {len(daten)} Haeuser.
+ * Nur Frontend, nur auf Seiten mit [grundriss_katalog]. Liest nichts aus der
+ * Datenbank und schreibt nichts.
+ */
+add_action( 'wp_footer', function () {{
+	if ( is_admin() ) {{
+		return;
+	}}
+	$post = get_post();
+	if ( ! $post || ! has_shortcode( $post->post_content, 'grundriss_katalog' ) ) {{
+		return;
+	}}
+	?>
+<style id="gk-fragebogen-css">
+{CSS}
+</style>
+<script id="gk-fragebogen-js">
+{js.strip()}
+</script>
+	<?php
+}}, 100 );
+"""
+    with open(ZIEL, "w", encoding="utf-8", newline="\n") as f:
+        f.write(php)
+    with open(ZIEL.replace(".php", ".js"), "w", encoding="utf-8", newline="\n") as f:
+        f.write("(function(){var s=document.createElement('style');s.textContent=" + json.dumps(CSS)
+                + ";document.head.appendChild(s);})();\n" + js)
+    print(f"{os.path.abspath(ZIEL)}: {len(daten)} Haeuser")
+
+
+if __name__ == "__main__":
+    main()

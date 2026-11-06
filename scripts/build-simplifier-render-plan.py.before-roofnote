@@ -1,0 +1,1899 @@
+# Build a furnished render plan directly from Simplifier annotations.
+#
+# WHY THIS EXISTS, AND WHAT IT IS NOT
+#
+# The approved pipeline is: Simplifier annotations -> canonical JSON -> render.
+# Canonical JSON is the single geometry source for anything delivered, and
+# scripts/build-furnished-render-plan.mjs is the builder that path uses.
+#
+# bungalow_040_66 has no canonical document — it is `training_ready`, not
+# promoted — and promoting it is the whole generator process, not a step. So
+# this script exists to get a PICTURE out of hand-annotated data for review.
+# It is a proof path, exactly like scripts/render-furnished-dollhouse.py which
+# it feeds:
+#
+#   * it never writes canonical geometry
+#   * it never computes or touches geometry_hash
+#   * nothing it produces may be delivered, published or emailed
+#
+# The output carries `source: "simplifier_annotations_proof"` so an image built
+# this way can always be told apart from one built from approved geometry.
+#
+# WHAT IT DOES
+#
+# Reads projects/<id>/annotations.json and turns it into the same
+# dmh-furnished-render-plan-proof-v1 schema the Blender script already
+# consumes:
+#
+#   rooms      <- annotation polygons, German labels mapped to material kinds
+#   walls      <- room polygon edges; an edge shared by two rooms is interior,
+#                 an edge belonging to one room is exterior
+#   openings   <- door/window/opening elements, matched to their nearest wall
+#   placements <- Rainer's hand-placed Ausstattung symbols, which is the whole
+#                 point: furniture that was annotated rather than guessed
+#
+# Usage:
+#   python scripts/build-simplifier-render-plan.py <project_id> <style> <out.json>
+
+import hashlib
+import json
+import math
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+REPO = os.path.dirname(HERE)
+SIMPLIFIER = os.path.join(os.path.dirname(REPO), "floorplan-simplifier")
+SHORTLIST = os.path.join(REPO, "tmp", "symbol-model-shortlist.json")
+PICKS = os.path.join(REPO, "data", "symbol-model-picks.json")
+# A placed symbol records type, position and rotation and nothing else — that
+# separation is deliberate, so a symbol never carries a size that could drift
+# from the catalogue. The footprint therefore has to be looked up.
+FOOTPRINTS = os.path.join(SIMPLIFIER, "symbol_footprints.json")
+
+# German room label -> the material kind the renderer understands. Longest and
+# most specific first: "Elternbad" must reach `sanitary` on "bad", not
+# `sleeping` on "eltern", which is the same precedence bug that once classed a
+# bathroom as a bedroom in the Simplifier.
+ROOM_KINDS = [
+    ("duschbad", "sanitary"), ("kinderbad", "sanitary"), ("elternbad", "sanitary"),
+    ("gästebad", "sanitary"), ("gaestebad", "sanitary"), ("tageslichtbad", "sanitary"),
+    ("badezimmer", "sanitary"), ("du-wc", "sanitary"), ("dusch", "sanitary"),
+    ("bad", "sanitary"), ("gäste-wc", "sanitary"), ("gaeste-wc", "sanitary"),
+    ("wc", "sanitary"),
+    ("hwr", "service"), ("htr", "service"), ("hauswirtschaft", "service"),
+    ("technik", "service"), ("waschküche", "service"),
+    ("diele", "circulation"), ("flur", "circulation"), ("windfang", "circulation"),
+    ("treppe", "circulation"),
+    ("ankleide", "storage"), ("abstell", "storage"), ("speis", "storage"),
+    ("keller", "storage"), ("garderobe", "storage"),
+    ("küche", "living"), ("kueche", "living"), ("essen", "living"),
+    ("wohnen", "living"), ("wohnzimmer", "living"),
+    ("schlafen", "sleeping"), ("eltern", "sleeping"), ("kind", "sleeping"),
+    ("gast", "sleeping"), ("büro", "sleeping"), ("arbeiten", "sleeping"),
+]
+
+# Spaces that are not interior rooms. A carport has no floor finish and no
+# furniture, and including it stretches the camera framing over dead ground.
+EXCLUDED_ROOMS = ("carport", "garage", "terrasse", "balkon", "loggia")
+
+# Height in mm for each symbol, the dimension a 2D footprint cannot carry, plus
+# the finish category the renderer uses when a model has no materials of its
+# own. Mount height is the CENTRE of a wall-hung item.
+SYMBOL_3D = {
+    "badewanne":         {"height": 580,  "type": "bathtub"},
+    "eckbadewanne":      {"height": 580,  "type": "bathtub"},
+    "dusche":            {"height": 2000, "type": "shower", "build": "shower"},
+    "dusche_gross":      {"height": 2000, "type": "shower", "build": "shower"},
+    "dusche_klein":      {"height": 2000, "type": "shower", "build": "shower"},
+    "wand_wc":           {"height": 400,  "type": "toilet", "mount": 660},
+    # mount is the item CENTRE. The resolved Toilet Bowl model is 820mm
+    # tall (probed z-range, includes the flush plate), so centre 660 puts
+    # its underside at 250mm -- wall-hung with visible air. 200 sat it on
+    # the floor (Rainer 2026-08-11); 480 still only left 70mm.
+    "waschtisch":        {"height": 200,  "type": "sink",   "mount": 850},
+    "doppelwaschtisch":  {"height": 200,  "type": "sink",   "mount": 850},
+    "handwaschbecken":   {"height": 200,  "type": "sink",   "mount": 850},
+    "badheizkoerper":    {"height": 1200, "type": "radiator", "mount": 900, "build": "radiator"},
+    "vorwandinstallation": {"height": 1500, "type": "wall_panel", "depth": 150},
+    "kuechenzeile":      {"height": 900,  "type": "counter", "depth": 600},
+    "kuecheninsel":      {"height": 900,  "type": "counter", "depth": 900},
+    "kuehlschrank":      {"height": 1800, "type": "fridge"},
+    "hochschrank_herd":  {"height": 2100, "type": "oven_housing"},
+    "kochfeld":          {"height": 50,   "type": "hob",  "mount": 900, "build": "hob"},
+    "spuele":            {"height": 200,  "type": "sink", "mount": 880, "build": "hob"},
+    "waschmaschine":     {"height": 850,  "type": "washer"},
+    "trockner":          {"height": 850,  "type": "washer"},
+    "ecksofa":           {"height": 800,  "type": "sofa"},
+    "sofa_3sitzer":      {"height": 800,  "type": "sofa"},
+    "sofa_2sitzer":      {"height": 800,  "type": "sofa"},
+    "sofa_1sitzer":      {"height": 800,  "type": "armchair"},
+    "hocker":            {"height": 450,  "type": "stool"},
+    "couchtisch":        {"height": 400,  "type": "coffee_table"},
+    "lowboard":          {"height": 500,  "type": "sideboard"},
+    "sideboard":         {"height": 800,  "type": "sideboard"},
+    "fernseher":         {"height": 700,  "type": "tv", "mount": 1100, "build": "tv"},
+    "essgruppe_6":       {"height": 750,  "type": "dining_set"},
+    "playstation_gruppe": {"height": 750, "type": "dining_set"},
+    "doppelbett":        {"height": 500,  "type": "bed"},
+    "einzelbett":        {"height": 500,  "type": "bed"},
+    "kleiderschrank":    {"height": 2100, "type": "wardrobe"},
+    "schrank_60":        {"height": 2100, "type": "wardrobe"},
+    "schrank_40":        {"height": 2100, "type": "wardrobe"},
+    "abstellschrank":    {"height": 2100, "type": "wardrobe"},
+    "schreibtisch":      {"height": 750,  "type": "desk"},
+    "schreibtisch_kind": {"height": 720,  "type": "desk"},
+    "garderobe":         {"height": 1900, "type": "wardrobe"},
+    "schreibtischstuhl": {"height": 1200, "type": "office_chair"},
+    "essgruppe_stuhl":   {"height": 844,  "type": "dining_chair"},
+    "pflanze":           {"height": 1300, "type": "plant", "build": "plant"},
+}
+
+DEFAULT_WALL_THICKNESS_MM = 240
+INTERIOR_WALL_THICKNESS_MM = 115
+
+
+def room_kind(label):
+    lowered = (label or "").lower()
+    for needle, kind in ROOM_KINDS:
+        if needle in lowered:
+            return kind
+    return "living"
+
+
+def excluded(label):
+    lowered = (label or "").lower()
+    return any(needle in lowered for needle in EXCLUDED_ROOMS)
+
+
+def load_json(path):
+    with open(path, "r", encoding="utf-8-sig") as handle:
+        return json.load(handle)
+
+
+def load_annotations(project_dir):
+    """annotations.json, plus the hand-entered Gebaeudemass beside it.
+
+    119 projects were annotated and then had their source image deleted by the
+    import pipeline's own privacy policy. Their drawings are intact -- the room
+    points are normalised, so they never needed the image -- but without the
+    image there is no aspect ratio and no scale, and image_size() had nothing to
+    fall back on.
+
+    The two missing numbers live in `gebaeudemass.json` NEXT TO the annotation,
+    never inside it. The annotation is the user's own drawing and stays
+    untouched; a measurement typed in afterwards is a separate fact about the
+    same house, and keeping it separate means it can be corrected or removed
+    without ever rewriting what was drawn.
+    """
+    annotations = load_json(os.path.join(project_dir, "annotations.json"))
+    sidecar = os.path.join(project_dir, "gebaeudemass.json")
+    if not os.path.exists(sidecar):
+        return annotations
+    extra = load_json(sidecar) or {}
+    # The drawing always wins: a scale inside the annotation was measured on the
+    # real image and beats a number typed in afterwards.
+    if not annotations.get("floor_scale") and extra.get("floor_scale"):
+        annotations["floor_scale"] = extra["floor_scale"]
+    if not annotations.get("annotation_space") and extra.get("annotation_space"):
+        annotations["annotation_space"] = extra["annotation_space"]
+    return annotations
+
+
+def image_size(project_dir, annotations=None):
+    """Pixel size of the preview the annotations were drawn on.
+
+    Normalized y is measured against image HEIGHT, so without the aspect ratio
+    every plan comes out squashed along one axis — the same unit mix-up that
+    made symbols render 81.5 % too shallow in the annotation UI.
+
+    Projects whose source image was deleted after annotation have no preview
+    to read at all (onehalfstorey_*), and used to fail here with "could not
+    read preview image size". For those the ratio is stated by hand in the
+    Simplifier as the outer outline's real width x depth and stored as
+    `annotation_space.aspect` (image height / image width) — an aspect is all
+    this function's callers ever use the pixel numbers for.
+    """
+    space = (annotations or {}).get("annotation_space") or {}
+    aspect = space.get("aspect")
+    if isinstance(aspect, (int, float)) and 0.01 <= float(aspect) <= 100:
+        return 1000.0, 1000.0 * float(aspect)
+    names = ["original_preview.png", "room_concept.png"]
+    # One concept PNG per floor is the current layout; the unprefixed name
+    # above only exists on single-floor projects.
+    names += sorted(
+        name for name in os.listdir(project_dir)
+        if name.endswith("_room_concept.png")
+    )
+    for name in names:
+        candidate = os.path.join(project_dir, name)
+        if not os.path.exists(candidate):
+            continue
+        with open(candidate, "rb") as handle:
+            head = handle.read(33)
+        if head[:8] == b"\x89PNG\r\n\x1a\n":
+            width = int.from_bytes(head[16:20], "big")
+            height = int.from_bytes(head[20:24], "big")
+            if width and height:
+                return width, height
+    raise SystemExit(
+        "could not read preview image size — no preview PNG and no "
+        "annotation_space.aspect (set the Gebäudemaße in the Simplifier)"
+    )
+
+
+def workbench_data_root():
+    """Where the workbench actually writes.
+
+    Taken from the same environment variable the Next.js API uses
+    (`dataRoot()` in src/app/api/floorplan-workbench/corrections/route.ts).
+    A hardcoded sibling-folder guess pointed at
+    Floorplan-tools/born2thrill-local-workbench-data while the running server
+    wrote to C:/dev/born2thrill-local-workbench-data — a silently different
+    tree, so furniture would have looked "not saved" forever.
+    """
+    configured = os.environ.get("FLOORPLAN_WORKBENCH_DATA_DIR", "").strip()
+    if not configured:
+        raise SystemExit(
+            "FLOORPLAN_WORKBENCH_DATA_DIR is not set — refusing to guess which "
+            "workbench data tree holds the furniture")
+    return os.path.abspath(configured)
+
+
+FURNITURE_COORDINATE_SPACE = "correction-document-mm-svg-y-down-v1"
+# The space furniture was stored in before it moved onto the correction plan.
+# Refused, not reinterpreted — the two differ by a non-uniform factor per axis.
+LEGACY_FURNITURE_SPACE = "simplifier-render-plan-mm-v1"
+
+
+def workbench_furniture(project_id, level):
+    """Furniture placed in the workbench, already in this plan's millimetres.
+
+    No transform. An earlier version fitted the editor's floor bounding box
+    onto this one, which cannot be right: the workbench edits snapped, cleaned
+    geometry whose x and y spans differ from the annotation-derived plan by
+    different factors (1.123 vs 1.249 measured on onehalfstorey_020), so no
+    single fit aligns anything but the four extremes. The editor is fed this
+    script's own geometry instead (see --geometry-only) and stores what it is
+    given.
+
+    Returns None when there is no file, so every project annotated before the
+    move keeps rendering from `annotations.symbols`. Returns [] when the file
+    exists with no symbols: deliberately clearing a floor is not the same as
+    never having furnished it.
+    """
+    # The two paths name floors differently: the correction document uses
+    # "floor-0"/"floor-1", the annotation path uses "groundfloor"/"upperfloor".
+    # The furniture editor writes the correction ids, so a house built from its
+    # annotation looked for "groundfloor.json", found nothing and reported
+    # "0 furniture" -- with ten symbols sitting in floor-0.json (Rainer,
+    # 2026-08-19). Same file, two names for the same storey: try both.
+    aliases = [level]
+    order = {"groundfloor": "floor-0", "upperfloor": "floor-1",
+             "floor-0": "groundfloor", "floor-1": "upperfloor"}
+    if level in order:
+        aliases.append(order[level])
+    folder = os.path.join(workbench_data_root(), "corrections", project_id, "furniture")
+    path = None
+    for name in aliases:
+        candidate = os.path.join(folder, f"{name}.json")
+        if os.path.exists(candidate):
+            path = candidate
+            break
+    if path is None:
+        return None
+    document = load_json(path)
+    symbols = document.get("symbols") or []
+    if not symbols:
+        return []
+    if document.get("coordinate_space") != FURNITURE_COORDINATE_SPACE:
+        space = document.get("coordinate_space")
+        hint = (" — that is the pre-correction render space; re-place this floor's "
+                "furniture on the correction plan"
+                if space == LEGACY_FURNITURE_SPACE else "")
+        raise SystemExit(
+            f"{path}: furniture is in an unsupported coordinate space ({space!r})"
+            f"{hint}. Refusing to approximate.")
+    return symbols
+
+
+class Frame:
+    """Normalized annotation space -> millimetres, y flipped.
+
+    Image y grows downward; a floorplan in 3D wants y growing north, otherwise
+    every plan renders mirrored and every door swings the wrong way.
+    """
+
+    def __init__(self, scale_metres_per_x_unit, pixel_width, pixel_height):
+        self.width_mm = scale_metres_per_x_unit * 1000.0
+        self.height_mm = self.width_mm * (pixel_height / float(pixel_width))
+
+    def point(self, position):
+        return [round(position["x"] * self.width_mm, 1),
+                round((1.0 - position["y"]) * self.height_mm, 1)]
+
+    def xy(self, x, y):
+        return self.point({"x": x, "y": y})
+
+
+def polygon_area(points):
+    total = 0.0
+    for index, (x, y) in enumerate(points):
+        nx, ny = points[(index + 1) % len(points)]
+        total += x * ny - nx * y
+    return abs(total) / 2.0
+
+
+def _edges_of(rooms):
+    """Every room boundary edge, with the room's centroid so "outward" is known."""
+    out = []
+    for room in rooms:
+        points = room["polygon_mm"]
+        cx = sum(p[0] for p in points) / len(points)
+        cy = sum(p[1] for p in points) / len(points)
+        for index, start in enumerate(points):
+            end = points[(index + 1) % len(points)]
+            if math.dist(start, end) < 150:
+                continue
+            out.append({"room": room["id"], "a": list(start), "b": list(end),
+                        "centroid": (cx, cy)})
+    return out
+
+
+def _overlap(edge_a, edge_b):
+    """Portion of edge_a that faces edge_b, as two points, or None.
+
+    Rooms are annotated as their INNER boundary, so two rooms either side of a
+    partition never share an edge — they have parallel edges about a wall
+    thickness apart. The first version of this looked for shared edges and
+    found none, which is why every one of the 40 walls came out exterior. What
+    actually identifies an interior wall is a pair of near-parallel edges,
+    close together, whose lengths overlap.
+    """
+    ax, ay = edge_a["a"]
+    bx, by = edge_a["b"]
+    length = math.dist((ax, ay), (bx, by))
+    if length < 150:
+        return None
+    ux, uy = (bx - ax) / length, (by - ay) / length
+
+    # Project the other edge onto this one and keep the overlapping stretch.
+    ts = []
+    for point in (edge_b["a"], edge_b["b"]):
+        ts.append((point[0] - ax) * ux + (point[1] - ay) * uy)
+    low, high = max(0.0, min(ts)), min(length, max(ts))
+    if high - low < 400:
+        return None
+    return ((ax + ux * low, ay + uy * low), (ax + ux * high, ay + uy * high))
+
+
+def _perpendicular_gap(edge_a, edge_b):
+    ax, ay = edge_a["a"]
+    bx, by = edge_a["b"]
+    length = math.dist((ax, ay), (bx, by))
+    ux, uy = (bx - ax) / length, (by - ay) / length
+    nx, ny = -uy, ux
+    gaps = [abs((point[0] - ax) * nx + (point[1] - ay) * ny) for point in (edge_b["a"], edge_b["b"])]
+    return sum(gaps) / 2.0
+
+
+# Kept in sync with floorplan-simplifier/walls.py -- see that file's
+# _merge_collinear_walls docstring for the full rationale (Rainer,
+# 2026-08-13: "the outer wall ... has to be one element").
+MERGE_LINE_OFFSET_TOLERANCE_MM = 150
+MERGE_GAP_TOLERANCE_MM = 300
+# Rainer, 2026-08-16: "correct the walls whenever you generate them, 90
+# degree angels or sometimes 45 corners, closed and points to close like
+# under 40cm you can combine and fill out those damn corners". Kept in sync
+# with floorplan-simplifier/walls.py's copy of the same function.
+OUTLINE_WELD_DISTANCE_MM = 400
+OUTLINE_ANGLE_SNAP_TOLERANCE_DEG = 6.0
+
+
+def _regularize_outline_points(points, weld_distance_mm=OUTLINE_WELD_DISTANCE_MM,
+                                angle_tolerance_deg=OUTLINE_ANGLE_SNAP_TOLERANCE_DEG):
+    """Clean up a hand-drawn closed polygon before it becomes walls:
+
+    1. Weld consecutive vertices closer than weld_distance_mm into one point.
+    2. Make near-axis edges exactly axis-aligned by snapping VERTEX
+       COORDINATES, not edge directions.
+
+    Why coordinates and not directions: snapping each edge's angle while
+    keeping its length re-walks the loop, and eight independently snapped
+    edges no longer meet at the end. The old code knew this -- it rotated the
+    loop so the SHORTEST edge would absorb the closure error -- but absorbing
+    it anywhere still leaves one crooked wall. onehalfstorey_029 was drawn with
+    every edge within 2.7 degrees of an axis, comfortably inside the 6 degree
+    tolerance, and still came out with a wall 6.7 degrees off, because that one
+    edge was carrying the drift of the other seven (Rainer, 2026-08-19: "the
+    outer wall is wrong, i redrew that and it is still wrong").
+
+    Sharing a coordinate cannot fail to close: a near-vertical edge means its
+    two endpoints have the same x, a near-horizontal edge the same y. Those are
+    constraints on POINTS, so they are resolved by grouping the points and
+    averaging -- the polygon stays closed by construction, and every near-axis
+    edge ends up exactly axis-true rather than one of them absorbing the rest.
+
+    Edges near a 45 degree diagonal are left exactly as drawn: they carry no
+    shared-coordinate constraint, and forcing one would move a corner that the
+    axis-aligned neighbours have already pinned.
+    """
+    if len(points) < 3:
+        return [list(p) for p in points]
+
+    welded = [list(points[0])]
+    for p in points[1:]:
+        if math.dist(welded[-1], p) >= weld_distance_mm:
+            welded.append(list(p))
+    if len(welded) > 2 and math.dist(welded[-1], welded[0]) < weld_distance_mm:
+        welded.pop()
+    if len(welded) < 3:
+        return welded
+
+    n = len(welded)
+    tolerance = math.radians(angle_tolerance_deg)
+
+    parent_x = list(range(n))
+    parent_y = list(range(n))
+
+    def find(parent, i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    def union(parent, a, b):
+        ra, rb = find(parent, a), find(parent, b)
+        if ra != rb:
+            parent[rb] = ra
+
+    for i in range(n):
+        j = (i + 1) % n
+        dx = welded[j][0] - welded[i][0]
+        dy = welded[j][1] - welded[i][1]
+        if math.hypot(dx, dy) < 1e-6:
+            continue
+        angle = math.atan2(dy, dx)
+        off_vertical = abs(abs(angle) - math.pi / 2)
+        off_horizontal = min(abs(angle), math.pi - abs(angle))
+        if off_vertical <= tolerance:
+            union(parent_x, i, j)      # same x -> exactly vertical
+        elif off_horizontal <= tolerance:
+            union(parent_y, i, j)      # same y -> exactly horizontal
+
+    groups_x, groups_y = {}, {}
+    for i in range(n):
+        groups_x.setdefault(find(parent_x, i), []).append(i)
+        groups_y.setdefault(find(parent_y, i), []).append(i)
+
+    out = [list(p) for p in welded]
+    for members in groups_x.values():
+        if len(members) > 1:
+            mean = sum(welded[i][0] for i in members) / len(members)
+            for i in members:
+                out[i][0] = mean
+    for members in groups_y.values():
+        if len(members) > 1:
+            mean = sum(welded[i][1] for i in members) / len(members)
+            for i in members:
+                out[i][1] = mean
+    return out
+
+
+def _merge_collinear_walls(walls):
+    by_type = {}
+    for wall in walls:
+        by_type.setdefault(wall["wall_type"], []).append(wall)
+
+    merged_all = []
+    for wall_type, group in by_type.items():
+        lines = []
+        for wall in group:
+            ax, ay = wall["start_mm"]
+            bx, by = wall["end_mm"]
+            length = math.dist((ax, ay), (bx, by))
+            if length < 1e-6:
+                continue
+            ux, uy = (bx - ax) / length, (by - ay) / length
+            angle = math.atan2(uy, ux) % math.pi
+            nx, ny = -uy, ux
+            offset = ax * nx + ay * ny
+            placed = False
+            for line in lines:
+                angle_diff = abs((angle - line["angle"] + math.pi / 2) % math.pi - math.pi / 2)
+                if (angle_diff <= math.radians(PARALLEL_TOLERANCE_DEG)
+                        and abs(offset - line["offset"]) <= MERGE_LINE_OFFSET_TOLERANCE_MM):
+                    line["members"].append(wall)
+                    placed = True
+                    break
+            if not placed:
+                lines.append({"angle": angle, "offset": offset, "members": [wall]})
+
+        for line in lines:
+            members = line["members"]
+            ref = members[0]
+            rax, ray = ref["start_mm"]
+            rbx, rby = ref["end_mm"]
+            rlen = math.dist((rax, ray), (rbx, rby)) or 1.0
+            rux, ruy = (rbx - rax) / rlen, (rby - ray) / rlen
+
+            def _t(point):
+                return (point[0] - rax) * rux + (point[1] - ray) * ruy
+
+            spans = []
+            for wall in members:
+                t0 = _t(wall["start_mm"])
+                t1 = _t(wall["end_mm"])
+                spans.append((min(t0, t1), max(t0, t1), wall["thickness_mm"],
+                             set(wall.get("rooms") or [])))
+            spans.sort(key=lambda s: s[0])
+
+            run_lo, run_hi, run_thickness, run_rooms = spans[0]
+            for lo, hi, thickness, rooms in spans[1:]:
+                if lo - run_hi <= MERGE_GAP_TOLERANCE_MM:
+                    run_hi = max(run_hi, hi)
+                    run_thickness = max(run_thickness, thickness)
+                    run_rooms |= rooms
+                    continue
+                merged_all.append({
+                    "id": f"wall-{len(merged_all)}",
+                    "start_mm": [rax + rux * run_lo, ray + ruy * run_lo],
+                    "end_mm": [rax + rux * run_hi, ray + ruy * run_hi],
+                    "thickness_mm": run_thickness,
+                    "wall_type": wall_type,
+                    "rooms": sorted(run_rooms),
+                })
+                run_lo, run_hi, run_thickness, run_rooms = lo, hi, thickness, rooms
+            merged_all.append({
+                "id": f"wall-{len(merged_all)}",
+                "start_mm": [rax + rux * run_lo, ray + ruy * run_lo],
+                "end_mm": [rax + rux * run_hi, ray + ruy * run_hi],
+                "thickness_mm": run_thickness,
+                "wall_type": wall_type,
+                "rooms": sorted(run_rooms),
+            })
+
+    return merged_all
+
+
+MITER_LIMIT = 2.0   # max corner reach as a multiple of the offset distance
+
+
+def _offset_outline_inward(points, distance_mm):
+    """Move every edge of a closed polygon `distance_mm` toward its interior.
+
+    Each edge is shifted along its own inward normal and consecutive shifted
+    edges are re-intersected, so corners stay sharp instead of being rounded or
+    left with gaps. A corner whose edges are nearly parallel has no usable
+    intersection; there the shifted point is used directly rather than letting
+    a near-singular solve throw the vertex across the building.
+    """
+    n = len(points)
+    if n < 3 or distance_mm == 0:
+        return [list(p) for p in points]
+
+    area2 = sum(points[i][0] * points[(i + 1) % n][1] - points[(i + 1) % n][0] * points[i][1]
+                for i in range(n))
+    inward = 1.0 if area2 > 0 else -1.0      # +1 for counter-clockwise winding
+    # A NEGATIVE distance offsets outward instead. Needed for an outline drawn
+    # along the inside face, where the centreline lies outside the drawn line.
+    if distance_mm < 0:
+        inward = -inward
+    distance_mm = abs(distance_mm)
+
+    lines = []
+    for i in range(n):
+        ax, ay = points[i]
+        bx, by = points[(i + 1) % n]
+        dx, dy = bx - ax, by - ay
+        length = math.hypot(dx, dy)
+        if length < 1e-9:
+            lines.append(None)
+            continue
+        nx, ny = -dy / length * inward, dx / length * inward
+        lines.append((ax + nx * distance_mm, ay + ny * distance_mm, dx / length, dy / length))
+
+    out = []
+    for i in range(n):
+        prev = lines[(i - 1) % n]
+        cur = lines[i]
+        if prev is None or cur is None:
+            out.append(list(points[i]))
+            continue
+        px, py, pdx, pdy = prev
+        cx, cy, cdx, cdy = cur
+        denominator = pdx * cdy - pdy * cdx
+        if abs(denominator) < 1e-9:          # nearly parallel: no sharp corner
+            out.append([cx, cy])
+            continue
+        t = ((cx - px) * cdy - (cy - py) * cdx) / denominator
+        corner = [px + pdx * t, py + pdy * t]
+
+        # Miter limit (Codex review 2026-08-19). At an interior angle theta the
+        # mitred corner sits distance/sin(theta/2) from the original vertex, so
+        # a sharp notch throws the vertex far outside the building: 20 degrees
+        # would move a 175mm offset by about 1000mm. Clamp it back along the
+        # direction it travelled.
+        #
+        # Measured on this corpus before choosing the limit: 5 outlines, 32
+        # corners, ALL between 60 and 120 degrees, sharpest 86.29 degrees =
+        # 1.46x the offset. MITER_LIMIT 2.0 therefore cannot trigger on any
+        # current house -- verified by recompiling all four buildable plans and
+        # diffing the geometry, which was byte-identical. It exists so a future
+        # sharp outline degrades to a bevel instead of a spike.
+        vx, vy = corner[0] - points[i][0], corner[1] - points[i][1]
+        reach = math.hypot(vx, vy)
+        cap = distance_mm * MITER_LIMIT
+        if reach > cap > 0:
+            corner = [points[i][0] + vx / reach * cap,
+                      points[i][1] + vy / reach * cap]
+        out.append(corner)
+    return out
+
+
+# What the drawn Aussenumriss actually traces. Codex asked for this to be
+# stated rather than assumed: "outline semantics must be explicit
+# (outside_face / centreline / inside_face)". The value maps to the offset
+# applied before the outline becomes wall CENTRELINES -- positive inward,
+# negative outward, zero for a line already drawn on the centreline.
+OUTLINE_REFERENCES = {
+    "outside_face": +DEFAULT_WALL_THICKNESS_MM / 2.0,
+    "centreline": 0.0,
+    "inside_face": -DEFAULT_WALL_THICKNESS_MM / 2.0,
+}
+DEFAULT_OUTLINE_REFERENCE = "outside_face"
+
+
+def _outline_to_walls(outline_mm, reference=DEFAULT_OUTLINE_REFERENCE):
+    """Exterior walls straight from a user-drawn outline polygon (in mm) --
+    one wall per edge, already one-element-per-straight-run by
+    construction. Regularized first (see _regularize_outline_points) so
+    near-duplicate corners and off-angle edges from freehand drawing don't
+    become visible wall defects."""
+    outline_mm = _regularize_outline_points(outline_mm)
+    # The drawn Aussenumriss traces the OUTSIDE FACE of the building -- that is
+    # what you see on a floorplan and what a person traces. Walls, however, are
+    # defined by their CENTRELINE, so emitting the outline unchanged made every
+    # building half a wall thickness too big on all four sides: 120mm of a
+    # 240mm wall standing outside the line that was drawn (Codex review,
+    # 2026-08-19, ranked this the most likely cause of "the outer wall is
+    # wrong" after the angles were already exact).
+    #
+    # So the outline is offset INWARD by half the wall thickness before it
+    # becomes centrelines. Inward is decided from the polygon's own winding via
+    # the signed area, not assumed, because a hand-drawn outline can be traced
+    # either way round.
+    # Which face the line represents is now READ, not assumed. The default is
+    # outside_face, so an annotation that says nothing behaves exactly as
+    # before -- verified by recompiling all four buildable plans and diffing
+    # them byte for byte.
+    if reference not in OUTLINE_REFERENCES:
+        raise SystemExit(
+            "outer_outline_reference=%r ist unbekannt. Erlaubt: %s"
+            % (reference, ", ".join(sorted(OUTLINE_REFERENCES))))
+    outline_mm = _offset_outline_inward(outline_mm, OUTLINE_REFERENCES[reference])
+    walls = []
+    for index, start in enumerate(outline_mm):
+        end = outline_mm[(index + 1) % len(outline_mm)]
+        if math.dist(start, end) < 150:
+            continue
+        walls.append({
+            "id": f"wall-outline-{index}",
+            "start_mm": list(start),
+            "end_mm": list(end),
+            "thickness_mm": DEFAULT_WALL_THICKNESS_MM,
+            "wall_type": "exterior",
+            "rooms": [],
+        })
+    return walls
+
+
+# How far apart two room boundaries may be and still be one partition rather
+# than two rooms with a cupboard between them. German interior walls run
+# 100-150 mm plus plaster; 400 mm is generous without being absurd.
+MAX_PARTITION_GAP_MM = 400
+PARALLEL_TOLERANCE_DEG = 12
+
+
+def build_walls(rooms, outer_outline_mm=None,
+                outline_reference=DEFAULT_OUTLINE_REFERENCE):
+    """Interior walls from facing room boundaries, exterior from the rest.
+
+    An interior wall is centred between the two room faces it separates. An
+    exterior wall is pushed outward by half its thickness, because the room
+    polygon is the inside face and a wall drawn centred on it would eat into
+    the room.
+
+    outer_outline_mm: optional single closed polygon (list of [x, y] mm
+    points) marking the true exterior boundary, drawn once by Rainer. When
+    given, exterior walls come straight from its edges instead of the
+    "uncovered room-edge span" heuristic below -- reliable regardless of how
+    the room polygons underneath happen to be drawn. Kept in sync with
+    floorplan-simplifier/walls.py's derive_walls.
+    """
+    # Straighten the ROOM polygons too, not just the drawn outline.
+    #
+    # The outline got vertex-coordinate snapping earlier today; room polygons
+    # did not, so every wall derived from them kept the hand tremor -- 029's
+    # upper floor came out with 4 walls up to 8.8 degrees off axis while its
+    # ground floor (built from the outline) was exact. Same job, two code
+    # paths, one of them fixed: the shape of nearly every fault in this
+    # pipeline. Snapping here uses the identical function, so a room edge that
+    # is within tolerance of horizontal or vertical becomes exactly that.
+    rooms = [dict(room, polygon_mm=_regularize_outline_points(room["polygon_mm"]))
+             if room.get("polygon_mm") and len(room["polygon_mm"]) >= 3 else room
+             for room in rooms]
+    edges = _edges_of(rooms)
+    # An edge may face SEVERAL rooms along its length (a long HWR wall with
+    # DU-WC on one span and the Flur on another). Exclusive one-shot pairing
+    # (`used[j]`) let the first room consume the whole edge; the second
+    # room's edge then found no partner and fell through to the exterior
+    # branch -- a 240mm 'exterior' wall dead-ending in the middle of the
+    # flat, which is exactly the fat junction stub seen on render (task
+    # #12). So: an edge may partner once per FACING PAIR; only an edge that
+    # never partnered at all becomes exterior. Each room's own edge pulls
+    # in its own span, so a shared long edge ends up correctly split into
+    # one thin wall per neighbour.
+    partnered = [False] * len(edges)
+    paired = set()
+    # Per-edge list of (t0, t1) intervals along the edge that a pairing
+    # actually covered. One pairing used to consume the WHOLE edge, so the
+    # stretch of a long edge beyond its partner's overlap silently got NO
+    # wall at all — confirmed on bungalow_040_66: the Gast/office east
+    # edge paired with the Wohnen west edge over a partial span and the
+    # remainder (the missing 'Wand D' Rainer pointed at) vanished.
+    covered = [[] for _ in edges]
+    walls = []
+
+    def _interval_on(edge, span):
+        ax, ay = edge["a"]
+        bx, by = edge["b"]
+        length = math.dist((ax, ay), (bx, by)) or 1.0
+        ux, uy = (bx - ax) / length, (by - ay) / length
+        ts = sorted(((p[0] - ax) * ux + (p[1] - ay) * uy) for p in span)
+        return (max(0.0, ts[0]), min(length, ts[1]))
+
+    for i, edge in enumerate(edges):
+        angle = math.atan2(edge["b"][1] - edge["a"][1], edge["b"][0] - edge["a"][0])
+        partner = None
+        for j, other in enumerate(edges):
+            if j == i or other["room"] == edge["room"] or (i, j) in paired:
+                continue
+            other_angle = math.atan2(other["b"][1] - other["a"][1], other["b"][0] - other["a"][0])
+            difference = abs((angle - other_angle + math.pi / 2) % math.pi - math.pi / 2)
+            if difference > math.radians(PARALLEL_TOLERANCE_DEG):
+                continue
+            gap = _perpendicular_gap(edge, other)
+            if gap > MAX_PARTITION_GAP_MM or gap < 20:
+                continue
+            span = _overlap(edge, other)
+            if span is None:
+                continue
+            if partner is None or gap < partner[0]:
+                partner = (gap, j, span)
+
+        if partner is not None:
+            gap, j, span = partner
+            partnered[i] = partnered[j] = True
+            paired.add((i, j))
+            paired.add((j, i))
+            covered[i].append(_interval_on(edges[i], span))
+            covered[j].append(_interval_on(edges[j], span))
+            other = edges[j]
+            # Centreline sits midway between the two faces.
+            ax, ay = edge["a"]
+            bx, by = edge["b"]
+            length = math.dist((ax, ay), (bx, by))
+            nx, ny = -(by - ay) / length, (bx - ax) / length
+            towards = (other["a"][0] - ax) * nx + (other["a"][1] - ay) * ny
+            shift = (gap / 2.0) * (1 if towards > 0 else -1)
+            walls.append({
+                "id": f"wall-{len(walls)}",
+                "start_mm": [round(span[0][0] + nx * shift, 1), round(span[0][1] + ny * shift, 1)],
+                "end_mm": [round(span[1][0] + nx * shift, 1), round(span[1][1] + ny * shift, 1)],
+                "thickness_mm": round(gap),
+                "wall_type": "interior",
+                "rooms": sorted({edge["room"], other["room"]}),
+            })
+
+    if outer_outline_mm:
+        walls.extend(_outline_to_walls(outer_outline_mm, outline_reference))
+    else:
+        for i, edge in enumerate(edges):
+            ax, ay = edge["a"]
+            bx, by = edge["b"]
+            length = math.dist((ax, ay), (bx, by))
+            # The UNCOVERED stretches of this edge (whole edge when it never
+            # paired) each become an exterior wall — a partial pairing must
+            # not delete the rest of the wall.
+            gaps = []
+            cursor = 0.0
+            for t0, t1 in sorted(covered[i]):
+                if t0 - cursor > 300:
+                    gaps.append((cursor, t0))
+                cursor = max(cursor, t1)
+            if length - cursor > 300:
+                gaps.append((cursor, length))
+            if not gaps:
+                continue
+            ux, uy = (bx - ax) / length, (by - ay) / length
+            nx, ny = -uy, ux
+            # Push away from the room, so the wall sits outside its inner face.
+            inward = (edge["centroid"][0] - ax) * nx + (edge["centroid"][1] - ay) * ny
+            shift = (DEFAULT_WALL_THICKNESS_MM / 2.0) * (-1 if inward > 0 else 1)
+            for t0, t1 in gaps:
+                walls.append({
+                    "id": f"wall-{len(walls)}",
+                    "start_mm": [round(ax + ux * t0 + nx * shift, 1),
+                                 round(ay + uy * t0 + ny * shift, 1)],
+                    "end_mm": [round(ax + ux * t1 + nx * shift, 1),
+                               round(ay + uy * t1 + ny * shift, 1)],
+                    "thickness_mm": DEFAULT_WALL_THICKNESS_MM,
+                    "wall_type": "exterior",
+                    "rooms": [edge["room"]],
+                })
+
+    return _merge_collinear_walls(walls)
+
+
+def point_in_polygon(point, polygon, tolerance_mm=300):
+    """Inside the polygon, or within tolerance of its boundary — openings sit
+    ON a room's edge, so their midpoint can land just outside the polygon."""
+    x, y = point
+    inside = False
+    j = len(polygon) - 1
+    for i in range(len(polygon)):
+        xi, yi = polygon[i]
+        xj, yj = polygon[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    if inside:
+        return True
+    for i in range(len(polygon)):
+        sx, sy = polygon[i]
+        ex, ey = polygon[(i + 1) % len(polygon)]
+        length_squared = (ex - sx) ** 2 + (ey - sy) ** 2
+        if not length_squared:
+            continue
+        t = max(0.0, min(1.0, ((x - sx) * (ex - sx) + (y - sy) * (ey - sy)) / length_squared))
+        if math.dist(point, (sx + t * (ex - sx), sy + t * (ey - sy))) <= tolerance_mm:
+            return True
+    return False
+
+
+def nearest_wall(walls, a, b):
+    """The wall an opening belongs to: closest by midpoint, and roughly parallel.
+
+    Angle matters. A door drawn across a corner sits near two walls, and
+    attaching it to the perpendicular one puts it through the return.
+    """
+    midpoint = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+    angle = math.atan2(b[1] - a[1], b[0] - a[0])
+    best = None
+    for wall in walls:
+        sx, sy = wall["start_mm"]
+        ex, ey = wall["end_mm"]
+        wall_angle = math.atan2(ey - sy, ex - sx)
+        difference = abs((angle - wall_angle + math.pi / 2) % math.pi - math.pi / 2)
+        if difference > math.radians(25):
+            continue
+        length_squared = (ex - sx) ** 2 + (ey - sy) ** 2
+        if not length_squared:
+            continue
+        t = ((midpoint[0] - sx) * (ex - sx) + (midpoint[1] - sy) * (ey - sy)) / length_squared
+        t = max(0.0, min(1.0, t))
+        distance = math.dist(midpoint, (sx + t * (ex - sx), sy + t * (ey - sy)))
+        if best is None or distance < best[0]:
+            best = (distance, wall, t)
+    return best
+
+
+def load_model_picks(style="modern"):
+    """Resolved Hub models for each symbol key, with their scale divisor.
+
+    Types come from the assets' own names and sizes were verified by
+    scripts/resolve-hub-scales.py, so nothing here is inferred from a
+    measurement — which is what went wrong every time today. The old
+    size-match shortlist is deliberately NOT consulted: it ranked models
+    against a library whose measurements the FBX conversion had corrupted.
+    """
+    if not os.path.exists(PICKS):
+        return {}
+    raw = load_json(PICKS).get("picks", {})
+    resolved = {}
+    for key, entry in raw.items():
+        if not isinstance(entry, dict):
+            continue
+        chosen = entry.get(style) or entry.get("modern")
+        if not isinstance(chosen, dict) or not chosen.get("path"):
+            continue
+        resolved[key] = {
+            "path": chosen["path"],
+            "divisor": chosen.get("divisor", 1.0),
+            "size_mm": chosen.get("size_mm"),
+            "label": chosen.get("label"),
+            "source": "hub_resolved",
+        }
+    return resolved
+
+
+# How far a model's real footprint may sit from the annotated one before a box
+# serves better. A real model squeezed to a third of its size looks worse than
+# a plain box at the right size — the stretched-sofa mistake in reverse.
+#
+# Crude on purpose. Nobody measures a marketing render; it only has to avoid
+# looking obviously wrong.
+# 0.45 was slightly too tight: a 400 mm basin against a 600 mm symbol misses by
+# 49 % and got replaced by a box, when the real basin would have looked better.
+# Nobody measures a marketing render, so err towards the real model.
+FOOTPRINT_TOLERANCE = 0.6
+
+
+def footprint_mismatch(model, footprint):
+    """True when the model is too far off the drawn footprint to use."""
+    size = model.get("size_mm")
+    if not size or not footprint.get("width_mm"):
+        return False
+    want = sorted([footprint["width_mm"], footprint["depth_mm"]], reverse=True)
+    got = sorted(size[:2], reverse=True)
+    for a, b in zip(got, want):
+        if b <= 0:
+            continue
+        if abs(a - b) / float(b) > FOOTPRINT_TOLERANCE:
+            return True
+    return False
+
+
+def geometry_only(project_id, out_path):
+    """The room polygons of this plan, in this plan's millimetres, and nothing
+    else.
+
+    The furniture editor needs to place things in the space the renderer
+    actually builds. Re-deriving that space in TypeScript would mean a second
+    implementation of Frame, image_size, floor_scale and the room exclusions —
+    and a third coordinate system the first time one of them drifted. So the
+    one implementation that already exists answers the question.
+    """
+    project_dir = os.path.join(SIMPLIFIER, "projects", project_id)
+    annotations = load_annotations(project_dir)
+    pixel_width, pixel_height = image_size(project_dir, annotations)
+    floor_scale = annotations.get("floor_scale") or {}
+
+    floors = []
+    levels = sorted({item.get("floor_level") for item in annotations.get("annotations", [])
+                     if item.get("floor_level")})
+    for level in levels:
+        scale = floor_scale.get(level)
+        if not scale:
+            raise SystemExit(f"{level} has no calibrated scale — set it in the Simplifier first")
+        frame = Frame(scale, pixel_width, pixel_height)
+        rooms = []
+        for item in annotations.get("annotations", []):
+            if item.get("floor_level") != level or len(item.get("points") or []) < 3:
+                continue
+            if excluded(item.get("label")):
+                continue
+            rooms.append({
+                "id": item.get("id"),
+                "name": item.get("label"),
+                "kind": room_kind(item.get("label")),
+                "polygon_mm": [frame.point(point) for point in item["points"]],
+            })
+        floors.append({
+            "floor_level": level,
+            "width_mm": round(frame.width_mm, 1),
+            "height_mm": round(frame.height_mm, 1),
+            "rooms": rooms,
+        })
+
+    payload = {
+        "project_id": project_id,
+        "coordinate_space": FURNITURE_COORDINATE_SPACE,
+        "floors": floors,
+    }
+    with open(out_path, "w", encoding="utf-8") as handle:
+        json.dump(payload, handle, indent=2)
+    print(f"[geometry] wrote {out_path} ({len(floors)} floor(s))")
+
+
+def approved_correction_revision(path):
+    """An APPROVED correction revision, or a hard stop.
+
+    Step 2 of plans/renderer-switch-execution-order.md: the renderer's source
+    becomes explicit. `save_draft` is durable but not approved, and the
+    corrections GET endpoint hands back the lexically newest revision whatever
+    its status — so a rejected revision saved after an approved one would
+    otherwise become the geometry a render is built from. AGENTS.md: nothing
+    generates geometry without an approved corrected reference.
+    """
+    if not os.path.exists(path):
+        raise SystemExit(f"{path}: no such correction revision")
+    document = load_json(path)
+    status = document.get("status") or document.get("approval_status")
+    if status != "approved":
+        raise SystemExit(
+            f"{path}: revision status is {status!r}, not 'approved' — refusing to "
+            f"render from it")
+    return document
+
+
+
+def corrected_placements(reference, floor_id, flip, models):
+    """Furniture placed in the workbench, in the corrected document's space.
+
+    Every stamp goes through the SAME hub-model resolution as the annotation
+    path. Emitting geometry without `mesh_path`/`scale_divisor` produced a plan
+    that looked complete and verified clean, while Blender reported
+    "furniture 0 instances from 0 meshes" and rendered empty rooms — the
+    failure is silent because a name with no model behind it is simply skipped.
+    """
+    symbols = workbench_furniture(reference, floor_id)
+    if not symbols:
+        return [], []
+    placements, skipped = [], []
+    for symbol in symbols:
+        key = symbol.get("symbol")
+        spec = SYMBOL_3D.get(key)
+        if not spec:
+            skipped.append({"symbol": key, "reason": "no 3D specification"})
+            continue
+        if symbol.get("points_mm"):
+            points = symbol["points_mm"]
+            # A run or rectangle whose points coincide has no size. It reaches
+            # Blender as a degenerate mesh and shows up as a spike through
+            # whatever stands nearby (Rainer, 2026-08-17: "something is sticking
+            # through the dining table"). Two clicks on one spot is easy to do.
+            span_x = max(pt[0] for pt in points) - min(pt[0] for pt in points)
+            span_y = max(pt[1] for pt in points) - min(pt[1] for pt in points)
+            if max(span_x, span_y) < 50:
+                skipped.append({"symbol": key, "reason": "drawn with no size — re-draw it"})
+                continue
+            placements.append({
+                "asset_id": key,
+                "type": spec["type"],
+                "build": "rect" if key == "kuecheninsel" else "path",
+                "points_mm": [flip(p) for p in points],
+                "depth_mm": symbol.get("depth_mm") or spec.get("depth", 600),
+                "height_mm": spec["height"],
+                "mesh_path": None,
+                "model_source": "procedural",
+                "scale_divisor": 1.0,
+                "source": "workbench_furniture_corrected",
+            })
+            continue
+        if not symbol.get("position_mm"):
+            skipped.append({"symbol": key, "reason": "no position"})
+            continue
+        footprint = symbol.get("footprint_mm") or {}
+        model = models.get(key)
+        build = spec.get("build")
+        if not model and not build:
+            build = "box"
+        # A footprint set by dragging the symbol's corners is a measurement of
+        # THIS plan and outranks the model's nominal size, so the mismatch gate
+        # must not fire against it — same rule as the annotation path.
+        measured_here = bool(footprint.get("width_mm"))
+        mismatch = (bool(model) and not measured_here
+                    and footprint_mismatch(model, footprint))
+        if mismatch and not build:
+            build = "box"
+
+        placements.append({
+            "asset_id": key,
+            "type": spec["type"],
+            "mesh_path": model["path"] if model and not mismatch else None,
+            "model_source": (model["source"] if model and not mismatch
+                             else "procedural"),
+            "model_label": model.get("label") if model else None,
+            "scale_divisor": model.get("divisor", 1.0) if model else 1.0,
+            "verified_size_mm": model.get("size_mm") if model else None,
+            "size_mismatch": mismatch,
+            "footprint_measured": measured_here,
+            "build": build,
+            "position_mm": flip(symbol["position_mm"]),
+            # The editor's Y-down space becomes the renderer's Y-up space by
+            # REFLECTION, and a reflection flips handedness as well as angle.
+            # Negating the rotation alone left every asymmetric piece the wrong
+            # way round — invisible on a rectangle, obvious on an Ecksofa
+            # (Rainer, 2026-08-17: "couch not mirrored"). So the mirror flag
+            # inverts too.
+            "rotation_deg": (360 - int(symbol.get("rotation_deg", 0))) % 360,
+            "mirrored": not bool(symbol.get("mirrored")),
+            "target_bbox_mm": {
+                "width_mm": footprint.get("width_mm"),
+                "depth_mm": footprint.get("depth_mm"),
+                "height_mm": spec["height"],
+            },
+            "height_mm": spec.get("mount", 0),
+            # Same rule as the annotation path (see the long note at the other
+            # placement site): `build` normally means "procedural, no mesh
+            # imported", so claiming preserve_materials there would make the
+            # plan lie. The sink is the one exception the renderer honours --
+            # it imports its real model despite carrying build="hob".
+            #
+            # This branch was MISSING that exception while the annotation
+            # branch had it, so the corrected path shipped
+            # preserve_materials=false for `spuele`. The renderer then sent a
+            # real 1000x500x506 library sink through normalise_to_bbox (the
+            # Tripo axis-reorder path, which sorts axes by extent): the
+            # model's 506mm height was matched to the 600mm target DEPTH and
+            # its 500mm depth to the 200mm target HEIGHT, tipping the sink
+            # onto its back and squashing it into a 600x600x200 slab, with
+            # its materials cleared. That is the "Spuele sits proud of the
+            # worktop" defect -- not a mounting-height bug.
+            "preserve_materials": bool(model) and not mismatch and (
+                not build or spec["type"] == "sink"),
+            "source": "workbench_furniture_corrected",
+        })
+    return placements, skipped
+
+
+def annotation_roof(project_id, key):
+    """Roof choice from the annotation package. The corrected document carries
+    geometry, not style, so the Dachform still lives with the annotations."""
+    path = os.path.join(SIMPLIFIER, "projects", project_id, "annotations.json")
+    if not os.path.exists(path):
+        return None
+    annotations = load_json(path)
+    if key in ("modern", "classic"):
+        return annotations.get(f"roof_type_{key}")
+    return annotations.get("roof_overhang_mm")
+
+
+def source_provenance(project_id):
+    """The annotation this plan is being compiled from, by hash.
+
+    Half of the fail-closed boundary Codex asked for: the compiler stamps what
+    it read, the renderer refuses anything that no longer matches. A stale plan
+    then fails loudly instead of quietly rendering last week's house.
+    """
+    # Hash the annotation THIS COMPILER READ, not the one the annotator says it
+    # wrote. Codex, 2026-08-19: "source_provenance() copies a hash from
+    # source-state.json rather than hashing the actual annotations.json loaded
+    # by the compiler ... a TOCTOU bug disguised as provenance." The two files
+    # can diverge: the hook swallows its own failures, the writes are separate,
+    # and a hand-edited annotation bypasses the hook entirely.
+    annotation_file = os.path.join(SIMPLIFIER, "projects", project_id, "annotations.json")
+    try:
+        with open(annotation_file, encoding="utf-8-sig") as handle:
+            annotations = json.load(handle)
+        canonical = json.dumps(annotations, sort_keys=True, ensure_ascii=False,
+                               separators=(",", ":")).encode("utf-8")
+        scale = annotations.get("floor_scale") or {}
+        levels = sorted({a.get("floor_level") for a in (annotations.get("annotations") or [])
+                         if a.get("floor_level")})
+        return {
+            "annotation_hash": hashlib.sha256(canonical).hexdigest(),
+            "annotation_saved_at": annotations.get("updated_at"),
+            "floors_without_scale": [lvl for lvl in levels if not scale.get(lvl)],
+        }
+    except Exception:
+        # No source-state yet (annotator not saved since the hook landed).
+        # Say so explicitly rather than inventing a hash.
+        return {"annotation_hash": None, "annotation_saved_at": None,
+                "floors_without_scale": []}
+
+
+# Codex: "the stair type must be explicit in the annotation, not inferred".
+# Today the type is guessed from how many points the Lauflinie has -- 2 gerade,
+# 3 viertelgewendelt, 4+ halbgewendelt. That guess cannot tell a WINDER from a
+# LANDING: a Podesttreppe drawn with three points is called viertelgewendelt
+# and built with tapered treads, which is a different stair. The docstring
+# below records exactly that case on onehalfstorey_029 ("two properly drawn
+# Podesttreppen").
+#
+# So a drawn stair may now SAY what it is. The value maps to whether this
+# renderer can actually build it; declaring one it cannot build is refused
+# rather than quietly rendered as something else.
+STAIR_TYPES_BUILDABLE = ("gerade", "viertelgewendelt", "halbgewendelt", "podest")
+STAIR_TYPES_NOT_YET = ("spindel",)
+STAIR_TYPE_FROM_POINTS = {2: "gerade", 3: "viertelgewendelt"}
+
+
+def declared_stair_type(element):
+    """The stair type the annotation states, or None if it states none."""
+    value = (element.get("stair_type") or element.get("treppentyp") or "").strip().lower()
+    if not value:
+        return None
+    if value not in STAIR_TYPES_BUILDABLE + STAIR_TYPES_NOT_YET:
+        raise SystemExit(
+            "stair_type=%r ist unbekannt. Erlaubt: %s"
+            % (value, ", ".join(STAIR_TYPES_BUILDABLE + STAIR_TYPES_NOT_YET)))
+    return value
+
+
+def annotation_stair_core(annotations, frame, ground_level):
+    """A stair core from the DRAWN stairs, for the annotation-proof path.
+
+    `shared_stair_core` used to come only from a correction document, so a house
+    that had never been through the correction editor rendered with no stairs at
+    all -- silently, with "stair none in plan" buried in a log. onehalfstorey_029
+    hit exactly this: two properly drawn Podesttreppen, zero revisions, and a
+    stairless render (Rainer, 2026-08-19).
+
+    The drawn polyline IS the Lauflinie (ETA-06/0261, Anhang 1), so it is passed
+    through as `path_mm` unchanged and the renderer sets the treads out along it.
+    The point count names the type -- 2 gerade, 3 viertelgewendelt, 4+
+    halbgewendelt -- matching floorplan.ts:912 rather than inventing a second
+    rule. The polygon is the swept width around that line, which is what the
+    Treppenloch is cut from.
+
+    Returns None when nothing is drawn: no stair is a legitimate state for a
+    bungalow, and guessing one would be worse than none.
+    """
+    drawn = [e for e in (annotations.get("elements") or [])
+             if e.get("type") == "stairs"
+             and (e.get("floor_level") == ground_level or not e.get("floor_level"))
+             and len(e.get("points") or []) >= 2]
+    if not drawn:
+        return None
+    stair = drawn[0]
+    points = stair["points"]
+    path_mm = [frame.point(p) for p in points]
+
+    # Width: the annotator stores it in the same normalised x as the points.
+    width_mm = None
+    if stair.get("width"):
+        width_mm = abs(frame.point({"x": stair["width"], "y": 0})[0]
+                       - frame.point({"x": 0, "y": 0})[0])
+    # DIN 18065: a notwendige Treppe in a dwelling needs 800mm clear running
+    # width. onehalfstorey_029's drawn band came out at 660mm and was rendered
+    # as-is -- too narrow to be a legal stair, and it looked wrong (Rainer,
+    # 2026-08-19: "you have to widen it 660 is not enough"). The drawn line is
+    # a Lauflinie, not a measurement of the flight, so a band narrower than the
+    # minimum is treated as unmeasured rather than as a 660mm stair.
+    DIN_18065_MIN_MM = 800.0
+    if not width_mm or width_mm < DIN_18065_MIN_MM:
+        width_mm = 1000.0           # comfortable domestic flight
+
+    plan_type = ("straight" if len(points) == 2
+                 else "quarter_turn" if len(points) == 3
+                 else "half_or_multi_turn")
+
+    # What the drawing SAYS, next to what its shape implies. Both travel into
+    # the plan: the renderer needs the declared one to build the right stair,
+    # and a disagreement between the two is worth surfacing rather than
+    # silently resolving.
+    declared = declared_stair_type(stair)
+    inferred = STAIR_TYPE_FROM_POINTS.get(len(points), "halbgewendelt")
+    if declared and declared in STAIR_TYPES_BUILDABLE and declared != inferred:
+        print("[plan] Hinweis: stair_type=%s, die Lauflinie mit %d Punkten "
+              "sieht aber nach %s aus" % (declared, len(points), inferred))
+
+    # The polygon is the path swept by the flight width, so the Treppenloch is
+    # cut from the shape the stair actually occupies -- including its turns.
+    half = width_mm / 2
+    left, right = [], []
+    for index, (x, y) in enumerate(path_mm):
+        nx, ny = path_mm[min(index + 1, len(path_mm) - 1)]
+        px, py = path_mm[max(index - 1, 0)]
+        dx, dy = nx - px, ny - py
+        length = (dx * dx + dy * dy) ** 0.5 or 1.0
+        ox, oy = -dy / length * half, dx / length * half
+        left.append([x + ox, y + oy])
+        right.append([x - ox, y - oy])
+    polygon_mm = left + list(reversed(right))
+
+    return {
+        "id": stair.get("id") or "annotation-stair",
+        "polygon_mm": polygon_mm,
+        "path_mm": path_mm,
+        "plan_type": plan_type,
+        "declared_type": declared,
+        "inferred_type": inferred,
+        "usable_width_mm": width_mm,
+        "geometry": {"riseMm": 175, "goingMm": 280, "risers": 16},
+    }
+
+
+def annotation_exterior_areas(project_id, corrected_rooms):
+    """Terrasse / Einfahrt / Gehweg from the annotation package, mapped into
+    the CORRECTED document's millimetre space.
+
+    The corrected path shipped `"exterior_areas": []` hard-coded, so every
+    render from an approved revision had a house standing on bare ground with
+    no driveway, path or terrace (Rainer, 2026-08-17: "outside you still do
+    not have any of the outside stuff like driveway garden").
+
+    The two spaces do not share an origin: annotation millimetres come from
+    the drawing's own scale calibration, corrected millimetres from the
+    corrector. They DO share the building, so the ground floor's footprint
+    bounding box gives the affine fit -- scale and offset per axis -- and the
+    site areas ride through it. Fitting on the footprint rather than assuming
+    a common origin is the whole point; assuming would put the driveway
+    through the house.
+    """
+    path = os.path.join(SIMPLIFIER, "projects", project_id, "annotations.json")
+    if not os.path.exists(path) or not corrected_rooms:
+        return []
+    annotations = load_json(path)
+    areas = annotations.get("exterior_areas") or []
+    if not areas:
+        return []
+    project_dir = os.path.join(SIMPLIFIER, "projects", project_id)
+    pixel_width, pixel_height = image_size(project_dir, annotations)
+    floor_scale = annotations.get("floor_scale") or {}
+    level = "groundfloor" if "groundfloor" in floor_scale else next(iter(floor_scale), None)
+    if not level:
+        return []
+    frame = Frame(floor_scale[level], pixel_width, pixel_height)
+
+    source = []
+    for item in annotations.get("annotations", []):
+        if item.get("floor_level") != level or len(item.get("points") or []) < 3:
+            continue
+        if excluded(item.get("label")):
+            continue
+        source += [frame.point(p) for p in item["points"]]
+    target = [p for room in corrected_rooms for p in room["polygon_mm"]]
+    if len(source) < 3 or len(target) < 3:
+        return []
+
+    def fit(index):
+        s_lo, s_hi = min(p[index] for p in source), max(p[index] for p in source)
+        t_lo, t_hi = min(p[index] for p in target), max(p[index] for p in target)
+        span = s_hi - s_lo
+        scale = (t_hi - t_lo) / span if span > 1 else 1.0
+        return scale, t_lo - s_lo * scale
+
+    sx, ox = fit(0)
+    sy, oy = fit(1)
+    out = []
+    for area in areas:
+        points = area.get("points") or []
+        if len(points) < 3:
+            continue
+        mapped = []
+        for p in points:
+            x, y = frame.point(p)
+            mapped.append([round(x * sx + ox, 1), round(y * sy + oy, 1)])
+        out.append({"id": area.get("id"), "type": area.get("type"),
+                    "points_mm": mapped})
+    print(f"[plan] exterior areas: {len(out)} mapped onto the corrected footprint "
+          f"(scale {sx:.3f}/{sy:.3f})")
+    return out
+
+
+def correction_plan(revision_path, style, out_path):
+    """Build a render plan from the CORRECTED document instead of annotations.
+
+    Step 3 of plans/renderer-switch-execution-order.md. The corrected document
+    holds the geometry Rainer actually fixed: real walls with thickness and
+    type, openings bound to a wall id at a position along it, a shared stair
+    core. None of it is derived from room polygons here -- it is copied.
+
+    Y is flipped exactly once, here. The correction document is SVG space (Y
+    grows down); the Blender scripts want Y growing north. Every point on a
+    floor goes through the same flip; opening `position` is a fraction along an
+    already-flipped wall, so it is left alone.
+    """
+    document = load_json(revision_path)
+    reference = document.get("source_reference_id") or "unknown"
+    building = document.get("building") or {}
+    models = load_model_picks(style)
+
+    floors_out = []
+    flips = {}
+    for floor in document.get("floors", []):
+        points = [p for room in floor.get("rooms", []) for p in room.get("polygon", [])]
+        points += [p for wall in floor.get("walls", []) for p in (wall["start"], wall["end"])]
+        if not points:
+            continue
+        max_y = max(p[1] for p in points)
+
+        def flip(point, _max_y=max_y):
+            return [round(float(point[0]), 1), round(_max_y - float(point[1]), 1)]
+
+        rooms = [{
+            "id": room.get("id"),
+            "name": room.get("name"),
+            "kind": room.get("kind") or room_kind(room.get("name")),
+            "polygon_mm": [flip(p) for p in room.get("polygon", [])],
+            "area_m2": room.get("area_m2"),
+        } for room in floor.get("rooms", []) if not excluded(room.get("name"))]
+
+        walls = [{
+            "id": wall.get("id"),
+            "start_mm": flip(wall["start"]),
+            "end_mm": flip(wall["end"]),
+            "thickness_mm": wall.get("thickness", DEFAULT_WALL_THICKNESS_MM),
+            "wall_type": wall.get("wall_type", "interior"),
+            "rooms": wall.get("room_ids", []),
+        } for wall in floor.get("walls", [])]
+
+        openings = [{
+            "id": opening.get("id"),
+            "wall_id": opening.get("wall_id"),
+            "opening_type": opening.get("opening_type"),
+            "position": opening.get("position"),
+            "width_mm": opening.get("width"),
+            "height_mm": opening.get("height_mm",
+                                     1350 if opening.get("opening_type") == "window" else 2010),
+            "sill_height_mm": opening.get("sill_height_mm", 0),
+            "traversable": opening.get("traversable"),
+            "role": opening.get("role"),
+            "connects": opening.get("connects", []),
+        } for opening in floor.get("openings", [])]
+
+        flips[floor.get("id")] = flip
+        placements, skipped = corrected_placements(reference, floor.get("id"), flip, models)
+
+        floors_out.append({
+            "id": floor.get("id"),
+            "name": floor.get("name"),
+            "level": floor.get("level"),
+            "rooms": rooms,
+            "walls": walls,
+            "openings": openings,
+            "placements": placements,
+            "unplaced": skipped,
+            "skipped_rooms": [],
+            "unmatched_openings": [],
+            "openings_in_excluded_rooms": [],
+        })
+        print(f"[plan] {floor.get('name')}: {len(rooms)} rooms, {len(walls)} walls, "
+              f"{len(openings)} openings, {len(placements)} furniture")
+
+    # The stair is a building-wide object in the correction document, so it is
+    # mapped once, through the ground floor's flip (its polygon is in the same
+    # space). Without this the house renders with no stairs at all.
+    stair = document.get("shared_stair_core") or None
+    stair_out = None
+    if stair and stair.get("polygon") and floors_out:
+        ground_flip = flips.get(floors_out[0]["id"])
+        if ground_flip:
+            stair_out = {
+                "id": stair.get("id"),
+                "polygon_mm": [ground_flip(point) for point in stair["polygon"]],
+                "path_mm": [ground_flip(point) for point in (stair.get("path") or [])],
+                "plan_type": stair.get("plan_type"),
+                "declared_type": stair.get("declared_type"),
+                "inferred_type": stair.get("inferred_type"),
+                "usable_width_mm": stair.get("usable_width_mm"),
+                "geometry": stair.get("geometry"),
+            }
+
+    plan = {
+        "schema": "dmh-furnished-render-plan-proof-v1",
+        "plan_id": f"{reference}-{style}-corrected",
+        "shared_stair_core": stair_out,
+        "source_geometry_hash": document.get("geometry_hash"),
+        "source": ("approved_correction_revision" if document.get("status") == "approved"
+                   else "correction_revision_draft"),
+        "correction_revision": os.path.abspath(revision_path),
+        "correction_status": document.get("status"),
+        "not_for_delivery": True,
+        "style": style,
+        # The Dachform is set in the annotator and does not travel into the
+        # correction document, so fall back to the annotation package rather
+        # than render a roofless house.
+        "roof_type": building.get(f"roof_type_{style}") or annotation_roof(reference, style),
+        "roof_overhang_mm": building.get("roof_overhang_mm")
+                            or annotation_roof(reference, "overhang") or 500,
+        "exterior_areas": annotation_exterior_areas(
+            reference, floors_out[0]["rooms"] if floors_out else []),
+        "floors": floors_out,
+    }
+    with open(out_path, "w", encoding="utf-8") as handle:
+        json.dump(plan, handle, indent=2)
+    print(f"[plan] wrote {out_path} from {document.get('status')} revision "
+          f"{document.get('revision')}")
+
+
+def main():
+    if len(sys.argv) >= 4 and sys.argv[1] == "--geometry-only":
+        return geometry_only(sys.argv[2], sys.argv[3])
+    if len(sys.argv) >= 5 and sys.argv[1] == "--correction-revision":
+        # Reserved for step 3 (the correction -> render adapter). It validates
+        # and refuses today rather than silently falling back to annotations,
+        # so the flag can never quietly mean "legacy" once it exists.
+        # Hand-drawn work does not go through the approval gate -- that exists
+        # for the automatic generator path (Rainer, 2026-08-16). A draft is a
+        # real corrected document; the output records which it was.
+        if not os.path.exists(sys.argv[2]):
+            raise SystemExit(f"{sys.argv[2]}: no such correction revision")
+        return correction_plan(sys.argv[2], sys.argv[3], sys.argv[4])
+    if len(sys.argv) < 4:
+        raise SystemExit(
+            "usage: build-simplifier-render-plan.py <project_id> <style> <out.json>\n"
+            "       build-simplifier-render-plan.py --geometry-only <project_id> <out.json>")
+    project_id, style, out_path = sys.argv[1], sys.argv[2], sys.argv[3]
+
+    project_dir = os.path.join(SIMPLIFIER, "projects", project_id)
+    annotations = load_annotations(project_dir)
+    pixel_width, pixel_height = image_size(project_dir, annotations)
+
+    floor_scale = annotations.get("floor_scale") or {}
+    floors_out = []
+    models = load_model_picks(style)
+    footprints = load_json(FOOTPRINTS)
+
+    levels = sorted({item.get("floor_level") for item in annotations.get("annotations", [])
+                     if item.get("floor_level")})
+    # The drawn outer outline (Rainer, 2026-08-13) represents the ground-
+    # level footprint -- same "groundfloor if present, else first level"
+    # convention already used for exterior_areas below.
+    ground_level = "groundfloor" if "groundfloor" in levels else (levels[0] if levels else None)
+    for level in levels:
+        scale = floor_scale.get(level)
+        if not scale:
+            raise SystemExit(f"{level} has no calibrated scale — set it in the Simplifier first")
+        frame = Frame(scale, pixel_width, pixel_height)
+
+        rooms = []
+        excluded_polygons = []
+        for item in annotations.get("annotations", []):
+            if item.get("floor_level") != level:
+                continue
+            points = item.get("points") or []
+            if len(points) < 3:
+                continue
+            if excluded(item.get("label")):
+                excluded_polygons.append((item.get("label"), [frame.point(p) for p in points]))
+                continue
+            polygon = [frame.point(p) for p in points]
+            rooms.append({
+                "id": item.get("id") or f"room-{len(rooms)}",
+                "name": item.get("label") or "Raum",
+                "kind": room_kind(item.get("label")),
+                "polygon_mm": polygon,
+                "area_m2": round(polygon_area(polygon) / 1e6, 2),
+            })
+
+        outer_outline_mm = None
+        if level == ground_level and annotations.get("outer_outline"):
+            outer_outline_mm = [frame.point(p) for p in annotations["outer_outline"]]
+        walls = build_walls(rooms, outer_outline_mm,
+                            annotations.get("outer_outline_reference")
+                            or DEFAULT_OUTLINE_REFERENCE)
+
+        openings = []
+        unmatched = []
+        skipped_excluded = []
+        for element in annotations.get("elements", []):
+            if element.get("floor_level") != level:
+                continue
+            kind = element.get("type")
+            if kind not in ("door", "window", "opening"):
+                continue
+            points = element.get("points") or []
+            if len(points) < 2:
+                continue
+            a, b = frame.point(points[0]), frame.point(points[1])
+            match = nearest_wall(walls, a, b)
+            if match is None or match[0] > 1200:
+                midpoint = ((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)
+                host = next((label for label, poly in excluded_polygons
+                             if point_in_polygon(midpoint, poly)), None)
+                if host:
+                    skipped_excluded.append((element.get("id"), host))
+                else:
+                    unmatched.append(element.get("id"))
+                continue
+            _, wall, t = match
+
+            # Window type is annotated now, so the sill comes from the plan
+            # instead of a blanket 900 mm. A bodentiefes Fenster starts at the
+            # floor; a Brüstungsfenster does not.
+            window_type = element.get("window_type")
+            if kind == "window":
+                sill = element.get("sill_height_mm")
+                if sill is None:
+                    sill = 0 if window_type == "bodentief" else 900
+                height = 2100 - sill if window_type == "bodentief" else 1350
+            else:
+                sill, height = 0, 2010
+
+            openings.append({
+                "id": element.get("id") or f"opening-{len(openings)}",
+                "wall_id": wall["id"],
+                "opening_type": kind,
+                "position": round(t, 4),
+                "width_mm": round(math.dist(a, b), 1),
+                "height_mm": height,
+                "sill_height_mm": sill,
+                "traversable": kind != "window",
+                "window_type": window_type,
+                "panes": element.get("panes"),
+                "swing_side": element.get("swing_side"),
+                "hinge_side": element.get("hinge_side"),
+                "role": element.get("role"),
+                "connects": wall.get("rooms", []),
+            })
+
+        placements = []
+        skipped = []
+        # One source of furniture per floor, chosen once. Workbench furniture is
+        # already in this plan's millimetres; annotation symbols are normalized
+        # and go through `frame`. Everything downstream — SYMBOL_3D, measured
+        # footprint precedence, model lookup, mismatch handling, procedural
+        # fallback, derived chairs — is shared and untouched.
+        workbench_symbols = workbench_furniture(project_id, level)
+        from_workbench = workbench_symbols is not None
+        if from_workbench:
+            source_symbols = workbench_symbols
+            furniture_source = "workbench_furniture_proof"
+        else:
+            source_symbols = [item for item in annotations.get("symbols", [])
+                              if item.get("floor_level") == level]
+            furniture_source = "simplifier_annotations_proof"
+
+        for symbol in source_symbols:
+            key = symbol.get("symbol")
+            spec = SYMBOL_3D.get(key)
+            if not spec:
+                skipped.append({"symbol": key, "reason": "no 3D specification"})
+                continue
+
+            # Path and rectangle symbols carry BOTH `points` and a centre
+            # `position`. The points are the real geometry — a kitchen run is
+            # its path, not a dot — so they win. Testing `position` first sent
+            # every Kuechenzeile down the stamp branch and lost it.
+            if from_workbench:
+                points = symbol.get("points_mm") or []
+                position = None if points else symbol.get("position_mm")
+                to_mm = lambda point: [round(float(point[0]), 1), round(float(point[1]), 1)]
+            else:
+                points = symbol.get("points") or []
+                position = None if points else symbol.get("position")
+                to_mm = frame.point
+            if points:
+                placements.append({
+                    "asset_id": key,
+                    "type": spec["type"],
+                    "build": "rect" if len(points) > 2 and key == "kuecheninsel" else "path",
+                    "points_mm": [to_mm(p) for p in points],
+                    # The catalogue depth for this symbol. Falling back to a blanket
+                    # 600 built every Vorwandinstallation four times too deep.
+                    "depth_mm": symbol.get("depth_mm") or spec.get("depth", 600),
+                    "height_mm": spec["height"],
+                    "source": furniture_source,
+                })
+                continue
+            if not position:
+                skipped.append({"symbol": key, "reason": "no position"})
+                continue
+
+            # A footprint measured on the plan by dragging the symbol's
+            # corners beats the catalogue's nominal size. The annotator was
+            # looking at the actual drawing; the catalogue is a general figure
+            # for that kind of furniture, and using it is what made every piece
+            # come out undersized.
+            measured = symbol.get("footprint_mm") or {}
+            footprint = measured if measured.get("width_mm") else (footprints.get(key) or {})
+            if not footprint.get("width_mm"):
+                skipped.append({"symbol": key, "reason": "no footprint in the catalogue"})
+                continue
+            model = models.get(key)
+            build = spec.get("build")
+            if not model and not build:
+                build = "box"
+
+            # The gate exists to stop a wildly wrong model being squeezed into
+            # a nominal catalogue footprint. It must never fire against a
+            # footprint Rainer measured on the plan: that comparison is between
+            # two things that are both correct, and rejecting the model turned
+            # every carefully measured symbol into a plain box.
+            measured_here = bool(measured.get("width_mm"))
+            mismatch = (bool(model) and not measured_here
+                        and footprint_mismatch(model, footprint))
+            if mismatch and not build:
+                # No model worth using and nothing procedural defined, so build
+                # it as a plain box at the annotated size.
+                build = "box"
+
+            placements.append({
+                "asset_id": key,
+                "type": spec["type"],
+                "mesh_path": model["path"] if model and not mismatch else None,
+                "model_source": (model["source"] if model and not mismatch
+                                 else "procedural"),
+                "model_label": model.get("label") if model else None,
+                "scale_divisor": model.get("divisor", 1.0) if model else 1.0,
+                # The model's own verified real-world size, from
+                # resolve-hub-scales.py. The renderer scales to THIS rather than
+                # to the catalogue footprint, so a real 2200 mm dining set stays
+                # 2200 mm instead of being squeezed into a nominal 1800.
+                "verified_size_mm": model.get("size_mm") if model else None,
+                "size_mismatch": mismatch,
+                # Measured by dragging the symbol's corners on the plan. When
+                # present it OUTRANKS the model's own verified size: Rainer was
+                # looking at this drawing, the model's dimensions describe some
+                # other piece of furniture.
+                "footprint_measured": bool(measured.get("width_mm")),
+                "build": build,
+                "position_mm": to_mm(position),
+                "rotation_deg": symbol.get("rotation_deg", 0),
+                "mirrored": bool(symbol.get("mirrored")),
+                "target_bbox_mm": {
+                    "width_mm": footprint.get("width_mm"),
+                    "depth_mm": footprint.get("depth_mm"),
+                    "height_mm": spec["height"],
+                },
+                "height_mm": spec.get("mount", 0),
+                # Library models carry their own materials, which is the entire
+                # reason to prefer them over generated meshes. Scale them to the
+                # annotated footprint, but never overwrite what they came with.
+                # An item with a `build` kind is routed through a procedural
+                # builder by the renderer and its mesh is never imported, so
+                # claiming preserve_materials there made the plan lie about
+                # which path the item takes. The one exception the renderer
+                # actually honours is the sink (`spuele`), which imports its
+                # real model despite carrying build="hob".
+                "preserve_materials": bool(model) and (
+                    not build or spec["type"] == "sink"),
+                "wall_snapped": bool(symbol.get("wall_snapped")),
+                "source": furniture_source,
+            })
+
+        # A desk without a chair reads as unfinished (defect #4). If Rainer
+        # annotated no schreibtischstuhl, derive one: offset from the desk
+        # toward its room's centre (convention-free — no guess about which
+        # local axis is 'front'), turned to face the desk. Presentation-only,
+        # like all furnishing; never geometry.
+        has_chair = any(p["asset_id"] == "schreibtischstuhl" for p in placements)
+        chair_model = models.get("schreibtischstuhl")
+        if not has_chair and chair_model:
+            for desk in [p for p in placements if p["asset_id"].startswith("schreibtisch")]:
+                dx, dy = desk["position_mm"]
+                room = next((r for r in rooms if point_in_polygon((dx, dy), r["polygon_mm"], 0)), None)
+                if not room:
+                    continue
+                pts = room["polygon_mm"]
+                centroid = (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
+                vx, vy = centroid[0] - dx, centroid[1] - dy
+                norm = math.hypot(vx, vy) or 1.0
+                offset = (desk["target_bbox_mm"].get("depth_mm") or 800) / 2 + 350
+                cx, cy = dx + vx / norm * offset, dy + vy / norm * offset
+                facing = (math.degrees(math.atan2(-vx, vy)) + 180.0) % 360.0
+                placements.append({
+                    "asset_id": "schreibtischstuhl",
+                    "type": "office_chair",
+                    "mesh_path": chair_model["path"],
+                    "model_source": chair_model["source"],
+                    "model_label": chair_model.get("label"),
+                    "scale_divisor": chair_model.get("divisor", 1.0),
+                    "verified_size_mm": chair_model.get("size_mm"),
+                    "size_mismatch": False,
+                    "footprint_measured": False,
+                    "build": None,
+                    "position_mm": [round(cx, 1), round(cy, 1)],
+                    "rotation_deg": round(facing, 1),
+                    "mirrored": False,
+                    "target_bbox_mm": {"width_mm": 650, "depth_mm": 650,
+                                       "height_mm": 1200},
+                    "height_mm": 0,
+                    "preserve_materials": True,
+                    "wall_snapped": False,
+                    "derived_from": desk["asset_id"],
+                    "source": furniture_source,
+                })
+
+        # The modern dining pick is a TABLE-ONLY model (the old set model was
+        # a black blob and got swapped on Rainer's request); six chairs are
+        # derived around it: two per long side, one per end, each turned to
+        # face the table. Only when the resolved pick is a bare table —
+        # a set model (classic) brings its own chairs.
+        chair_model = models.get("essgruppe_stuhl")
+        if chair_model:
+            for table in [p for p in placements
+                          if p["asset_id"] == "essgruppe_6"
+                          and "table" in (p.get("model_label") or "").lower()
+                          and "set" not in (p.get("model_label") or "").lower()]:
+                tx, ty = table["position_mm"]
+                theta = math.radians(table.get("rotation_deg", 0))
+                cos_t, sin_t = math.cos(theta), math.sin(theta)
+                half_w = (table["verified_size_mm"] or [1522, 914])[0] / 2
+                half_d = (table["verified_size_mm"] or [1522, 914])[1] / 2
+                chair_half = 297
+                side_y = half_d + 40 + chair_half
+                end_x = half_w + 40 + chair_half
+                locals_deg = [(-half_w / 2, side_y, 180), (half_w / 2, side_y, 180),
+                              (-half_w / 2, -side_y, 0), (half_w / 2, -side_y, 0),
+                              (end_x, 0, 90), (-end_x, 0, 270)]
+                for lx, ly, face in locals_deg:
+                    wx = tx + lx * cos_t - ly * sin_t
+                    wy = ty + lx * sin_t + ly * cos_t
+                    placements.append({
+                        "asset_id": "essgruppe_stuhl",
+                        "type": "dining_chair",
+                        "mesh_path": chair_model["path"],
+                        "model_source": chair_model["source"],
+                        "model_label": chair_model.get("label"),
+                        "scale_divisor": chair_model.get("divisor", 1.0),
+                        "verified_size_mm": chair_model.get("size_mm"),
+                        "size_mismatch": False,
+                        "footprint_measured": False,
+                        "build": None,
+                        "position_mm": [round(wx, 1), round(wy, 1)],
+                        "rotation_deg": (table.get("rotation_deg", 0) + face) % 360,
+                        "mirrored": False,
+                        "target_bbox_mm": {"width_mm": 563, "depth_mm": 593,
+                                           "height_mm": 844},
+                        "height_mm": 0,
+                        "preserve_materials": True,
+                        "wall_snapped": False,
+                        "derived_from": "essgruppe_6",
+                        "source": furniture_source,
+                    })
+
+        floors_out.append({
+            "id": level,
+            "name": level,
+            "level": level,
+            "scale_metres_per_x_unit": scale,
+            "rooms": rooms,
+            "walls": walls,
+            "openings": openings,
+            "placements": placements,
+            "unplaced": skipped,
+            "skipped_rooms": [],
+            "unmatched_openings": unmatched,
+            "openings_in_excluded_rooms": [
+                {"id": oid, "room": label} for oid, label in skipped_excluded],
+        })
+
+    # Exterior site data is building-wide, not per-floor: one roof, one set
+    # of site areas, keyed off whichever floor's scale represents ground
+    # level (site coordinates are only meaningful against the ground
+    # floor's calibration).
+    exterior_scale_level = "groundfloor" if "groundfloor" in floor_scale else next(iter(floor_scale), None)
+    exterior_areas_out = []
+    if exterior_scale_level:
+        exterior_frame = Frame(floor_scale[exterior_scale_level], pixel_width, pixel_height)
+        for area in annotations.get("exterior_areas") or []:
+            points = area.get("points") or []
+            if len(points) < 3:
+                continue
+            exterior_areas_out.append({
+                "id": area.get("id"),
+                "type": area.get("type"),
+                "points_mm": [exterior_frame.point(p) for p in points],
+            })
+
+    out = {
+        "schema": "dmh-furnished-render-plan-proof-v1",
+        "plan_id": project_id,
+        # No canonical document exists for this plan, so there is no geometry
+        # hash to quote. Saying so explicitly is the point: an image built this
+        # way is for review and cannot be delivered.
+        "source_geometry_hash": None,
+        "source": furniture_source,
+        "source_provenance": source_provenance(project_id),
+        "not_for_delivery": True,
+        "style": style,
+        "roof_type": annotations.get(f"roof_type_{style}"),
+        "roof_overhang_mm": annotations.get("roof_overhang_mm"),
+        "exterior_areas": exterior_areas_out,
+        # Built from the drawn stairs, so an annotated house renders its stairs
+        # without first passing through the correction editor.
+        "shared_stair_core": annotation_stair_core(
+            annotations, Frame(floor_scale.get(ground_level) or 1.0, pixel_width, pixel_height),
+            ground_level),
+        "floors": floors_out,
+    }
+
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as handle:
+        json.dump(out, handle, indent=1)
+
+    for floor in floors_out:
+        print(f"[plan] {floor['name']}: {len(floor['rooms'])} rooms, {len(floor['walls'])} walls "
+              f"({sum(1 for w in floor['walls'] if w['wall_type'] == 'exterior')} exterior), "
+              f"{len(floor['openings'])} openings, {len(floor['placements'])} furniture")
+        if floor["unmatched_openings"]:
+            print(f"[plan]   {len(floor['unmatched_openings'])} openings matched no wall")
+        for entry in floor.get("openings_in_excluded_rooms", []):
+            print(f"[plan]   opening {entry['id']} sits in excluded room "
+                  f"'{entry['room']}' — intentionally not rendered")
+        for item in floor["unplaced"]:
+            print(f"[plan]   skipped {item['symbol']}: {item['reason']}")
+        procedural = [p["asset_id"] for p in floor["placements"] if p.get("model_source") == "procedural"]
+        if procedural:
+            print(f"[plan]   built procedurally: {', '.join(sorted(set(procedural)))}")
+    print(f"[plan] wrote {out_path}")
+
+
+if __name__ == "__main__":
+    main()

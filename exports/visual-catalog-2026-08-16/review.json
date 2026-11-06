@@ -1,0 +1,36 @@
+{
+  "schema": "dmh-image-review-v1",
+  "updated_at": "2026-08-18T14:54:15.221Z",
+  "reviews": [
+    {
+      "image": "exterior-classic-v19-rear-terrace.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:08.673Z"
+    },
+    {
+      "image": "interior-dark-modern-final.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:09.983Z"
+    },
+    {
+      "image": "interior-modern-architectural.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:12.467Z"
+    },
+    {
+      "image": "interior-soft-scandinavian.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:13.725Z"
+    },
+    {
+      "image": "interior-warm-modern.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:15.221Z"
+    }
+  ]
+}
