@@ -29,6 +29,18 @@ OUT = os.path.join(REPO, "data", "symbol-model-picks.json")
 # Simplifier symbol key -> resolved type. Several symbols share a type: a
 # Trockner is the same 600 x 600 x 850 box as a Waschmaschine, often stacked on
 # it, so it reuses that model rather than needing its own.
+# Symbole, die NICHT aus der Typtabelle kommen, sondern von Hand gepflegt
+# sind, und die ein Neulauf darum nicht ueberschreiben darf.
+#
+# 2026-09-03 sind genau diese beiden bei einem Neulauf verschwunden. Sie
+# standen nie in SYMBOL_TYPES -- sie wurden von Hand in die JSON geschrieben,
+# und der Generator kannte sie nicht. `schreibtischstuhl` traegt
+# divisor 3.5 mit der Notiz "measured 2236x2238x4340mm raw on 2026-08-10;
+# divisor calibrated to 1240mm seat-back height": eine Messung, die der
+# Generator mit seinem 2,54 zerstoert haette. Wiederhergestellt und hier
+# eingetragen, damit es nicht noch einmal passiert.
+HANDGEPFLEGT = {"essgruppe_stuhl", "schreibtischstuhl"}
+
 SYMBOL_TYPES = {
     "badewanne": "bathtub",
     "eckbadewanne": "corner_bath",
@@ -41,6 +53,12 @@ SYMBOL_TYPES = {
     "doppelwaschtisch": "double_basin",
     "badheizkoerper": "towel_radiator",
     "spuele": "kitchen_sink",
+    # Ergaenzt 2026-09-03. Diese drei hatten hier KEINEN Eintrag, weshalb der
+    # Planbauer sie immer als `procedural` fuehrte -- ein Quader, obwohl die
+    # Modelle auf der Platte lagen.
+    "kuehlschrank": "fridge",
+    "kochfeld": "hob",
+    "hochschrank_herd": "oven",
     "waschmaschine": "washer",
     "trockner": "washer",
     "ecksofa": "corner_sofa",
@@ -117,6 +135,64 @@ def leaning(label):
     return "neutral"
 
 
+# Farbwoerter, an denen sich ein Modell einem der drei modernen Stile
+# zuordnen laesst. Sie stehen im Dateinamen der CGAxis- und Hub-Assets --
+# "grey", "beige", "dark", "walnut" -- und das ist der einzige Hinweis, den
+# ein Modell auf sein Aussehen gibt.
+#
+# Ergaenzt 2026-09-03. Vorher gab es genau ZWEI Modellsaetze, modern und
+# classic; warm, dark und scandi teilten sich einen. Der Schwarzweiss-Test
+# hat das sofort gezeigt: Warm gegen Scandi lag bei 5,2 Graustufen, weil
+# beide dieselben Moebel benutzen und sich nur im Boden unterscheiden.
+STIL_WOERTER = {
+    "dark":   ("dark", "black", "graphite", "anthracite", "charcoal",
+               "wenge", "grey", "gray"),
+    "scandi": ("white", "light", "beige", "cream", "birch", "natural",
+               "oak", "sand", "ivory"),
+    # "leather", "wooden" und "brown" stehen bewusst NICHT hier: das sind die
+    # Classic-Marker aus CLASSIC_WORDS. Als sie am 2026-09-03 in der
+    # warm-Liste standen, griffen Warm und Classic nach denselben Modellen
+    # und ihr Schwarzweiss-Abstand FIEL von 5,9 auf 3,5.
+    "warm":   ("orange", "cognac", "terracotta", "amber", "honey", "walnut",
+               "cherry", "caramel"),
+}
+
+
+def stil_neigung(label):
+    """Zu welchem der drei modernen Stile ein Modell am ehesten passt."""
+    gesenkt = label.lower()
+    treffer = {stil: sum(w in gesenkt for w in woerter)
+               for stil, woerter in STIL_WOERTER.items()}
+    bester = max(treffer, key=lambda k: treffer[k])
+    return bester if treffer[bester] else None
+
+
+def waehle_je_stil(candidates, schon_vergeben):
+    """Je einen Kandidaten fuer warm, dark und scandi -- moeglichst verschieden.
+
+    Erst nimmt jeder Stil ein Modell, dessen Name zu ihm passt. Was schon
+    vergeben ist, wird uebersprungen: zwei Stile mit demselben Sofa sind in
+    Schwarzweiss dasselbe Zimmer, und genau das soll der Test finden.
+    Reicht die Auswahl nicht, faellt ein Stil auf den besten freien
+    Kandidaten zurueck und zuletzt auf den bestpassenden ueberhaupt -- die
+    GROESSE schlaegt den Farbton, ein schlecht sitzendes Moebel ist schlimmer
+    als ein doppeltes.
+    """
+    ergebnis = {}
+    vergeben = set(schon_vergeben)
+    for stil in ("dark", "scandi", "warm"):
+        treffer = next((c for c in candidates
+                        if stil_neigung(c["label"]) == stil
+                        and c["path"] not in vergeben), None)
+        if treffer is None:
+            treffer = next((c for c in candidates if c["path"] not in vergeben), None)
+        if treffer is None:
+            treffer = candidates[0]
+        ergebnis[stil] = treffer
+        vergeben.add(treffer["path"])
+    return ergebnis
+
+
 def main():
     with open(RESOLVED, "r", encoding="utf-8") as handle:
         resolved = json.load(handle)["resolved"]
@@ -147,14 +223,40 @@ def main():
         classic = next((c for c in candidates if leaning(c["label"]) == "classic"), candidates[0])
         modern = next((c for c in candidates if leaning(c["label"]) == "modern"), candidates[0])
 
+        # Classic zuerst: sein Modell ist vergeben, bevor die drei modernen
+        # Stile waehlen. Sonst greift Warm nach demselben Ledersofa.
+        je_stil = waehle_je_stil(candidates, {classic["path"]})
+
+        def eintrag(c):
+            return {"path": c["path"], "divisor": c["divisor"],
+                    "label": c["label"], "size_mm": c["size_mm"]}
+
         picks[key] = {
             "type": kind,
-            "modern": {"path": modern["path"], "divisor": modern["divisor"],
-                       "label": modern["label"], "size_mm": modern["size_mm"]},
-            "classic": {"path": classic["path"], "divisor": classic["divisor"],
-                        "label": classic["label"], "size_mm": classic["size_mm"]},
+            "modern": eintrag(modern),
+            "classic": eintrag(classic),
+            # Die drei modernen Stile einzeln. `modern` bleibt als Rueckfall
+            # stehen, damit aeltere Laeufe und Plaene weiter funktionieren.
+            "warm": eintrag(je_stil["warm"]),
+            "dark": eintrag(je_stil["dark"]),
+            "scandi": eintrag(je_stil["scandi"]),
             "candidates": len(candidates),
         }
+
+    # Handgepflegte Eintraege aus der bestehenden Datei uebernehmen, bevor
+    # sie ueberschrieben wird. Ohne das loescht jeder Neulauf, was nicht aus
+    # SYMBOL_TYPES kommt -- am 2026-09-03 waren das der Esszimmerstuhl und der
+    # Schreibtischstuhl, letzterer mit einem von Hand kalibrierten Divisor.
+    if os.path.exists(OUT):
+        try:
+            with open(OUT, encoding="utf-8") as vorher:
+                bestand = json.load(vorher).get("picks", {})
+        except (ValueError, OSError):
+            bestand = {}
+        for schluessel in HANDGEPFLEGT:
+            if schluessel in bestand and schluessel not in picks:
+                picks[schluessel] = bestand[schluessel]
+                print("[picks] handgepflegt uebernommen: %s" % schluessel)
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     with open(OUT, "w", encoding="utf-8") as handle:
@@ -168,6 +270,10 @@ def main():
 
     print(f"[picks] {len(picks)} symbols mapped, {len(missing)} without a model")
     for key, item in sorted(picks.items()):
+        # Handgepflegte Eintraege haben nicht zwingend beide Varianten.
+        if "modern" not in item or "classic" not in item:
+            print(f"[picks] {key:20} handgepflegt, unveraendert uebernommen")
+            continue
         same = item["modern"]["label"] == item["classic"]["label"]
         note = "same for both" if same else f"classic: {item['classic']['label'][:28]}"
         print(f"[picks] {key:20} {item['modern']['label'][:32]:32} "

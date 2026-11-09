@@ -1,0 +1,89 @@
+{
+  "schema_version": "visual-catalog-v1",
+  "created_at": "2026-08-16",
+  "plan_family_id": "kitchen-inspect-groundfloor",
+  "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/kitchen-inspect.blend",
+  "assets": [
+    {
+      "asset_id": "interior-warm-modern-v1",
+      "file": "interior-warm-modern.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "warm_modern",
+      "description_de": "Warme moderne Innenraumvariante mit Eiche, Taupe, Naturtextilien und schwarzen Akzenten.",
+      "palette": ["warm_oak", "taupe", "oatmeal", "soft_black"],
+      "materials": ["wood", "textile", "stone", "matte_metal"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["kitchen_island", "six_seat_dining", "open_plan_living"],
+      "qc_status": "draft_needs_garderobe_alignment_review",
+      "search_text_de": "warm modern warme Eiche Taupe Naturtextilien Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide"
+    },
+    {
+      "asset_id": "interior-soft-scandinavian-v1",
+      "file": "interior-soft-scandinavian.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "soft_scandinavian",
+      "description_de": "Helle skandinavische Variante mit blasser Eiche, Off-White, Salbeigrün und weichen Textilien.",
+      "palette": ["pale_oak", "off_white", "muted_sage", "light_grey"],
+      "materials": ["light_wood", "linen", "woven_textile", "stone"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["kitchen_island", "six_seat_dining", "soft_textiles"],
+      "qc_status": "draft_needs_garderobe_alignment_review",
+      "search_text_de": "soft scandinavian skandinavisch helle Eiche Off White Salbeigrün Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide"
+    },
+    {
+      "asset_id": "interior-modern-architectural-v1",
+      "file": "interior-modern-architectural.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "modern_architectural",
+      "description_de": "Architektonisch-moderne Variante mit Räuchereiche, Kalkstein, Anthrazit und klaren Linien.",
+      "palette": ["smoked_oak", "limestone", "charcoal", "warm_grey"],
+      "materials": ["dark_wood", "stone", "leather", "metal"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["kitchen_island", "six_seat_dining", "architectural_minimalism"],
+      "qc_status": "draft_needs_garderobe_design_review",
+      "search_text_de": "modern architectural architektonisch Räuchereiche Kalkstein Anthrazit Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide"
+    },
+    {
+      "asset_id": "interior-dark-modern-final-v1",
+      "file": "interior-dark-modern-final.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "dark_modern",
+      "description_de": "Dunkle moderne Variante mit dunklem Holzboden, cognacfarbenem Leder und offener echter Garderobe.",
+      "palette": ["dark_oak", "cognac", "charcoal", "warm_stone"],
+      "materials": ["dark_wood", "cognac_leather", "stone", "slatted_wood"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["open_garderobe", "coat_hooks", "shoe_bench", "mirror", "compact_six_seat_dining", "matching_sofa_armchair", "kitchen_island"],
+      "qc_status": "preferred_candidate",
+      "search_text_de": "dark modern dunkler Boden Cognac Leder offene Garderobe Haken Sitzbank Schuhe Spiegel kompakter Esstisch sechs Stühle Küche Essen Wohnen"
+    },
+    {
+      "asset_id": "exterior-gabled-garden-reference-v1",
+      "file": "exterior-gabled-garden-reference.png",
+      "asset_type": "exterior_reference",
+      "style": "modern_classic_gabled",
+      "description_de": "Hochwertige helle Außenansicht eines modernen Satteldachhauses mit anthrazitfarbenen Rahmen, Terrasse und gepflegtem Garten.",
+      "palette": ["white_render", "anthracite", "green", "natural_stone"],
+      "materials": ["render", "roof_tile", "glass", "metal", "lawn"],
+      "features": ["gable_roof", "roof_windows", "floor_to_ceiling_glazing", "terrace", "landscaped_garden"],
+      "view": "garden_corner_approximately_35_degrees",
+      "geometry_lock": "reference_only_not_verified_against_kitchen_inspect_plan",
+      "qc_status": "visual_reference",
+      "search_text_de": "Außenansicht Satteldach weiß Anthrazit Dachfenster bodentiefe Fenster Terrasse Garten Tageslicht modern klassisch"
+    },
+    {
+      "asset_id": "exterior-classic-v19-rear-terrace-v1",
+      "file": "exterior-classic-v19-rear-terrace.png",
+      "asset_type": "exterior_visualization",
+      "style": "classic_modern_terrace",
+      "description_de": "Fotorealistische Rückseitenansicht des klassischen Bungalows mit großzügiger Natursteinterrasse, abgestimmter Ess- und Loungegruppe sowie detaillierter Gartenbepflanzung.",
+      "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/exterior-classic-v19.blend",
+      "camera_view": "rear_garden_side",
+      "palette": ["warm_white", "terracotta", "anthracite", "taupe", "teak", "garden_green"],
+      "materials": ["mineral_render", "clay_roof_tile", "glass", "metal", "limestone_terrace", "outdoor_textile", "teak"],
+      "features": ["single_storey", "hip_roof", "rear_terrace", "six_seat_outdoor_dining", "coordinated_lounge_set", "barbecue", "planters", "landscaped_garden", "evening_wall_lights"],
+      "view": "rear_garden_oblique",
+      "qc_status": "preferred_candidate",
+      "search_text_de": "Rückseite Terrasse klassisch modern Bungalow Walmdach Naturstein Essgruppe sechs Plätze Lounge Gartenmöbel Grill Pflanzkübel Garten Abendlicht"
+    }
+  ]
+}

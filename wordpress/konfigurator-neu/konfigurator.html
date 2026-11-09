@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Hausbau-Konfigurator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/*__CSS_TEST__*/
+/* konfigurator-neu-v1: Kopie von /test, 3D durch Comic-Clips ersetzt. */
+html,body{margin:0;background:#f3f2f2}
+.hkf.hkf-c{width:100vw;height:100svh;max-height:none;margin:0}
+.hkf.hkf-c .hkf-stage{background:#f7f5ee;top:38px;bottom:var(--kf-karte,0px);transition:bottom .55s cubic-bezier(.2,.8,.2,1)}
+.hkf.hkf-c .hkf-stage video,.hkf.hkf-c .kf-szene{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#f7f5ee}
+.hkf.hkf-c .kf-szene{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:14vh;box-sizing:border-box;text-align:center;color:#201e1d;font-family:"Archivo",system-ui,sans-serif}
+.hkf.hkf-c .kf-szene small{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#ec3013}
+.hkf.hkf-c .kf-szene b{display:block;margin:10px 0 6px;font-size:clamp(22px,3vw,36px)}
+.hkf.hkf-c .kf-szene span{font-size:14px;color:#6b6762;max-width:560px}
+.hkf.hkf-c .hkf-card{transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.hkf.hkf-c .kf-form{display:grid;gap:12px;padding:16px 24px}
+.hkf.hkf-c .kf-form label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.hkf.hkf-c .kf-form input{font:inherit;font-size:16px;padding:10px 12px;border:1px solid #c9c5c0;background:#fff;color:#201e1d}
+.hkf.hkf-c .kf-hinweis{margin:0 24px 12px;font-size:12px;color:#6b6762}
+.hkf.hkf-c .kf-ergebnis{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:8px 24px 0;font-size:15px}
+.hkf.hkf-c .kf-ergebnis dt{color:#6b6762}
+.hkf.hkf-c .kf-ergebnis dd{margin:0;font-weight:700}
+/* v2: Standbilder (weiss wie die Bilder selbst, nie schwarz) */
+.hkf.hkf-c .hkf-stage:has(.kf-still),.hkf.hkf-c .hkf-stage:has(.kf-schleife),.hkf.hkf-c .hkf-stage:has(.kf-film){background:#fff}
+.hkf.hkf-c .hkf-stage video.kf-film{background:#fff}
+.hkf.hkf-c .hkf-stage:empty{background:#fff}
+/* Film blendet beim Vorladen ein (erstes Bild steht, bis er startet) */
+.hkf.hkf-c .hkf-stage video.kf-film{opacity:0;transition:opacity .8s ease}
+.hkf.hkf-c .hkf-stage video.kf-film.kf-da{opacity:1}
+.hkf.hkf-c .hkf-stage video.kf-schleife{background:#fff}
+.hkf.hkf-c .kf-still{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+/* v2: Grundstueck -- Antworten untereinander, Felder klappen unter der gewaehlten auf */
+.hkf.hkf-c .hkf-options.kf-liste{display:flex;flex-direction:column}
+.hkf.hkf-c .kf-liste .hkf-opt{min-height:0;flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:12px;padding:12px 18px;border-left:0}
+.hkf.hkf-c .kf-liste .hkf-opt+.hkf-opt,.hkf.hkf-c .kf-liste .kf-panel+.hkf-opt{border-top:1px solid var(--m-rule)}
+.hkf.hkf-c .kf-liste .hkf-opt::before{margin:0;padding:0}
+.hkf.hkf-c .kf-panel{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;padding:12px 18px 16px;background:#fff;border-left:4px solid var(--m-acc)}
+.hkf.hkf-c .kf-panel-frage{grid-column:1/-1;margin:0;font-weight:800;font-size:15px}
+.hkf.hkf-c .kf-panel-frage span{font-weight:400;color:#6b6762;font-size:13px}
+.hkf.hkf-c .kf-feld{display:grid;gap:4px;font-size:13px;font-weight:600}
+.hkf.hkf-c .kf-feld input:not([type=checkbox]){font:inherit;font-size:16px;font-weight:400;padding:9px 11px;border:1px solid #c9c5c0;background:#fff;color:#201e1d}
+.hkf.hkf-c .kf-feld input:disabled{background:#eeece9;color:#9a958f}
+.hkf.hkf-c .kf-offen{display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px}
+.hkf.hkf-c .kf-panel-fehler{grid-column:1/-1;margin:0;font-size:12px;color:#b3261e}
+.hkf.hkf-c .hkf-cta:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:700px){.hkf.hkf-c .kf-panel{grid-template-columns:1fr}}
+.hkf.hkf-c .kf-weiter{position:absolute;right:16px;top:12px;z-index:1;padding:8px 12px;border:0;background:rgba(32,30,29,.75);color:#fff;font:600 13px "Archivo",system-ui,sans-serif;cursor:pointer}
+/* Grundstueck (Rainer, 2026-11-09): Felder oeffnen rechts neben Ja / In Aussicht / Noch nicht,
+   die Karte waechst nicht nach unten. Handy (schmal): wie bisher darunter. */
+@media (min-width:701px){
+.hkf.hkf-c .hkf-options.kf-liste{display:grid;grid-template-columns:minmax(200px,38%) 1fr;align-items:stretch}
+.hkf.hkf-c .kf-liste .hkf-opt{grid-column:1}
+.hkf.hkf-c .kf-liste .kf-panel{grid-column:2;grid-row:1 / span 3;align-content:center;padding:10px 18px;gap:6px 14px}
+.hkf.hkf-c .kf-liste .kf-panel+.hkf-opt{border-top:1px solid var(--m-rule)}
+.hkf.hkf-c .kf-liste .kf-panel .kf-panel-frage{font-size:14px}
+.hkf.hkf-c .kf-liste .kf-panel .kf-feld input:not([type=checkbox]){padding:7px 10px}
+}
+</style>
+</head>
+<body>
+<div class="hkf hkf-c" data-theme="light" data-layout="cine" data-look="modell" role="region" aria-label="Hausbau-Konfigurator">
+  <div class="hkf-scene">
+    <div class="hkf-stage" data-id="stage"></div>
+    <div class="hkf-ui">
+      <div class="hkf-num" aria-hidden="true"><b data-id="num"></b><span data-id="numName"></span></div>
+      <div class="hkf-fly" data-id="fly" aria-live="polite"></div>
+    </div>
+  </div>
+  <header class="hkf-top">
+    <div class="hkf-brand">born2thrill<span>Hausbau-Konfigurator</span></div>
+    <div class="hkf-prog" data-id="prog" aria-hidden="true"></div>
+    <div class="hkf-badge" data-id="badge"><i></i><span>Entwurf · sendet noch nichts</span></div>
+  </header>
+  <section class="hkf-card hkf-moving" data-id="card" aria-label="Frage">
+    <div class="hkf-q">
+      <p class="hkf-eyebrow" data-id="eyebrow"></p>
+      <h2 class="hkf-title" data-id="title" tabindex="-1"></h2>
+      <p class="hkf-lead" data-id="lead"></p>
+    </div>
+    <div class="hkf-a">
+      <div class="hkf-options" data-id="options" role="group" aria-label="Antworten"></div>
+      <div data-id="feld"></div>
+      <button type="button" class="hkf-cta" data-id="cta" hidden></button>
+    </div>
+    <div class="hkf-foot">
+      <button type="button" class="hkf-ghost" data-id="back" hidden>Zurück</button>
+      <dl class="hkf-spec" data-id="spec" aria-label="Ihre Auswahl"></dl>
+    </div>
+  </section>
+  <noscript><div class="hkf-nojs">Für den Konfigurator wird JavaScript benötigt.</div></noscript>
+</div>
+<script>window.KONFIG_CFG=/*__CFG__*/{};</script>
+<script>/*__FLOW__*/</script>
+<script>/*__BOARDS__*/</script>
+<script>/*__JS__*/</script>
+</body>
+</html>

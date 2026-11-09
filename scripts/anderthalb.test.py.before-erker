@@ -1,0 +1,120 @@
+"""anderthalb.py -- 1,5-Geschosser. Plan: plans/anderthalbgeschosser-dach-v1.md."""
+
+import math
+import sys
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import anderthalb as a  # noqa: E402
+
+# onehalfstorey_044, gemessen 2026-10-20: 9,79 x 9,25 m, First laengs x.
+BBOX = (1.387, 11.179, 2.098, 11.348)
+
+
+class Grundregeln(unittest.TestCase):
+    def test_nur_anderthalb(self):
+        self.assertTrue(a.ist_anderthalb({"plan_id": "onehalfstorey_044"}))
+        self.assertTrue(a.ist_anderthalb({"house_type": "1.5-storey", "plan_id": "x"}))
+        self.assertFalse(a.ist_anderthalb({"plan_id": "twostorey_059", "house_type": "2-storey"}))
+        self.assertFalse(a.ist_anderthalb({"plan_id": "bungalow_007"}))
+
+    def test_traufe_ein_meter_ueber_dem_og(self):
+        self.assertAlmostEqual(a.traufhoehe(2.75), 3.75)
+
+    def test_traufseiten(self):
+        self.assertEqual(a.traufseiten(BBOX, "satteldach"), ["north", "south"])
+        self.assertEqual(a.traufseiten(BBOX, "satteldach", along_x=False), ["east", "west"])
+        self.assertEqual(a.traufseiten(BBOX, "walmdach"), ["north", "east", "south", "west"])
+
+    def test_seite_von_wand(self):
+        self.assertEqual(a.seite_von_wand((1.387, 11.348), (11.179, 11.348), BBOX), "north")
+        self.assertEqual(a.seite_von_wand((1.387, 2.098), (1.387, 11.348), BBOX), "west")
+
+
+class Giebel(unittest.TestCase):
+    def test_044_balkontueren_nord_und_fenster_sued(self):
+        # zwei 2,10-m-Tueren im Norden, ein Fenster im Sueden; dazu der
+        # gezeichnete Ziergiebel Nord -- die Oeffnungen bestimmen.
+        oeff = [("north", 5.0, 1.0, 2.1), ("north", 6.6, 1.0, 2.1),
+                ("south", 6.0, 1.2, 2.25), ("west", 6.0, 1.2, 2.25)]
+        g = a.giebel(BBOX, "satteldach", oeff, [("ziergiebel", "north")])
+        nord = [x for x in g if x["seite"] == "north"]
+        sued = [x for x in g if x["seite"] == "south"]
+        self.assertEqual(len(nord), 1)                  # beide Tueren: ein Giebel
+        self.assertAlmostEqual(nord[0]["lo"], 4.0)
+        self.assertAlmostEqual(nord[0]["hi"], 7.6)
+        self.assertEqual(len(sued), 1)
+        self.assertAlmostEqual(sued[0]["hi"] - sued[0]["lo"], 2.5)   # Mindestbreite
+        self.assertFalse(any(x["seite"] == "west" for x in g))       # Giebelseite
+
+    def test_ohne_oeffnungen_quergiebel_drittel(self):
+        g = a.giebel(BBOX, "satteldach", [], [("quergiebel", "south")])
+        self.assertEqual(len(g), 1)
+        self.assertAlmostEqual(g[0]["hi"] - g[0]["lo"], (BBOX[1] - BBOX[0]) / 3)
+        self.assertAlmostEqual((g[0]["hi"] + g[0]["lo"]) / 2, (BBOX[0] + BBOX[1]) / 2)
+
+    def test_ohne_oeffnungen_ziergiebel_zwei_meter(self):
+        g = a.giebel(BBOX, "satteldach", [], [("ziergiebel", "north")])
+        self.assertAlmostEqual(g[0]["hi"] - g[0]["lo"], 2.0)
+
+    def test_niedrige_oeffnung_braucht_keinen(self):
+        self.assertEqual(a.giebel(BBOX, "satteldach", [("north", 5.0, 0.6, 0.9)], []), [])
+
+    def test_weit_auseinander_zwei_giebel(self):
+        g = a.giebel(BBOX, "satteldach", [("north", 3.0, 1.0, 2.1), ("north", 9.0, 1.0, 2.1)], [])
+        self.assertEqual(len(g), 2)
+
+    def test_zwerchmasse(self):
+        m = a.zwerch_masse(4.0, 7.6, traufe_z=3.75, wand_oben_z=5.50)
+        t = math.tan(math.radians(40))
+        self.assertAlmostEqual(m["first_z"], 5.50 + 1.8 * t)
+        self.assertAlmostEqual(m["tiefe_traufe"], 1.75 / t)
+        self.assertAlmostEqual(m["tiefe_first"], (m["first_z"] - 3.75) / t)
+
+
+
+class Zwerchkubus(unittest.TestCase):
+    """Plan anderthalb-zwerchkubus-modern-v1: moderne Variante, Kasten mit Flachdach."""
+
+    def test_kubusmasse(self):
+        m = a.kubus_masse(4.0, 7.6, traufe_z=3.75, wand_oben_z=5.50)
+        t = math.tan(math.radians(40))
+        self.assertAlmostEqual(m["dach_z"], 5.50 + a.ATTIKA_M)
+        self.assertAlmostEqual(a.ATTIKA_M, 0.30)
+        self.assertAlmostEqual(m["tiefe_wand"], 1.75 / t)
+        self.assertAlmostEqual(m["tiefe_dach"], (5.80 - 3.75) / t)
+
+    def test_dachform_und_zwerch(self):
+        self.assertEqual(a.dachform_und_zwerch("satteldach-kubus"), ("satteldach", "kubus"))
+        self.assertEqual(a.dachform_und_zwerch("satteldach"), ("satteldach", "giebel"))
+        self.assertEqual(a.dachform_und_zwerch(" Walmdach "), ("walmdach", "giebel"))
+
+    def test_renderer_nutzt_es(self):
+        # Die Naht: render-exterior.py muss EXT_ROOF_TYPE hierueber lesen.
+        quelle = (Path(__file__).resolve().parent / "render-exterior.py").read_text(encoding="utf-8")
+        self.assertIn("anderthalb.dachform_und_zwerch(", quelle)
+        self.assertIn("anderthalb.kubus_masse(", quelle)
+
+
+class UeberDachPrisma(unittest.TestCase):
+    """onehalfstorey_045, 2026-10-21: First Nord-Sued, die Giebelwaende blieben
+    im Westen bis 8,7 m stehen -- der Schnittkoerper kreuzte sich selbst
+    (Oberkante 13,7 m unter dem Ende seiner Dachlinie bei 15,3 m)."""
+
+    def test_umriss_kreuzt_sich_nicht(self):
+        t = math.tan(math.radians(40))
+        for tief in (5.0, 13.76, 30.0):
+            q = a.ueber_dach_profil(3.75, tief, 8.69, t)
+            (s0, z0), (s1, z1), (s2, z2), (s3, z3) = q
+            self.assertEqual((s0, s1, s2, s3), (-3.0, tief, tief, -3.0))
+            self.assertGreater(z2, z1, "Oberkante unter dem Dachlinien-Ende: Umriss kreuzt sich")
+            self.assertEqual(z2, z3)
+            self.assertAlmostEqual(z1, 3.75 + tief * t)
+
+    def test_renderer_nutzt_es(self):
+        quelle = (Path(__file__).resolve().parent / "render-exterior.py").read_text(encoding="utf-8")
+        self.assertIn("anderthalb.ueber_dach_profil(", quelle)
+
+if __name__ == "__main__":
+    unittest.main()

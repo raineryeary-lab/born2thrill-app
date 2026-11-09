@@ -1,0 +1,1476 @@
+"use client";
+
+/**
+ * Ein Haus, eine Seite, ein Durchlauf.
+ *
+ * Rainer, 2026-08-20, immer wieder und zuletzt sehr deutlich: "I WANT A
+ * WORKFLOW" und "if i have to come back here after every step it's not a
+ * workflow". Er hatte recht: bisher lagen Raeume/Massstab/Aussenanlagen im
+ * Flask-Annotator (8765), Geometrie und Moebel in der Next.js-Workbench, und
+ * Bauen/Hochladen/Freigeben in einem dritten Python-Werkzeug auf 8800. Drei
+ * Tabs, drei Ports, kein gemeinsamer Faden.
+ *
+ * Codex, 2026-08-20, zum kleinsten sinnvollen Umbau: "Traeger wird die
+ * Next.js-Workbench ... Eine Hausakte mit festem Schrittfluss ... Flask-
+ * Annotator zunaechst einbetten ... Python-Webtool nicht einbetten, seine
+ * Funktionen werden Backend-API."
+ *
+ * Genau das ist diese Seite: die Schrittleiste oben, der jeweilige Editor
+ * eingebettet, die Pipeline-Schritte als Knoepfe gegen /api/.../pipeline, und
+ * "Naechstes Haus" als Abschluss.
+ */
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+const ANNOTATOR = process.env.NEXT_PUBLIC_ANNOTATOR_URL || "http://localhost:8765";
+
+type Haus = {
+  plan: string;
+  state: string;
+  version?: string | null;
+  blocker: string;
+  action: string;
+  floors: number;
+  blends: number;
+  catalogue_images: number;
+  approved: string | null;
+  // Die Route setzt das, wenn die Lieferpruefung (Python) scheiterte: dann
+  // sind Zertifikat und Frische unbekannt, nicht "nein" (Runde 2).
+  zustand_unbekannt?: boolean;
+};
+
+const DACH_FORMEN = ["flachdach", "walmdach", "satteldach"];
+
+import { istErledigt, istFastFertig } from "@/lib/floorplan-workbench/house-state.mjs";
+import { planAusUrl, waehlePlan, pruefeStateAntwort, anfrageZaehler, PIPELINE_FRIST_MS,
+  stateWarnungen, freigabeErgebnis, istZustandUnbekannt } from "@/lib/floorplan-workbench/plan-wahl.mjs";
+import { bilderOrdnen } from "@/lib/floorplan-workbench/bilder-ordnen.mjs";
+import { leereRaeume, ladeMoebel } from "../floorplan-workbench/furniture";
+
+const SCHRITTE = [
+  // Rainer, 2026-09-17: "cant you put that in a tab before Zeichnen Räume
+  // und Aussen? and when the images are uploaded and saved then go tot
+  // the next tab" -- vorher lag das Hochladen einer neuen Quelldatei nur
+  // auf der Simplifier-Startseite (8765), ganz ausserhalb der Hausakte;
+  // ein neues Haus anzufangen hiess: Tab wechseln, Formular ausfuellen,
+  // dann von Hand zu /haus?plan=<neu> zurueckfinden. Jetzt derselbe
+  // eingebettete Annotator wie "raeume", nur seine Startseite
+  // (Upload-Formular) statt annotate.html, und ohne Plan gebunden --
+  // "neu" ist der einzige Schritt, den es auch OHNE gewaehltes Haus gibt.
+  { id: "neu", titel: "Hochladen (neues Haus)", hilfe: "Quelldatei hochladen, Projekt anlegen" },
+  // "Außenanlagen" war ein eigener Punkt, der exakt dieselbe Annotator-Seite
+  // lud wie "Räume & Maßstab" -- der Annotator hat Exterior, Terrasse und
+  // Außenumriss selbst an Bord. Zwei Knöpfe für eine Seite (2026-08-20).
+  { id: "raeume", titel: "Zeichnen (Räume & Außen)", hilfe: "Räume, Gebäudemaß, Terrasse, Wege" },
+  { id: "moebel", titel: "Möbel", hilfe: "Ausstattung setzen" },
+  { id: "bauen", titel: "Bauen", hilfe: "Blender, beide Stile, Verifier" },
+  { id: "bilder", titel: "Bilder", hilfe: "Renders ansehen" },
+  { id: "codex", titel: "An Codex", hilfe: "Auftrag für die fertigen Bilder schreiben" },
+  { id: "liefern", titel: "Hochladen & Freigeben", hilfe: "Katalog und Rechte" },
+] as const;
+type SchrittId = (typeof SCHRITTE)[number]["id"];
+
+/** Feste Stile. Bewusst kein styled-jsx: das ist hier nicht eingerichtet,
+ *  und die Attribute jsx/global landen sonst im DOM -- was React beim
+ *  Hydrieren als Attribut-Unterschied meldet. */
+const HAUS_CSS = `
+        :root {
+          --bg:#f6f4f1; --fg:#23282c; --muted:#6d7780; --card:#fff;
+          --line:#e3ded7; --ok:#2e7d52; --warn:#b4622a; --accent:#8c5a2b;
+          /* "fast fertig". Nicht --warn genommen: das hier ist kein
+             Warnhinweis, sondern die vorletzte Stufe. KEINE Backticks in
+             diesem Block -- er ist ein Template-String, jeder Backtick
+             beendet ihn (zweites Mal heute).
+             Warnhinweis, sondern die vorletzte Stufe -- und --warn ist dem
+             Braun des Akzents zu nah, um sich auf einen Blick zu
+             unterscheiden. */
+          --fast:#a07800; --update:#1a8a8a;
+        }
+        @media (prefers-color-scheme: dark) {
+          :root {
+            --bg:#15181b; --fg:#e9e7e4; --muted:#98a1a9; --card:#1e2226;
+            --line:#2e343a; --ok:#4caf7d; --warn:#d78b52; --accent:#c68b52;
+            --fast:#d9bb4a; --update:#4cc2c2;
+          }
+        }
+        body { margin:0; background:var(--bg); color:var(--fg);
+               font:15px/1.5 ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif; }
+        /* Eingeklappt bleibt nur eine schmale Leiste stehen: die Liste ist dann
+           weg, der Zugriff aufs naechste Haus nicht. */
+        .haus { display:grid; grid-template-columns:270px 1fr; height:100dvh;
+                overflow:hidden; }
+        .haus.schmal { grid-template-columns:52px 1fr; }
+        .haus.schmal .eintrag .s { display:none; }
+        .haus.schmal .eintrag .n { font-size:10px; }
+        .haus.schmal .kopf { text-align:center; padding:13px 4px; }
+        .klapp { background:none; border:1px solid var(--line); color:var(--muted);
+                 border-radius:6px; padding:4px 9px; cursor:pointer; font-size:13px; }
+        .klapp:hover { color:var(--fg); }
+        aside { border-right:1px solid var(--line); overflow-y:auto; background:var(--card); }
+        .kopf { padding:13px 15px; font-size:11px; text-transform:uppercase;
+                letter-spacing:.06em; color:var(--muted); }
+        .eintrag { display:flex; justify-content:space-between; gap:8px; width:100%;
+                   padding:8px 15px; background:none; border:0; border-bottom:1px solid var(--line);
+                   text-align:left; cursor:pointer; color:var(--fg); }
+        .eintrag:hover { background:var(--bg); }
+        .eintrag.aktiv { background:var(--accent); color:#fff; font-weight:700;
+                         outline:2px solid #fff; outline-offset:-2px; }
+        .eintrag .n { font-family:ui-monospace,monospace; font-size:12px;
+                      overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .eintrag .s { font-size:10px; opacity:.75; white-space:nowrap; }
+        /* Gruen heisst: angenommen, hochgeladen, freigegeben -- nichts zu tun.
+           Rainer, 2026-08-30: "can we make the ones green that are accepted
+           and uploaded?" Nur DIESE eine Farbe; faerbte man auch die
+           Zwischenstufen, waere wieder nichts zu unterscheiden.
+           Der Balken links traegt die Auskunft, nicht die Schriftfarbe: auf
+           der aktiven (blauen) Zeile bliebe gruener Text unlesbar. */
+        .eintrag { border-left:3px solid transparent; }
+        .eintrag.erledigt { border-left-color:var(--ok); }
+        .eintrag.erledigt .s { color:var(--ok); opacity:1; }
+        /* Gelb: gebaut und zertifiziert, es fehlt nur noch die Lieferstrecke
+           -- Hochladen, Anhaken, Freigeben, je ein Knopf. Rainer, 2026-08-30:
+           "how about yellow for things that are almost finished like Bilder
+           Freigeben?" */
+        .eintrag.fast { border-left-color:var(--fast); }
+        .eintrag.fast .s { color:var(--fast); opacity:1; }
+        /* Tuerkis: fertig, bleibt fertig -- es liegt nur ein Update bereit
+           (neuer Renderer oder neue Bilder). FERTIG-BLEIBT-FERTIG-001,
+           Rainer 2026-10-07: "maybe in a different color with update". */
+        .eintrag.update { border-left-color:var(--update); }
+        .eintrag.update .s { color:var(--update); opacity:1; }
+        .stand.update { color:var(--update); }
+        .eintrag.aktiv .s { color:#fff; }
+        .stand.erledigt { color:var(--ok); }
+        .stand.fast { color:var(--fast); }
+        /* overflow-y MUSS scrollbar sein. Mit overflow:hidden war alles unter
+           der Fensterhoehe unerreichbar -- bei diesem Haus 312 px, darunter der
+           Knopf "Auftrag kopieren" (Rainer, 2026-08-27: "ich kann auftrag
+           kopieren nicht druecken ... und diese seite auch nicht scrollt").
+           Kein Backtick in diesem Kommentar: er steht in einem Template-Literal
+           und wuerde es beenden. */
+        main { display:flex; flex-direction:column; overflow-x:hidden;
+               overflow-y:auto; min-height:0; }
+        header { display:flex; align-items:center; gap:12px; padding:9px 16px 6px; flex:0 0 auto; }
+        header h1 { font:600 18px ui-monospace,monospace; margin:0; }
+        .stand { color:var(--muted); font-size:13px; flex:1; }
+        .weiter { background:var(--accent); color:#fff; border:0; border-radius:7px;
+                  padding:8px 16px; font-weight:600; cursor:pointer; }
+        nav { display:flex; gap:5px; padding:0 16px 8px; flex-wrap:wrap; flex:0 0 auto; }
+        .schritt { background:var(--card); color:var(--fg); border:1px solid var(--line);
+                   border-radius:999px; padding:5px 13px; font-size:12.5px; cursor:pointer; }
+        .schritt.aktiv { background:var(--fg); color:var(--bg); border-color:var(--fg); }
+        /* Der Rahmen bekommt die ganze restliche Hoehe, damit im Editor selbst
+           gescrollt wird und nicht zusaetzlich die Seite darum herum. */
+        /* Rainer, 2026-08-29: "my house page is empty". War sie nicht --
+           der eingebettete Annotator war 296x144 Pixel gross. Ein
+           min-height von 0 laesst den Rahmen auf den Rest zusammenfallen,
+           Schrittleiste und Hausliste uebriglassen; bei wenig Rest bleibt vom
+           Grundriss nichts. Er braucht eine Untergrenze, wie die
+           Zeichenflaeche im Annotator selbst auch. */
+        /* Rainer, 2026-09-18: "get rid of the scrollbars and maximize the
+           work area" -- die alte Untergrenze rechnete calc(100dvh - 240px),
+           also eine FESTE Annahme, wie hoch Kopfzeile+Schrittleiste sind.
+           Sobald sie tatsaechlich mehr Platz brauchten (zusaetzliche
+           Statuszeile, umgebrochene Schritt-Knoepfe, "N Issues"-Badge), war
+           dieser Rest zu klein geschaetzt -- der Rahmen bekam per min-height
+           MEHR Hoehe zugewiesen, als im main-Element (selbst overflow-y:auto)
+           tatsaechlich frei war, und das main-Element musste zusaetzlich zum
+           Rahmen selbst scrollen: der zweite Scrollbalken. flex:1 1 auto
+           berechnet die verfuegbare Resthoehe ohnehin schon KORREKT von
+           selbst (header/nav sind flex:0 0 auto, nehmen sich also nur ihren
+           wirklichen Platz) -- eine zusaetzliche, geratene min-height-Formel
+           war nie noetig, nur eine Untergrenze fuer den Kollaps-Fall von
+           oben. KEIN Backtick in diesem Kommentar -- Template-Literal. */
+        .rahmen { flex:1 1 auto; width:100%; border:0;
+                  min-height:520px;
+                  border-top:1px solid var(--line); background:#fff; }
+        .tafel { padding:22px 20px; }
+        .tafel p { color:var(--muted); margin:0 0 12px; }
+        .tafel button, .freigabe button { background:var(--accent); color:#fff; border:0;
+                   border-radius:7px; padding:10px 20px; font-weight:600; cursor:pointer; }
+        .tafel button:disabled { opacity:.45; cursor:default; }
+        .rechtefrage { margin-top:18px; padding:16px 18px; border-radius:10px;
+                  border:1px solid var(--line); background:var(--card); max-width:760px; }
+        .rechtefrage h3 { margin:0 0 8px; font-size:15px; line-height:1.4; }
+        .rechtefrage .nachweis { margin:0 0 12px; font-size:12px; opacity:.72; line-height:1.55; }
+        .rechtefrage .nachweis code { font-size:11px; }
+        .rechtefrage input[type=text], .rechtefrage > input { width:100%; padding:9px 11px;
+                  border-radius:7px; border:1px solid var(--line);
+                  background:var(--bg); color:var(--fg); }
+        .fueralle { display:flex; align-items:center; gap:8px; margin:10px 0 0;
+                  font-size:12px; opacity:.85; }
+        .fueralle input { width:auto; }
+        .janein { display:flex; gap:10px; margin-top:12px; }
+        .janein .ja { background:var(--accent); border-color:var(--accent); color:#fff; }
+        .erklaert { margin-top:14px; font-size:12px; color:var(--muted);
+                  max-width:760px; line-height:1.5; }
+        .erklaert.nein { color:var(--warn); }
+        .freigabe { margin-top:18px; display:flex; gap:10px; flex-wrap:wrap; }
+        .freigabe input { flex:1; min-width:280px; padding:9px 11px; border-radius:7px;
+                   border:1px solid var(--line); background:var(--bg); color:var(--fg); }
+        .katalog-extern { display:inline-block; margin-top:14px; padding:9px 14px;
+                   border-radius:7px; border:1px solid var(--line); color:var(--fg);
+                   text-decoration:none; font-size:13px; }
+        .katalog-extern:hover { border-color:var(--accent); color:var(--accent); }
+        .bilder { flex:1; overflow-y:auto; padding:18px 20px; display:grid;
+                  grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px;
+                  /* Zeilen so hoch wie ihr Bild: sonst drueckt das Raster jede
+                     Karte auf einen Streifen (Rainer, 2026-10-22: "cropped so badly"). */
+                  grid-auto-rows:max-content; align-content:start; }
+        .bilder h3 { grid-column:1/-1; margin:10px 0 0; font-size:13px; color:var(--muted);
+                  font-weight:600; }
+        .bilder a.gross { display:block; cursor:zoom-in; }
+        .bilder figure { margin:0; background:var(--card); border:1px solid var(--line);
+                  border-radius:9px; overflow:hidden; }
+        .bilder img { width:100%; display:block; background:#fff; }
+        .marke { margin-left:auto; padding:1px 7px; border-radius:9px; font-size:10px;
+                 font-weight:600; letter-spacing:.02em; }
+        .rueckgabe { margin:14px 0 0; display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+        .rueckgabe p { width:100%; margin:0 0 4px; color:var(--muted); font-size:13px; }
+        .dachformen { display:flex; gap:18px; margin:12px 0; font-size:13px; }
+        .dachformen select { margin-left:6px; padding:4px 8px; border-radius:8px;
+                             border:1px solid var(--line); background:var(--card); }
+        .stern { position:absolute; top:8px; left:8px; z-index:2;
+                 background:rgba(20,20,20,.72); color:#fff; border:0;
+                 border-radius:8px; cursor:pointer; font-size:17px;
+                 line-height:1; padding:4px 7px; }
+        .stern.ist { background:#f59e0b; color:#1b1b1b; }
+        /* Der Haken "an Kunden" -- auf der Katalogseite selbst liess er sich
+           nicht loesen, die Route dahinter funktioniert. Hier funktioniert er. */
+        .haken { position:absolute; top:8px; left:46px; z-index:2;
+                 background:rgba(20,20,20,.72); color:#fff; border:0;
+                 border-radius:8px; cursor:pointer; font-size:17px;
+                 line-height:1; padding:4px 7px; }
+        .haken.ist { background:#166534; color:#fff; }
+        .marke.final { background:#dbeafe; color:#1e40af; }
+        .marke.rohbau { background:#f3f4f6; color:#6b7280; }
+        .marke.online { background:#dcfce7; color:#166534; }
+        .marke.zurueck { background:#fde8e4; color:#9a3412; }
+        .bilder figcaption { padding:6px 10px; font-size:11px; color:var(--muted);
+                  font-family:ui-monospace,monospace; display:flex;
+                  align-items:center; justify-content:space-between; gap:8px; }
+        /* Sichtbar, nicht dezent: 18 Pixel bei 45% Deckkraft in Grau hat
+           Rainer schlicht nicht gefunden ('da ist kein muelleimer'). */
+        .bilder figure { position:relative; }
+        .muell { position:absolute; top:8px; right:8px; z-index:2;
+                 background:rgba(20,20,20,.72); color:#fff; border:0;
+                 border-radius:8px; cursor:pointer; font-size:17px;
+                 width:36px; height:36px; line-height:1; padding:0;
+                 display:flex; align-items:center; justify-content:center; }
+        .muell:hover { background:#b4342a; }
+        .leer { color:var(--muted); }
+        .auftrag { margin:14px 0 0; padding:12px 14px; background:var(--card);
+                   border:1px solid var(--line); border-radius:8px;
+                   font:12.5px/1.55 ui-monospace,monospace; white-space:pre-wrap;
+                   max-height:340px; overflow:auto; }
+        .tafel button.zweit { background:transparent; color:var(--fg);
+                   border:1px solid var(--line); margin-left:10px; }
+        .blends { margin:14px 0 0; display:flex; flex-wrap:wrap; align-items:center;
+                   gap:8px; }
+        .blends p { width:100%; margin:0 0 2px; font-size:13px; color:var(--muted); }
+        .blends button.zweit { margin-left:0; font-family:ui-monospace,monospace;
+                   font-size:12px; }
+        .karte { margin:14px 0 0; }
+        .karte p { margin:0 0 6px; font-size:13px; color:var(--muted); }
+        .karte p a { color:var(--fg); }
+        .karte img { display:block; width:100%; height:auto; max-height:38vh;
+                   object-fit:contain; object-position:left top; border-radius:8px;
+                   border:1px solid var(--line); background:#fff; }
+        .warnung button.klein { margin-left:10px; background:var(--warn); color:#fff;
+                   border:0; border-radius:6px; padding:5px 12px; font-size:12.5px;
+                   font-weight:600; cursor:pointer; }
+        .warnung button.klein:disabled { opacity:.5; cursor:default; }
+        .warnung { margin:0 20px 12px; padding:10px 13px; border-radius:8px;
+                   background:color-mix(in srgb, var(--warn) 14%, transparent);
+                   border:1px solid var(--warn); font-size:13.5px; }
+        .warnung button.zweit { margin-left:10px; background:transparent; color:var(--fg);
+                   border:1px solid var(--warn); border-radius:6px; padding:4px 10px;
+                   font-size:12.5px; cursor:pointer; }
+        .haken:disabled, .stern:disabled, .muell:disabled { opacity:.5; cursor:wait; }
+        .laedt { padding:22px 20px; color:var(--muted); }
+        .ausgabe { margin:0; padding:11px 20px; background:var(--card);
+                   border-top:1px solid var(--line); font-size:12.5px;
+                   font-family:ui-monospace,monospace; white-space:pre-wrap;
+                   color:var(--muted); max-height:190px; overflow:auto; }
+      `;
+
+
+/** POST mit Frist. Liefert immer ein Objekt: die JSON-Antwort, oder
+ *  {ok:false, error} mit lesbarem Grund -- auch bei HTTP-Fehler, HTML statt
+ *  JSON oder Zeitueberschreitung (ZUVERLAESSIGKEIT-001, B5). Vorher hing ein
+ *  Knopf ohne Antwort ewig auf "laedt …", und eine HTML-Fehlerseite wurde
+ *  zu einem unverstaendlichen SyntaxError. */
+async function postJson(pfad: string, koerper: unknown, fristMs = 60_000): Promise<any> {
+  try {
+    const antwort = await fetch(pfad, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(koerper),
+      signal: AbortSignal.timeout(fristMs),
+    });
+    const text = await antwort.text();
+    let daten: any = null;
+    try { daten = text ? JSON.parse(text) : null; } catch { daten = null; }
+    if (!antwort.ok) {
+      return { ...(daten && typeof daten === "object" ? daten : {}), ok: false,
+               error: daten?.error || `HTTP ${antwort.status}: ${text.slice(0, 300)}` };
+    }
+    if (!daten || typeof daten !== "object") {
+      return { ok: false, error: `Antwort ohne JSON (HTTP ${antwort.status}): ${text.slice(0, 300)}` };
+    }
+    return daten;
+  } catch (fehler: any) {
+    if (fehler?.name === "TimeoutError" || fehler?.name === "AbortError") {
+      const minuten = Math.round(fristMs / 60_000);
+      return { ok: false, zeitueberschreitung: true,
+               error: `Keine Antwort nach ${minuten >= 1 ? `${minuten} min` : `${Math.round(fristMs / 1000)} s`}. `
+                 + "Ob es auf dem Server geklappt hat, ist offen -- er arbeitet womöglich "
+                 + "noch weiter. Nicht sofort erneut klicken: erst nachsehen (Bilder-Tab, Hausliste)." };
+    }
+    return { ok: false, error: String(fehler?.message || fehler) };
+  }
+}
+
+export default function HausSeite() {
+  const [haeuser, setHaeuser] = useState<Haus[]>([]);
+  const [plan, setPlan] = useState<string>("");
+  const [schritt, setSchritt] = useState<SchrittId>("raeume");
+  const [ausgabe, setAusgabe] = useState<string>("");
+  const [laeuft, setLaeuft] = useState<string>("");
+  const [grund, setGrund] = useState<string>("");
+  const [bilder, setBilder] = useState<{ url: string; id: number; name: string;
+    cover?: boolean; send?: boolean }[]>([]);
+  const [lokaleBilder, setLokaleBilder] = useState<{ url: string; name: string; stufe?: string }[]>([]);
+  // Online zuerst (mit Knoepfen), lokale Doppelte weg, Rohbau zuletzt
+  // (bilder-tab-aufraeumen-v1).
+  const geordnet = useMemo(() => bilderOrdnen(bilder, lokaleBilder), [bilder, lokaleBilder]);
+  // Dachform pro Stil -- gelesen/gesetzt ueber die dachform-Route
+  // (dachform.py + gebaeudemass.json; die Bau-Maschinerie liest das laengst,
+  // nur setzen konnte man es bisher allein per Kommandozeile).
+  const [dach, setDach] = useState<{ modern: string | null; classic: string | null } | null>(null);
+  // Möbel stehen auf Räumen. Wird danach umgezeichnet, stehen sie gegen eine
+  // Geometrie, die es nicht mehr gibt -- das muss man sehen, bevor gebaut wird.
+  const [auftrag, setAuftrag] = useState<
+    { text: string | null; ordner: string; blends: string[]; karte?: string | null } | null>(null);
+  const [oeffnetDatei, setOeffnetDatei] = useState<string>("");
+  // Was Codex zurueckgegeben hat, direkt im Ablauf statt als Pfad im Chat.
+  const [rueckgaben, setRueckgaben] = useState<any[]>([]);
+  const [liestEin, setLiestEin] = useState<string>("");
+  const [kopiert, setKopiert] = useState(false);
+  const [stale, setStale] = useState<{ veraltet: boolean; moebel: number; grund: string;
+    geometrieFremd?: boolean } | null>(null);
+  // Die Rechtefrage ist keine Qualitätsprüfung -- kein Maß an Arbeit macht
+  // `commercial_use_allowed` wahr. Sie ist eine Entscheidung, und die wird hier
+  // einmal gestellt und gemerkt, statt bei jedem der 55 gesperrten Häuser neu
+  // (Rainer, 2026-08-25: "wieso wird mir das sichern so erschwert?").
+  const [rechte, setRechte] = useState<{ frage_noetig: boolean; gesperrt: boolean;
+    datensatz: string | null; quelldatei: string | null; lizenz: string | null;
+    geschwister: number; erklaerung: any } | null>(null);
+  const [fuerDatensatz, setFuerDatensatz] = useState(true);
+  // Die Hausliste frisst Breite, die beim Zeichnen und Möblieren fehlt.
+  // Rainer, 2026-08-20: "make the left column colapsable so i have more room
+  // for the annotaitns and funiisching."
+  const [zu, setZu] = useState(false);
+  const rahmen = useRef<HTMLIFrameElement>(null);
+  // ZUVERLAESSIGKEIT-001 (A1/A2/A6): der Stand der Hausliste ist sichtbar --
+  // laedt sie noch, ist sie gescheitert, fehlt das verlangte Haus darin --,
+  // statt dass ein leerer Rahmen oder ein fremdes Haus das ausdrueckt.
+  const [listeLaedt, setListeLaedt] = useState(false);
+  const [listeFehler, setListeFehler] = useState("");
+  const [listeHinweis, setListeHinweis] = useState("");
+  // Gesamtfehler der State-Route (zustand_fehler, katalog_fehler) -- vorher
+  // ignoriert, die Liste sah dann normal aus, nur mit falschen Zustaenden.
+  const [listeWarnungen, setListeWarnungen] = useState<string[]>([]);
+  // Gelber Hinweis im Bilder-Tab: geschrieben, aber nicht bestaetigt.
+  const [bildHinweis, setBildHinweis] = useState("");
+  // Bild-Knoepfe, deren Anfrage gerade laeuft ("haken:12", "stern", "muell:12"):
+  // ein zweiter Klick darauf geht nicht los, solange der erste nicht zurueck ist.
+  const [bildLaeuft, setBildLaeuft] = useState<string[]>([]);
+  // Der Plan, den die Seite JETZT zeigt -- fuer Antworten, die erst nach einem
+  // Hauswechsel ankommen: die duerfen das neue Haus nicht ueberschreiben.
+  const planRef = useRef("");
+  // Vor allen anderen Effekten nachziehen (Effekte laufen in Deklarations-
+  // reihenfolge), damit bilderLaden & Co. schon den neuen Plan sehen.
+  useEffect(() => { planRef.current = plan; }, [plan]);
+  const listeZaehler = useRef(anfrageZaehler());
+  const bilderZaehler = useRef(anfrageZaehler());
+  const laufendeSicherung = useRef<Promise<boolean> | null>(null);
+  // Nur die JUENGSTE Navigation geht nach dem gemeinsamen Speichern weiter;
+  // aeltere Klicks werden verworfen, statt alle nacheinander auszufuehren.
+  const navZaehler = useRef(anfrageZaehler());
+  // Lesen gegen Schreiben im selben Haus: jede Aenderung zieht die Nummer
+  // hoch, ein vorher gestartetes Lesen darf danach nichts mehr setzen.
+  const dachZaehler = useRef(anfrageZaehler());
+  const rechteZaehler = useRef(anfrageZaehler());
+  const bildSperren = useRef(new Set<string>());
+  // Rainer, 2026-10-07: "in dieser Liste links kann man nie sehen, an welchem
+  // Haus man gerade arbeitet" -- die Liste ist nach Zustand sortiert, das
+  // aktuelle Haus stand oft weit unten ausser Sicht. Beim Laden und bei jedem
+  // Wechsel wird es in die Mitte der Liste gescrollt.
+  const aktiveZeile = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    aktiveZeile.current?.scrollIntoView({ block: "center" });
+    // auch nach Auf-/Zuklappen: die Zeilen haben dann eine andere Hoehe
+  }, [plan, haeuser.length, zu]);
+
+  // Beim Laden merken, wie es zuletzt stand -- ein Werkzeug, das die eigene
+  // Einstellung vergisst, muss bei jedem Haus neu eingestellt werden.
+  useEffect(() => {
+    setZu(window.localStorage.getItem("haus.spalte") === "zu");
+  }, []);
+  useEffect(() => {
+    window.localStorage.setItem("haus.spalte", zu ? "zu" : "auf");
+  }, [zu]);
+
+  // Der Annotator klappt unter 900px selbst auf eine gestapelte Ansicht um
+  // (sein eigenes @media (max-width: 900px)) -- Werkzeugleiste und Kanvas
+  // untereinander statt nebeneinander, und ohne sichtbaren Scrollbalken dann
+  // schlicht unerreichbar. Die offene Hausliste allein frisst dafuer schon
+  // genug Breite (270px), unabhaengig vom gemerkten Zustand aus einer
+  // frueheren Sitzung -- also beim Betreten von Zeichnen/Moebel immer
+  // einklappen. Nur beim WECHSEL, nicht bei jedem Render: wer sie danach von
+  // Hand wieder aufklappt, soll das duerfen.
+  useEffect(() => {
+    if (schritt === "raeume" || schritt === "moebel") setZu(true);
+  }, [schritt]);
+
+  // Die Hausliste braucht ueber 30 Sekunden. Sie entscheidet NICHT mehr, welches
+  // Haus offen ist, wenn eines verlangt war (ZUVERLAESSIGKEIT-001, A1/A2): ein
+  // Fehler laesst die alte Liste stehen und sagt es, ein fehlendes Haus bleibt
+  // offen und wird gemeldet, und nur die juengste Anfrage zaehlt.
+  const laden = useCallback(async () => {
+    const nummer = listeZaehler.current.neu();
+    setListeLaedt(true);
+    try {
+      const antwort = await fetch("/api/floorplan-workbench/state", { cache: "no-store" });
+      let daten: any = null;
+      try { daten = await antwort.json(); } catch { daten = null; }
+      const liste = pruefeStateAntwort(antwort.ok, antwort.status, daten) as Haus[];
+      if (!listeZaehler.current.aktuell(nummer)) return;
+      setHaeuser(liste);
+      setListeFehler("");
+      setListeWarnungen(stateWarnungen(daten));
+      const wahl = waehlePlan({ jetzt: planRef.current, urlPlan: planAusUrl(window.location.search),
+                                liste, istErledigt, listeGeladen: true });
+      setListeHinweis(wahl.hinweis);
+      // Nur wenn noch GAR kein Haus offen ist -- sonst wuerde ein Nachladen
+      // der Liste am Speicher-Handschlag vorbei das Haus wechseln.
+      if (!planRef.current && wahl.plan) {
+        planRef.current = wahl.plan;
+        setPlan(wahl.plan);
+      }
+    } catch (fehler) {
+      if (listeZaehler.current.aktuell(nummer)) {
+        setListeFehler(fehler instanceof Error ? fehler.message : String(fehler));
+      }
+    } finally {
+      if (listeZaehler.current.aktuell(nummer)) setListeLaedt(false);
+    }
+  }, []);
+
+  // Das verlinkte Haus SOFORT zeigen, nicht erst nach der Liste (A1).
+  useEffect(() => {
+    const ausUrl = planAusUrl(window.location.search);
+    if (ausUrl) {
+      planRef.current = ausUrl;
+      setPlan(ausUrl);
+    }
+    laden();
+  }, [laden]);
+
+  // Der Möbel-Editor meldet, wenn gespeichert ist. Dann geht es von selbst
+  // weiter — sonst sucht man nach dem nächsten Knopf, und genau das war die
+  // Beschwerde: "i have me looking form top to bottom to find the next button".
+  useEffect(() => {
+    function hoeren(e: MessageEvent) {
+      // Zwei erlaubte Absender: der Möbel-Editor (gleiche Origin) und der
+      // eingebettete Annotator auf 8765.
+      const erlaubt = [window.location.origin, ANNOTATOR];
+      if (!erlaubt.includes(e.origin)) return;
+      // Nur der Rahmen, der JETZT eingebettet ist (A6). Ein anderes Fenster
+      // derselben Origin -- ein zweiter Workbench-Tab, ein verspaeteter alter
+      // Rahmen -- darf diese Hausakte nicht weiterschalten.
+      if (e.source !== rahmen.current?.contentWindow) return;
+      // Nur fuer das Haus, das gerade offen ist: der Moebel-Editor schickt
+      // sein Projekt mit (Runde 2). Ohne Projekt -- ignorieren.
+      if (e.data?.typ === "moebel-gespeichert" && schritt === "moebel" && e.data?.projekt === plan) {
+        setSchritt("bauen");
+        setAusgabe("Möbel gespeichert. Weiter mit Bauen.");
+      }
+      // Der Annotator-Knopf "Finish project" springt eingebettet nicht mehr
+      // selbst zum naechsten Projekt (das liess Rahmen und Seitenleiste auf
+      // verschiedene Haeuser zeigen) -- er meldet sich hier, und die Hausakte
+      // schaltet auf den naechsten Schritt DESSELBEN Hauses.
+      // Nur wenn die Meldung vom AKTUELL angezeigten Haus kommt: eine
+      // verspaetete Nachricht eines vorher offenen Projekts darf das jetzige
+      // nicht weiterschalten (Codex, 2026-08-20).
+      if (e.data?.typ === "projekt-fertig" && e.data?.projekt === plan) {
+        setSchritt("moebel");
+        setAusgabe("Zeichnung gespeichert. Weiter mit Möbeln.");
+      }
+      // Das Hochladen-Formular (Simplifier-Startseite, eingebettet ohne
+      // eigenen Plan) meldet die neu angelegte Projekt-ID, statt selbst
+      // zu annotate.html zu navigieren -- die Hausakte wechselt darauf ZU
+      // diesem neuen Haus und direkt weiter zum Zeichnen-Schritt. Nur
+      // reagieren, waehrend "neu" tatsaechlich zu sehen ist: sonst wuerde
+      // ein spaetes Echo eines laengst verlassenen Uploads das gerade
+      // offene Haus verdraengen.
+      if (e.data?.typ === "haus-erstellt" && e.data?.projekt && schritt === "neu") {
+        wechslePlan(e.data.projekt, "raeume");
+        setAusgabe(`${e.data.projekt} angelegt. Weiter mit Zeichnen.`);
+      }
+    }
+    window.addEventListener("message", hoeren);
+    return () => window.removeEventListener("message", hoeren);
+    // wechslePlan bewusst nicht in den Abhaengigkeiten: es wird erst weiter
+    // unten deklariert (useCallback), waere hier zur Bauzeit des Arrays
+    // also noch nicht initialisiert (TDZ). Der Closure liest trotzdem die
+    // aktuelle Version, weil dieser Effekt bei jeder Aenderung von plan/
+    // schritt ohnehin neu gebaut wird.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan, schritt]);
+
+  // Der Rahmen wechselt Schritt/Haus, indem sein src einfach ausgetauscht
+  // wird -- ohne diese Bremse verwirft das JEDE ungespeicherte Zeichnung im
+  // eingebetteten Annotator wortlos. Rainer, 2026-08-22: "in the möbel part
+  // the walls are not being updated after being changed in the annotator"
+  // -- sie waren nie gespeichert, nicht veraltet. Nur ein Ausschnitt aus dem
+  // Rahmen betroffen (Zeichnen); alle anderen Schrittwechsel loesen sofort
+  // auf. Siehe floorplan-simplifier/plans/annotator-save-on-parent-request-v1.md
+  // fuer die Gegenseite dieses Handschlags.
+  const sichereZeichnungVorWechsel = useCallback((): Promise<boolean> => {
+    if (schritt !== "raeume" || !rahmen.current?.contentWindow) return Promise.resolve(true);
+    // Mehrere Klicks waehrend EINES Handschlags teilen sich dessen Ergebnis,
+    // statt je einen eigenen Wartenden anzulegen, den eine einzige Antwort
+    // auf einen Schlag freigibt (A6).
+    if (laufendeSicherung.current) return laufendeSicherung.current;
+    const fenster = rahmen.current.contentWindow;
+    const fuerPlan = plan;
+    const versprechen = new Promise<boolean>((resolve) => {
+      let erledigt = false;
+      function hoeren(e: MessageEvent) {
+        if (![window.location.origin, ANNOTATOR].includes(e.origin)) return;
+        if (e.source !== fenster) return;
+        if (e.data?.typ !== "zeichnung-gespeichert") return;
+        // Der Annotator schickt mit, welches Projekt er gespeichert hat.
+        // Fehlt es, ist die Meldung nicht zuzuordnen -- ignorieren (Runde 2).
+        if (e.data?.projekt !== fuerPlan) return;
+        abschliessen(!!e.data.ok);
+      }
+      function abschliessen(ok: boolean) {
+        if (erledigt) return;
+        erledigt = true;
+        window.removeEventListener("message", hoeren);
+        window.clearInterval(wiederholen);
+        resolve(ok);
+      }
+      window.addEventListener("message", hoeren);
+      // EIN Versuch reichte nicht: kurz nach dem Laden der Seite hat der
+      // Annotator seinen eigenen message-Listener oft noch nicht
+      // registriert, die erste Anfrage geht dann spurlos verloren und die
+      // 4-Sekunden-Grenze griff zuverlaessig genau dann, wenn "Zeichnen"
+      // gerade erst geladen war -- reproduziert nach einer frischen
+      // Navigation direkt gefolgt von einem Tab-Wechsel. Erneutes Senden,
+      // bis eine Antwort kommt, behebt das ohne zu raten, ob der Annotator
+      // schon bereit ist.
+      fenster.postMessage({ typ: "bitte-speichern" }, ANNOTATOR);
+      const wiederholen = window.setInterval(() => {
+        if (erledigt) return;
+        fenster.postMessage({ typ: "bitte-speichern" }, ANNOTATOR);
+      }, 500);
+      // KEIN window.confirm() hier -- es blockiert die GANZE Seite
+      // (Klicks, weitere Nachrichten, alles) bis jemand den nativen Dialog
+      // wegklickt, und in der Praxis blieb das haengen statt zu fragen
+      // (Rainer, 2026-08-22: "now pressing 'Bauen' seems to have broken
+      // somthing" -- reproduziert: frisch geladen, sofort weggeklickt,
+      // Seite komplett eingefroren). Fail-closed ohne zu blockieren: nicht
+      // wechseln, aber auch nichts wegwerfen -- eine sichtbare, nicht
+      // blockierende Meldung statt eines Dialogs, den man nicht bedienen
+      // kann.
+      setTimeout(() => {
+        if (erledigt) return;
+        erledigt = true;
+        window.removeEventListener("message", hoeren);
+        window.clearInterval(wiederholen);
+        setAusgabe(
+          "Der Zeichnen-Tab antwortet nicht auf die Speicheranfrage -- "
+          + "nicht gewechselt, nichts verworfen. Im Zeichnen-Tab selbst "
+          + "speichern und es erneut versuchen.",
+        );
+        resolve(false);
+      }, 8000);
+    });
+    laufendeSicherung.current = versprechen;
+    versprechen.finally(() => {
+      if (laufendeSicherung.current === versprechen) laufendeSicherung.current = null;
+    });
+    return versprechen;
+  }, [schritt, plan]);
+
+  const wechsleSchritt = useCallback(async (ziel: SchrittId): Promise<boolean> => {
+    const nummer = navZaehler.current.neu();
+    if (!(await sichereZeichnungVorWechsel())) return false;
+    // Inzwischen wurde woanders hin geklickt: nur der letzte Klick zaehlt.
+    if (!navZaehler.current.aktuell(nummer)) return false;
+    setSchritt(ziel);
+    return true;
+  }, [sichereZeichnungVorWechsel]);
+
+  const wechslePlan = useCallback(async (neuerPlan: string, ziel: SchrittId = "raeume"): Promise<boolean> => {
+    const nummer = navZaehler.current.neu();
+    if (!(await sichereZeichnungVorWechsel())) return false;
+    if (!navZaehler.current.aktuell(nummer)) return false;
+    planRef.current = neuerPlan;
+    setPlan(neuerPlan);
+    setSchritt(ziel);
+    return true;
+  }, [sichereZeichnungVorWechsel]);
+
+  // Bilder eines Hauses laden. Eigene Funktion, weil sie auch NACH Hochladen,
+  // Freigeben und Codex-Einlesen laufen muss -- vorher kamen die Bilder nur
+  // beim Hauswechsel, ein erfolgreiches Hochladen sah also aus wie keines
+  // (B3). Nur die juengste Anfrage fuer das noch offene Haus darf setzen (A6).
+  const bilderLaden = useCallback((fuer: string) => {
+    if (!fuer) return;
+    const nummer = bilderZaehler.current.neu();
+    const gilt = () => bilderZaehler.current.aktuell(nummer) && planRef.current === fuer;
+    // Die Route liefert Objekte ({id, full, thumb}), keine Strings -- direkt in
+    // ein <img src> gesteckt haette das "[object Object]" ergeben.
+    fetch(`/api/floorplan-workbench/publish?plan=${encodeURIComponent(fuer)}`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then((d) => {
+        if (!gilt()) return;
+        setBilder(
+          (d.images || []).map((b: any) => (typeof b === "string"
+            ? { url: b, id: 0, name: b.split("/").pop() }
+            : { url: b.full || b.thumb, id: b.id, name: b.name, cover: !!b.cover,
+                send: b.send !== false }))
+            .filter((b: any) => b.url),
+        );
+        // Lokale Renders aus go-baseline -- sichtbar, ohne dass irgendwas
+        // hochgeladen wurde. "where are the Bilder?" (Rainer, 2026-08-22):
+        // der Tab zeigte nur den Online-Katalog, ein frisch gebautes Haus
+        // blieb unsichtbar.
+        setLokaleBilder((d.local || []).filter((b: any) => b?.url));
+      })
+      .catch((fehler) => {
+        if (!gilt()) return;
+        setBilder([]);
+        setLokaleBilder([]);
+        setAusgabe(`Bilder von ${fuer} nicht geladen: ${String(fehler?.message || fehler)}`);
+      });
+  }, []);
+
+  useEffect(() => {
+    // Bilder des vorigen Hauses sofort weg -- sonst stehen sie unter dem
+    // Namen des neuen, bis dessen Antwort da ist.
+    setBilder([]);
+    setLokaleBilder([]);
+    setBildHinweis("");
+    if (!plan) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("plan", plan);
+    window.history.replaceState({}, "", url);
+    bilderLaden(plan);
+  }, [plan, bilderLaden]);
+
+  // Dachform/Rechte lesen. Jede Lesung holt sich eine Nummer; eine Aenderung
+  // (dachSetzen, rechteErklaeren) zieht sie hoch, sodass ein vorher
+  // gestartetes Lesen den frisch gesetzten Wert nicht zurueckdreht (Runde 2).
+  function dachLesen(fuer: string, abgebrochen: () => boolean = () => false) {
+    const nummer = dachZaehler.current.neu();
+    const gilt = () => !abgebrochen() && dachZaehler.current.aktuell(nummer) && planRef.current === fuer;
+    fetch(`/api/floorplan-workbench/dachform?plan=${encodeURIComponent(fuer)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (gilt()) setDach({ modern: d.modern, classic: d.classic }); })
+      .catch(() => { if (gilt()) setDach(null); });
+  }
+  function rechteLesen(fuer: string, abgebrochen: () => boolean = () => false) {
+    const nummer = rechteZaehler.current.neu();
+    const gilt = () => !abgebrochen() && rechteZaehler.current.aktuell(nummer) && planRef.current === fuer;
+    fetch(`/api/floorplan-workbench/rechte?plan=${encodeURIComponent(fuer)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (gilt()) setRechte(d.error ? null : d); })
+      .catch(() => { if (gilt()) setRechte(null); });
+  }
+
+  // Beim Wechsel auf Möbel/Bauen frisch nachsehen: der Annotator lief eben im
+  // iframe, also kann sich die Geometrie genau jetzt geändert haben.
+  // Jede Antwort prueft, ob Haus und Schritt noch dieselben sind (A6): eine
+  // spaete Antwort von Haus A schrieb sonst in Haus B.
+  useEffect(() => {
+    let abgebrochen = false;
+    if (schritt === "codex" && plan) {
+      fetch(`/api/floorplan-workbench/auftrag?plan=${encodeURIComponent(plan)}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d) => { if (!abgebrochen) setAuftrag(d); })
+        .catch(() => { if (!abgebrochen) setAuftrag(null); });
+      // Was Codex zurueckgegeben hat -- gefunden statt von Hand durchgereicht.
+      fetch(`/api/floorplan-workbench/codex-rueckgabe?plan=${encodeURIComponent(plan)}`,
+            { cache: "no-store" })
+        .then((r) => r.json())
+        .then((d) => { if (!abgebrochen) setRueckgaben(d.gefunden || []); })
+        .catch(() => { if (!abgebrochen) setRueckgaben([]); });
+    }
+    if (schritt === "liefern" && plan) {
+      setRechte(null);
+      rechteLesen(plan, () => abgebrochen);
+    }
+    if (schritt === "bauen" && plan) {
+      setDach(null);
+      dachLesen(plan, () => abgebrochen);
+    }
+    if (!plan || !["moebel", "bauen", "liefern"].includes(schritt)) {
+      setStale(null);
+      return () => { abgebrochen = true; };
+    }
+    fetch(`/api/floorplan-workbench/staleness?plan=${encodeURIComponent(plan)}`, { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => { if (!abgebrochen) setStale(d); })
+      .catch(() => { if (!abgebrochen) setStale(null); });
+    return () => { abgebrochen = true; };
+  }, [plan, schritt]);
+
+  const aktuell = useMemo(() => haeuser.find((h) => h.plan === plan), [haeuser, plan]);
+  const zustandUnbekannt = istZustandUnbekannt(aktuell);
+  // "offen" und "gruen" muessen dasselbe meinen. Vorher zaehlte hier
+  // `state !== "fertig"` -- damit standen die elf veroeffentlichten Haeuser
+  // mit auf der Liste, obwohl ihre eigene naechste Handlung "nichts noetig"
+  // lautet. Rainer, 2026-08-30: "i really can't tell which one i still have
+  // to fix". Die Liste der erledigten Zustaende liegt in house-state.mjs.
+  const offen = useMemo(() => haeuser.filter((h) => !istErledigt(h.state)), [haeuser]);
+  const fertige = useMemo(() => haeuser.filter((h) => istErledigt(h.state)), [haeuser]);
+  const fastFertige = useMemo(() => haeuser.filter((h) => istFastFertig(h.state)), [haeuser]);
+
+  // Leere Raeume VOR dem Bauen melden -- egal, ueber welchen Knopf gebaut
+  // wird. Rainer, 2026-10-16: "the Speisekammer was empty and you gave me no
+  // warning". Die Pruefung sass nur am Knopf "Weiter zu Bauen" im
+  // Moebel-Schritt; wer direkt den Schritt "Bauen" nahm, baute ohne Frage.
+  // Scheitert die Pruefung selbst, wird ohne Rueckfrage gebaut.
+  async function leereRaeumeVorDemBauen(): Promise<string[]> {
+    const antwort = await fetch("/api/floorplan-workbench/corrections", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "render_geometry", reference: plan }),
+    });
+    const daten = await antwort.json();
+    const geschosse = (daten?.geometry?.floors || []) as any[];
+    const namen: string[] = [];
+    for (let i = 0; i < geschosse.length; i += 1) {
+      const symbole = await ladeMoebel(plan, `floor-${i}`);
+      const kurz = ({ groundfloor: "EG", upperfloor: "OG", basement: "KG", attic: "DG" } as Record<string, string>)[
+        geschosse[i]?.floor_level || ""] || `Geschoss ${i + 1}`;
+      for (const raum of leereRaeume(symbole, geschosse[i]?.rooms || [])) {
+        namen.push(geschosse.length > 1 ? `${kurz}: ${raum.name}` : raum.name);
+      }
+    }
+    return namen;
+  }
+
+  // Sperrt eine Wand ohne Tuer die Treppe zu? Rainer, 2026-10-17,
+  // twostorey_058: "you also have to set up a warning if a staircase is not
+  // accessible". Scheitert die Pruefung selbst, wird ohne Rueckfrage gebaut.
+  async function treppeVorDemBauen(): Promise<string[]> {
+    const daten = await postJson("/api/floorplan-workbench/pipeline",
+      { plan, schritt: "treppe" }, PIPELINE_FRIST_MS.treppe);
+    const zeile = String(daten?.ausgabe || "").trim().split("\n").pop() || "{}";
+    return ((JSON.parse(zeile)?.blockiert || []) as any[]).map((b) => String(b.text));
+  }
+
+  async function pipeline(was: "bauen" | "hochladen" | "freigeben" | "regenerieren" | "codex") {
+    // Zustand unbekannt (Lieferpruefung gescheitert): nicht blind bauen oder
+    // hochladen -- erst die Liste neu laden (Runde 2).
+    if ((was === "bauen" || was === "hochladen") && zustandUnbekannt
+        && !window.confirm(`Der Zustand von ${plan} ist gerade unbekannt (Prüfung fehlgeschlagen).\n\n`
+          + `Besser erst die Hausliste neu laden. Trotzdem ${was}?`)) {
+      setAusgabe(`Nicht ${was === "bauen" ? "gebaut" : "hochgeladen"} -- Zustand unbekannt. Liste neu laden.`);
+      return;
+    }
+    let trotzTreppe = false;
+    if (was === "bauen") {
+      setAusgabe("prüft Räume und Treppe …");
+      let leer: string[] = [];
+      try { leer = await leereRaeumeVorDemBauen(); } catch { leer = []; }
+      if (leer.length && !window.confirm(`Ohne Möbel: ${leer.join(", ")}.
+
+Trotzdem bauen?`)) {
+        setAusgabe(`Nicht gebaut -- ohne Möbel: ${leer.join(", ")}.`);
+        return;
+      }
+      let treppe: string[] = [];
+      try { treppe = await treppeVorDemBauen(); } catch { treppe = []; }
+      if (treppe.length) {
+        if (!window.confirm(`${treppe.join("\n\n")}
+
+Trotzdem bauen?`)) {
+          setAusgabe(`Nicht gebaut -- ${treppe.join(" ")}`);
+          return;
+        }
+        trotzTreppe = true;
+      }
+    }
+    // Das Haus, fuer das dieser Schritt laeuft. Ein Bau dauert Minuten; wer
+    // inzwischen das Haus wechselt, darf dessen Anzeige nicht mit dem
+    // Ergebnis des alten ueberschrieben bekommen (A6).
+    const fuer = plan;
+    const nochDasselbe = () => planRef.current === fuer;
+    setLaeuft(was);
+    setAusgabe(`${was} läuft (${fuer}) …`);
+    try {
+      // Mit Frist (B5): ohne sie blieb "lädt …" stehen, wenn die Gegenseite
+      // nie antwortete, und der naechste Klick lief parallel los.
+      const daten = await postJson("/api/floorplan-workbench/pipeline",
+        { plan: fuer, schritt: was, grund, trotzTreppe },
+        PIPELINE_FRIST_MS[was] ?? 10 * 60_000);
+      // Ein Fehlschlag muss AUSSEHEN wie einer. Vorher wurde die Ausgabe
+      // kommentarlos angezeigt, ob ok oder nicht -- ein gescheitertes
+      // Freigeben las sich wie ein normales Ende (Codex, 2026-08-20).
+      const text = daten.ausgabe || daten.error || "(keine Ausgabe)";
+      const vorsatz = nochDasselbe() ? "" : `[${fuer}] `;
+      // Zeitlimit der Route (code 124): kein gewoehnlicher Fehlschlag --
+      // der Schritt wurde abgebrochen, sein Ergebnis ist offen.
+      const zeitlimit = daten.zeitlimit === true || daten.code === 124;
+      setAusgabe(daten.ok !== false
+        ? `${vorsatz}${text}`
+        : zeitlimit
+        ? `${vorsatz}ZEITLIMIT: ${was} wurde abgebrochen, das Ergebnis ist offen. `
+          + `Erst nachsehen (Bilder-Tab, Hausliste), dann ggf. erneut starten.
+
+${text}`
+        : `${vorsatz}FEHLGESCHLAGEN: ${was}
+
+${text}`);
+      // "Auftrag schreiben" hat gerade neue Dateien erzeugt -- der angezeigte
+      // Text stammt aber noch vom Öffnen des Tabs. Ohne dieses Nachladen
+      // kopiert man den Stand von vorher, sichtbar an einer Regelwerk-
+      // Prüfsumme, die nicht mehr zur Datei passt (Rainer, 2026-08-27:
+      // dreimal denselben veralteten Auftrag eingefügt).
+      if (was === "codex" && fuer) {
+        const frisch = await fetch(
+          `/api/floorplan-workbench/auftrag?plan=${encodeURIComponent(fuer)}`,
+          { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+        if (frisch && nochDasselbe()) setAuftrag(frisch);
+      }
+    } finally {
+      setLaeuft("");
+    }
+    // Nach Hochladen/Freigeben sofort die Bilder dieses Hauses neu holen --
+    // nicht erst mit der Hausliste (die braucht ueber 30 s und laedt die
+    // Bilder gar nicht). Ohne das sah ein gelungenes Hochladen aus wie keines,
+    // und man klickte noch einmal (B3).
+    if ((was === "hochladen" || was === "freigeben") && nochDasselbe()) bilderLaden(fuer);
+    laden();
+    // Nach dem Regenerieren muss die Veraltungs-Anzeige neu rechnen, sonst
+    // steht die Warnung noch da, obwohl sie erledigt ist.
+    if (fuer) {
+      fetch(`/api/floorplan-workbench/staleness?plan=${encodeURIComponent(fuer)}`, { cache: "no-store" })
+        .then((r) => r.json()).then((d) => { if (nochDasselbe()) setStale(d); }).catch(() => {});
+    }
+  }
+
+  async function dachSetzen(modern: string, classic: string) {
+    if (!plan || !modern || !classic) return;
+    const vorher = dach;
+    const fuer = plan;
+    // Laufende Lesungen ungueltig machen: sie wuerden den neuen Wert ueberschreiben.
+    dachZaehler.current.neu();
+    setDach({ modern, classic });
+    const antwort = await postJson("/api/floorplan-workbench/dachform", { plan: fuer, modern, classic });
+    if (planRef.current !== fuer) {
+      setAusgabe(`[${fuer}] Dachform ${antwort?.ok ? "gespeichert" : `nicht gespeichert: ${antwort?.error}`}`);
+      return;
+    }
+    if (antwort?.ok) {
+      setAusgabe(`Dachform gespeichert (modern=${modern}, classic=${classic}). `
+        + "Beim nächsten Bauen wird mit den neuen Dächern gebaut.");
+      dachLesen(fuer);
+    } else {
+      setDach(vorher);
+      setAusgabe(antwort?.error || "Dachform konnte nicht gespeichert werden.");
+    }
+  }
+
+  // Ein Bild-Knopf ist "beschaeftigt", solange seine Anfrage laeuft (B4).
+  // Vorher gingen bei jedem Klick weitere Anfragen los, waehrend die Anzeige
+  // stehen blieb -- und welche zuletzt ankam, bestimmte den Stand.
+  // Die Sperre selbst sitzt in einem Ref (synchron); der State dient nur der
+  // Anzeige (Knopf ausgegraut).
+  const bildBeschaeftigt = (schluessel: string) => bildLaeuft.includes(schluessel);
+  async function mitBildSperre<T>(schluessel: string, arbeit: () => Promise<T>): Promise<T | undefined> {
+    if (bildSperren.current.has(schluessel)) return undefined;
+    bildSperren.current.add(schluessel);
+    setBildLaeuft(Array.from(bildSperren.current));
+    try {
+      return await arbeit();
+    } finally {
+      bildSperren.current.delete(schluessel);
+      setBildLaeuft(Array.from(bildSperren.current));
+    }
+  }
+
+  async function titelbildSetzen(id: number, name: string) {
+    if (!plan || !id) return;
+    const fuer = plan;
+    // Ein Titelbild pro Haus: solange eines gesetzt wird, kein zweites.
+    await mitBildSperre("stern", async () => {
+      setAusgabe(`Titelbild wird gesetzt: ${name} …`);
+      // Laufendes Bilder-Lesen verwerfen: es kaeme mit dem alten Stern zurueck.
+      bilderZaehler.current.neu();
+      const antwort = await postJson("/api/floorplan-workbench/titelbild", { plan: fuer, id });
+      const ergebnis = freigabeErgebnis(antwort);
+      if (planRef.current !== fuer) {
+        setAusgabe(`[${fuer}] Titelbild ${ergebnis.art === "fehler" ? `nicht gesetzt: ${ergebnis.text}`
+          : ergebnis.art === "warnung" ? `unbestätigt: ${ergebnis.text}` : `gesetzt: ${name}`}`);
+        return;
+      }
+      if (ergebnis.art === "ok") {
+        setBilder((liste) => liste.map((b) => ({ ...b, cover: b.id === id })));
+        setAusgabe(`Titelbild: ${name}`);
+        setBildHinweis("");
+      } else if (ergebnis.art === "warnung") {
+        setBildHinweis(`Titelbild ${name}: ${ergebnis.text}`);
+        setAusgabe(`Titelbild ${name}: ${ergebnis.text}`);
+      } else {
+        setAusgabe(ergebnis.text || "Titelbild konnte nicht gesetzt werden.");
+      }
+      bilderLaden(fuer);
+    });
+  }
+
+  /** Ein Bild an Kunden freigeben oder zurückziehen.
+   *  Auf der Katalogseite selbst ließ sich der Haken nicht lösen; die Route
+   *  dahinter funktioniert nachweislich (Rainer, 2026-08-25). */
+  async function kundenHaken(id: number, name: string, send: boolean) {
+    if (!plan || !id) return;
+    const fuer = plan;
+    await mitBildSperre(`haken:${id}`, async () => {
+      setAusgabe(`${send ? "Freigeben" : "Zurückziehen"}: ${name} …`);
+      bilderZaehler.current.neu();
+      const antwort = await postJson("/api/floorplan-workbench/bild-freigabe", { plan: fuer, id, send });
+      const ergebnis = freigabeErgebnis(antwort);
+      if (planRef.current !== fuer) {
+        setAusgabe(`[${fuer}] ${name}: ${ergebnis.art === "fehler" ? `nicht geändert: ${ergebnis.text}`
+          : ergebnis.art === "warnung" ? `unbestätigt: ${ergebnis.text}`
+          : (send ? "an Kunden" : "zurückgezogen")}`);
+        return;
+      }
+      if (ergebnis.art === "ok") {
+        setBilder((liste) => liste.map((b) => (b.id === id ? { ...b, send } : b)));
+        setAusgabe(`${name}: ${send ? "an Kunden" : "zurückgezogen"}`);
+        setBildHinweis("");
+      } else if (ergebnis.art === "warnung") {
+        setBildHinweis(`${name}: ${ergebnis.text}`);
+        setAusgabe(`${name}: ${ergebnis.text}`);
+      } else {
+        setAusgabe(ergebnis.text || "Haken konnte nicht geändert werden.");
+      }
+      bilderLaden(fuer);
+    });
+  }
+
+  /** Die Rechtefrage beantworten -- einmal, dann steht sie nicht mehr im Weg. */
+  async function rechteErklaeren(antwort: "ja" | "nein") {
+    if (!plan || !grund.trim()) return;
+    setLaeuft("rechte");
+    setAusgabe("Erklärung wird festgehalten …");
+    const geltung = fuerDatensatz && rechte?.datensatz ? "datensatz" : "plan";
+    const fuer = plan;
+    rechteZaehler.current.neu();
+    const daten = await postJson("/api/floorplan-workbench/rechte", { plan: fuer, antwort, grund, geltung });
+    setLaeuft("");
+    if (planRef.current !== fuer) {
+      setAusgabe(`[${fuer}] ${daten?.ok ? (daten.ausgabe || "Erklärung festgehalten.")
+        : (daten?.error || "Erklärung konnte nicht festgehalten werden.")}`);
+      return;
+    }
+    if (daten?.ok) {
+      setRechte((alt) => (alt ? { ...alt, erklaerung: daten.erklaerung, frage_noetig: false } : alt));
+      setAusgabe(daten.ausgabe || "Erklärung festgehalten.");
+      rechteLesen(fuer);
+    } else {
+      setAusgabe(daten?.error || "Erklärung konnte nicht festgehalten werden.");
+    }
+  }
+
+  async function rueckgabeEinlesen(quelle: string) {
+    if (!plan || !quelle) return;
+    setLiestEin(quelle);
+    setAusgabe("Codex-Rueckgabe wird eingelesen …");
+    const fuer = plan;
+    const antwort = await postJson("/api/floorplan-workbench/codex-rueckgabe", { plan: fuer, quelle },
+      10 * 60_000);
+    setLiestEin("");
+    if (antwort?.ok) {
+      const vorsatz = planRef.current === fuer ? "" : `[${fuer}] `;
+      setAusgabe(`${vorsatz}${antwort.bilder} Bild(er) eingelesen. Im Bilder-Tab sichtbar; `
+        + "hochgeladen wird nichts, bis du auf Hochladen gehst.");
+      // Der Text verspricht den Bilder-Tab -- also die Bilder auch holen (B3).
+      if (planRef.current === fuer) bilderLaden(fuer);
+    } else {
+      setAusgabe(antwort?.error || "Einlesen fehlgeschlagen.");
+    }
+  }
+
+  async function blendOeffnen(datei: string) {
+    setOeffnetDatei(datei);
+    try {
+      const antwort = await fetch("/api/floorplan-workbench/blend-oeffnen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan, datei }),
+      });
+      const daten = await antwort.json();
+      setAusgabe(antwort.ok && daten.ok
+        ? `${datei} öffnet in Blender …`
+        : `${datei}: ${daten.error || "konnte nicht geöffnet werden"}`);
+    } catch (fehler) {
+      setAusgabe(`${datei}: ${String(fehler)}`);
+    } finally {
+      setOeffnetDatei("");
+    }
+  }
+
+  async function loesche(id: number, name: string) {
+    // Endgueltig: WordPress legt Anhaenge nicht in den Papierkorb. Deshalb
+    // wird gefragt, und deshalb steht die Datei auf der Platte weiterhin da.
+    if (!window.confirm(
+      `"${name}" endgueltig aus dem Katalog loeschen?
+
+`
+      + "Die Datei auf der Platte bleibt -- du kannst sie wieder hochladen.")) return;
+    const fuer = plan;
+    await mitBildSperre(`muell:${id}`, async () => {
+      setAusgabe(`loesche ${name} …`);
+      bilderZaehler.current.neu();
+      const senden = (koerper: Record<string, unknown>) =>
+        postJson("/api/floorplan-workbench/bild", { plan: fuer, id, ...koerper });
+
+      // Schritt 1 holt die Loeschmarke und den Namen, unter dem das Bild
+      // wirklich in der Mediathek liegt. Schritt 2 loescht.
+      const geprueft = await senden({});
+      if (!geprueft.marke) {
+        setAusgabe(geprueft.error || "Loeschen fehlgeschlagen.");
+        return;
+      }
+      const daten = await senden({ marke: geprueft.marke });
+      if (!daten.ok) {
+        // Frueher verschwand das Bild hier auch dann aus der Liste, wenn
+        // WordPress abgelehnt hatte -- eine fehlgeschlagene Loeschung sah aus
+        // wie eine erfolgreiche, bis man die Seite neu lud.
+        setAusgabe(daten.error || "Loeschen fehlgeschlagen. Das Bild ist noch da.");
+        if (planRef.current === fuer) bilderLaden(fuer);
+        laden();
+        return;
+      }
+      setAusgabe(`${planRef.current === fuer ? "" : `[${fuer}] `}${geprueft.name || name} entfernt.`);
+      if (planRef.current === fuer) {
+        setBilder((liste) => liste.filter((b) => b.id !== id));
+        bilderLaden(fuer);
+      }
+      laden();
+    });
+  }
+
+  async function weiter() {
+    const i = haeuser.findIndex((h) => h.plan === plan);
+    const naechstes = haeuser.slice(i + 1).find((h) => !istErledigt(h.state)) || offen[0];
+    if (naechstes && await wechslePlan(naechstes.plan)) setAusgabe("");
+  }
+
+  // Ohne Plan KEIN Rahmen auf annotate.html?project= -- das war der leere
+  // Annotator, den Rainer fuer ein kaputtes Haus hielt (A1). Stattdessen
+  // unten ein sichtbarer Lade- bzw. Auswahlhinweis.
+  const rahmenUrl =
+    schritt === "neu"
+      ? `${ANNOTATOR}/?embed=1`
+      : !plan
+      ? ""
+      : schritt === "raeume"
+      ? `${ANNOTATOR}/annotate.html?project=${encodeURIComponent(plan)}`
+      : schritt === "moebel"
+        // furniture-embed blendet in der Workbench alles ausser Plan und
+        // Palette aus. Ohne das sitzt im Rahmen die ganze Korrekturoberflaeche
+        // mit Review-Kopf, Referenzsuche und Geometriewerkzeugen -- und man
+        // scrollt an Dingen vorbei, die im Moebel-Schritt nichts zu suchen haben.
+        ? `/floorplan-workbench?reference=${encodeURIComponent(plan)}&mode=furniture-embed`
+        : "";
+
+  return (
+    <div className={"haus" + (zu ? " schmal" : "")}>
+      <aside>
+        <div className="kopf">
+          <span>{zu ? `${offen.length}`
+            : `${haeuser.length} Häuser · ${fertige.length} fertig · `
+              + `${fastFertige.length} fast · ${offen.length - fastFertige.length} offen`}</span>
+        </div>
+        {haeuser.map((h) => (
+          <button
+            key={h.plan}
+            ref={h.plan === plan ? aktiveZeile : undefined}
+            className={"eintrag" + (h.plan === plan ? " aktiv" : "")
+                       + (h.state === "fertig_update" ? " update"
+                          : istErledigt(h.state) ? " erledigt"
+                          : istFastFertig(h.state) ? " fast" : "")}
+            onClick={async () => { if (await wechslePlan(h.plan)) setAusgabe(""); }}
+          >
+            <span className="n">{h.plan}</span>
+            <span className="s">{h.state}{h.version ? ` v${h.version}` : ""}</span>
+          </button>
+        ))}
+      </aside>
+
+      <main>
+        <header>
+          <button
+            className="klapp"
+            onClick={() => setZu((v) => !v)}
+            title={zu ? "Hausliste zeigen" : "Hausliste einklappen"}
+          >{zu ? "»" : "«"}</button>
+          <h1>{plan || (listeLaedt ? "Hausliste lädt …" : "—")}</h1>
+          <span className={"stand"
+            + (aktuell?.state === "fertig_update" ? " update"
+               : aktuell && istErledigt(aktuell.state) ? " erledigt"
+               : aktuell && istFastFertig(aktuell.state) ? " fast" : "")}>
+            {aktuell ? `${istErledigt(aktuell.state) ? "✓ "
+                          : istFastFertig(aktuell.state) ? "◑ " : ""}${aktuell.state}`
+                       + `${aktuell.blocker ? " · " + aktuell.blocker : ""}`
+                     : plan && listeLaedt ? "Stand wird geladen (dauert bis ~40 s) …" : ""}
+          </span>
+          <button className="weiter" onClick={weiter}>Nächstes Haus →</button>
+        </header>
+
+        <nav>
+          {SCHRITTE.map((s) => (
+            <button
+              key={s.id}
+              className={"schritt" + (s.id === schritt ? " aktiv" : "")}
+              onClick={() => wechsleSchritt(s.id)}
+              title={s.hilfe}
+            >
+              {s.titel}
+            </button>
+          ))}
+        </nav>
+
+        {listeFehler && (
+          <div className="warnung">
+            <b>{listeFehler}.</b>{" "}
+            {haeuser.length ? "Die Liste links ist der letzte geladene Stand." : "Keine Hausliste."}
+            <button className="zweit" disabled={listeLaedt} onClick={() => laden()}>
+              {listeLaedt ? "lädt …" : "erneut laden"}
+            </button>
+          </div>
+        )}
+        {listeHinweis && <div className="warnung">{listeHinweis}</div>}
+        {listeWarnungen.map((w) => (
+          <div className="warnung" key={w}>
+            <b>{w}</b>
+            <button className="zweit" disabled={listeLaedt} onClick={() => laden()}>
+              {listeLaedt ? "lädt …" : "erneut laden"}
+            </button>
+          </div>
+        ))}
+        {zustandUnbekannt && (
+          <div className="warnung">
+            <b>Zustand von {plan} unbekannt.</b> {aktuell?.blocker}{" "}
+            Bauen/Hochladen erst nach erneutem Laden der Liste.
+            <button className="zweit" disabled={listeLaedt} onClick={() => laden()}>
+              {listeLaedt ? "lädt …" : "Liste neu laden"}
+            </button>
+          </div>
+        )}
+
+        {stale?.geometrieFremd && !stale?.veraltet && (
+          // Die Staleness-Route berechnet das seit jeher und die Seite hat es
+          // nie gezeigt (Codex-Audit P1): Moebel stehen auf einer Geometrie,
+          // zu der es keine gespeicherte Revision gibt.
+          <div className="warnung">
+            <b>Möbel auf fremder Geometrie.</b> Diese Möbel wurden noch auf der
+            alten Geometrie gesetzt, nicht auf der, aus der gebaut wird — im
+            Möbel-Schritt prüfen und einmal speichern (das speichert sie auf der
+            Bau-Geometrie).
+          </div>
+        )}
+
+        {stale?.veraltet && (
+          <div className="warnung">
+            <b>Möbel veraltet.</b> {stale.grund} — {stale.moebel} Stück stehen auf
+            Räumen, die inzwischen anders liegen.
+            <button
+              className="klein"
+              disabled={!!laeuft}
+              onClick={() => pipeline("regenerieren")}
+            >
+              {laeuft === "regenerieren" ? "erzeugt neu …" : "Geometrie neu erzeugen"}
+            </button>
+          </div>
+        )}
+
+        {rahmenUrl ? (
+          <iframe ref={rahmen} src={rahmenUrl} className="rahmen" title={schritt} />
+        ) : !plan ? (
+          <p className="laedt">
+            {listeLaedt ? "Hausliste lädt (dauert bis ~40 s) …"
+              : "Kein Haus gewählt — links eines anklicken."}
+          </p>
+        ) : schritt === "bilder" ? (
+          <div className="bilder">
+            {bildHinweis && <div className="warnung">{bildHinweis}</div>}
+            {bilder.length === 0 && lokaleBilder.length === 0 && (
+              <p className="leer">Noch keine Bilder. Erst bauen.</p>
+            )}
+            {geordnet.online.map((b) => (
+              <figure key={b.url}>
+                <a className="gross" href={b.url} target="_blank" rel="noreferrer" title="gross ansehen">
+                  <img src={b.url} alt="" loading="lazy" />
+                </a>
+                <figcaption>
+                  <span>{b.name}</span>
+                  <span className={`marke ${b.send === false ? "zurueck" : "online"}`}>
+                    {b.send === false ? "zurückgezogen" : "an Kunden"}
+                  </span>
+                  {b.id > 0 && (
+                    <button
+                      className={`haken${b.send === false ? "" : " ist"}`}
+                      disabled={bildBeschaeftigt(`haken:${b.id}`)}
+                      title={b.send === false
+                        ? "an Kunden freigeben"
+                        : "aus der Kundenansicht zurückziehen"}
+                      onClick={() => kundenHaken(b.id, b.name, b.send === false)}
+                    >{b.send === false ? "☐" : "☑"}</button>
+                  )}
+                  {b.id > 0 && (
+                    <button
+                      className={`stern${b.cover ? " ist" : ""}`}
+                      disabled={bildBeschaeftigt("stern")}
+                      title={b.cover ? "ist das Titelbild" : "als Titelbild setzen"}
+                      onClick={() => titelbildSetzen(b.id, b.name)}
+                    >{b.cover ? "★" : "☆"}</button>
+                  )}
+                  {b.id > 0 && (
+                    <button
+                      className="muell"
+                      disabled={bildBeschaeftigt(`muell:${b.id}`)}
+                      title="Aus dem Katalog entfernen"
+                      onClick={() => loesche(b.id, b.name)}
+                    >🗑</button>
+                  )}
+                </figcaption>
+              </figure>
+            ))}
+            {geordnet.nichtHochgeladen.length > 0 && <h3>Fertig (Codex), noch nicht hochgeladen</h3>}
+            {geordnet.nichtHochgeladen.map((b: { url: string; name: string }) => (
+              <figure key={b.url}>
+                <a className="gross" href={b.url} target="_blank" rel="noreferrer" title="gross ansehen">
+                  <img src={b.url} alt="" loading="lazy" />
+                </a>
+                <figcaption>
+                  <span>{b.name}</span>
+                  <span className="marke final">noch nicht hochgeladen</span>
+                </figcaption>
+              </figure>
+            ))}
+            {geordnet.rohbau.length > 0 && <h3>Rohbau (nur intern)</h3>}
+            {geordnet.rohbau.map((b: { url: string; name: string }) => (
+              <figure key={b.url}>
+                <a className="gross" href={b.url} target="_blank" rel="noreferrer" title="gross ansehen">
+                  <img src={b.url} alt="" loading="lazy" />
+                </a>
+                <figcaption>
+                  <span>{b.name}</span>
+                  <span className="marke rohbau">Rohbau</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        ) : (
+          <div className="tafel">
+            {schritt === "bauen" && (
+              <>
+                <p>Baut beide Stile, prüft mit dem Verifier und schreibt das Zertifikat.</p>
+                <div className="dachformen">
+                  <label>Dach modern{" "}
+                    <select value={dach?.modern || ""} disabled={!dach}
+                      onChange={(e) => dachSetzen(e.target.value, dach?.classic || "walmdach")}>
+                      <option value="" disabled>…</option>
+                      {DACH_FORMEN.map((f) => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </label>
+                  <label>Dach classic{" "}
+                    <select value={dach?.classic || ""} disabled={!dach}
+                      onChange={(e) => dachSetzen(dach?.modern || "flachdach", e.target.value)}>
+                      <option value="" disabled>…</option>
+                      {DACH_FORMEN.map((f) => <option key={f} value={f}>{f}</option>)}
+                    </select>
+                  </label>
+                </div>
+                <button disabled={!!laeuft} onClick={() => pipeline("bauen")}>
+                  {laeuft === "bauen" ? "baut …" : "Bauen"}
+                </button>
+              </>
+            )}
+            {schritt === "codex" && (
+              <>
+                <p>
+                  Schreibt <code>CODEX-AUFTRAG.md</code> und <code>codex-job.json</code>{" "}
+                  neben die .blend: Dateiliste mit sha256, deine Hero-Regeln und die
+                  geforderten Bildnamen. Den Auftrag gibst du Codex; die fertigen
+                  Bilder kommen in denselben Ordner zurück und gehen dann über
+                  „Hochladen“ in den Katalog.
+                </p>
+                <button disabled={!!laeuft} onClick={() => pipeline("codex")}>
+                  {laeuft === "codex" ? "schreibt …" : "Auftrag schreiben"}
+                </button>
+                {!!rueckgaben.length && (
+                  <div className="rueckgabe">
+                    <p><b>Von Codex zurück:</b> gefunden in Codex' eigenen Ordnern —
+                      einlesen holt die Bilder in diese Hausakte. Hochgeladen wird
+                      dadurch nichts.</p>
+                    {rueckgaben.map((r: any) => (
+                      <button
+                        key={r.pfad}
+                        className="zweit"
+                        disabled={!!liestEin}
+                        title={r.pfad}
+                        onClick={() => rueckgabeEinlesen(r.pfad)}
+                      >{liestEin === r.pfad ? "liest ein …"
+                        : `${r.name}${r.typ === "zip" ? " (ZIP)" : ` · ${r.bilder} Bilder`}`}</button>
+                    ))}
+                  </div>
+                )}
+
+                {!!auftrag?.blends?.length && (
+                  <div className="blends">
+                    <p>Vor dem Auftrag selbst ansehen, was gebaut wurde:</p>
+                    {auftrag.blends.map((datei) => (
+                      <button
+                        key={datei}
+                        className="zweit"
+                        disabled={!!oeffnetDatei}
+                        onClick={() => blendOeffnen(datei)}
+                      >{oeffnetDatei === datei ? "öffnet …" : datei}</button>
+                    ))}
+                  </div>
+                )}
+                {auftrag?.text && (
+                  <>
+                    <button
+                      className="zweit"
+                      onClick={() => {
+                        navigator.clipboard.writeText(auftrag.text || "");
+                        setKopiert(true);
+                        setTimeout(() => setKopiert(false), 2000);
+                      }}
+                    >{kopiert ? "kopiert" : "Auftrag kopieren"}</button>
+                    <pre className="auftrag">{auftrag.text}</pre>
+                  </>
+                )}
+                {auftrag?.karte && (
+                  <div className="karte">
+                    <p>Objektkarte: wo Garderobe, Stuff und Sanitaer liegen. Die
+                       Nummern stehen im Auftrag unter „Wo diese Objekte liegen“.
+                       {" "}
+                       <a
+                         href={`/api/floorplan-workbench/objektkarte?plan=${encodeURIComponent(plan)}&v=${encodeURIComponent(auftrag.karte)}`}
+                         target="_blank"
+                         rel="noreferrer"
+                       >in voller Groesse ansehen</a></p>
+                    {/* Ohne Cache-Buster zeigte der Browser nach „Auftrag
+                        schreiben“ weiter die alte Karte -- Marker auf Objekten,
+                        die es nicht mehr gibt. */}
+                    <img
+                      src={`/api/floorplan-workbench/objektkarte?plan=${encodeURIComponent(plan)}&v=${encodeURIComponent(auftrag.karte)}`}
+                      alt="Objektkarte mit nummerierten Markern"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+            {schritt === "liefern" && (
+              <>
+                <p>Bilder in den Katalog, danach die Rechte erklären.</p>
+                <button disabled={!!laeuft} onClick={() => pipeline("hochladen")}>
+                  {laeuft === "hochladen" ? "lädt …" : "Hochladen"}
+                </button>
+                {/* Die Rechtefrage: einmal beantworten, dann ist sie weg.
+                    Steht VOR dem Freigeben-Knopf, weil sie ihn sonst blockiert
+                    und man den Grund erst aus einer Fehlermeldung erfährt. */}
+                {rechte?.frage_noetig && (
+                  <div className="rechtefrage">
+                    <h3>Hast du diesen Grundriss selbst gezeichnet oder so verändert,
+                      dass er dein Werk ist?</h3>
+                    <p className="nachweis">
+                      Der Herkunftsnachweis sagt <code>{rechte.lizenz || "rights-unconfirmed"}</code>
+                      {rechte.quelldatei && <> — Quelle <code>{rechte.quelldatei}</code></>}
+                      {rechte.datensatz && <> aus «{rechte.datensatz}»</>}.
+                      Deine Antwort wird mit Datum und Begründung festgehalten; der
+                      Nachweis selbst bleibt unverändert daneben stehen.
+                    </p>
+                    <input
+                      value={grund}
+                      onChange={(e) => setGrund(e.target.value)}
+                      placeholder="Begründung — warum ist das dein Werk?"
+                    />
+                    {rechte.datensatz && rechte.geschwister > 1 && (
+                      <label className="fueralle">
+                        <input type="checkbox" checked={fuerDatensatz}
+                          onChange={(e) => setFuerDatensatz(e.target.checked)} />
+                        gilt für alle {rechte.geschwister} Häuser aus «{rechte.datensatz}»
+                      </label>
+                    )}
+                    <div className="janein">
+                      <button className="ja" disabled={!!laeuft || !grund.trim()}
+                        onClick={() => rechteErklaeren("ja")}>Ja, mein Werk</button>
+                      <button disabled={!!laeuft || !grund.trim()}
+                        onClick={() => rechteErklaeren("nein")}>Nein</button>
+                    </div>
+                  </div>
+                )}
+                {rechte?.erklaerung && (
+                  <p className={`erklaert${rechte.erklaerung.antwort === "nein" ? " nein" : ""}`}>
+                    {rechte.erklaerung.antwort === "ja" ? "Rechte erklärt" : "Ausdrücklich Nein"}
+                    {" · "}
+                    {rechte.erklaerung.geltung === "datensatz"
+                      ? `Datensatz «${rechte.erklaerung.wert}»`
+                      : "dieser Plan"}
+                    {" · "}{String(rechte.erklaerung.wann || "").slice(0, 16).replace("T", " ")}
+                    {" · "}{rechte.erklaerung.wer}
+                    {": "}{rechte.erklaerung.grund}
+                  </p>
+                )}
+                <div className="freigabe">
+                  <input
+                    value={grund}
+                    onChange={(e) => setGrund(e.target.value)}
+                    placeholder="Warum hast du die Rechte an diesem Plan?"
+                  />
+                  <button
+                    disabled={!!laeuft || !grund.trim()
+                      || rechte?.erklaerung?.antwort === "nein"}
+                    onClick={() => pipeline("freigeben")}
+                  >
+                    Freigeben
+                  </button>
+                </div>
+                {/* Rainer, 2026-09-17: "then one more button please on the
+                    last tab open the catalog on the external site" -- nach
+                    dem Hochladen will man sofort nachsehen, nicht erst die
+                    URL selbst zusammensuchen. */}
+                <a
+                  className="katalog-extern"
+                  href="https://born2thrill.de/grundriss-katalog/"
+                  target="_blank"
+                  rel="noreferrer"
+                >Katalog auf born2thrill.de ansehen ↗</a>
+              </>
+            )}
+          </div>
+        )}
+
+        {ausgabe && <pre className="ausgabe">{ausgabe}</pre>}
+      </main>
+
+      <style dangerouslySetInnerHTML={{ __html: HAUS_CSS }} />
+    </div>
+  );
+}
