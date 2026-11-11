@@ -1,0 +1,295 @@
+{
+ "_hinweis": "Szenen der Video-Fragen (plans/fragebogen-videos-v1.md). Jede Szene ist ein kurzer Clip; Figuren aus familie-figuren.png (<Picture 1>). Seit 2026-11-03 lustiger (Rainer: 'Yes, funnier'): Slapstick, aber nie gemein oder beleidigend. Dieselben Texte gehen spaeter an Seedance/Runway.",
+ "stil": "Hand-drawn 2D cartoon animation in the exact ink-and-watercolor style of <Picture 1>: thin scratchy black outlines, soft flat colors, plain off-white background with a soft watercolor ground wash, exaggerated long-nosed characters with the same faces, hair and clothes as in <Picture 1>. Funny slapstick comedy in the spirit of classic Sunday-morning cartoons: snappy timing, big anticipation, extreme squash and stretch, rubbery bodies, wide surprised eyes, then warm laughter. Playful and good-natured, never mean, nobody gets hurt. Static camera, no cuts. Each character appears exactly once and keeps every accessory. No text, no letters, no numbers, no extra people.",
+ "ton": "Audio: playful cartoon music with ukulele and xylophone, comic sound effects (boing, whoosh, pop, splat), no speech.",
+ "szenen": [
+  {
+   "id": "00-start",
+   "frage": "Start",
+   "text": "The whole family from <Picture 1> marches in from the left in a proud line, the father in front holding up a map, the grandmother pushing the baby buggy, the dog on a leash. The father confidently turns the wrong way; the dog plants its paws and drags the whole family back like a rubber band, they pile into a heap with a boing. [3.5s-5s] They pop up one after another, dust themselves off and smile hopefully at the viewer. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn",
+    "opa",
+    "oma",
+    "baby",
+    "hund"
+   ]
+  },
+  {
+   "id": "01-grundstueck",
+   "frage": "Grundstück?",
+   "text": "The tall father from <Picture 1> rams a spade into the ground with great determination; the spade springs back like a pogo stick and bounces him high into the air, his long body stretching. The mother catches him by the collar mid-bounce. [3.5s-5s] Both turn to the viewer with raised eyebrows, as if asking, and hold the pose.",
+   "wer": [
+    "vater",
+    "mutter"
+   ]
+  },
+  {
+   "id": "01a-ja",
+   "frage": "Grundstück: Ja",
+   "text": "The father from <Picture 1> plants a little flag-less stick proudly in his own green meadow and poses like an explorer. Behind him the dog digs a hole at turbo speed and sprays a fountain of soil all over him. The father keeps his proud pose with a pile of soil on his head; the mother bursts out laughing. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "hund"
+   ]
+  },
+  {
+   "id": "01b-in-aussicht",
+   "frage": "Grundstück: In Aussicht",
+   "text": "The mother from <Picture 1> looks through big binoculars the wrong way round and squints, confused. The son in his red cap reaches up and flips them around; her eyes zoom out huge behind the lenses, she gasps with delight and gives a big thumbs up. Hold the pose.",
+   "wer": [
+    "mutter",
+    "sohn"
+   ]
+  },
+  {
+   "id": "01c-nein",
+   "frage": "Grundstück: Nein",
+   "text": "The father from <Picture 1> unfolds a paper map that keeps unfolding and unfolding until it wraps him up completely like a mummy, only his long nose sticking out. The teenage daughter calmly holds up her phone with a map on it, the mother laughs. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen"
+   ]
+  },
+  {
+   "id": "02-budget",
+   "frage": "Budget",
+   "text": "The father from <Picture 1> holds a pink piggy bank up to his ear and listens with exaggerated concentration, his long nose twitching, his body stretching toward it. [3.5s-5s] He lowers it and looks at the viewer with raised eyebrows, as if asking how much is in it, and holds the pose.",
+   "wer": [
+    "vater"
+   ]
+  },
+  {
+   "id": "02a-budget-klein",
+   "frage": "Budget 300-450",
+   "text": "The father from <Picture 1> turns the pink piggy bank around and shakes it. He looks puzzled. Two little moths flutter out of the slot and circle around his long nose. His face falls: droopy, disappointed, eyebrows sinking, mouth a small flat line. He gives a small embarrassed shrug. He does not smile. Hold the pose.",
+   "wer": [
+    "vater"
+   ]
+  },
+  {
+   "id": "02b-budget-mittel",
+   "frage": "Budget 450-600",
+   "text": "Continue exactly from the given first frame: the father from <Picture 1> holding the pink piggy bank, looking a bit lost. The camera slowly pulls back into a wide shot showing the whole scene, full bodies visible. Now we see that the son, much smaller than his father, has been standing right next to him all along, calmly holding out a thick wad of cash; the father simply had not seen him. The father looks down, notices him, and his whole long body sags with relief, a big sigh, a grateful soft smile, not greedy. Hold the pose.",
+   "folgt_auf": "02a-budget-klein",
+   "wer": [
+    "vater",
+    "sohn"
+   ]
+  },
+  {
+   "id": "02c-budget-gross",
+   "frage": "Budget über 600",
+   "text": "Continue exactly from the given first frame, same wide shot, same sizes: the tall father and the small son with the wad of cash. From the left, outside the frame, the mother from <Picture 1> comes casually strolling into view, almost as tall as the father, pushing the dark grey baby buggy; the buggy is piled high with bundles of cash, the baby sitting on top. Mother and baby look very pleased with themselves, chins up, smug little smiles. They stop next to the father. The father raises his eyebrows and looks at them questioningly. Hold the pose.",
+   "folgt_auf": "02b-budget-mittel",
+   "wer": [
+    "vater",
+    "sohn",
+    "mutter",
+    "baby"
+   ]
+  },
+  {
+   "id": "03-hausart",
+   "frage": "Hausart",
+   "text": "The father, mother, teenage daughter, little daughter and son from <Picture 1> stand around a large paper sketch of a house on the ground. The father leans over it further and further, his long body stretching like rubber, until he tips over face first into the sketch. The others grab his ankles and pull him back up with a pop; he smiles with a pencil stuck behind his ear. [3.5s-5s] All five turn toward the viewer with an expectant look and hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn"
+   ]
+  },
+  {
+   "id": "03a-efh",
+   "frage": "Einfamilienhaus",
+   "text": "The father, mother and the three children from <Picture 1> run happily around a big drawing of a two-storey family house with a garden. The son kicks his football, it boings off the father's head, ricochets off the mother's bun and lands back on the son's foot. Everybody freezes, then bursts out laughing. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn"
+   ]
+  },
+  {
+   "id": "03b-bungalow",
+   "frage": "Bungalow",
+   "text": "The grandfather and grandmother from <Picture 1>, about sixty, stand in front of a drawing of a single-storey bungalow with no stairs. The grandfather takes a run-up and slides across the smooth floor in his socks like a speed skater, the grandmother slides after him, they spin around together and end in a dance pose. Hold the pose.",
+   "wer": [
+    "opa",
+    "oma"
+   ]
+  },
+  {
+   "id": "03c-dhh",
+   "frage": "Doppelhaushälfte",
+   "text": "The father and mother from <Picture 1> push the baby buggy up to a drawing of a semi-detached house that splits into two halves. The dog runs to the left half, then the right half, then the left again, faster and faster, until it gets dizzy and plops down right in the middle with its tongue out. The baby giggles and claps. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "baby",
+    "hund"
+   ]
+  },
+  {
+   "id": "03d-zfh",
+   "frage": "Zweifamilienhaus",
+   "text": "Three generations from <Picture 1> stand in front of a drawing of a two-family house. The grandparents and the parents all try to step through the same front door at the same time, get squeezed together in the door frame like toothpaste, and pop through with a loud pop; the children cheer. Hold the pose.",
+   "wer": [
+    "opa",
+    "oma",
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn"
+   ]
+  },
+  {
+   "id": "04-baustil",
+   "frage": "Baustil",
+   "text": "The mother from <Picture 1> holds up two framed pictures, a classic house with a pitched roof and a modern white cube house. The teenage daughter grabs the modern one, the grandmother grabs the classic one, and both pull; the mother's arms stretch like rubber bands between them. They let go at once and she snaps back with a boing. [3.5s-5s] She looks at the viewer questioningly and holds the pose.",
+   "wer": [
+    "mutter",
+    "teen",
+    "oma"
+   ]
+  },
+  {
+   "id": "05-dachform",
+   "frage": "Dachform",
+   "text": "A small house with a construction crane next to it. The grandfather from <Picture 1>, about sixty, sits in the crane cab; the tall father stands on the ground waving wildly with both long arms, giving directions. The crane lowers roof after roof onto the house: pitched, hipped, single slope, flat. With every roof the dog from <Picture 1> slowly shakes its head and gives the father a deeply disappointed look; the father shrugs and waves for the next one. [3.5s-5s] Father and dog both look at the viewer as if asking which one, and hold the pose.",
+   "wer": [
+    "vater",
+    "opa",
+    "hund"
+   ]
+  },
+  {
+   "id": "06-zimmer",
+   "frage": "Zimmer",
+   "text": "A small house drawn in the same style. Like a clown car, the family members from <Picture 1> squeeze in through the front door one after another: father, mother, teenage daughter, little daughter, son, grandfather, grandmother with the baby buggy. The walls bulge outward like a balloon with every person. Finally the dog takes a run-up and dives in too; a window pops open with a boing and the son's red cap flies out. [3.5s-5s] Faces squashed against the windows look at the viewer, hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn",
+    "opa",
+    "oma",
+    "baby",
+    "hund"
+   ]
+  },
+  {
+   "id": "06a-zimmer-3",
+   "frage": "3 Zimmer",
+   "text": "The same small house, packed to bursting with the whole family from <Picture 1>, faces squashed against the windows, walls bulging. The front door springs open with a pop and the dog tumbles out head over heels, lands, shakes itself and looks at the viewer with a cheeky grin. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn",
+    "opa",
+    "oma",
+    "baby",
+    "hund"
+   ]
+  },
+  {
+   "id": "06b-zimmer-4",
+   "frage": "4 Zimmer",
+   "text": "The same small house packed with the whole family from <Picture 1>, walls bulging. Suddenly the house stretches sideways like an accordion with a whoosh; inside, everyone exhales with relief and stretches their arms. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn",
+    "opa",
+    "oma",
+    "baby",
+    "hund"
+   ]
+  },
+  {
+   "id": "06c-zimmer-5",
+   "frage": "5 Zimmer",
+   "text": "The house from before grows a whole extra room with a springy boing. Cut-away view: each family member from <Picture 1> lies stretched out happily in their own room; the father's long legs finally fit, the dog sprawls on a cushion. Hold the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn",
+    "opa",
+    "oma",
+    "baby",
+    "hund"
+   ]
+  },
+  {
+   "id": "07-gaeste-wc",
+   "frage": "Gäste-WC mit Dusche",
+   "text": "The grandfather from <Picture 1>, about sixty, comes back from jogging, puffing, and stops to catch his breath. The dog runs in covered in mud, stops right next to him and shakes itself; the grandfather gets splattered with mud from head to toe, only his glasses clean. He looks at the viewer, then points with his thumb at a little shower door. Hold the pose.",
+   "wer": [
+    "opa",
+    "hund"
+   ]
+  },
+  {
+   "id": "08-kontakt",
+   "frage": "Kontakt",
+   "text": "The whole family from <Picture 1> stands next to a mailbox. The dog trots up with an envelope in its mouth and pushes it into the slot; the mailbox lid snaps shut playfully and the dog jumps back in surprise, then wags its tail. Everybody waves to the viewer and holds the pose.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn",
+    "opa",
+    "oma",
+    "baby",
+    "hund"
+   ]
+  },
+  {
+   "id": "09-ergebnis",
+   "frage": "Ergebnis",
+   "text": "The whole family from <Picture 1> stands in front of the door of a new house. The father opens it with a big stretch, warm light pours out, and everyone rushes in at once and gets stuck in the door frame in a big tangle; the dog runs between their legs, the jam pops loose and they tumble inside laughing. The door stays open.",
+   "wer": [
+    "vater",
+    "mutter",
+    "teen",
+    "tochter",
+    "sohn",
+    "opa",
+    "oma",
+    "baby",
+    "hund"
+   ]
+  }
+ ],
+ "figuren": {
+  "_alle": "Character look, copy exactly from <Picture 1>: EYES are tiny solid black dots or short curved lines (closed or half-lidded), never big round white eyes, never visible pupils or irises, never wide-open staring eyes; even surprise is shown with raised eyebrows and an open mouth, not with bulging eyes. Soft pink blush on the cheeks. Very long thin necks and gangly limbs. Messy hair drawn with loose scratchy strokes.",
+  "vater": "Father: very tall and skinny, huge long rounded salmon-pink nose, spiky dark brown hair, navy shirt with rolled sleeves, olive trousers, brown shoes.",
+  "mutter": "Mother: tall and slender, long pointed nose, wild blonde messy bun, small dangling earrings, white blouse, mustard trousers, flat shoes.",
+  "teen": "Teenage daughter: brown messy top bun, half-lidded bored eyes, red hoodie with headphones around the neck, ripped dark jeans, white sneakers.",
+  "tochter": "Little daughter: curly blonde hair, white T-shirt with a red heart, rolled-up light jeans, happy closed eyes.",
+  "sohn": "Son: about eight, small, messy brown hair, red-and-white cap, blue hoodie, khaki shorts, backpack. He always wears his cap.",
+  "opa": "Grandfather (about sixty): round glasses, grey-streaked spiky hair, stubble, olive jacket over a dark shirt, jeans.",
+  "oma": "Grandmother (about sixty): grey-blonde bun, purple cardigan, pink scarf.",
+  "baby": "Baby: grey beanie, sitting in a dark grey buggy with a dangling teddy toy.",
+  "hund": "Dog: white with brown ears and brown patches, small black dot eye.",
+  "_groessen": "Keep correct relative sizes: the father is the tallest, the mother almost as tall, the grandparents a little shorter, the children much smaller."
+ }
+}

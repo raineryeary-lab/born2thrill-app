@@ -1,0 +1,150 @@
+// Datei-Sperre und Ledger-Abgleich fuer die Statusroute (ZUVERLAESSIGKEIT-001).
+//
+// Seit Runde 4 nur noch fuer das fertig-Ledger: Bauen/Hochladen sperrt go.py
+// selbst mit einer Betriebssystem-Sperre (scripts/os_sperre.py).
+//
+// Generationen statt Loeschen (Codex Runde 4, N1). Die Sperre ist ein Ordner
+// `<pfad>.d/` mit nummerierten Dateien. Besitzer ist, wer die Datei mit der
+// HOECHSTEN Nummer angelegt hat und sie noch nicht als frei markiert hat.
+// - Nehmen: hoechste Nummer n ansehen. Ist sie frei markiert oder verwaist
+//   (aelter als VERWAIST_MS), wird n+1 mit "wx" angelegt. "wx" gelingt genau
+//   einem -- zwei Uebernehmer koennen nie beide besitzen, und niemand loescht
+//   je eine Datei, um die gerade jemand konkurriert.
+// - Eine Sperre juenger als VERWAIST_MS wird nie uebernommen, egal ob ihr
+//   Prozess lebt (die pid sagt nichts: der Next-Server lebt weiter, auch
+//   wenn eine einzelne Anfrage mitten im Schreiben starb).
+// - Wer angelegt hat, prueft danach, dass seine Nummer die hoechste ist;
+//   ein langsamer Bewerber, der auf eine alte Nummer zielte, zieht sich so
+//   zurueck. Erst dann raeumt der Besitzer die kleineren Nummern weg.
+// - Loesen markiert nur die EIGENE Datei als frei.
+//
+// Restannahme (bewusst): ein Ledger-Schreiben dauert Millisekunden. Haelt
+// jemand die Sperre laenger als VERWAIST_MS, haengt er oder ist tot -- dann
+// darf der Naechste ran. Auch in dem Fall liest jeder Schreiber die Platte
+// unter der Sperre neu (ledgerAbgleichen), eine Version geht nie zurueck.
+import { open, readFile, writeFile, readdir, unlink, stat, mkdir } from "node:fs/promises";
+import { join } from "node:path";
+import { randomUUID } from "node:crypto";
+import { naechsteFertigVersion } from "./house-state.mjs";
+
+export const VERWAIST_MS = 120_000;
+
+const NAME = /^(\d+)\.lock$/;
+
+async function nummern(ordner) {
+  let namen = [];
+  try { namen = await readdir(ordner); } catch { return []; }
+  return namen.map((n) => NAME.exec(n)).filter(Boolean).map((m) => Number(m[1]))
+    .filter(Number.isSafeInteger).sort((a, b) => a - b);
+}
+
+function dateiName(ordner, nr) {
+  return join(ordner, `${String(nr).padStart(9, "0")}.lock`);
+}
+
+async function lies(pfad) {
+  try {
+    const info = JSON.parse(await readFile(pfad, "utf8"));
+    return info && typeof info === "object" ? info : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Ist die Sperre mit dieser Datei gerade in fremder Hand? */
+async function belegt(datei) {
+  const info = await lies(datei);
+  if (info && info.frei) return { belegt: false, info };
+  let seit = info && Number.isFinite(Number(info.seit)) ? Number(info.seit) : NaN;
+  if (!Number.isFinite(seit)) {
+    try { seit = (await stat(datei)).mtimeMs; } catch { return { belegt: false, info }; }
+  }
+  return { belegt: Date.now() - seit < VERWAIST_MS, info };
+}
+
+async function anlegen(datei, inhalt) {
+  let fh;
+  try {
+    fh = await open(datei, "wx");
+  } catch (e) {
+    if (e && e.code === "EEXIST") return false;
+    throw e;
+  }
+  try {
+    await fh.writeFile(JSON.stringify(inhalt), "utf8");
+  } finally {
+    await fh.close();
+  }
+  return true;
+}
+
+/**
+ * @returns {Promise<{ok: true, loesen: () => Promise<void>} | {ok: false, besitzer: any}>}
+ */
+export async function sperreNehmen(pfad, { zweck = "" } = {}) {
+  const ordner = `${pfad}.d`;
+  await mkdir(ordner, { recursive: true });
+  const inhalt = { pid: process.pid, seit: Date.now(), zweck, token: randomUUID() };
+
+  const liste = await nummern(ordner);
+  const hoechste = liste.length ? liste[liste.length - 1] : 0;
+  if (hoechste) {
+    const lage = await belegt(dateiName(ordner, hoechste));
+    if (lage.belegt) return { ok: false, besitzer: lage.info || {} };
+  }
+  const meine = hoechste + 1;
+  const datei = dateiName(ordner, meine);
+  if (!(await anlegen(datei, inhalt))) {
+    return { ok: false, besitzer: (await lies(datei)) || {} };
+  }
+  // Zielte ein anderer schneller auf eine hoehere Nummer, gehoert sie ihm.
+  const danach = await nummern(ordner);
+  const hoeher = danach.filter((n) => n > meine);
+  if (hoeher.length) {
+    await writeFile(datei, JSON.stringify({ ...inhalt, frei: true }), "utf8").catch(() => {});
+    return { ok: false, besitzer: (await lies(dateiName(ordner, hoeher[hoeher.length - 1]))) || {} };
+  }
+  for (const n of danach) {
+    if (n < meine) await unlink(dateiName(ordner, n)).catch(() => {});
+  }
+  return {
+    ok: true,
+    async loesen() {
+      const jetzt = await lies(datei);
+      if (jetzt && jetzt.token === inhalt.token && !jetzt.frei) {
+        await writeFile(datei, JSON.stringify({ ...inhalt, frei: true }), "utf8").catch(() => {});
+      }
+    },
+  };
+}
+
+/**
+ * Ledger unter der Sperre abgleichen (Codex Runde 4, N3).
+ *
+ * platte:   das HEUTE auf der Platte stehende Ledger (frisch eingelesen)
+ * wuensche: Map plan -> { build, jetzt } aus dieser Anfrage
+ * aktuell:  plan -> Build-Kennung des Manifests, unter der Sperre neu gelesen
+ *
+ * Ein Wunsch, dessen Build nicht mehr dem heutigen Manifest entspricht,
+ * stammt aus einem veralteten Schnappschuss und wird verworfen. Die Version
+ * zaehlt immer gegen den heutigen Platteneintrag hoch, nie gegen den Stand
+ * vor der Sperre.
+ */
+export function ledgerAbgleichen(platte, wuensche, aktuell) {
+  const ledger = platte && typeof platte === "object" && !Array.isArray(platte) ? { ...platte } : {};
+  const versionen = {};
+  for (const [plan, { build, jetzt }] of wuensche) {
+    const vorher = ledger[plan] || null;
+    if ((aktuell?.[plan] ?? "") !== (build ?? "")) {
+      if (vorher) versionen[plan] = vorher.version;
+      continue;
+    }
+    const naechste = naechsteFertigVersion(vorher, build);
+    if (!vorher || naechste.version !== vorher.version || (!vorher.build && build)) {
+      ledger[plan] = { version: naechste.version, seit: vorher?.seit || jetzt, zuletzt: jetzt,
+                       build: naechste.build || build };
+    }
+    versionen[plan] = ledger[plan].version;
+  }
+  return { ledger, versionen };
+}

@@ -163,8 +163,19 @@ const RECONSTRUCTION_PROJECTS = RECONSTRUCTION_DATASET.projects
   .map(normalizeProject)
   .filter((project) => project.floors.some((floor) => floor.rooms.length > 0));
 
+// RECONSTRUCTION_PROJECTS spread first: Map keeps the LAST value per key, so
+// dataset.json's record wins whenever a project_id exists in both files.
+// Reversed 2026-09-05 -- every one of the 55 reconstruction-dataset.json
+// entries duplicates a project_id already in dataset.json, and the old order
+// let the reconstruction record (often quality_status="review_required")
+// silently shadow the real, approved dataset.json record, blocking the
+// furniture tool with "Reference is not quality-passed, training-ready, and
+// explicitly annotated." even when the house had long since passed review.
+// This changes ONLY which duplicate record wins, not either record's own
+// rights fields -- a house genuinely restricted in reconstruction-dataset.json
+// with no dataset.json counterpart is untouched by this change.
 const ALL_REFERENCE_PROJECTS = [...new Map(
-  [...REFERENCE_PROJECTS, ...RECONSTRUCTION_PROJECTS]
+  [...RECONSTRUCTION_PROJECTS, ...REFERENCE_PROJECTS]
     .map((project) => [project.projectId, project]),
 ).values()];
 

@@ -1,0 +1,42 @@
+{
+  "schema": "dmh-image-review-v1",
+  "updated_at": "2026-08-18T14:54:31.637Z",
+  "reviews": [
+    {
+      "image": "01-interior-warm-modern.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:27.453Z"
+    },
+    {
+      "image": "02-interior-soft-scandinavian.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:28.300Z"
+    },
+    {
+      "image": "03-interior-modern-architectural.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:28.933Z"
+    },
+    {
+      "image": "04-interior-dark-modern-final.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:29.606Z"
+    },
+    {
+      "image": "05-exterior-classic-v19-front.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:30.904Z"
+    },
+    {
+      "image": "06-exterior-classic-v19-rear-terrace.png",
+      "verdict": "accepted",
+      "note": "",
+      "decided_at": "2026-08-18T14:54:31.637Z"
+    }
+  ]
+}

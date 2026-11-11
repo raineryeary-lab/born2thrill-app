@@ -1,0 +1,10 @@
+# bungalow_013 catalogue images 2026-10-20
+Status: APPROVED by explicit supplied Codex job and standing image workflow.
+Scope: eight images, four roof types and four interior styles, from current five source blends. Save images, audit, catalog and prompts in job delivery folder; upload exactly this set as instructed by job publish command. Read-only source geometry. No application code, tests, rights changes, email, commits or customer release.
+Acceptance: source hashes match, all blends opened and mesh counts recorded; preserve architecture/camera/furniture orientation and counts; identical island and perimeter countertops, consistent cabinets; seamless external plaster, anthracite entry. Check markers, dimensions 1920x1080 / 2000x1500, hashes and remote plan linkage.
+Risks: AI furniture/geometry drift and occlusion. Record unresolved details honestly, correct material errors on generated image itself. Existing files preserved. Rollback is removal of new output only with explicit user authorization; originals remain.
+Tests: no application changes; source/hash/dimension/visual checks and plan-specific API readback. No new path generating unapproved geometry is introduced. Rights remain original reference status.
+
+User amendment: Satteldach .blend edited at 18:53:51; original PNG and job manifest stale. User explicitly requested reload/redo. Reopened modified file (81 meshes vs original 82), rendered its saved camera into source-refresh/exterior-satteldach-reloaded.png and recorded fresh hash in satteldach-audit.json. Other roof previews retained. Superseded gable preview will not be delivered.
+
+COMPLETE: eight images visually reviewed, exact dimensions and hashes verified, uploaded to bungalow_013 as IDs 1037-1044. Updated Satteldach is ID 1039, built from freshly reopened modified blend. API readback confirms exact filename set and send=false. Source code/models unchanged, no commits. Prompts, marker catalogue and upload verification retained with delivery. Existing dirty work preserved. No remaining in-scope image work.

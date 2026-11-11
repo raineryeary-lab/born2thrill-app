@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+"""Is each house's delivery certified, and is it still current?
+
+The house list used to answer "fertig" from WordPress alone, so a house
+whose annotation, furniture or toolchain had changed since its delivery
+stayed finished forever (Codex audit 2026-08-22, P0). Freshness has
+exactly one definition in this suite -- batch-build.py's built_hash()
+against annotation_state() -- and it lives in Python. Rather than
+re-implementing it in TypeScript (a second truth, the failure class this
+whole rebuild is about), the state route asks THIS script, which loads
+that same module the way go.py does.
+
+    python haus-zustand.py --alle        # {plan: {...}} for every project
+    python haus-zustand.py bungalow_039  # one house
+
+Output per plan:
+    zertifikat  bool  -- a delivery manifest exists and still checks out
+    aktuell     bool  -- that delivery matches today's annotation/furniture/toolchain
+    grund       str   -- why not, when aktuell is false
+    geometrie   str   -- identity of today's drawing (annotation + Gebaeudemass);
+                         furniture is stamped with this so a layout placed on a
+                         different drawing cannot be built silently
+"""
+import importlib.util
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+_batch = None
+
+
+def batch_build():
+    global _batch
+    if _batch is None:
+        spec = importlib.util.spec_from_file_location(
+            "batch_build", os.path.join(HERE, "batch-build.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _batch = module
+    return _batch
+
+
+def manifest_of(plan):
+    b = batch_build()
+    folder = os.path.join(b.DATA, "corrections", plan, "renders", "go-baseline")
+    return b.read_json(os.path.join(folder, "delivery-manifest.json"))
+
+
+def geometrie_id(plan):
+    """Identitaet der heutigen Zeichnung, oder None."""
+    try:
+        identity, _grund = batch_build().annotation_state(plan)
+        return identity
+    except Exception:
+        return None
+
+
+def zustand(plan):
+    b = batch_build()
+    try:
+        gebaut = b.built_hash(plan)
+    except Exception as error:
+        return {"zertifikat": False, "aktuell": False, "grund": f"Zertifikat unlesbar: {error}", "geometrie": geometrie_id(plan)}
+    if not gebaut:
+        # built_hash() returns None for BOTH "never built" and "built, but the
+        # manifest no longer checks out" (toolchain changed, artifact missing
+        # or resized). Those are different situations for the user: one needs
+        # a first build, the other a rebuild of something that once passed.
+        manifest = manifest_of(plan)
+        if manifest and manifest.get("schema") == "zf-delivery-manifest-v1":
+            grund = ("Lieferung entwertet: Renderer/Compiler geaendert oder eine "
+                     "Datei fehlt bzw. hat sich geaendert")
+            return {"zertifikat": True, "aktuell": False, "grund": grund, "geometrie": geometrie_id(plan)}
+        return {"zertifikat": False, "aktuell": False, "grund": "keine zertifizierte Lieferung", "geometrie": geometrie_id(plan)}
+    try:
+        # annotation_state() gibt (hash, grund) zurueck -- NICHT den Hash
+        # allein. Der erste Wurf hier verglich das Tupel mit dem String aus
+        # built_hash(): nie gleich, also galt jede Lieferung als veraltet,
+        # auch Sekunden nach einem erfolgreichen Bau. Gleiche Entpackung wie
+        # go.py::ist_aktuell -- ein Vertrag, eine Lesart.
+        jetzt, grund = b.annotation_state(plan)
+    except Exception as error:
+        # Fail closed: an unreadable annotation must not read as "current".
+        return {"zertifikat": True, "aktuell": False, "grund": f"Annotation unlesbar: {error}", "geometrie": None}
+    if grund or not jetzt:
+        return {"zertifikat": True, "aktuell": False, "grund": grund or "Zustand unbestimmbar", "geometrie": jetzt}
+    if jetzt == gebaut:
+        return {"zertifikat": True, "aktuell": True, "grund": "", "geometrie": jetzt}
+    return {"zertifikat": True, "aktuell": False, "geometrie": jetzt,
+            "grund": "Zeichnung, Moebel oder Renderer haben sich seit dem Bau geaendert"}
+
+
+def main(argv):
+    projects = os.path.join(os.path.dirname(HERE), "..", "floorplan-simplifier", "projects")
+    projects = os.path.abspath(projects)
+    if argv and argv[0] != "--alle":
+        namen = argv
+    else:
+        namen = sorted(n for n in os.listdir(projects)
+                       if not n.startswith("_")
+                       and os.path.exists(os.path.join(projects, n, "annotations.json")))
+    json.dump({name: zustand(name) for name in namen}, sys.stdout, ensure_ascii=False)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

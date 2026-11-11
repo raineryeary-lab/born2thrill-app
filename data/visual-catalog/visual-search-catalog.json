@@ -1,0 +1,278 @@
+{
+  "schema": "visual-catalog-index-v1",
+  "source_catalog_count": 1,
+  "totals": {
+    "records": 5,
+    "projects": 1,
+    "issues": 10
+  },
+  "by_qc_status": {
+    "draft_needs_garderobe_alignment_review": 2,
+    "draft_needs_garderobe_design_review": 1,
+    "preferred_candidate": 1,
+    "visual_reference": 1
+  },
+  "issues": [
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-warm-modern-v1",
+      "issue": "provenance_missing_geometry_source"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-warm-modern-v1",
+      "issue": "provenance_missing_reference_render"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-soft-scandinavian-v1",
+      "issue": "provenance_missing_geometry_source"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-soft-scandinavian-v1",
+      "issue": "provenance_missing_reference_render"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-modern-architectural-v1",
+      "issue": "provenance_missing_geometry_source"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-modern-architectural-v1",
+      "issue": "provenance_missing_reference_render"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-dark-modern-final-v1",
+      "issue": "provenance_missing_geometry_source"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "interior-dark-modern-final-v1",
+      "issue": "provenance_missing_reference_render"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "exterior-gabled-garden-reference-v1",
+      "issue": "provenance_missing_geometry_source"
+    },
+    {
+      "project_id": "bungalow_040_66",
+      "catalog": "C:\\dev\\Floorplan-tools\\born2thrill-local-workbench-data\\corrections\\bungalow_040_66\\renders\\visual-catalog-2026-08-16\\catalog.json",
+      "asset_id": "exterior-gabled-garden-reference-v1",
+      "issue": "provenance_missing_reference_render"
+    }
+  ],
+  "records": [
+    {
+      "asset_id": "interior-warm-modern-v1",
+      "file": "interior-warm-modern.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "warm_modern",
+      "description_de": "Warme moderne Innenraumvariante mit Eiche, Taupe, Naturtextilien und schwarzen Akzenten.",
+      "palette": [
+        "warm_oak",
+        "taupe",
+        "oatmeal",
+        "soft_black"
+      ],
+      "materials": [
+        "wood",
+        "textile",
+        "stone",
+        "matte_metal"
+      ],
+      "rooms_visible": [
+        "kitchen",
+        "dining",
+        "living",
+        "office",
+        "hall",
+        "bathroom",
+        "bedroom",
+        "dressing_room"
+      ],
+      "features": [
+        "kitchen_island",
+        "six_seat_dining",
+        "open_plan_living"
+      ],
+      "qc_status": "draft_needs_garderobe_alignment_review",
+      "search_text_de": "warm modern warme Eiche Taupe Naturtextilien Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide",
+      "project_id": "bungalow_040_66",
+      "source_catalog": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/catalog.json",
+      "image_path": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/interior-warm-modern.png",
+      "image_verified": true
+    },
+    {
+      "asset_id": "interior-soft-scandinavian-v1",
+      "file": "interior-soft-scandinavian.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "soft_scandinavian",
+      "description_de": "Helle skandinavische Variante mit blasser Eiche, Off-White, Salbeigrün und weichen Textilien.",
+      "palette": [
+        "pale_oak",
+        "off_white",
+        "muted_sage",
+        "light_grey"
+      ],
+      "materials": [
+        "light_wood",
+        "linen",
+        "woven_textile",
+        "stone"
+      ],
+      "rooms_visible": [
+        "kitchen",
+        "dining",
+        "living",
+        "office",
+        "hall",
+        "bathroom",
+        "bedroom",
+        "dressing_room"
+      ],
+      "features": [
+        "kitchen_island",
+        "six_seat_dining",
+        "soft_textiles"
+      ],
+      "qc_status": "draft_needs_garderobe_alignment_review",
+      "search_text_de": "soft scandinavian skandinavisch helle Eiche Off White Salbeigrün Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide",
+      "project_id": "bungalow_040_66",
+      "source_catalog": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/catalog.json",
+      "image_path": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/interior-soft-scandinavian.png",
+      "image_verified": true
+    },
+    {
+      "asset_id": "interior-modern-architectural-v1",
+      "file": "interior-modern-architectural.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "modern_architectural",
+      "description_de": "Architektonisch-moderne Variante mit Räuchereiche, Kalkstein, Anthrazit und klaren Linien.",
+      "palette": [
+        "smoked_oak",
+        "limestone",
+        "charcoal",
+        "warm_grey"
+      ],
+      "materials": [
+        "dark_wood",
+        "stone",
+        "leather",
+        "metal"
+      ],
+      "rooms_visible": [
+        "kitchen",
+        "dining",
+        "living",
+        "office",
+        "hall",
+        "bathroom",
+        "bedroom",
+        "dressing_room"
+      ],
+      "features": [
+        "kitchen_island",
+        "six_seat_dining",
+        "architectural_minimalism"
+      ],
+      "qc_status": "draft_needs_garderobe_design_review",
+      "search_text_de": "modern architectural architektonisch Räuchereiche Kalkstein Anthrazit Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide",
+      "project_id": "bungalow_040_66",
+      "source_catalog": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/catalog.json",
+      "image_path": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/interior-modern-architectural.png",
+      "image_verified": true
+    },
+    {
+      "asset_id": "interior-dark-modern-final-v1",
+      "file": "interior-dark-modern-final.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "dark_modern",
+      "description_de": "Dunkle moderne Variante mit dunklem Holzboden, cognacfarbenem Leder und offener echter Garderobe.",
+      "palette": [
+        "dark_oak",
+        "cognac",
+        "charcoal",
+        "warm_stone"
+      ],
+      "materials": [
+        "dark_wood",
+        "cognac_leather",
+        "stone",
+        "slatted_wood"
+      ],
+      "rooms_visible": [
+        "kitchen",
+        "dining",
+        "living",
+        "office",
+        "hall",
+        "bathroom",
+        "bedroom",
+        "dressing_room"
+      ],
+      "features": [
+        "open_garderobe",
+        "coat_hooks",
+        "shoe_bench",
+        "mirror",
+        "compact_six_seat_dining",
+        "matching_sofa_armchair",
+        "kitchen_island"
+      ],
+      "qc_status": "preferred_candidate",
+      "search_text_de": "dark modern dunkler Boden Cognac Leder offene Garderobe Haken Sitzbank Schuhe Spiegel kompakter Esstisch sechs Stühle Küche Essen Wohnen",
+      "project_id": "bungalow_040_66",
+      "source_catalog": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/catalog.json",
+      "image_path": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/interior-dark-modern-final.png",
+      "image_verified": true
+    },
+    {
+      "asset_id": "exterior-gabled-garden-reference-v1",
+      "file": "exterior-gabled-garden-reference.png",
+      "asset_type": "exterior_reference",
+      "style": "modern_classic_gabled",
+      "description_de": "Hochwertige helle Außenansicht eines modernen Satteldachhauses mit anthrazitfarbenen Rahmen, Terrasse und gepflegtem Garten.",
+      "palette": [
+        "white_render",
+        "anthracite",
+        "green",
+        "natural_stone"
+      ],
+      "materials": [
+        "render",
+        "roof_tile",
+        "glass",
+        "metal",
+        "lawn"
+      ],
+      "features": [
+        "gable_roof",
+        "roof_windows",
+        "floor_to_ceiling_glazing",
+        "terrace",
+        "landscaped_garden"
+      ],
+      "view": "garden_corner_approximately_35_degrees",
+      "geometry_lock": "reference_only_not_verified_against_kitchen_inspect_plan",
+      "qc_status": "visual_reference",
+      "search_text_de": "Außenansicht Satteldach weiß Anthrazit Dachfenster bodentiefe Fenster Terrasse Garten Tageslicht modern klassisch",
+      "project_id": "bungalow_040_66",
+      "source_catalog": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/catalog.json",
+      "image_path": "../born2thrill-local-workbench-data/corrections/bungalow_040_66/renders/visual-catalog-2026-08-16/exterior-gabled-garden-reference.png",
+      "image_verified": true
+    }
+  ]
+}

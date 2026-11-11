@@ -1,0 +1,902 @@
+[
+{
+"plan": "other_xvitv1",
+"typ": "dhh",
+"qm": 302,
+"zimmer": 7.0,
+"preis": 906000,
+"feld": "b600p-dhh-5+",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_xvv1",
+"typ": "efh",
+"qm": 271,
+"zimmer": 5.0,
+"preis": 813000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "bungalow_040_185",
+"typ": "efh",
+"qm": 263,
+"zimmer": 5.0,
+"preis": 789000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_xvv4",
+"typ": "efh",
+"qm": 260,
+"zimmer": 5.0,
+"preis": 780000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "other_vito",
+"typ": "dhh",
+"qm": 246,
+"zimmer": 4.0,
+"preis": 738000,
+"feld": "b600p-dhh-4",
+"dusch_wc": false
+},
+{
+"plan": "onehalfstorey_xvv1",
+"typ": "efh",
+"qm": 244,
+"zimmer": 6.0,
+"preis": 732000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "onehalfstorey_xvv2",
+"typ": "efh",
+"qm": 242,
+"zimmer": 5.0,
+"preis": 726000,
+"feld": "b600p-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_xvv6",
+"typ": "efh",
+"qm": 235,
+"zimmer": 5.0,
+"preis": 705000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_xvit",
+"typ": "dhh",
+"qm": 235,
+"zimmer": 4.0,
+"preis": 705000,
+"feld": "b600p-dhh-4",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_xvv2",
+"typ": "efh",
+"qm": 235,
+"zimmer": 5.0,
+"preis": 705000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "onehalfstorey_045",
+"typ": "efh",
+"qm": 226,
+"zimmer": 5.0,
+"preis": 678000,
+"feld": "b600p-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "onehalfstorey_vm2",
+"typ": "efh",
+"qm": 216,
+"zimmer": 6.0,
+"preis": 648000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_xvv6",
+"typ": "efh",
+"qm": 216,
+"zimmer": 4.0,
+"preis": 648000,
+"feld": "b600p-efh-4",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_xvv2_2",
+"typ": "efh",
+"qm": 215,
+"zimmer": 4.0,
+"preis": 645000,
+"feld": "b600p-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_xvv5",
+"typ": "efh",
+"qm": 215,
+"zimmer": 5.0,
+"preis": 645000,
+"feld": "b600p-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_xvi",
+"typ": "efh",
+"qm": 211,
+"zimmer": 5.0,
+"preis": 633000,
+"feld": "b600p-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "onehalfstorey_xv",
+"typ": "efh",
+"qm": 209,
+"zimmer": 6.0,
+"preis": 627000,
+"feld": "b600p-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_053",
+"typ": "efh",
+"qm": 209,
+"zimmer": 4.0,
+"preis": 627000,
+"feld": "b600p-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_xvbah",
+"typ": "efh",
+"qm": 209,
+"zimmer": 4.0,
+"preis": 627000,
+"feld": "b600p-efh-4",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_048",
+"typ": "efh",
+"qm": 208,
+"zimmer": 5.0,
+"preis": 624000,
+"feld": "b600p-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "onehalfstorey_ve",
+"typ": "efh",
+"qm": 206,
+"zimmer": 5.0,
+"preis": 618000,
+"feld": "b600p-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_056",
+"typ": "efh",
+"qm": 206,
+"zimmer": 4.5,
+"preis": 618000,
+"feld": "b600p-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_059",
+"typ": "efh",
+"qm": 206,
+"zimmer": 5.0,
+"preis": 618000,
+"feld": "b600p-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_060",
+"typ": "efh",
+"qm": 204,
+"zimmer": 4.0,
+"preis": 612000,
+"feld": "b600p-efh-4",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_051",
+"typ": "efh",
+"qm": 196,
+"zimmer": 4.0,
+"preis": 588000,
+"feld": "b600-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_xbv2",
+"typ": "bungalow",
+"qm": 195,
+"zimmer": 4.0,
+"preis": 585000,
+"feld": "b600-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_007",
+"typ": "bungalow",
+"qm": 192,
+"zimmer": 4.0,
+"preis": 576000,
+"feld": "b600-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_onehalfstorey_1_2_2_efh_140_1",
+"typ": "efh",
+"qm": 189,
+"zimmer": 5.0,
+"preis": 567000,
+"feld": "b600-efh-5+",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_049",
+"typ": "efh",
+"qm": 188,
+"zimmer": 5.0,
+"preis": 564000,
+"feld": "b600-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_058",
+"typ": "efh",
+"qm": 183,
+"zimmer": 4.0,
+"preis": 549000,
+"feld": "b600-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_onehalfstorey_1_5_1_efh_160",
+"typ": "efh",
+"qm": 182,
+"zimmer": 5.0,
+"preis": 546000,
+"feld": "b600-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_050",
+"typ": "efh",
+"qm": 182,
+"zimmer": 4.0,
+"preis": 546000,
+"feld": "b600-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_25",
+"typ": "bungalow",
+"qm": 181,
+"zimmer": 4.0,
+"preis": 543000,
+"feld": "b600-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "onehalfstorey_044",
+"typ": "efh",
+"qm": 179,
+"zimmer": 4.0,
+"preis": 537000,
+"feld": "b600-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_v1",
+"typ": "bungalow",
+"qm": 172,
+"zimmer": 3.0,
+"preis": 516000,
+"feld": "b600-bungalow-3",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_045",
+"typ": "efh",
+"qm": 172,
+"zimmer": 5.0,
+"preis": 516000,
+"feld": "b600-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_66",
+"typ": "bungalow",
+"qm": 171,
+"zimmer": 3.0,
+"preis": 513000,
+"feld": "b600-bungalow-3",
+"dusch_wc": true
+},
+{
+"plan": "onehalfstorey_vv3",
+"typ": "efh",
+"qm": 171,
+"zimmer": 5.0,
+"preis": 513000,
+"feld": "b600-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "onehalfstorey_vv2",
+"typ": "efh",
+"qm": 170,
+"zimmer": 4.0,
+"preis": 510000,
+"feld": "b600-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "onehalfstorey_046",
+"typ": "dhh",
+"qm": 167,
+"zimmer": 5.0,
+"preis": 501000,
+"feld": "b600-dhh-5+",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_046",
+"typ": "efh",
+"qm": 165,
+"zimmer": 5.0,
+"preis": 495000,
+"feld": "b600-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_5_1_b_145",
+"typ": "bungalow",
+"qm": 162,
+"zimmer": 4.0,
+"preis": 486000,
+"feld": "b600-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "twostorey_047",
+"typ": "efh",
+"qm": 161,
+"zimmer": 5.5,
+"preis": 483000,
+"feld": "b600-efh-5+",
+"dusch_wc": false
+},
+{
+"plan": "twostorey_052",
+"typ": "efh",
+"qm": 161,
+"zimmer": 4.0,
+"preis": 483000,
+"feld": "b600-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_xbv1",
+"typ": "bungalow",
+"qm": 159,
+"zimmer": 3.0,
+"preis": 477000,
+"feld": "b600-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_4_2_b_120",
+"typ": "bungalow",
+"qm": 152,
+"zimmer": 4.0,
+"preis": 456000,
+"feld": "b600-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_onehalfstorey_1_1_2_efh_120",
+"typ": "efh",
+"qm": 151,
+"zimmer": 4.0,
+"preis": 453000,
+"feld": "b600-efh-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_tv1",
+"typ": "bungalow",
+"qm": 150,
+"zimmer": 3.0,
+"preis": 450000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_3_6_wb_125",
+"typ": "bungalow",
+"qm": 141,
+"zimmer": 4.0,
+"preis": 423000,
+"feld": "b450-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "bungalow_t",
+"typ": "bungalow",
+"qm": 140,
+"zimmer": 4.0,
+"preis": 420000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_1_1_wb_105",
+"typ": "bungalow",
+"qm": 139,
+"zimmer": 3.0,
+"preis": 417000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_xb",
+"typ": "bungalow",
+"qm": 138,
+"zimmer": 3.0,
+"preis": 414000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_35",
+"typ": "bungalow",
+"qm": 137,
+"zimmer": 3.0,
+"preis": 411000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_1_7_wb_105",
+"typ": "bungalow",
+"qm": 137,
+"zimmer": 4.0,
+"preis": 411000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_46",
+"typ": "bungalow",
+"qm": 136,
+"zimmer": 4.0,
+"preis": 408000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_2_5_wb_115",
+"typ": "bungalow",
+"qm": 136,
+"zimmer": 4.0,
+"preis": 408000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_3_2_wb_125",
+"typ": "bungalow",
+"qm": 136,
+"zimmer": 4.0,
+"preis": 408000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_3_3_wb_125",
+"typ": "bungalow",
+"qm": 135,
+"zimmer": 4.0,
+"preis": 405000,
+"feld": "b450-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_4_3_5_wb_125",
+"typ": "bungalow",
+"qm": 135,
+"zimmer": 4.0,
+"preis": 405000,
+"feld": "b450-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_3_3_1_b_100_2",
+"typ": "bungalow",
+"qm": 134,
+"zimmer": 4.0,
+"preis": 402000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_033",
+"typ": "bungalow",
+"qm": 133,
+"zimmer": 4.0,
+"preis": 399000,
+"feld": "b450-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "bungalow_040_34",
+"typ": "bungalow",
+"qm": 132,
+"zimmer": 3.0,
+"preis": 396000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_3_7_wb_125",
+"typ": "bungalow",
+"qm": 132,
+"zimmer": 4.0,
+"preis": 396000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_32",
+"typ": "bungalow",
+"qm": 131,
+"zimmer": 3.0,
+"preis": 393000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_4_5_b_120",
+"typ": "bungalow",
+"qm": 131,
+"zimmer": 3.0,
+"preis": 393000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_4_1_b120",
+"typ": "bungalow",
+"qm": 130,
+"zimmer": 3.0,
+"preis": 390000,
+"feld": "b450-bungalow-3",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_4_3_4_wb_125",
+"typ": "bungalow",
+"qm": 130,
+"zimmer": 4.0,
+"preis": 390000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_2_2_b_100_1",
+"typ": "bungalow",
+"qm": 129,
+"zimmer": 3.0,
+"preis": 387000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_2_1_wb_115",
+"typ": "bungalow",
+"qm": 129,
+"zimmer": 3.0,
+"preis": 387000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_48",
+"typ": "bungalow",
+"qm": 128,
+"zimmer": 5.0,
+"preis": 384000,
+"feld": "b450-bungalow-5+",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_3_3_2_b_100_2",
+"typ": "bungalow",
+"qm": 128,
+"zimmer": 3.0,
+"preis": 384000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_24",
+"typ": "bungalow",
+"qm": 126,
+"zimmer": 4.0,
+"preis": 378000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_44",
+"typ": "bungalow",
+"qm": 126,
+"zimmer": 4.0,
+"preis": 378000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_2_4_b_100_1",
+"typ": "bungalow",
+"qm": 126,
+"zimmer": 3.0,
+"preis": 378000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_2_6_wb_115",
+"typ": "bungalow",
+"qm": 126,
+"zimmer": 4.0,
+"preis": 378000,
+"feld": "b450-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_3_4_7_b_120",
+"typ": "bungalow",
+"qm": 125,
+"zimmer": 3.0,
+"preis": 375000,
+"feld": "b450-bungalow-3",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_4_2_2_wb_115",
+"typ": "bungalow",
+"qm": 123,
+"zimmer": 3.0,
+"preis": 369000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_4_3_b_120",
+"typ": "bungalow",
+"qm": 122,
+"zimmer": 4.0,
+"preis": 366000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_3_1_wb_125",
+"typ": "bungalow",
+"qm": 122,
+"zimmer": 4.0,
+"preis": 366000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_38",
+"typ": "bungalow",
+"qm": 119,
+"zimmer": 4.0,
+"preis": 357000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_200",
+"typ": "bungalow",
+"qm": 117,
+"zimmer": 3.0,
+"preis": 351000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_36",
+"typ": "bungalow",
+"qm": 117,
+"zimmer": 3.0,
+"preis": 351000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_2_1_b_100_1",
+"typ": "bungalow",
+"qm": 117,
+"zimmer": 4.0,
+"preis": 351000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_1_2_wb_105",
+"typ": "bungalow",
+"qm": 116,
+"zimmer": 4.0,
+"preis": 348000,
+"feld": "b450-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "bungalow_040_40",
+"typ": "bungalow",
+"qm": 115,
+"zimmer": 3.0,
+"preis": 345000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_4_6_b_120",
+"typ": "bungalow",
+"qm": 115,
+"zimmer": 3.0,
+"preis": 345000,
+"feld": "b450-bungalow-3",
+"dusch_wc": true
+},
+{
+"plan": "bungalow_040_42",
+"typ": "bungalow",
+"qm": 113,
+"zimmer": 4.0,
+"preis": 339000,
+"feld": "b450-bungalow-4",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_3_3_3_b_100_2",
+"typ": "bungalow",
+"qm": 112,
+"zimmer": 3.0,
+"preis": 336000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_1_5_wb_105",
+"typ": "bungalow",
+"qm": 112,
+"zimmer": 3.0,
+"preis": 336000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_33",
+"typ": "bungalow",
+"qm": 111,
+"zimmer": 3.0,
+"preis": 333000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_31",
+"typ": "bungalow",
+"qm": 110,
+"zimmer": 3.5,
+"preis": 330000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_040_39",
+"typ": "bungalow",
+"qm": 109,
+"zimmer": 3.5,
+"preis": 327000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_1_3_wb_105",
+"typ": "bungalow",
+"qm": 108,
+"zimmer": 3.0,
+"preis": 324000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_4_1_4_wb_105",
+"typ": "bungalow",
+"qm": 108,
+"zimmer": 3.0,
+"preis": 324000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_2_3_b_100_1",
+"typ": "bungalow",
+"qm": 106,
+"zimmer": 3.0,
+"preis": 318000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_2_5_b_100_1",
+"typ": "bungalow",
+"qm": 106,
+"zimmer": 4.0,
+"preis": 318000,
+"feld": "b450-bungalow-4",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_013",
+"typ": "bungalow",
+"qm": 105,
+"zimmer": 3.0,
+"preis": 315000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "bungalow_028",
+"typ": "bungalow",
+"qm": 102,
+"zimmer": 3.0,
+"preis": 306000,
+"feld": "b450-bungalow-3",
+"dusch_wc": true
+},
+{
+"plan": "german_catalog_review_bungalow_3_1_2_b_85",
+"typ": "bungalow",
+"qm": 101,
+"zimmer": 3.0,
+"preis": 303000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+},
+{
+"plan": "german_catalog_review_bungalow_3_3_4_b_100_2",
+"typ": "bungalow",
+"qm": 97,
+"zimmer": 3.0,
+"preis": 291000,
+"feld": "b450-bungalow-3",
+"dusch_wc": false
+}
+]
