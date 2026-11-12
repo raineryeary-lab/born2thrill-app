@@ -1,0 +1,177 @@
+<title>Preislogik Konfigurator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,650&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: eine Lesespalte; oben die zwei Entscheidungen, darunter der Regler mit der Live-Tabelle. Farbe: Tannengrün auf Kalkweiß, Leerfelder ziegelrot. */
+:root {
+  --bg:#f6f7f4; --fg:#1c2421; --muted:#5b6863; --line:#d8ded9; --panel:#ffffff; --accent:#2f6b57; --accent-weich:#e3efe9;
+  --leer:#f6dcd7; --leer-fg:#8a2a1e; --fuell:#2f6b57;
+  --serif:"Literata", Georgia, serif; --sans:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg:#131816; --fg:#e3eae6; --muted:#9aa7a1; --line:#2b3531; --panel:#1a211f; --accent:#7cc3a6; --accent-weich:#1f3a30;
+  --leer:#4a2420; --leer-fg:#f2b3a8; --fuell:#7cc3a6; color-scheme:dark; } }
+:root[data-theme="dark"] {
+  --bg:#131816; --fg:#e3eae6; --muted:#9aa7a1; --line:#2b3531; --panel:#1a211f; --accent:#7cc3a6; --accent-weich:#1f3a30;
+  --leer:#4a2420; --leer-fg:#f2b3a8; --fuell:#7cc3a6; color-scheme:dark; }
+body { background:var(--bg); color:var(--fg); font:16px/1.55 var(--sans); }
+main { max-width:920px; margin:0 auto; padding-block:32px 56px; padding-left:max(16px, env(safe-area-inset-left, 0px)); padding-right:max(16px, env(safe-area-inset-right, 0px)); display:grid; gap:34px; }
+main > * { min-width:0; }
+h1, h2 { font-family:var(--serif); font-weight:650; text-wrap:balance; margin:0; }
+h1 { font-size:clamp(1.7rem, 4vw, 2.4rem); line-height:1.15; }
+h2 { font-size:1.3rem; }
+p { margin:0; max-width:68ch; }
+.muted { color:var(--muted); }
+header, section { display:grid; gap:12px; min-width:0; }
+.eyebrow { font-size:.78rem; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); font-weight:700; }
+.entscheidungen { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:14px; }
+.frage { background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--accent); border-radius:6px; padding:14px 16px; display:grid; gap:6px; }
+.frage b { font-size:1.05rem; }
+.formel { font-family:var(--serif); font-size:1.15rem; background:var(--accent-weich); border-radius:6px; padding:12px 16px; }
+ol, ul { margin:0; padding-left:20px; display:grid; gap:4px; }
+.scroll { overflow-x:auto; }
+table { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums; background:var(--panel); }
+th, td { padding:8px 10px; border-bottom:1px solid var(--line); text-align:right; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align:left; }
+th { font-size:.76rem; letter-spacing:.04em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+.regler { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 16px; display:grid; gap:10px; }
+.zeile { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; }
+input[type=range] { width:min(380px, 100%); accent-color:var(--accent); }
+.wert { font-size:1.4rem; font-weight:700; color:var(--accent); font-variant-numeric:tabular-nums; min-width:5ch; }
+.knopf { border:1px solid var(--line); background:var(--panel); color:var(--fg); border-radius:6px; padding:5px 11px; cursor:pointer; font:inherit; }
+.knopf[aria-pressed="true"] { border-color:var(--accent); color:var(--accent); font-weight:700; }
+.knopf:focus-visible, input:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+td.z { position:relative; }
+td.z span { position:relative; z-index:1; font-weight:600; }
+td.z::before { content:""; position:absolute; inset:3px; border-radius:4px; background:var(--fuell); opacity:var(--a, 0); }
+td.leer { color:var(--leer-fg); }
+td.leer::before { background:var(--leer); opacity:1; }
+.klein { font-size:.88rem; }
+.quellen { font-size:.9rem; color:var(--muted); }
+a { color:var(--accent); }
+</style>
+<main>
+<header>
+<span class="eyebrow">Vorschlag zur Freigabe · 7. November 2026</span>
+<h1>Preislogik Konfigurator</h1>
+<p class="muted">Wie der Konfigurator jedem Haus einen Preis gibt und welche Häuser ein Kunde bei Budget, Hausart und Zimmerzahl angezeigt bekommt.</p>
+</header>
+
+<section>
+<h2>Zwei Entscheidungen</h2>
+<div class="entscheidungen">
+<div class="frage"><b>1. Preis aus der Hausgröße statt aus der Zimmerzahl?</b>
+<p>Bisher hat jede Zimmerzahl ein festes Preisfenster (z. B. 4 Zimmer = 480.000–550.000 €). Ein großes 4-Zimmer-Haus mit Galerie kostet aber mehr als ein kleines. Vorschlag: Der Preis kommt aus der Fläche, die Zimmerzahl bleibt nur ein Filter.</p></div>
+<div class="frage"><b>2. Welches Preisniveau?</b>
+<p>Die Marktsätze stammen aus deutschen Neubau-Angeboten (überwiegend Fertighaus). Ein Faktor darüber legt unser Niveau fest, etwa für Massivbau, Region oder Ausstattung. Mit dem Regler unten sieht man sofort, wo die Häuser landen.</p></div>
+</div>
+</section>
+
+<section>
+<h2>So wird gerechnet</h2>
+<p class="formel">Preis = Wohnfläche × Marktsatz des Haustyps × Faktor</p>
+<div class="scroll"><table>
+<thead><tr><th>Haustyp</th><th>Warum dieser Satz</th><th>Marktsatz je m² Wohnfläche</th></tr></thead>
+<tbody>
+<tr><td>Bungalow</td><td>Dach und Bodenplatte für jeden m²: pro m² am teuersten</td><td>2.700 €</td></tr>
+<tr><td>1,5-Geschosser</td><td>das Dach ist zugleich die Wand oben: pro m² am günstigsten</td><td>2.500 €</td></tr>
+<tr><td>2-Geschosser / Doppelhaus</td><td>dazwischen</td><td>2.650 €</td></tr>
+</tbody></table></div>
+<p class="klein muted">Mittelwerte der Markt-Mediane: Bungalow 2.520–2.850 €, 1,5-Geschosser 2.340–2.700 €, 2-Geschosser 2.580–2.730 €. Wohnfläche: unsere gezeichnete Fläche × 0,8 (Wände rund 20 %). Der Faktor 0,8 ist geschätzt und wird an Originalplänen nachgemessen. Dachschräge und Luftraum werden danach genauer berücksichtigt.</p>
+</section>
+
+<section>
+<h2>Was der Kunde erlebt</h2>
+<p>Die Fragen im Fragebogen bleiben, wie sie sind. Angezeigt werden die Häuser, die zu allen drei Antworten passen:</p>
+<ol>
+<li><b>Budget</b>: der Preis des Hauses liegt in der gewählten Spanne</li>
+<li><b>Hausart</b>: Einfamilienhaus, Bungalow, Doppelhaus, Zweifamilienhaus</li>
+<li><b>Zimmer</b>: 3, 4 oder 5 Zimmer (zusätzlich zu Küche und Bad)</li>
+</ol>
+<p>Einzige Änderung: Die unterste Budget-Antwort heißt „bis 450.000 €“ statt „300.000–450.000 €“, damit kleinere Häuser nicht herausfallen.</p>
+</section>
+
+<section>
+<h2>Wo unsere Häuser landen</h2>
+<div class="regler">
+<div class="zeile"><label for="faktor"><b>Faktor über Markt</b></label>
+<input id="faktor" type="range" min="1" max="1.6" step="0.05" value="1.3">
+<span class="wert" id="faktorWert">1,30</span></div>
+<div class="zeile klein"><span class="muted">Schnellwahl:</span>
+<button class="knopf" data-f="1">1,0 Markt</button><button class="knopf" data-f="1.2">1,2</button>
+<button class="knopf" data-f="1.3">1,3</button><button class="knopf" data-f="1.4">1,4</button>
+<button class="knopf" id="heute">heute zum Vergleich</button></div>
+<p class="klein muted" id="erklaerung"></p>
+</div>
+<div class="scroll"><table>
+<thead><tr><th>Hausart</th><th>Zimmer</th><th>bis 450.000 €</th><th>450.000–600.000 €</th><th>über 600.000 €</th></tr></thead>
+<tbody id="felder"></tbody></table></div>
+<p class="klein muted">Zahl = Häuser, die der Kunde bei dieser Kombination sieht. Rot = keine Häuser, diese Auswahl führt ins Leere.</p>
+<div class="scroll"><table>
+<thead><tr><th>Haustyp</th><th>Häuser</th><th>günstigstes</th><th>Mitte (Median)</th><th>teuerstes</th></tr></thead>
+<tbody id="typen"></tbody></table></div>
+</section>
+
+<section>
+<h2>Lücken im Katalog</h2>
+<ul>
+<li>Zweifamilienhaus: noch kein Haus.</li>
+<li>Doppelhaus: nur 4 Häuser.</li>
+<li>Bungalow mit 5 Zimmern: nur wenige.</li>
+</ul>
+<p class="muted">Diese Felder füllen sich erst mit neuen Grundrissen, unabhängig vom Preisniveau.</p>
+</section>
+
+<section>
+<h2>Quellen</h2>
+<p class="quellen">Fast alle Marktzahlen stammen von Hausanbieter-Portalen, die eigene Angebote auswerten. Unabhängige Zahlen je Haustyp (BKI, Statistisches Bundesamt) waren frei nicht zu finden.
+<a href="https://www.fertighaus.de/typen/bungalow/preise/">fertighaus.de Bungalow</a> ·
+<a href="https://www.musterhaus.net/haustypen/bungalow/bungalow-preise-und-kosten">musterhaus.net Bungalow</a> ·
+<a href="https://www.fertighaus.de/typen/stadtvilla/preise-kosten/">fertighaus.de Stadtvilla</a> ·
+<a href="https://www.fertighausexperte.com/zweigeschossiges-haus/">fertighausexperte.com</a> ·
+<a href="https://www.bauen.de/haus-1-5-geschossig/">bauen.de 1,5-Geschosser</a> ·
+<a href="https://baukostenplan.de/ratgeber/hausbau-kosten">baukostenplan.de</a></p>
+</section>
+</main>
+<script>
+const DATEN = [{"a": "Einfamilienhaus", "t": "Z", "z": 5.5, "m": 311.0, "h": 933000.0}, {"a": "Doppelhaus", "t": "Z", "z": 7.0, "m": 302.0, "h": 906000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 291.0, "h": 873000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.5, "m": 279.0, "h": 837000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 271.0, "h": 813000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 6.0, "m": 264.0, "h": 792000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 263.0, "h": 789000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 260.0, "h": 780000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 250.0, "h": 750000.0}, {"a": "Doppelhaus", "t": "Z", "z": 4.0, "m": 246.0, "h": 738000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.5, "m": 244.0, "h": 732000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 6.0, "m": 244.0, "h": 732000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 243.0, "h": 729000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 242.0, "h": 726000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 242.0, "h": 726000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 241.0, "h": 723000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 236.0, "h": 708000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 235.0, "h": 705000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 235.0, "h": 705000.0}, {"a": "Doppelhaus", "t": "Z", "z": 4.0, "m": 235.0, "h": 705000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 235.0, "h": 705000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 6.0, "m": 233.0, "h": 699000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 2.0, "m": 228.0, "h": 684000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 226.0, "h": 678000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 223.0, "h": 669000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 221.0, "h": 663000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 221.0, "h": 663000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 220.0, "h": 660000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 219.0, "h": 657000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 6.5, "m": 219.0, "h": 657000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 218.0, "h": 654000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 217.0, "h": 651000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 6.0, "m": 216.0, "h": 648000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 6.0, "m": 216.0, "h": 648000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 216.0, "h": 648000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 215.0, "h": 645000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 215.0, "h": 645000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 215.0, "h": 645000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 215.0, "h": 645000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 213.0, "h": 639000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 211.0, "h": 633000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 211.0, "h": 633000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 211.0, "h": 633000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 211.0, "h": 633000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 211.0, "h": 633000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.5, "m": 210.0, "h": 630000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 6.0, "m": 209.0, "h": 627000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 209.0, "h": 627000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 209.0, "h": 627000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 208.0, "h": 624000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 206.0, "h": 618000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 3.0, "m": 206.0, "h": 618000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.5, "m": 206.0, "h": 618000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 206.0, "h": 618000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 205.0, "h": 615000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 205.0, "h": 615000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 204.0, "h": 612000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 204.0, "h": 612000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 204.0, "h": 612000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 203.0, "h": 609000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 201.0, "h": 603000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 201.0, "h": 603000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.5, "m": 200.0, "h": 600000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 200.0, "h": 600000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 199.0, "h": 597000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 6.0, "m": 199.0, "h": 597000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 6.0, "m": 198.0, "h": 594000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 196.0, "h": 588000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 196.0, "h": 588000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 196.0, "h": 588000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 195.0, "h": 585000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 193.0, "h": 579000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 192.0, "h": 576000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 192.0, "h": 576000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 189.0, "h": 567000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 189.0, "h": 567000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 188.0, "h": 564000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 6.0, "m": 187.0, "h": 561000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 186.0, "h": 558000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 6.0, "m": 186.0, "h": 558000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 185.0, "h": 555000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 184.0, "h": 552000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 184.0, "h": 552000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 183.0, "h": 549000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.5, "m": 183.0, "h": 549000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 3.0, "m": 183.0, "h": 549000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 183.0, "h": 549000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 182.0, "h": 546000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 182.0, "h": 546000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 182.0, "h": 546000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 182.0, "h": 546000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 181.0, "h": 543000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 181.0, "h": 543000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 181.0, "h": 543000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 180.0, "h": 540000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 180.0, "h": 540000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 179.0, "h": 537000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 179.0, "h": 537000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 179.0, "h": 537000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 178.0, "h": 534000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 177.0, "h": 531000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 176.0, "h": 528000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 175.0, "h": 525000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 6.0, "m": 174.0, "h": 522000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 3.0, "m": 174.0, "h": 522000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 173.0, "h": 519000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 173.0, "h": 519000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 172.0, "h": 516000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 172.0, "h": 516000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 172.0, "h": 516000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 172.0, "h": 516000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 171.0, "h": 513000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 171.0, "h": 513000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 170.0, "h": 510000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 170.0, "h": 510000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 169.0, "h": 507000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 169.0, "h": 507000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 168.0, "h": 504000.0}, {"a": "Doppelhaus", "t": "A", "z": 5.0, "m": 167.0, "h": 501000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.5, "m": 167.0, "h": 501000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 166.0, "h": 498000.0}, {"a": "Bungalow", "t": "B", "z": 5.0, "m": 165.0, "h": 495000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 165.0, "h": 495000.0}, {"a": "Bungalow", "t": "B", "z": 3.5, "m": 164.0, "h": 492000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 164.0, "h": 492000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 164.0, "h": 492000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 164.0, "h": 492000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 164.0, "h": 492000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 163.0, "h": 489000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 163.0, "h": 489000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 162.0, "h": 486000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 162.0, "h": 486000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 162.0, "h": 486000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.5, "m": 161.0, "h": 483000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 161.0, "h": 483000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 160.0, "h": 480000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 159.0, "h": 477000.0}, {"a": "Bungalow", "t": "B", "z": 5.0, "m": 158.0, "h": 474000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 157.0, "h": 471000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 3.0, "m": 157.0, "h": 471000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 157.0, "h": 471000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 157.0, "h": 471000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 157.0, "h": 471000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 153.0, "h": 459000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 153.0, "h": 459000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 152.0, "h": 456000.0}, {"a": "Bungalow", "t": "B", "z": 5.0, "m": 152.0, "h": 456000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 152.0, "h": 456000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 151.0, "h": 453000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 151.0, "h": 453000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.5, "m": 151.0, "h": 453000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 150.0, "h": 450000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.5, "m": 150.0, "h": 450000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 149.0, "h": 447000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 148.0, "h": 444000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 148.0, "h": 444000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 147.0, "h": 441000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 146.0, "h": 438000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 145.0, "h": 435000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 5.0, "m": 145.0, "h": 435000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 141.0, "h": 423000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 141.0, "h": 423000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 141.0, "h": 423000.0}, {"a": "Bungalow", "t": "B", "z": 2.5, "m": 140.0, "h": 420000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 140.0, "h": 420000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 140.0, "h": 420000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 4.0, "m": 140.0, "h": 420000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 140.0, "h": 420000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 139.0, "h": 417000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 139.0, "h": 417000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 138.0, "h": 414000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 137.0, "h": 411000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 137.0, "h": 411000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 137.0, "h": 411000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 4.0, "m": 137.0, "h": 411000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 136.0, "h": 408000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 136.0, "h": 408000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 136.0, "h": 408000.0}, {"a": "Einfamilienhaus", "t": "Z", "z": 5.0, "m": 136.0, "h": 408000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 135.0, "h": 405000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 135.0, "h": 405000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 135.0, "h": 405000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 135.0, "h": 405000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 135.0, "h": 405000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 134.0, "h": 402000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 134.0, "h": 402000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 133.0, "h": 399000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 133.0, "h": 399000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 132.0, "h": 396000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 132.0, "h": 396000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 132.0, "h": 396000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 132.0, "h": 396000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 132.0, "h": 396000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 131.0, "h": 393000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 131.0, "h": 393000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 131.0, "h": 393000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 130.0, "h": 390000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 130.0, "h": 390000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 130.0, "h": 390000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 130.0, "h": 390000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 129.0, "h": 387000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 129.0, "h": 387000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 129.0, "h": 387000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 128.0, "h": 384000.0}, {"a": "Bungalow", "t": "B", "z": 5.0, "m": 128.0, "h": 384000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 128.0, "h": 384000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 126.0, "h": 378000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 126.0, "h": 378000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 126.0, "h": 378000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 126.0, "h": 378000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 126.0, "h": 378000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 126.0, "h": 378000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 126.0, "h": 378000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 125.0, "h": 375000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 125.0, "h": 375000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 125.0, "h": 375000.0}, {"a": "Einfamilienhaus", "t": "A", "z": 3.0, "m": 125.0, "h": 375000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 124.0, "h": 372000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 124.0, "h": 372000.0}, {"a": "Bungalow", "t": "B", "z": 2.5, "m": 124.0, "h": 372000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 123.0, "h": 369000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 123.0, "h": 369000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 122.0, "h": 366000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 122.0, "h": 366000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 119.0, "h": 357000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 119.0, "h": 357000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 118.0, "h": 354000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 118.0, "h": 354000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 117.0, "h": 351000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 117.0, "h": 351000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 116.0, "h": 348000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 116.0, "h": 348000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 116.0, "h": 348000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 116.0, "h": 348000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 116.0, "h": 348000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 115.0, "h": 345000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 115.0, "h": 345000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 114.0, "h": 342000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 113.0, "h": 339000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 113.0, "h": 339000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 112.0, "h": 336000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 112.0, "h": 336000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 111.0, "h": 333000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 111.0, "h": 333000.0}, {"a": "Bungalow", "t": "B", "z": 3.5, "m": 110.0, "h": 330000.0}, {"a": "Bungalow", "t": "B", "z": 3.5, "m": 109.0, "h": 327000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 108.0, "h": 324000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 108.0, "h": 324000.0}, {"a": "Bungalow", "t": "B", "z": 2.5, "m": 106.0, "h": 318000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 106.0, "h": 318000.0}, {"a": "Bungalow", "t": "B", "z": 4.0, "m": 106.0, "h": 318000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 105.0, "h": 315000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 102.0, "h": 306000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 101.0, "h": 303000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 100.0, "h": 300000.0}, {"a": "Bungalow", "t": "B", "z": 2.5, "m": 100.0, "h": 300000.0}, {"a": "Bungalow", "t": "B", "z": 2.5, "m": 97.0, "h": 291000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 97.0, "h": 291000.0}, {"a": "Bungalow", "t": "B", "z": 2.0, "m": 92.0, "h": 276000.0}, {"a": "Bungalow", "t": "B", "z": 3.0, "m": 92.0, "h": 276000.0}, {"a": "Bungalow", "t": "B", "z": 2.5, "m": 91.0, "h": 273000.0}, {"a": "Bungalow", "t": "B", "z": 2.0, "m": 88.0, "h": 264000.0}, {"a": "Bungalow", "t": "B", "z": 2.0, "m": 81.0, "h": 243000.0}, {"a": "Bungalow", "t": "B", "z": 2.0, "m": 77.0, "h": 231000.0}];
+const SATZ = { B: 2700, A: 2500, Z: 2650 };
+const TYPNAME = { B: "Bungalow", A: "1,5-Geschosser", Z: "2-Geschosser / Doppelhaus" };
+const FELDER = [["Einfamilienhaus", [4, 5]], ["Bungalow", [3, 4, 5]], ["Doppelhaus", [4, 5]], ["Zweifamilienhaus", [3, 4, 5]]];
+const GRENZEN = [450000, 600000];
+let heute = false;
+const eur = (x) => Math.round(x / 1000).toLocaleString("de-DE") + ".000 €";
+const spalte = (p) => p < GRENZEN[0] ? 0 : p < GRENZEN[1] ? 1 : 2;
+const preis = (h, f) => heute ? h.h : h.m * 0.8 * SATZ[h.t] * f;
+
+function zeichne() {
+  const f = Number(document.getElementById("faktor").value);
+  document.getElementById("faktorWert").textContent = heute ? "heute" : f.toFixed(2).replace(".", ",");
+  document.querySelectorAll(".knopf").forEach((k) => k.setAttribute("aria-pressed",
+    String(heute ? k.id === "heute" : !k.id && Number(k.dataset.f) === f)));
+  document.getElementById("erklaerung").textContent = heute
+    ? "Heute: 3.000 € je m² gezeichneter Fläche für jeden Haustyp, gleich viel über dem Markt wie etwa Faktor 1,4."
+    : `Faktor ${f.toFixed(2).replace(".", ",")}: ${f === 1 ? "reiner Marktpreis" : `${Math.round((f - 1) * 100)} % über dem Markt`}.`;
+  const zeilen = [];
+  for (const [art, zimmer] of FELDER) {
+    for (const z of zimmer) {
+      const hs = DATEN.filter((h) => h.a === art && Math.min(Math.floor(h.z), 5) === z);
+      const n = [0, 0, 0];
+      hs.forEach((h) => n[spalte(preis(h, f))]++);
+      zeilen.push(`<tr><td>${art}</td><td>${z}</td>` + n.map((c) =>
+        `<td class="z${c === 0 ? " leer" : ""}" style="--a:${Math.min(c / 50, 1) * 0.4}"><span>${c}</span></td>`).join("") + "</tr>");
+    }
+  }
+  document.getElementById("felder").innerHTML = zeilen.join("");
+  document.getElementById("typen").innerHTML = ["B", "A", "Z"].map((t) => {
+    const p = DATEN.filter((h) => h.t === t).map((h) => preis(h, f)).sort((a, b) => a - b);
+    return `<tr><td>${TYPNAME[t]}</td><td>${p.length}</td><td>${eur(p[0])}</td><td>${eur(p[Math.floor(p.length / 2)])}</td><td>${eur(p[p.length - 1])}</td></tr>`;
+  }).join("");
+}
+document.getElementById("faktor").addEventListener("input", () => { heute = false; zeichne(); });
+document.querySelectorAll(".knopf[data-f]").forEach((k) => k.addEventListener("click", () => {
+  heute = false; document.getElementById("faktor").value = k.dataset.f; zeichne(); }));
+document.getElementById("heute").addEventListener("click", () => { heute = true; zeichne(); });
+zeichne();
+</script>

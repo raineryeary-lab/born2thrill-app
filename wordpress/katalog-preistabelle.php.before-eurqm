@@ -1,0 +1,102 @@
+<?php
+/**
+ * Katalog-Preistabelle (plans/katalog-preistabelle-v1.md). Erzeugt von
+ * born2thrill-local-workbench/scripts/katalog-preistabelle-snippet.py -- nicht
+ * von Hand aendern, neu erzeugen. Stand 2026-11-07 16:13: 270 Haeuser.
+ * Nur fuer eingeloggte Bearbeiter, nur auf Seiten mit [grundriss_katalog].
+ */
+add_action( 'wp_footer', function () {
+	if ( is_admin() || ! current_user_can( 'edit_posts' ) ) {
+		return;
+	}
+	$post = get_post();
+	if ( ! $post || ! has_shortcode( $post->post_content, 'grundriss_katalog' ) ) {
+		return;
+	}
+	?>
+<style id="gk-preistabelle-css">
+.gk-pt{background:#1d2023;color:#e8e8e8;border:1px solid #3a3f44;margin:0 0 14px;font:14px/1.45 system-ui,sans-serif}
+.gk-pt > summary{cursor:pointer;padding:10px 18px;font-weight:600}
+.gk-pt-innen{padding:0 18px 14px}
+.gk-pt-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:6px 0}
+.gk-pt-zeile input[type=range]{width:220px}
+.gk-pt-wert{font-weight:700;min-width:3.2em}
+.gk-pt button{border:1px solid #3a3f44;background:#25292d;color:#e8e8e8;border-radius:5px;padding:3px 10px;cursor:pointer;font:inherit}
+.gk-pt button[aria-pressed=true]{border-color:#7fc8a9;color:#7fc8a9;font-weight:700}
+.gk-pt-erkl{color:#9aa0a6;font-size:13px;margin:4px 0 10px}
+.gk-pt table{border-collapse:separate;border-spacing:4px;width:100%;max-width:760px}
+.gk-pt th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9aa0a6;text-align:right;font-weight:600;padding:4px 8px}
+.gk-pt th:nth-child(-n+2),.gk-pt td:nth-child(-n+2){text-align:left}
+.gk-pt td{padding:6px 10px}
+.gk-pt td.z{text-align:right;font-weight:700;border-radius:4px;background:rgba(127,200,169,var(--a))}
+.gk-pt td.z.leer{background:#4a2421;color:#f0b8b0}
+.gk-pt-fuss{color:#9aa0a6;font-size:12px;margin-top:8px}
+</style>
+<script id="gk-preistabelle-js">
+(function () {
+	// D = [hausart, satztyp, zimmer, m2, preis_heute]
+	var D = [["Einfamilienhaus","A",6.0,626.0,1878000],["Einfamilienhaus","Z",5.0,311.0,933000],["Doppelhaus","Z",6.0,302.0,906000],["Zweifamilienhaus","Z",7.0,294.0,882000],["Einfamilienhaus","A",5.0,291.0,873000],["Einfamilienhaus","Z",4.0,279.0,837000],["Einfamilienhaus","Z",5.0,271.0,813000],["Einfamilienhaus","A",6.0,264.0,792000],["Einfamilienhaus","Z",5.0,263.0,789000],["Einfamilienhaus","Z",5.0,260.0,780000],["Einfamilienhaus","Z",5.0,250.0,750000],["Doppelhaus","Z",4.0,246.0,738000],["Einfamilienhaus","A",5.0,244.0,732000],["Einfamilienhaus","A",5.0,244.0,732000],["Einfamilienhaus","A",4.0,243.0,729000],["Einfamilienhaus","Z",5.0,242.0,726000],["Einfamilienhaus","A",5.0,242.0,726000],["Einfamilienhaus","Z",6.0,241.0,723000],["Einfamilienhaus","Z",4.0,236.0,708000],["Einfamilienhaus","Z",5.0,235.0,705000],["Einfamilienhaus","Z",5.0,235.0,705000],["Doppelhaus","Z",4.0,235.0,705000],["Einfamilienhaus","Z",5.0,235.0,705000],["Einfamilienhaus","Z",6.0,233.0,699000],["Einfamilienhaus","A",2.0,228.0,684000],["Einfamilienhaus","A",5.0,226.0,678000],["Einfamilienhaus","A",5.0,223.0,669000],["Einfamilienhaus","A",5.0,221.0,663000],["Einfamilienhaus","A",4.0,221.0,663000],["Einfamilienhaus","Z",4.0,220.0,660000],["Einfamilienhaus","A",5.0,219.0,657000],["Einfamilienhaus","Z",6.0,219.0,657000],["Einfamilienhaus","A",4.0,218.0,654000],["Zweifamilienhaus","Z",7.0,218.0,654000],["Einfamilienhaus","Z",5.0,217.0,651000],["Einfamilienhaus","A",6.0,216.0,648000],["Einfamilienhaus","A",6.0,216.0,648000],["Einfamilienhaus","Z",4.0,216.0,648000],["Einfamilienhaus","A",5.0,215.0,645000],["Einfamilienhaus","A",5.0,215.0,645000],["Einfamilienhaus","Z",4.0,215.0,645000],["Einfamilienhaus","Z",5.0,215.0,645000],["Einfamilienhaus","A",5.0,213.0,639000],["Zweifamilienhaus","Z",6.0,213.0,639000],["Einfamilienhaus","Z",5.0,211.0,633000],["Einfamilienhaus","A",5.0,211.0,633000],["Einfamilienhaus","Z",4.0,211.0,633000],["Einfamilienhaus","Z",4.0,211.0,633000],["Einfamilienhaus","Z",5.0,211.0,633000],["Einfamilienhaus","Z",4.0,210.0,630000],["Einfamilienhaus","A",6.0,209.0,627000],["Einfamilienhaus","Z",4.0,209.0,627000],["Einfamilienhaus","Z",4.0,209.0,627000],["Einfamilienhaus","Z",5.0,208.0,624000],["Einfamilienhaus","A",5.0,206.0,618000],["Einfamilienhaus","Z",3.0,206.0,618000],["Einfamilienhaus","Z",4.0,206.0,618000],["Einfamilienhaus","Z",5.0,206.0,618000],["Einfamilienhaus","A",5.0,205.0,615000],["Einfamilienhaus","Z",5.0,205.0,615000],["Einfamilienhaus","Z",4.0,204.0,612000],["Einfamilienhaus","Z",4.0,204.0,612000],["Einfamilienhaus","Z",4.0,204.0,612000],["Einfamilienhaus","A",4.0,203.0,609000],["Einfamilienhaus","A",5.0,201.0,603000],["Einfamilienhaus","Z",5.0,201.0,603000],["Zweifamilienhaus","Z",4.0,200.0,600000],["Einfamilienhaus","Z",5.0,200.0,600000],["Einfamilienhaus","Z",5.0,200.0,600000],["Einfamilienhaus","Z",5.0,199.0,597000],["Einfamilienhaus","Z",6.0,199.0,597000],["Einfamilienhaus","A",6.0,198.0,594000],["Einfamilienhaus","A",5.0,196.0,588000],["Einfamilienhaus","Z",4.0,196.0,588000],["Einfamilienhaus","Z",4.0,196.0,588000],["Bungalow","B",4.0,195.0,585000],["Einfamilienhaus","A",4.0,193.0,579000],["Einfamilienhaus","Z",4.0,192.0,576000],["Einfamilienhaus","Z",4.0,192.0,576000],["Einfamilienhaus","A",5.0,189.0,567000],["Einfamilienhaus","Z",5.0,189.0,567000],["Einfamilienhaus","Z",5.0,188.0,564000],["Einfamilienhaus","Z",6.0,187.0,561000],["Einfamilienhaus","A",5.0,186.0,558000],["Einfamilienhaus","A",6.0,186.0,558000],["Einfamilienhaus","A",5.0,185.0,555000],["Einfamilienhaus","A",4.0,184.0,552000],["Einfamilienhaus","Z",4.0,184.0,552000],["Bungalow","B",3.0,183.0,549000],["Einfamilienhaus","Z",5.0,183.0,549000],["Einfamilienhaus","Z",3.0,183.0,549000],["Einfamilienhaus","Z",4.0,183.0,549000],["Einfamilienhaus","A",5.0,182.0,546000],["Einfamilienhaus","A",5.0,182.0,546000],["Einfamilienhaus","A",4.0,182.0,546000],["Einfamilienhaus","Z",4.0,182.0,546000],["Bungalow","B",4.0,181.0,543000],["Einfamilienhaus","Z",4.0,181.0,543000],["Einfamilienhaus","Z",4.0,181.0,543000],["Einfamilienhaus","A",4.0,180.0,540000],["Einfamilienhaus","Z",4.0,180.0,540000],["Einfamilienhaus","A",4.0,179.0,537000],["Einfamilienhaus","A",4.0,179.0,537000],["Einfamilienhaus","Z",5.0,179.0,537000],["Bungalow","B",3.0,178.0,534000],["Einfamilienhaus","A",5.0,177.0,531000],["Einfamilienhaus","A",5.0,176.0,528000],["Einfamilienhaus","A",4.0,175.0,525000],["Einfamilienhaus","Z",6.0,174.0,522000],["Einfamilienhaus","A",3.0,174.0,522000],["Einfamilienhaus","A",4.0,173.0,519000],["Einfamilienhaus","Z",4.0,173.0,519000],["Bungalow","B",4.0,172.0,516000],["Bungalow","B",3.0,172.0,516000],["Einfamilienhaus","Z",5.0,172.0,516000],["Einfamilienhaus","Z",5.0,172.0,516000],["Einfamilienhaus","A",4.0,171.0,513000],["Einfamilienhaus","A",5.0,171.0,513000],["Bungalow","B",4.0,170.0,510000],["Einfamilienhaus","A",4.0,170.0,510000],["Einfamilienhaus","Z",4.0,169.0,507000],["Einfamilienhaus","Z",4.0,169.0,507000],["Einfamilienhaus","Z",5.0,168.0,504000],["Doppelhaus","A",5.0,167.0,501000],["Einfamilienhaus","Z",5.0,167.0,501000],["Bungalow","B",4.0,166.0,498000],["Bungalow","B",5.0,165.0,495000],["Einfamilienhaus","Z",5.0,165.0,495000],["Bungalow","B",4.0,164.0,492000],["Einfamilienhaus","Z",4.0,164.0,492000],["Einfamilienhaus","Z",4.0,164.0,492000],["Einfamilienhaus","A",4.0,164.0,492000],["Einfamilienhaus","Z",5.0,164.0,492000],["Einfamilienhaus","Z",4.0,163.0,489000],["Einfamilienhaus","Z",5.0,163.0,489000],["Bungalow","B",4.0,162.0,486000],["Bungalow","B",4.0,162.0,486000],["Einfamilienhaus","A",5.0,162.0,486000],["Einfamilienhaus","Z",6.0,161.0,483000],["Einfamilienhaus","Z",4.0,161.0,483000],["Einfamilienhaus","A",5.0,160.0,480000],["Bungalow","B",3.0,159.0,477000],["Bungalow","B",5.0,158.0,474000],["Einfamilienhaus","A",5.0,157.0,471000],["Einfamilienhaus","A",3.0,157.0,471000],["Einfamilienhaus","A",4.0,157.0,471000],["Einfamilienhaus","Z",5.0,157.0,471000],["Einfamilienhaus","Z",5.0,157.0,471000],["Bungalow","B",4.0,153.0,459000],["Bungalow","B",4.0,153.0,459000],["Bungalow","B",3.0,152.0,456000],["Bungalow","B",5.0,152.0,456000],["Bungalow","B",4.0,152.0,456000],["Bungalow","B",3.0,151.0,453000],["Einfamilienhaus","A",4.0,151.0,453000],["Einfamilienhaus","A",5.0,151.0,453000],["Bungalow","B",3.0,150.0,450000],["Einfamilienhaus","A",5.0,150.0,450000],["Bungalow","B",4.0,149.0,447000],["Bungalow","B",4.0,148.0,444000],["Bungalow","B",4.0,148.0,444000],["Bungalow","B",4.0,147.0,441000],["Bungalow","B",4.0,146.0,438000],["Bungalow","B",4.0,146.0,438000],["Bungalow","B",3.0,145.0,435000],["Einfamilienhaus","A",5.0,145.0,435000],["Bungalow","B",4.0,141.0,423000],["Einfamilienhaus","A",4.0,141.0,423000],["Einfamilienhaus","Z",4.0,141.0,423000],["Bungalow","B",3.0,140.0,420000],["Bungalow","B",4.0,140.0,420000],["Einfamilienhaus","A",4.0,140.0,420000],["Einfamilienhaus","Z",4.0,140.0,420000],["Bungalow","B",4.0,139.0,417000],["Bungalow","B",3.0,139.0,417000],["Bungalow","B",3.0,138.0,414000],["Bungalow","B",4.0,137.0,411000],["Bungalow","B",3.0,137.0,411000],["Bungalow","B",4.0,137.0,411000],["Einfamilienhaus","Z",5.0,137.0,411000],["Bungalow","B",4.0,136.0,408000],["Bungalow","B",4.0,136.0,408000],["Bungalow","B",4.0,136.0,408000],["Einfamilienhaus","Z",5.0,136.0,408000],["Bungalow","B",3.0,135.0,405000],["Bungalow","B",4.0,135.0,405000],["Bungalow","B",3.0,135.0,405000],["Bungalow","B",4.0,135.0,405000],["Bungalow","B",4.0,135.0,405000],["Bungalow","B",4.0,134.0,402000],["Bungalow","B",4.0,134.0,402000],["Bungalow","B",4.0,133.0,399000],["Bungalow","B",4.0,133.0,399000],["Bungalow","B",4.0,132.0,396000],["Bungalow","B",3.0,132.0,396000],["Bungalow","B",3.0,132.0,396000],["Bungalow","B",3.0,132.0,396000],["Bungalow","B",4.0,132.0,396000],["Bungalow","B",4.0,131.0,393000],["Bungalow","B",3.0,131.0,393000],["Bungalow","B",3.0,131.0,393000],["Bungalow","B",4.0,130.0,390000],["Bungalow","B",3.0,130.0,390000],["Bungalow","B",3.0,130.0,390000],["Bungalow","B",4.0,130.0,390000],["Bungalow","B",4.0,129.0,387000],["Bungalow","B",3.0,129.0,387000],["Bungalow","B",3.0,129.0,387000],["Bungalow","B",3.0,128.0,384000],["Bungalow","B",5.0,128.0,384000],["Bungalow","B",3.0,128.0,384000],["Bungalow","B",3.0,126.0,378000],["Bungalow","B",3.0,126.0,378000],["Bungalow","B",4.0,126.0,378000],["Bungalow","B",4.0,126.0,378000],["Bungalow","B",3.0,126.0,378000],["Bungalow","B",3.0,126.0,378000],["Bungalow","B",4.0,126.0,378000],["Bungalow","B",4.0,125.0,375000],["Bungalow","B",3.0,125.0,375000],["Bungalow","B",3.0,125.0,375000],["Einfamilienhaus","A",3.0,125.0,375000],["Bungalow","B",3.0,124.0,372000],["Bungalow","B",3.0,124.0,372000],["Bungalow","B",3.0,124.0,372000],["Bungalow","B",3.0,123.0,369000],["Bungalow","B",3.0,123.0,369000],["Bungalow","B",4.0,122.0,366000],["Bungalow","B",4.0,122.0,366000],["Bungalow","B",3.0,119.0,357000],["Bungalow","B",4.0,119.0,357000],["Bungalow","B",3.0,118.0,354000],["Bungalow","B",4.0,118.0,354000],["Bungalow","B",3.0,117.0,351000],["Bungalow","B",4.0,117.0,351000],["Bungalow","B",3.0,116.0,348000],["Bungalow","B",4.0,116.0,348000],["Bungalow","B",4.0,116.0,348000],["Bungalow","B",3.0,116.0,348000],["Bungalow","B",4.0,116.0,348000],["Bungalow","B",3.0,115.0,345000],["Bungalow","B",3.0,115.0,345000],["Bungalow","B",3.0,114.0,342000],["Bungalow","B",3.0,113.0,339000],["Bungalow","B",4.0,113.0,339000],["Bungalow","B",3.0,112.0,336000],["Bungalow","B",3.0,112.0,336000],["Bungalow","B",4.0,111.0,333000],["Bungalow","B",3.0,111.0,333000],["Bungalow","B",4.0,110.0,330000],["Bungalow","B",4.0,109.0,327000],["Bungalow","B",3.0,108.0,324000],["Bungalow","B",3.0,108.0,324000],["Bungalow","B",3.0,106.0,318000],["Bungalow","B",3.0,106.0,318000],["Bungalow","B",4.0,106.0,318000],["Bungalow","B",3.0,105.0,315000],["Bungalow","B",3.0,102.0,306000],["Bungalow","B",3.0,101.0,303000],["Bungalow","B",3.0,100.0,300000],["Bungalow","B",3.0,100.0,300000],["Bungalow","B",3.0,97.0,291000],["Bungalow","B",3.0,97.0,291000],["Bungalow","B",2.0,92.0,276000],["Bungalow","B",3.0,92.0,276000],["Bungalow","B",3.0,91.0,273000],["Bungalow","B",2.0,88.0,264000],["Bungalow","B",2.0,81.0,243000],["Bungalow","B",3.0,80.0,240000],["Bungalow","B",2.0,77.0,231000]];
+	var STAND = '2026-11-07 16:13';
+	var SATZ = { B: 2700, A: 2500, Z: 2650 };
+	var FELDER = [['Einfamilienhaus', [4, 5]], ['Bungalow', [3, 4, 5]], ['Doppelhaus', [4, 5]], ['Zweifamilienhaus', [3, 4, 5]]];
+	var heute = false;
+	function komma(f) { return f.toFixed(2).replace('.', ','); }
+	function preis(h, f) { return heute ? h[4] : h[3] * 0.8 * SATZ[h[1]] * f; }
+	function spalte(p) { return p < 450000 ? 0 : p < 600000 ? 1 : 2; }
+	function start() {
+		var wrap = document.querySelector('.gk-wrap');
+		if (!wrap || wrap.querySelector('.gk-pt')) return;
+		var box = document.createElement('details');
+		box.className = 'gk-pt';
+		box.innerHTML = '<summary>Preislogik: Häuser je Hausart, Zimmer und Budget</summary><div class="gk-pt-innen">' +
+			'<div class="gk-pt-zeile"><b>Faktor über Markt</b><input type="range" min="1" max="1.6" step="0.05" value="1.3">' +
+			'<span class="gk-pt-wert"></span></div><div class="gk-pt-zeile">' +
+			'<button data-f="1">1,0 Markt</button><button data-f="1.2">1,2</button><button data-f="1.3">1,3</button>' +
+			'<button data-f="1.4">1,4</button><button data-heute="1">heute zum Vergleich</button></div>' +
+			'<div class="gk-pt-erkl"></div><table><thead><tr><th>Hausart</th><th>Zimmer</th><th>bis 450.000 €</th>' +
+			'<th>450.000–600.000 €</th><th>über 600.000 €</th></tr></thead><tbody></tbody></table>' +
+			'<div class="gk-pt-fuss">Zahl = Häuser, die der Kunde bei dieser Kombination sieht. Rot = keine Häuser. ' +
+			'Stand ' + STAND + ' · nur für Bearbeiter sichtbar</div></div>';
+		var regler = box.querySelector('input'), wert = box.querySelector('.gk-pt-wert');
+		var erkl = box.querySelector('.gk-pt-erkl'), tbody = box.querySelector('tbody');
+		function zeichne() {
+			var f = Number(regler.value);
+			wert.textContent = heute ? 'heute' : komma(f);
+			box.querySelectorAll('button').forEach(function (k) {
+				k.setAttribute('aria-pressed', String(heute ? !!k.dataset.heute : !k.dataset.heute && Number(k.dataset.f) === f));
+			});
+			erkl.textContent = heute
+				? 'Heute: 3.000 € je m² gezeichneter Fläche für jeden Haustyp.'
+				: 'Faktor ' + komma(f) + ': ' + (f === 1 ? 'reiner Marktpreis' : Math.round((f - 1) * 100) + ' % über dem Markt') + '.';
+			var html = '';
+			FELDER.forEach(function (feld) {
+				feld[1].forEach(function (z) {
+					var n = [0, 0, 0];
+					D.forEach(function (h) {
+						if (h[0] === feld[0] && Math.min(Math.floor(h[2]), 5) === z) n[spalte(preis(h, f))]++;
+					});
+					html += '<tr><td>' + feld[0] + '</td><td>' + z + '</td>' + n.map(function (c) {
+						return '<td class="z' + (c === 0 ? ' leer' : '') + '" style="--a:' + (Math.min(c / 50, 1) * 0.45) + '">' + c + '</td>';
+					}).join('') + '</tr>';
+				});
+			});
+			tbody.innerHTML = html;
+		}
+		regler.addEventListener('input', function () { heute = false; zeichne(); });
+		box.addEventListener('click', function (e) {
+			var k = e.target.closest('button');
+			if (!k) return;
+			if (k.dataset.heute) heute = true; else { heute = false; regler.value = k.dataset.f; }
+			zeichne();
+		});
+		zeichne();
+		var cd = wrap.querySelector('.gk-cd');
+		if (cd) cd.parentNode.insertBefore(box, cd.nextSibling); else wrap.insertBefore(box, wrap.firstChild);
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+	else start();
+	setTimeout(start, 1600);
+})();
+</script>
+	<?php
+} );

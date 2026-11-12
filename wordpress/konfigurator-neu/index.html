@@ -1,0 +1,1226 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Hausbau-Konfigurator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* HausKlar Flug – alle Regeln sind auf .hkf.hkf-c begrenzt, damit das Theme nichts überschreibt. */
+
+.hkf.hkf-c{
+  --m-bg:#f3f2f2;--m-ink:#201e1d;--m-acc:#ec3013;
+  --m-acc1:#fff2ef;--m-acc6:#dd2b0f;--m-acc7:#ae1800;
+  --m-rule:rgba(32,30,29,.4);--m-mut:color-mix(in srgb,var(--m-ink) 68%,transparent);--m-n4:#bab6b6;
+  --m-font:"Archivo","Segoe UI",system-ui,sans-serif;
+  --sky-top:#5E97C2;--sky-bot:#BFD5E3;--ground:#86A85F;--lawn:#9CC46E;--sun:1.25;--hemi:.85;--accent:var(--m-acc);
+  position:relative;width:100%;height:min(var(--hkf-h,720px),calc(100svh - 16px - var(--hkf-top,0px)));min-height:min(520px,calc(100svh - 16px - var(--hkf-top,0px)));scroll-margin-top:calc(var(--hkf-top,0px) + 8px);overflow:hidden;isolation:isolate;
+  container:hkf / inline-size;color-scheme:light;background:var(--m-ink);color:var(--m-ink);
+  font-family:var(--m-font);font-size:15px;line-height:1.5;text-align:left;border-radius:0;
+}
+
+.hkf.hkf-c *,.hkf.hkf-c *::before,.hkf.hkf-c *::after{box-sizing:border-box}
+.hkf.hkf-c [hidden]{display:none!important}
+.hkf.hkf-c :where(h2,p,dl,dt,dd,button,label){margin:0;padding:0;font:inherit;color:inherit;letter-spacing:normal;text-transform:none;box-shadow:none;border-radius:0;background:none;border:0}
+.hkf.hkf-c :where(button,input):focus-visible{outline:2px solid var(--m-acc);outline-offset:2px}
+.hkf.hkf-c::after{content:"";position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:6}
+.hkf.hkf-c[data-look="modell"].hkf-cutflash::after{animation:hkf-cut .22s ease-out}
+@keyframes hkf-cut{0%{opacity:.9}100%{opacity:0}}
+
+/* Bühne */
+.hkf.hkf-c .hkf-scene{position:absolute;inset:0}
+.hkf.hkf-c .hkf-stage{position:absolute;inset:0;background:var(--sky-bot)}
+.hkf.hkf-c .hkf-stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%}
+.hkf.hkf-c .hkf-stage.hkf-orbit{cursor:grab;touch-action:pan-y}
+.hkf.hkf-c .hkf-stage.hkf-orbit.hkf-drag{cursor:grabbing}
+.hkf.hkf-c .hkf-ui{position:absolute;inset:0;pointer-events:none}
+.hkf.hkf-c .hkf-nogl,.hkf.hkf-c .hkf-nojs{position:absolute;inset:0;display:grid;align-content:center;padding:24px;color:var(--m-mut);font-size:14px}
+.hkf.hkf-c .hkf-chip,.hkf.hkf-c .hkf-sum{display:none!important}
+.hkf.hkf-c .hkf-vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at 50% 40%,transparent 55%,rgba(10,10,10,.35) 100%)}
+.hkf.hkf-c .hkf-bars::before,.hkf.hkf-c .hkf-bars::after{content:"";position:absolute;left:0;right:0;height:0;background:#000;transition:height .5s cubic-bezier(.2,.7,.2,1);pointer-events:none;z-index:1}
+.hkf.hkf-c .hkf-bars::before{top:0}.hkf.hkf-c .hkf-bars::after{bottom:0}
+.hkf.hkf-c.hkf-flying .hkf-bars::before{height:calc(48px + 5%)}.hkf.hkf-c.hkf-flying .hkf-bars::after{height:9%}
+
+/* Stationsnummer */
+.hkf.hkf-c .hkf-num{position:absolute;top:72px;left:24px;display:grid;justify-items:start}
+.hkf.hkf-c .hkf-num b{font-weight:800;font-size:clamp(96px,15cqw,208px);line-height:.8;letter-spacing:-.05em;color:var(--m-acc)}
+.hkf.hkf-c .hkf-num span{margin-top:12px;padding:4px 8px;background:var(--m-ink);color:var(--m-bg);font-weight:800;font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+
+/* Rückmeldung während des Schnitts */
+.hkf.hkf-c .hkf-fly{position:absolute;left:24px;bottom:calc(9% + 20px);z-index:2;max-width:min(680px,calc(100% - 48px));padding:14px 20px;background:var(--m-acc);color:var(--m-bg);font-weight:800;font-size:26px;line-height:1.15;letter-spacing:-.01em;opacity:0;transform:translateY(12px);transition:opacity .25s,transform .35s cubic-bezier(.2,.7,.2,1)}
+.hkf.hkf-c .hkf-fly.hkf-on{opacity:1;transform:none}
+.hkf.hkf-c .hkf-rot{position:absolute;top:72px;right:24px;display:flex;background:var(--m-bg);border:2px solid var(--m-ink);pointer-events:auto}
+.hkf.hkf-c .hkf-rot span{display:flex;align-items:center;padding:0 12px;font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.hkf.hkf-c .hkf-rot button{display:grid;place-items:center;width:44px;height:44px;border-left:1px solid var(--m-rule);cursor:pointer}
+.hkf.hkf-c .hkf-rot button:hover{background:color-mix(in srgb,var(--m-ink) 7%,transparent)}
+.hkf.hkf-c .hkf-rot button:active{background:color-mix(in srgb,var(--m-ink) 14%,transparent)}
+
+/* Kopfzeile */
+.hkf.hkf-c .hkf-top{position:absolute;top:0;left:0;right:0;z-index:3;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:24px;height:48px;padding:0 20px;background:var(--m-ink);color:var(--m-bg)}
+.hkf.hkf-c .hkf-brand{font-weight:800;font-size:16px;letter-spacing:-.01em;white-space:nowrap}
+.hkf.hkf-c .hkf-brand span{font-weight:400;margin-left:8px;color:var(--m-n4)}
+.hkf.hkf-c .hkf-prog{display:flex;gap:4px;max-width:520px}
+.hkf.hkf-c .hkf-seg{flex:1;height:4px;background:color-mix(in srgb,var(--m-bg) 25%,transparent)}
+.hkf.hkf-c .hkf-seg.hkf-on{background:var(--m-bg)}
+.hkf.hkf-c .hkf-seg.hkf-cur{background:var(--m-acc)}
+.hkf.hkf-c .hkf-badge{display:inline-flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--m-n4);white-space:nowrap}
+.hkf.hkf-c .hkf-badge i{width:8px;height:8px;background:var(--m-acc)}
+
+/* Startkarte: Fakten statt Leerraum */
+.hkf.hkf-c .hkf-fact{display:flex;flex-direction:column;justify-content:flex-end;gap:2px;min-height:120px;padding:14px 18px 18px;border-left:1px solid var(--m-rule)}
+.hkf.hkf-c .hkf-fact:first-child{border-left:0}
+.hkf.hkf-c .hkf-fact b{font-weight:800;font-size:clamp(28px,3.4cqw,44px);line-height:1;letter-spacing:-.03em;color:var(--m-acc7)}
+.hkf.hkf-c .hkf-fact span{font-weight:800;font-size:16px}
+.hkf.hkf-c .hkf-fact small{font-size:13px;color:var(--m-mut)}
+@container hkf (max-width:760px){.hkf.hkf-c .hkf-fact{min-height:0;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 12px;padding:10px 16px;border-left:0;border-top:1px solid var(--m-rule)}.hkf.hkf-c .hkf-fact b{font-size:22px}}
+/* Fragenstreifen */
+.hkf.hkf-c .hkf-card{visibility:hidden;position:absolute;left:0;right:0;bottom:0;z-index:2;display:grid;grid-template-columns:minmax(260px,4fr) minmax(0,8fr);grid-template-rows:minmax(0,1fr) auto;max-height:70%;background:var(--m-bg);border-top:2px solid var(--m-ink);transition:transform .45s cubic-bezier(.2,.7,.2,1)}
+.hkf.hkf-c[data-ready] .hkf-card{visibility:visible}
+.hkf.hkf-c .hkf-card.hkf-moving{transform:translateY(calc(100% + 4px));pointer-events:none}
+.hkf.hkf-c .hkf-q{min-height:0;overflow:auto;padding:20px 24px;border-right:2px solid var(--m-rule)}
+.hkf.hkf-c .hkf-eyebrow{margin:0 0 8px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--m-acc7)}
+.hkf.hkf-c .hkf-title{margin:0 0 8px;font-weight:800;font-size:clamp(24px,3.2cqw,36px);line-height:1.04;letter-spacing:-.02em;text-wrap:balance}
+.hkf.hkf-c .hkf-title:focus{outline:none}
+.hkf.hkf-c .hkf-lead{color:var(--m-mut);font-size:14px;max-width:44ch;text-wrap:pretty}
+.hkf.hkf-c .hkf-a{display:flex;flex-direction:column;min-width:0;min-height:0;overflow:auto}
+.hkf.hkf-c .hkf-options{flex:1;display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);counter-reset:hkfo}
+.hkf.hkf-c .hkf-options:empty{display:none}
+.hkf.hkf-c .hkf-opt{counter-increment:hkfo;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:120px;padding:14px 18px 18px;text-align:left;cursor:pointer;transition:background .15s,color .15s}
+.hkf.hkf-c .hkf-opt+.hkf-opt{border-left:1px solid var(--m-rule)}
+.hkf.hkf-c .hkf-opt::before{content:counter(hkfo,upper-alpha);margin-bottom:auto;padding-bottom:16px;font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--m-acc7)}
+.hkf.hkf-c .hkf-opt .hkf-l{font-weight:800;font-size:20px;line-height:1.12;letter-spacing:-.01em}
+.hkf.hkf-c .hkf-opt .hkf-h{font-size:13px;color:var(--m-mut)}
+.hkf.hkf-c .hkf-opt:hover{background:color-mix(in srgb,var(--m-ink) 6%,transparent)}
+.hkf.hkf-c .hkf-opt:active{background:color-mix(in srgb,var(--m-ink) 12%,transparent)}
+.hkf.hkf-c .hkf-opt[aria-pressed="true"]{background:var(--m-acc);color:var(--m-bg)}
+.hkf.hkf-c .hkf-opt[aria-pressed="true"]::before,.hkf.hkf-c .hkf-opt[aria-pressed="true"] .hkf-h{color:var(--m-bg)}
+.hkf.hkf-c .hkf-opt:focus-visible{outline-offset:-4px}
+.hkf.hkf-c .hkf-cta{display:flex;align-items:center;gap:10px;align-self:flex-start;min-width:280px;min-height:56px;margin:20px 24px 0;padding:16px 20px;background:var(--m-acc);color:var(--m-bg);font-weight:800;font-size:17px;cursor:pointer}
+.hkf.hkf-c .hkf-cta::after{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='square'%3E%3Cpath d='M5 12h14M12 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.5' stroke-linecap='square'%3E%3Cpath d='M5 12h14M12 5l7 7-7 7'/%3E%3C/svg%3E") center/contain no-repeat}
+.hkf.hkf-c .hkf-cta:hover{background:var(--m-acc6)}
+.hkf.hkf-c .hkf-cta:active{background:var(--m-acc7)}
+.hkf.hkf-c .hkf-fine{margin:12px 24px 20px;font-size:12px;color:var(--m-mut)}
+
+.hkf.hkf-c .hkf-foot{grid-column:1 / -1;display:flex;align-items:stretch;min-height:44px;border-top:2px solid var(--m-rule)}
+.hkf.hkf-c .hkf-ghost{flex:none;min-height:44px;padding:0 16px;border-right:1px solid var(--m-rule);color:var(--m-acc7);font-weight:600;font-size:14px;cursor:pointer}
+.hkf.hkf-c .hkf-ghost:hover{background:color-mix(in srgb,var(--m-acc) 10%,transparent)}
+.hkf.hkf-c .hkf-ghost:active{background:color-mix(in srgb,var(--m-acc) 18%,transparent)}
+.hkf.hkf-c .hkf-spec{flex:1;min-width:0;display:grid;grid-template-columns:repeat(6,minmax(0,1fr))}
+.hkf.hkf-c .hkf-sc{min-width:0;padding:5px 12px 6px;box-shadow:inset 0 3px 0 transparent}
+.hkf.hkf-c .hkf-sc+.hkf-sc{border-left:1px solid var(--m-rule)}
+.hkf.hkf-c .hkf-sc dt{font-size:10px;line-height:1.3;letter-spacing:.08em;text-transform:uppercase;color:var(--m-mut)}
+.hkf.hkf-c .hkf-sc dd{font-weight:600;font-size:13px;line-height:1.35;color:var(--m-mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hkf.hkf-c .hkf-sc.hkf-set dd{color:var(--m-ink)}
+.hkf.hkf-c .hkf-sc.hkf-cur{box-shadow:inset 0 3px 0 var(--m-acc);background:var(--m-acc1)}
+.hkf.hkf-c .hkf-sc.hkf-cur dt{color:var(--m-acc7)}
+.hkf.hkf-c .hkf-switch{flex:none;display:inline-flex;align-items:center;gap:8px;padding:0 16px;border-left:2px solid var(--m-rule);font-size:13px;color:var(--m-mut);cursor:pointer}
+.hkf.hkf-c .hkf-switch input{width:16px;height:16px;margin:0;accent-color:var(--m-acc)}
+
+@container hkf (max-width:760px){
+  .hkf.hkf-c .hkf-top{gap:12px;padding:0 12px}
+  .hkf.hkf-c .hkf-brand span,.hkf.hkf-c .hkf-badge{display:none}
+  .hkf.hkf-c .hkf-scene{bottom:auto;height:46%}
+  .hkf.hkf-c .hkf-num{top:58px;left:12px;grid-auto-flow:column;align-items:center;gap:8px}
+  .hkf.hkf-c .hkf-num b{font-size:36px;line-height:1}
+  .hkf.hkf-c .hkf-num span{margin:0}
+  .hkf.hkf-c .hkf-rot{top:auto;bottom:12px;right:12px}
+  .hkf.hkf-c .hkf-rot span{display:none}
+  .hkf.hkf-c .hkf-rot button:first-of-type{border-left:0}
+  .hkf.hkf-c .hkf-fly{left:12px;bottom:12px;font-size:17px;padding:10px 14px;max-width:calc(100% - 24px)}
+  .hkf.hkf-c .hkf-card{top:46%;display:flex;flex-direction:column;max-height:none;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;transition:opacity .3s}
+  .hkf.hkf-c .hkf-card.hkf-moving{transform:none;opacity:.25}
+  .hkf.hkf-c .hkf-q,.hkf.hkf-c .hkf-a{flex:none;min-height:auto}
+  .hkf.hkf-c .hkf-foot{flex:none;margin-top:auto;position:sticky;bottom:0;background:var(--m-bg)}
+  .hkf.hkf-c[data-look="skizze"] .hkf-foot{background:#163f70}
+  .hkf.hkf-c.hkf-flying .hkf-bars::before{height:48px}.hkf.hkf-c.hkf-flying .hkf-bars::after{height:6%}
+  .hkf.hkf-c .hkf-q{border-right:0;padding:14px 16px 12px;overflow:visible}
+  .hkf.hkf-c .hkf-title{font-size:24px}
+  .hkf.hkf-c .hkf-lead{font-size:13px}
+  .hkf.hkf-c .hkf-a{overflow:visible}
+  .hkf.hkf-c .hkf-options{grid-auto-flow:row;border-top:1px solid var(--m-rule)}
+  .hkf.hkf-c .hkf-opt{flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:12px;min-height:52px;padding:12px 16px}
+  .hkf.hkf-c .hkf-opt+.hkf-opt{border-left:0;border-top:1px solid var(--m-rule)}
+  .hkf.hkf-c .hkf-opt::before{margin:0;padding:0}
+  .hkf.hkf-c .hkf-opt .hkf-l{font-size:17px}
+  .hkf.hkf-c .hkf-opt .hkf-h{flex-basis:100%;padding-left:20px;font-size:12px}
+  .hkf.hkf-c .hkf-cta{margin:12px 16px 0;min-width:0;width:calc(100% - 32px)}
+  .hkf.hkf-c .hkf-fine{margin:8px 16px 12px}
+  .hkf.hkf-c .hkf-foot{flex-wrap:wrap}
+  .hkf.hkf-c .hkf-switch{margin-left:auto;border-left:0}
+  .hkf.hkf-c .hkf-spec{order:3;flex-basis:100%;grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(108px,max-content);overflow-x:auto;scrollbar-width:none;border-top:1px solid var(--m-rule)}
+  .hkf.hkf-c .hkf-spec::-webkit-scrollbar{display:none}
+  .hkf.hkf-c .hkf-sc{padding:4px 10px 5px}
+}
+@media (prefers-reduced-motion: reduce){
+  .hkf.hkf-c .hkf-card,.hkf.hkf-c .hkf-opt,.hkf.hkf-c .hkf-fly,.hkf.hkf-c .hkf-bars::before,.hkf.hkf-c .hkf-bars::after{transition:none}
+  .hkf.hkf-c.hkf-cutflash::after{animation:none}
+}
+
+/* ---- Blueprint: weiße Linien auf Lichtpause-Blau ---- */
+.hkf.hkf-c[data-look="skizze"]{
+  --m-bg:#1d4e89;--m-ink:#eef4ff;--m-acc:#ffffff;--m-acc1:rgba(238,244,255,.14);--m-acc6:#dbe7f7;--m-acc7:#ffffff;
+  --m-rule:rgba(238,244,255,.5);--m-mut:rgba(238,244,255,.8);--m-n4:#a9c1e0;
+  --paper:#1d4e89;--ink:#eef4ff;--sky-top:#1d4e89;--sky-bot:#1d4e89;--ground:#1d4e89;--lawn:#215894;--sun:.35;--hemi:1;--accent:#ffffff;
+  color-scheme:dark;background:#1d4e89;
+}
+.hkf.hkf-c[data-look="skizze"] .hkf-ui::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(ellipse at 50% 38%,rgba(255,255,255,.08),transparent 60%),radial-gradient(ellipse at 50% 50%,transparent 50%,rgba(6,22,48,.45) 100%),
+  url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.hkf.hkf-c[data-look="skizze"] .hkf-top{background:#163f70;color:var(--m-ink);border-bottom:1px solid var(--m-rule)}
+.hkf.hkf-c[data-look="skizze"] .hkf-seg{background:rgba(238,244,255,.22)}
+.hkf.hkf-c[data-look="skizze"] .hkf-seg.hkf-on{background:var(--m-ink)}
+.hkf.hkf-c[data-look="skizze"] .hkf-seg.hkf-cur{background:#ffffff;box-shadow:0 0 0 1px #ffffff}
+.hkf.hkf-c[data-look="skizze"] .hkf-badge i{background:#ffffff}
+.hkf.hkf-c[data-look="skizze"] .hkf-num b{color:transparent;-webkit-text-stroke:2px var(--m-ink)}
+.hkf.hkf-c[data-look="skizze"] .hkf-num span{background:transparent;color:var(--m-ink);border:1px solid var(--m-ink)}
+.hkf.hkf-c[data-look="skizze"] .hkf-card{background:rgba(22,63,112,.94);border-top:2px solid var(--m-ink);box-shadow:0 -6px 0 -4px var(--m-rule)}
+.hkf.hkf-c[data-look="skizze"] .hkf-q{border-right:1px solid var(--m-ink)}
+.hkf.hkf-c[data-look="skizze"] .hkf-eyebrow,.hkf.hkf-c[data-look="skizze"] .hkf-sc dt,.hkf.hkf-c[data-look="skizze"] .hkf-opt::before{letter-spacing:.16em}
+.hkf.hkf-c[data-look="skizze"] .hkf-title{font-weight:600;text-transform:uppercase;letter-spacing:.02em;line-height:1.08}
+.hkf.hkf-c[data-look="skizze"] .hkf-opt .hkf-l{font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:18px}
+.hkf.hkf-c[data-look="skizze"] .hkf-opt+.hkf-opt{border-left:1px solid var(--m-ink)}
+.hkf.hkf-c[data-look="skizze"] .hkf-opt:hover{background:rgba(238,244,255,.08)}
+.hkf.hkf-c[data-look="skizze"] .hkf-opt[aria-pressed="true"]{background:#ffffff;color:#1d4e89}
+.hkf.hkf-c[data-look="skizze"] .hkf-opt[aria-pressed="true"]::before,.hkf.hkf-c[data-look="skizze"] .hkf-opt[aria-pressed="true"] .hkf-h{color:#1d4e89}
+.hkf.hkf-c[data-look="skizze"] .hkf-cta{background:#ffffff;color:#1d4e89;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+.hkf.hkf-c[data-look="skizze"] .hkf-cta:hover{background:#dbe7f7}
+.hkf.hkf-c[data-look="skizze"] .hkf-foot{border-top:1px solid var(--m-ink)}
+.hkf.hkf-c[data-look="skizze"] .hkf-sc.hkf-cur{box-shadow:inset 0 2px 0 #ffffff;background:rgba(238,244,255,.12)}
+.hkf.hkf-c[data-look="skizze"] .hkf-fly{background:transparent;color:var(--m-ink);border:2px solid var(--m-ink);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:20px;backdrop-filter:blur(2px)}
+.hkf.hkf-c[data-look="skizze"] .hkf-rot{background:#163f70}
+.hkf.hkf-c[data-look="skizze"] :where(button,input):focus-visible{outline-color:#ffffff}
+
+/* Zeitsprung-Übergang und Clip-Wiedergabe */
+.hkf.hkf-c .hkf-warp{position:absolute;inset:-12%;pointer-events:none;opacity:0;z-index:1;mix-blend-mode:screen;
+  background:repeating-conic-gradient(from 0deg at 50% 46%,transparent 0deg 2.1deg,rgba(255,255,255,.6) 2.4deg,transparent 2.8deg 4.3deg,rgba(255,255,255,.3) 4.5deg,transparent 4.8deg 7deg);
+  -webkit-mask:radial-gradient(circle at 50% 46%,transparent 20%,#000 72%);mask:radial-gradient(circle at 50% 46%,transparent 20%,#000 72%)}
+.hkf.hkf-c .hkf-stage canvas{filter:blur(calc(var(--hkf-warp,0) * 2.2px))}
+.hkf.hkf-c[data-look="modell"] .hkf-stage canvas{filter:saturate(1.35) contrast(1.1) brightness(calc(1.04 + var(--hkf-warp,0) * .25)) blur(calc(var(--hkf-warp,0) * 2.2px))}
+.hkf.hkf-c .hkf-clip{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .18s;pointer-events:none}
+.hkf.hkf-c .hkf-clip.hkf-on{opacity:1}
+@media (prefers-reduced-motion: reduce){.hkf.hkf-c .hkf-warp{display:none}.hkf.hkf-c .hkf-stage canvas{filter:none}}
+
+/* Volle Breite: bricht aus schmalen Theme-Spalten aus (Block-Themes begrenzen sonst auf ~650 px) */
+.hkf.hkf-c[data-bleed]{width:var(--hkf-vw,100vw)!important;max-width:var(--hkf-vw,100vw)!important;margin-left:var(--hkf-ml,calc(50% - 50vw))!important;margin-right:0!important}
+html:has(.hkf.hkf-c[data-bleed]){overflow-x:clip}
+/* Umschalter Kino / Blueprint */
+.hkf.hkf-c .hkf-top{grid-template-columns:auto minmax(0,1fr) auto auto}
+.hkf.hkf-c .hkf-looks{display:flex;border:1px solid color-mix(in srgb,var(--m-bg) 40%,transparent)}
+.hkf.hkf-c .hkf-looks button{min-height:30px;padding:0 12px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--m-n4);cursor:pointer}
+.hkf.hkf-c .hkf-looks button+button{border-left:1px solid color-mix(in srgb,var(--m-bg) 40%,transparent)}
+.hkf.hkf-c .hkf-looks button:hover{color:var(--m-bg);background:color-mix(in srgb,var(--m-bg) 12%,transparent)}
+.hkf.hkf-c .hkf-looks button[aria-pressed="true"]{background:var(--m-bg);color:var(--m-ink)}
+.hkf.hkf-c[data-look="skizze"] .hkf-looks{border-color:var(--m-rule)}
+.hkf.hkf-c[data-look="skizze"] .hkf-looks button{color:var(--m-mut)}
+.hkf.hkf-c[data-look="skizze"] .hkf-looks button+button{border-left-color:var(--m-rule)}
+.hkf.hkf-c[data-look="skizze"] .hkf-looks button[aria-pressed="true"]{background:#ffffff;color:#1d4e89}
+@container hkf (max-width:760px){.hkf.hkf-c .hkf-top{grid-template-columns:auto minmax(0,1fr) auto}.hkf.hkf-c .hkf-looks button{min-height:32px;padding:0 10px}}
+
+/* ---- Looks 0.5.0: KI, Buntstift, Magazin x Mech ---- */
+.hkf.hkf-c[data-look="ki"] .hkf-stage canvas{filter:saturate(1.25) contrast(1.12) brightness(1.06)}
+.hkf.hkf-c[data-look="ki"] .hkf-vig{background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 4px),radial-gradient(ellipse at 50% 42%,transparent 50%,rgba(0,6,20,.6) 100%)}
+.hkf.hkf-c[data-look="wachs"] .hkf-stage canvas{filter:saturate(1.08) contrast(1.06)}
+.hkf.hkf-c[data-look="wachs"] .hkf-vig{background:radial-gradient(ellipse at 50% 45%,transparent 62%,rgba(120,80,30,.18) 100%)}
+.hkf.hkf-c[data-look="trans"] .hkf-stage canvas{filter:saturate(1.45) contrast(1.22) brightness(1.02)}
+.hkf.hkf-c[data-look="trans"] .hkf-vig{background:radial-gradient(ellipse at 50% 40%,transparent 50%,rgba(60,30,0,.4) 100%),linear-gradient(180deg,rgba(255,170,70,.14),transparent 40%)}
+.hkf.hkf-c .hkf-looks{flex-wrap:wrap}
+
+/* konfigurator-neu-v1: Kopie von /test, 3D durch Comic-Clips ersetzt. */
+html,body{margin:0;background:#f3f2f2}
+.hkf.hkf-c{width:100vw;height:100svh;max-height:none;margin:0}
+.hkf.hkf-c .hkf-stage{background:#f7f5ee;top:38px;bottom:var(--kf-karte,0px);transition:bottom .55s cubic-bezier(.2,.8,.2,1)}
+.hkf.hkf-c .hkf-stage video,.hkf.hkf-c .kf-szene{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#f7f5ee}
+.hkf.hkf-c .kf-szene{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:14vh;box-sizing:border-box;text-align:center;color:#201e1d;font-family:"Archivo",system-ui,sans-serif}
+.hkf.hkf-c .kf-szene small{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#ec3013}
+.hkf.hkf-c .kf-szene b{display:block;margin:10px 0 6px;font-size:clamp(22px,3vw,36px)}
+.hkf.hkf-c .kf-szene span{font-size:14px;color:#6b6762;max-width:560px}
+.hkf.hkf-c .hkf-card{transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.hkf.hkf-c .kf-form{display:grid;gap:12px;padding:16px 24px}
+.hkf.hkf-c .kf-form label{display:grid;gap:4px;font-size:13px;font-weight:600}
+.hkf.hkf-c .kf-form input{font:inherit;font-size:16px;padding:10px 12px;border:1px solid #c9c5c0;background:#fff;color:#201e1d}
+.hkf.hkf-c .kf-hinweis{margin:0 24px 12px;font-size:12px;color:#6b6762}
+.hkf.hkf-c .kf-ergebnis{display:grid;grid-template-columns:max-content 1fr;gap:6px 18px;margin:8px 24px 0;font-size:15px}
+.hkf.hkf-c .kf-ergebnis dt{color:#6b6762}
+.hkf.hkf-c .kf-ergebnis dd{margin:0;font-weight:700}
+/* v2: Standbilder (weiss wie die Bilder selbst, nie schwarz) */
+.hkf.hkf-c .hkf-stage:has(.kf-still),.hkf.hkf-c .hkf-stage:has(.kf-schleife),.hkf.hkf-c .hkf-stage:has(.kf-film){background:#fff}
+.hkf.hkf-c .hkf-stage video.kf-film{background:#fff}
+.hkf.hkf-c .hkf-stage:empty{background:#fff}
+/* Film blendet beim Vorladen ein (erstes Bild steht, bis er startet) */
+.hkf.hkf-c .hkf-stage video.kf-film{opacity:0;transition:opacity .8s ease}
+.hkf.hkf-c .hkf-stage video.kf-film.kf-da{opacity:1}
+.hkf.hkf-c .hkf-stage video.kf-schleife{background:#fff}
+.hkf.hkf-c .kf-still{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+/* v2: Grundstueck -- Antworten untereinander, Felder klappen unter der gewaehlten auf */
+.hkf.hkf-c .hkf-options.kf-liste{display:flex;flex-direction:column}
+.hkf.hkf-c .kf-liste .hkf-opt{min-height:0;flex-direction:row;flex-wrap:wrap;align-items:baseline;column-gap:12px;padding:12px 18px;border-left:0}
+.hkf.hkf-c .kf-liste .hkf-opt+.hkf-opt,.hkf.hkf-c .kf-liste .kf-panel+.hkf-opt{border-top:1px solid var(--m-rule)}
+.hkf.hkf-c .kf-liste .hkf-opt::before{margin:0;padding:0}
+.hkf.hkf-c .kf-panel{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;padding:12px 18px 16px;background:#fff;border-left:4px solid var(--m-acc)}
+.hkf.hkf-c .kf-panel-frage{grid-column:1/-1;margin:0;font-weight:800;font-size:15px}
+.hkf.hkf-c .kf-panel-frage span{font-weight:400;color:#6b6762;font-size:13px}
+.hkf.hkf-c .kf-feld{display:grid;gap:4px;font-size:13px;font-weight:600}
+.hkf.hkf-c .kf-feld input:not([type=checkbox]){font:inherit;font-size:16px;font-weight:400;padding:9px 11px;border:1px solid #c9c5c0;background:#fff;color:#201e1d}
+.hkf.hkf-c .kf-feld input:disabled{background:#eeece9;color:#9a958f}
+.hkf.hkf-c .kf-offen{display:flex;align-items:center;gap:6px;font-weight:400;font-size:13px}
+.hkf.hkf-c .kf-panel-fehler{grid-column:1/-1;margin:0;font-size:12px;color:#b3261e}
+.hkf.hkf-c .hkf-cta:disabled{opacity:.45;cursor:not-allowed}
+@media (max-width:700px){.hkf.hkf-c .kf-panel{grid-template-columns:1fr}}
+.hkf.hkf-c .kf-weiter{position:absolute;right:16px;top:12px;z-index:1;padding:8px 12px;border:0;background:rgba(32,30,29,.75);color:#fff;font:600 13px "Archivo",system-ui,sans-serif;cursor:pointer}
+/* Grundstueck (Rainer, 2026-11-09): Felder oeffnen rechts neben Ja / In Aussicht / Noch nicht,
+   die Karte waechst nicht nach unten. Handy (schmal): wie bisher darunter. */
+@media (min-width:701px){
+.hkf.hkf-c .hkf-options.kf-liste{display:grid;grid-template-columns:minmax(200px,38%) 1fr;align-items:stretch}
+.hkf.hkf-c .kf-liste .hkf-opt{grid-column:1}
+.hkf.hkf-c .kf-liste .kf-panel{grid-column:2;grid-row:1 / span 3;align-content:center;padding:10px 18px;gap:6px 14px}
+.hkf.hkf-c .kf-liste .kf-panel+.hkf-opt{border-top:1px solid var(--m-rule)}
+.hkf.hkf-c .kf-liste .kf-panel .kf-panel-frage{font-size:14px}
+.hkf.hkf-c .kf-liste .kf-panel .kf-feld input:not([type=checkbox]){padding:7px 10px}
+}
+</style>
+</head>
+<body>
+<div class="hkf hkf-c" data-theme="light" data-layout="cine" data-look="modell" role="region" aria-label="Hausbau-Konfigurator">
+  <div class="hkf-scene">
+    <div class="hkf-stage" data-id="stage"></div>
+    <div class="hkf-ui">
+      <div class="hkf-num" aria-hidden="true"><b data-id="num"></b><span data-id="numName"></span></div>
+      <div class="hkf-fly" data-id="fly" aria-live="polite"></div>
+    </div>
+  </div>
+  <header class="hkf-top">
+    <div class="hkf-brand">born2thrill<span>Hausbau-Konfigurator</span></div>
+    <div class="hkf-prog" data-id="prog" aria-hidden="true"></div>
+    <div class="hkf-badge" data-id="badge"><i></i><span>Entwurf · sendet noch nichts</span></div>
+  </header>
+  <section class="hkf-card hkf-moving" data-id="card" aria-label="Frage">
+    <div class="hkf-q">
+      <p class="hkf-eyebrow" data-id="eyebrow"></p>
+      <h2 class="hkf-title" data-id="title" tabindex="-1"></h2>
+      <p class="hkf-lead" data-id="lead"></p>
+    </div>
+    <div class="hkf-a">
+      <div class="hkf-options" data-id="options" role="group" aria-label="Antworten"></div>
+      <div data-id="feld"></div>
+      <button type="button" class="hkf-cta" data-id="cta" hidden></button>
+    </div>
+    <div class="hkf-foot">
+      <button type="button" class="hkf-ghost" data-id="back" hidden>Zurück</button>
+      <dl class="hkf-spec" data-id="spec" aria-label="Ihre Auswahl"></dl>
+    </div>
+  </section>
+  <noscript><div class="hkf-nojs">Für den Konfigurator wird JavaScript benötigt.</div></noscript>
+</div>
+<script>window.KONFIG_CFG={"film": {"url": "https://born2thrill.de/wp-content/uploads/2026/11/konfigurator-film-hq-v1.mp4", "schleifeAb": 15.0}, "videos": {}, "stills": {"01": "https://born2thrill.de/wp-content/uploads/2026/11/konfigurator-grundstueck-warten-v1.png", "02": "https://born2thrill.de/wp-content/uploads/2026/11/konfigurator-budget-sparschwein-v1.png"}, "katalog": "/grundriss-katalog/", "frageNachMs": 3000};</script>
+<script>(function(scope){
+ 'use strict';
+ const questions=[
+ {id:'grundstueck',label:'Grundstück',title:'Hast du bereits ein Grundstück?',scene:'01',options:[['ja','Ja','Der Platz für unsere Geschichte steht fest.'],['aussicht','In Aussicht','Wir haben schon etwas im Blick.'],['nein','Noch nicht','Wir suchen noch unseren Lieblingsplatz.']]},
+ {id:'details',label:'Grundstück',title:'Ein Platz für dein Zuhause.',scene:'01',form:'plot'},
+ {id:'budget',label:'Budget',title:'Wie viel möchtest du investieren?',scene:'02',hint:'Für diese Vorschau sind die drei Budgetstufen noch ohne feste Beträge. Hauspreise werden später nach Zimmerzahl gezeigt.',options:[['wenig','Kleines Budget','Das Sparschwein wird befragt.'],['mittel','Mittleres Budget','Vielleicht hilft die Familie mit.'],['viel','Großes Budget','Da kommt noch etwas dazu.']]},
+ {id:'hausart',label:'Hausart',title:'Was möchtest du bauen?',scene:'03',options:[['efh','Einfamilienhaus','Ein Zuhause für eure Geschichte.'],['bungalow','Bungalow','Alles auf einer Ebene.'],['dhh','Doppelhaus / Doppelhaushälfte','Tür an Tür, ganz für euch.'],['zfh','Zweifamilienhaus','Zwei Haushalte unter einem Dach.']]},
+ {id:'baustil',label:'Baustil',title:'Welcher Baustil spricht dich an?',scene:'04',options:[['klassisch','Klassisch','Vertraute Formen, zeitlos gedacht.'],['modern','Modern','Klare Linien, neue Perspektiven.']]},
+ {id:'dachform',label:'Dachform',title:'Welcher Look gefällt dir?',scene:'05',options:[['satteldach','Satteldach','Zwei Flächen, ein Klassiker.'],['walmdach','Walmdach','Zu allen Seiten geneigt.'],['pultdach','Pultdach','Eine Neigung, eine klare Linie.'],['flachdach','Flachdach','Geradlinig und reduziert.']]},
+ {id:'zimmer',label:'Zimmer',title:'Wie viel Platz braucht dein Zuhause?',scene:'06',hint:'Die Zimmeranzahl versteht sich zusätzlich zu Küche und Bad.'},
+ {id:'gaeste_wc',label:'Dusch-WC',title:'Eine zusätzliche Dusche im Gäste-WC?',scene:'07',options:[['ja','Ja, gerne','Ein bisschen mehr Freiraum im Alltag.'],['nein','Nein, danke','Das Hauptbad reicht uns.']]},
+ {id:'kontakt',label:'Kontakt',title:'Deine Hausgeschichte auf einen Blick.',scene:'08',form:'contact'}
+ ];
+ const prices={3:[450000,500000],4:[480000,550000],5:[550000,650000]};
+ function roomOptions(type){return ['efh','dhh'].includes(type)?[4,5]:[3,4,5];}
+ function setAnswer(answers,id,value){answers[id]=value;if(id==='hausart'&&answers.zimmer&&!roomOptions(value).includes(Number(answers.zimmer)))delete answers.zimmer;}
+ function reactions(id,value){if(id==='budget')return value==='wenig'?['02a']:value==='mittel'?['02a','02b']:['02a','02b','02c'];const map={grundstueck:{ja:'01a',aussicht:'01b',nein:'01c'},hausart:{efh:'03a',bungalow:'03b',dhh:'03c',zfh:'03d'},zimmer:{3:'06a',4:'06b',5:'06c'}};return map[id]?.[value]?[map[id][value]]:[];}
+ const api={questions,prices,roomOptions,setAnswer,reactions};scope.ComicFlow=api;if(typeof module!=='undefined')module.exports=api;
+})(typeof window==='undefined'?globalThis:window);
+</script>
+<script>window.COMIC_STORYBOARDS = {
+  "00": {
+    "title": "Start: Hund kennt den Weg",
+    "frames": [
+      {
+        "id": "00-K1",
+        "text": "Vater nach links gewandt, ratlos; Karte in einer Hand, andere hält Leine und kratzt am Kopf"
+      },
+      {
+        "id": "00-K2",
+        "text": "Hund steht mit gebeugten Hinterläufen und studiert Kartenrückseite; Vater dreht Karte"
+      },
+      {
+        "id": "00-K3",
+        "text": "Hund rennt rechts los, Leine straff, Leinenarm wird gezogen; normale Proportionen im Keyframe, maßvolles Stretch & Squash nur in Animation"
+      },
+      {
+        "id": "00-K4",
+        "text": "Harter Schnitt: Hund kommt von links nach rechts, zieht Vater auf dem Rücken; ausgestreckter Arm hält Leine, andere Hand Karte über Gesicht"
+      },
+      {
+        "id": "00-K5",
+        "text": "Halt am X: Vater bleibt auf Rücken und liest weiter; Hund sitzt und schüttelt resigniert-genervt den Kopf, nicht wütend; Vater hilflos-begriffsstutzig, ohne Lächeln"
+      }
+    ]
+  },
+  "01": {
+    "title": "Grundstück: Spaten-Pogostick",
+    "frames": [
+      {
+        "id": "01-K1",
+        "text": "Vater setzt entschlossen zum Spatenstich an"
+      },
+      {
+        "id": "01-K2",
+        "text": "Spaten steckt und biegt sich federnd; Körper staucht sich"
+      },
+      {
+        "id": "01-K3",
+        "text": "Federstoß schleudert Vater hoch"
+      },
+      {
+        "id": "01-K4",
+        "text": "Mutter fängt ihn gelassen am Kragen"
+      },
+      {
+        "id": "01-K5",
+        "text": "Beide wieder sicher am Boden, fragender Blick"
+      }
+    ]
+  },
+  "01a": {
+    "title": "Ja: stolzer Entdecker",
+    "frames": [
+      {
+        "id": "01a-K1",
+        "text": "Vater posiert stolz, Hund schnuppert"
+      },
+      {
+        "id": "01a-K2",
+        "text": "Hund beginnt Turbo-Buddeln"
+      },
+      {
+        "id": "01a-K3",
+        "text": "Erde überschüttet Vater"
+      },
+      {
+        "id": "01a-K4",
+        "text": "Vater voller Erde bleibt stolz stehen, Mutter beobachtet"
+      }
+    ]
+  },
+  "01b": {
+    "title": "In Aussicht: Fernglas",
+    "frames": [
+      {
+        "id": "01b-K1",
+        "text": "Mutter schaut verkehrt herum durchs Fernglas"
+      },
+      {
+        "id": "01b-K2",
+        "text": "Sohn dreht es richtig herum"
+      },
+      {
+        "id": "01b-K3",
+        "text": "Mutter erkennt etwas: Brauen hoch, Mund überrascht; Punktaugen bleiben"
+      },
+      {
+        "id": "01b-K4",
+        "text": "Fernglas gesenkt, Mutter zeigt Daumen hoch"
+      }
+    ]
+  },
+  "01c": {
+    "title": "Nein: endlose Karte",
+    "frames": [
+      {
+        "id": "01c-K1",
+        "text": "Vater öffnet Karte, Mutter schaut mit"
+      },
+      {
+        "id": "01c-K2",
+        "text": "Immer mehr Kartenfalten öffnen sich"
+      },
+      {
+        "id": "01c-K3",
+        "text": "Karte wickelt Vater wie eine Mumie ein, Kopf bleibt frei"
+      },
+      {
+        "id": "01c-K4",
+        "text": "Teen hält gelassen Handy hoch; Eltern schauen dorthin"
+      }
+    ]
+  },
+  "02": {
+    "title": "Budgetfrage: lauschen",
+    "frames": [
+      {
+        "id": "02-K1",
+        "text": "Vater hält Schwein vor dem Körper"
+      },
+      {
+        "id": "02-K2",
+        "text": "Hebt es ans Ohr und lauscht angestrengt"
+      },
+      {
+        "id": "02-K3",
+        "text": "Fragender Blick zum Zuschauer; Schwein noch am Ohr"
+      }
+    ]
+  },
+  "02a": {
+    "title": "Wenig Geld: Motten",
+    "frames": [
+      {
+        "id": "02a-K1",
+        "text": "Exakter Anschluss an 02-K3"
+      },
+      {
+        "id": "02a-K2",
+        "text": "Vater dreht das Schwein kopfüber; Hände außen"
+      },
+      {
+        "id": "02a-K3",
+        "text": "Deutliche Schüttelpose; zwei Schüttelbewegungen zwischen den Posen"
+      },
+      {
+        "id": "02a-K4",
+        "text": "Genau zwei Motten kommen aus dem Münzschlitz"
+      },
+      {
+        "id": "02a-K5",
+        "text": "Motten kreisen um seine Nase; Vater enttäuscht/verlegen, ohne Lächeln"
+      }
+    ]
+  },
+  "02b": {
+    "title": "Mittleres Geld: Sohn mit Cash",
+    "frames": [
+      {
+        "id": "02b-K1",
+        "text": "Exaktes Schlussbild von 02a"
+      },
+      {
+        "id": "02b-K2",
+        "text": "Rückfahrt enthüllt den deutlich kleineren Sohn rechts mit Cash-Stapel"
+      },
+      {
+        "id": "02b-K3",
+        "text": "Vater bemerkt Sohn und Geld, schaut zu ihm"
+      },
+      {
+        "id": "02b-K4",
+        "text": "Vater schaut verlegen ohne Lächeln direkt in die Kamera; Sohn hält Cash weiter; links Platz für Buggy"
+      }
+    ]
+  },
+  "02c": {
+    "title": "Viel Geld: Baby übertrumpft Vater",
+    "frames": [
+      {
+        "id": "02c-K1",
+        "text": "Exaktes Schlussbild von 02b; Mutter noch außerhalb links"
+      },
+      {
+        "id": "02c-K2",
+        "text": "Mutter schlendert herein und schiebt Geldsack-Buggy; Baby verborgen"
+      },
+      {
+        "id": "02c-K3",
+        "text": "Buggy hält neben Vater, Säcke bewegen sich als Vorbereitung"
+      },
+      {
+        "id": "02c-K4",
+        "text": "Baby poppt von unter den Säcken hoch, hält einen Sack in der Hand"
+      },
+      {
+        "id": "02c-K5",
+        "text": "Baby präsentiert den Sack dem Vater; Mutter und Baby selbstzufrieden"
+      },
+      {
+        "id": "02c-K6",
+        "text": "Vaters Schultern fallen, Kopf sinkt, Oberkörper sackt zusammen: komplett erniedrigt"
+      }
+    ]
+  },
+  "03": {
+    "title": "Hausart: in den Plan gefallen",
+    "frames": [
+      {
+        "id": "03-K1",
+        "text": "Familie um die Skizze, Vater beugt sich vor"
+      },
+      {
+        "id": "03-K2",
+        "text": "Vater beugt sich zu weit und kippt"
+      },
+      {
+        "id": "03-K3",
+        "text": "Oberkörper verschwindet cartoonhaft im Papier, Beine ragen heraus"
+      },
+      {
+        "id": "03-K4",
+        "text": "Familie zieht ihn an den Knöcheln heraus"
+      },
+      {
+        "id": "03-K5",
+        "text": "Vater sitzt verdutzt neben dem Plan"
+      }
+    ]
+  },
+  "03a": {
+    "title": "Einfamilienhaus: Fußball-Billard",
+    "frames": [
+      {
+        "id": "03a-K1",
+        "text": "Sohn am Ball; Eltern in der Flugbahn"
+      },
+      {
+        "id": "03a-K2",
+        "text": "Ball federt weich von Papas Kopf ab"
+      },
+      {
+        "id": "03a-K3",
+        "text": "Ball springt an Mamas Dutt zurück zum Sohn"
+      },
+      {
+        "id": "03a-K4",
+        "text": "Sohn stoppt Ball am Fuß, Familie lacht; Vater bleibt verdutzt ohne Lächeln"
+      }
+    ]
+  },
+  "03b": {
+    "title": "Bungalow: auf einer Ebene",
+    "frames": [
+      {
+        "id": "03b-K1",
+        "text": "Großeltern bereit zum Anschieben"
+      },
+      {
+        "id": "03b-K2",
+        "text": "Schlittern wie Eisschnellläufer"
+      },
+      {
+        "id": "03b-K3",
+        "text": "Finden zueinander und drehen sich"
+      },
+      {
+        "id": "03b-K4",
+        "text": "Lustige stabile Tanzpose"
+      }
+    ]
+  },
+  "03c": {
+    "title": "Doppelhaus: Hund zwischen Hälften",
+    "frames": [
+      {
+        "id": "03c-K1",
+        "text": "Familie vor Comic-Haus, Hund mittig"
+      },
+      {
+        "id": "03c-K2",
+        "text": "Haus wird spielerisch in zwei Hälften aufgefächert"
+      },
+      {
+        "id": "03c-K3",
+        "text": "Hund läuft zwischen Hälften hin und her"
+      },
+      {
+        "id": "03c-K4",
+        "text": "Hund plumpst schwindlig in die Mitte"
+      }
+    ]
+  },
+  "03d": {
+    "title": "Zweifamilienhaus: gemeinsame Tür",
+    "frames": [
+      {
+        "id": "03d-K1",
+        "text": "Beide Generationen vor der Tür, Kinder dahinter"
+      },
+      {
+        "id": "03d-K2",
+        "text": "Alle Erwachsenen wollen gleichzeitig hinein"
+      },
+      {
+        "id": "03d-K3",
+        "text": "Klemmen cartoonhaft zusammen"
+      },
+      {
+        "id": "03d-K4",
+        "text": "Ploppen durch, Kinder folgen"
+      }
+    ]
+  },
+  "04": {
+    "title": "Baustil: zwei Geschmäcker",
+    "frames": [
+      {
+        "id": "04-K1",
+        "text": "Mutter mittig mit Bildern; Teen bei modern, Oma bei klassisch"
+      },
+      {
+        "id": "04-K2",
+        "text": "Beide ziehen, Mamas Arme dehnen sich"
+      },
+      {
+        "id": "04-K3",
+        "text": "Mutter federt zur Mitte zurück"
+      },
+      {
+        "id": "04-K4",
+        "text": "Hält beide Bilder zur Auswahl, fragender Blick"
+      }
+    ]
+  },
+  "05": {
+    "title": "Dachform: Opa am Kran",
+    "frames": [
+      {
+        "id": "05-K1",
+        "text": "Vater gibt Zeichen, Opa am Kran, Hund beobachtet"
+      },
+      {
+        "id": "05-K2",
+        "text": "Satteldach am Haken über Haus, Vater korrigiert wild"
+      },
+      {
+        "id": "05-K3",
+        "text": "Walmdach an gleicher Position, Hund schüttelt Kopf"
+      },
+      {
+        "id": "05-K4",
+        "text": "Pultdach, Vater winkt erneut"
+      },
+      {
+        "id": "05-K5",
+        "text": "Flachdach, Hund blickt Vater tief enttäuscht an"
+      },
+      {
+        "id": "05-K6",
+        "text": "Ruhige Auswahlansicht mit Platz für vier gleichwertige Dachbuttons"
+      }
+    ]
+  },
+  "06": {
+    "title": "Zimmer: Clownsauto",
+    "frames": [
+      {
+        "id": "06-K1",
+        "text": "Familie vor kleinem Haus, Hund am Reihenende"
+      },
+      {
+        "id": "06-K2",
+        "text": "Immer mehr Personen quetschen sich hinein, Wände beulen aus"
+      },
+      {
+        "id": "06-K3",
+        "text": "Letzte Person und Baby sicher drinnen; Hund nimmt Anlauf"
+      },
+      {
+        "id": "06-K4",
+        "text": "Hund springt hinein, Fenster ploppt auf"
+      },
+      {
+        "id": "06-K5",
+        "text": "Haus prall gefüllt, Gesichter an Öffnungen, ruhige Fragepose"
+      }
+    ]
+  },
+  "06a": {
+    "title": "Drei Zimmer: Hund hinaus",
+    "frames": [
+      {
+        "id": "06a-K1",
+        "text": "Exakter Anschluss an 06-K5"
+      },
+      {
+        "id": "06a-K2",
+        "text": "Tür wölbt sich und springt auf"
+      },
+      {
+        "id": "06a-K3",
+        "text": "Hund kullert heraus"
+      },
+      {
+        "id": "06a-K4",
+        "text": "Hund sitzt verdutzt vor dem weiterhin prallen Haus"
+      }
+    ]
+  },
+  "06b": {
+    "title": "Vier Zimmer: Akkordeon",
+    "frames": [
+      {
+        "id": "06b-K1",
+        "text": "Exakter Anschluss an 06-K5"
+      },
+      {
+        "id": "06b-K2",
+        "text": "Haus dehnt sich seitlich in Akkordeonfalten"
+      },
+      {
+        "id": "06b-K3",
+        "text": "Familie bekommt Platz, Schultern entspannen"
+      },
+      {
+        "id": "06b-K4",
+        "text": "Haus beruhigt sich, alle atmen auf"
+      }
+    ]
+  },
+  "06c": {
+    "title": "Fünf Zimmer: endlich Platz",
+    "frames": [
+      {
+        "id": "06c-K1",
+        "text": "Exakter Anschluss an 06-K5"
+      },
+      {
+        "id": "06c-K2",
+        "text": "Zusätzlicher Raum wächst/klappt seitlich heraus"
+      },
+      {
+        "id": "06c-K3",
+        "text": "Innenansicht wird lesbar, Familie verteilt sich"
+      },
+      {
+        "id": "06c-K4",
+        "text": "Alle entspannt in ihren Bereichen, Hund hat ebenfalls Platz"
+      }
+    ]
+  },
+  "07": {
+    "title": "Dusch-WC: Opa voller Schlamm",
+    "frames": [
+      {
+        "id": "07-K1",
+        "text": "Opa kommt vom Joggen, schlammiger Hund daneben"
+      },
+      {
+        "id": "07-K2",
+        "text": "Hund setzt zum Schütteln an"
+      },
+      {
+        "id": "07-K3",
+        "text": "Schlamm trifft Opa; nur Brillengläser sauber"
+      },
+      {
+        "id": "07-K4",
+        "text": "Opa blickt trocken zum Nutzer und zeigt auf Dusche"
+      }
+    ]
+  },
+  "08": {
+    "title": "Kontakt: Briefkasten",
+    "frames": [
+      {
+        "id": "08-K1",
+        "text": "Hund mit Umschlag vor Briefkasten"
+      },
+      {
+        "id": "08-K2",
+        "text": "Schiebt/wirft Umschlag hinein"
+      },
+      {
+        "id": "08-K3",
+        "text": "Klappe schnappt zu, Hund springt erschrocken zurück"
+      },
+      {
+        "id": "08-K4",
+        "text": "Hund steht wieder sicher und wedelt"
+      }
+    ]
+  },
+  "09": {
+    "title": "Ergebnis: alle hinein",
+    "frames": [
+      {
+        "id": "09-K1",
+        "text": "Vater öffnet Tür, Familie dicht dahinter"
+      },
+      {
+        "id": "09-K2",
+        "text": "Alle wollen gleichzeitig hinein und verkeilen sich"
+      },
+      {
+        "id": "09-K3",
+        "text": "Hund flitzt zwischen den Beinen hindurch"
+      },
+      {
+        "id": "09-K4",
+        "text": "Gruppe purzelt lachend hinein, Baby geschützt"
+      },
+      {
+        "id": "09-K5",
+        "text": "Ruhiges Schlussbild, Übergang zu echten Ergebnisdaten"
+      }
+    ]
+  }
+};
+</script>
+<script>/* konfigurator-neu-v1 (Rainer, 2026-11-08): "test einfach kopieren und das neue
+   nach unseren neuen Vorgaben". Layout von /test (HausKlar, Kino), statt 3D die
+   Comic-Clips. Fragen aus Codex' comic-flow.js (window.ComicFlow), Szenen aus
+   storyboards.js. Das Einstiegsvideo laeuft sofort, die erste Frage fliegt nach
+   3 s unten ein. Kontakt sendet nichts (Entwurf).
+
+   v2 (Rainer ueber Codex, 2026-11-08): Grundstueck und Details sind EIN Schritt.
+   Die gewaehlte Antwort klappt ihre Felder direkt darunter auf, nur eine offen,
+   Eingaben bleiben bei Wechsel/Zurueck erhalten, erst "Weiter" fuehrt zum Budget.
+   Nach dem Intro steht das Warte-Standbild (Szene 01), beim Budget das
+   Sparschwein (Szene 02). */
+(function () {
+  'use strict';
+  var CFG = window.KONFIG_CFG || {};
+  var F = window.ComicFlow;
+  var BOARDS = window.COMIC_STORYBOARDS || {};
+  var root = document.querySelector('.hkf');
+  var $ = function (id) { return root.querySelector('[data-id="' + id + '"]'); };
+  var stage = $('stage'), card = $('card');
+  var ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Der separate Detail-Schritt ist jetzt Teil der Grundstuecksfrage.
+  var Q = F.questions.filter(function (q) { return q.id !== 'details'; });
+  var idx = -1, answers = {}, extra = {}, szeneJetzt = null, timer = 0, ergebnisOffen = false;
+  // Grundstuecksangaben je Antwort -- bleiben bei Wechsel und Zurueck erhalten.
+  var grund = { ja: {}, aussicht: {}, nein: {} };
+  var GRUND_FELDER = {
+    ja: { frage: 'Wo liegt dein Grundstück?', felder: [
+      { name: 'ort', label: 'PLZ / Ort', pflicht: true, auto: 'postal-code' },
+      { name: 'groesse', label: 'Grundstücksgröße in m²', platz: 'z. B. 600', zahl: true }] },
+    aussicht: { frage: 'Wo liegt das Grundstück?', hinweis: 'Geschätzte Angaben reichen.', felder: [
+      { name: 'ort', label: 'PLZ / Ort', pflicht: true, auto: 'postal-code' },
+      { name: 'groesse', label: 'Grundstücksgröße in m² (geschätzt)', platz: 'z. B. ca. 600', zahl: true }] },
+    nein: { frage: 'Wo möchtest du bauen?', felder: [
+      { name: 'ort', label: 'Gewünschte PLZ / Region', pflicht: true, offen: true },
+      { name: 'groesse', label: 'Gewünschte Grundstücksgröße in m²', platz: 'z. B. 500', pflicht: true, offen: true, zahl: true }] }
+  };
+
+  // Das Video endet ueber der Fragekarte, statt dahinter zu verschwinden.
+  function karteHoehe() {
+    // Gemessen wird, wo die Karte oben anfaengt (Handy: sie beginnt bei 46 %).
+    var sichtbar = root.hasAttribute('data-ready') && !card.classList.contains('hkf-moving');
+    var szeneBox = stage.parentElement.getBoundingClientRect();
+    var frei = sichtbar ? Math.max(0, szeneBox.bottom - (szeneBox.top + card.offsetTop)) : 0;
+    root.style.setProperty('--kf-karte', frei + 'px');
+  }
+  new MutationObserver(karteHoehe).observe(card, { attributes: true, attributeFilter: ['class'] });
+  addEventListener('resize', karteHoehe);
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* ---------- Buehne: Clip, Standbild oder Szenenkarte ---------- */
+  function szene(id, danach) {
+    if (szeneJetzt === id && !danach) return;
+    // Gesamtfilm (Rainer, 2026-11-08): Szene 00 = Film ab 0 s, Szene 01 = Endsegment ab schleifeAb.
+    if (FILM && !ruhig && (id === '00' || id === '01')) {
+      szeneJetzt = id;
+      return starteFilm(id === '00' ? 0 : FILM.schleifeAb);
+    }
+    szeneJetzt = id;
+    var url = (CFG.videos || {})[id], bild = (CFG.stills || {})[id];
+    stage.innerHTML = '';
+    // Warteschleife (z. B. Grundstueck): endlos, stumm, ohne Ueberspringen.
+    // Reduced motion bleibt beim Standbild; neue Szene ersetzt die Buehne -> Schleife stoppt.
+    var schleife = (CFG.loops || {})[id];
+    if (schleife && !danach && !ruhig) {
+      var s = document.createElement('video');
+      s.className = 'kf-schleife';
+      s.src = schleife; s.muted = true; s.loop = true; s.playsInline = true; s.autoplay = true; s.preload = 'auto';
+      s.setAttribute('playsinline', ''); s.setAttribute('aria-hidden', 'true');
+      if (bild) s.poster = bild;
+      s.onerror = function () { standOderKarte(id); };
+      stage.appendChild(s);
+      var sp = s.play(); if (sp && sp.catch) sp.catch(function () {});
+      return;
+    }
+    if (url && !ruhig) {
+      var v = document.createElement('video');
+      v.src = url; v.muted = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+      v.setAttribute('aria-label', 'Szene ' + id);
+      var fertig = false;
+      var ende = function () { if (fertig) return; fertig = true; if (danach) danach(); };
+      v.onended = ende;
+      v.onerror = function () { standOderKarte(id); ende(); };
+      stage.appendChild(v);
+      var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; });
+      var w = document.createElement('button');
+      w.type = 'button'; w.className = 'kf-weiter'; w.textContent = 'Video überspringen';
+      w.onclick = function () { v.pause(); ende(); };
+      stage.appendChild(w);
+    } else {
+      standOderKarte(id, bild);
+      if (danach) setTimeout(danach, 600);
+    }
+  }
+  function standOderKarte(id) {
+    var bild = (CFG.stills || {})[id];
+    if (bild) {
+      stage.innerHTML = '<img class="kf-still" src="' + esc(bild) + '" alt="">';
+      return;
+    }
+    var b = BOARDS[id] || {};
+    stage.innerHTML = '<div class="kf-szene"><small>Szene ' + esc(id) + ' · Clip folgt</small><b>' +
+      esc(b.title || 'Unsere Hausgeschichte') + '</b><span>' +
+      esc((b.frames || []).map(function (f) { return f.text; }).slice(0, 2).join(' · ')) + '</span></div>';
+  }
+
+  /* ---------- Gesamtfilm: einmal 0-Ende, danach nur [schleifeAb, Ende) ----------
+     Kein natives loop (das springt auf 0): bei Ende auf schleifeAb setzen und weiter. */
+  var FILM = CFG.film || null;
+  function imEndsegment(v, w) {
+    if (w && w.parentNode) w.parentNode.removeChild(w);
+    if (szeneJetzt === '00') { szeneJetzt = '01'; if (idx < 0) zeige(0); }
+  }
+  // halten = vorladen, erstes Bild einblenden und stehen lassen; abgespielt wird von aussen.
+  function starteFilm(ab, halten) {
+    stage.innerHTML = '';
+    var v = document.createElement('video'), w = null;
+    v.className = 'kf-film';
+    v.src = FILM.url + (ab > 0 ? '#t=' + ab : '');
+    v.muted = true; v.playsInline = true; v.autoplay = !halten; v.preload = 'auto';
+    v.addEventListener('loadeddata', function () { v.classList.add('kf-da'); }, { once: true });
+    v.setAttribute('playsinline', ''); v.setAttribute('aria-label', 'Hausgeschichte');
+    v.onended = function () { v.currentTime = FILM.schleifeAb; var p = v.play(); if (p && p.catch) p.catch(function () {}); };
+    v.ontimeupdate = function () { if (v.currentTime >= FILM.schleifeAb) imEndsegment(v, w); };
+    v.onerror = function () { standOderKarte('01'); imEndsegment(v, w); };
+    stage.appendChild(v);
+    if (!halten) { var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; }); }
+    if (ab < FILM.schleifeAb) {
+      w = document.createElement('button');
+      w.type = 'button'; w.className = 'kf-weiter'; w.textContent = 'Video überspringen';
+      w.onclick = function () { v.currentTime = FILM.schleifeAb; v.play(); imEndsegment(v, w); };
+      stage.appendChild(w);
+    }
+    return v;
+  }
+  // Nach dem Intro (Ende oder Ueberspringen): Warte-Standbild der Grundstuecksfrage.
+  function introVorbei() {
+    if (idx < 0) zeige(0);
+    if (idx === 0 || szeneJetzt === '00') { szeneJetzt = null; szene(Q[Math.max(idx, 0)].scene); }
+  }
+
+  /* ---------- Karte unten ---------- */
+  function fortschritt() {
+    $('prog').innerHTML = Q.map(function (q, i) {
+      return '<div class="hkf-seg' + (i <= idx ? ' hkf-on' : '') + (i === idx ? ' hkf-cur' : '') + '"></div>';
+    }).join('');
+  }
+  function auswahl() {
+    $('spec').innerHTML = Q.filter(function (q) { return answers[q.id] != null && !q.form; }).map(function (q) {
+      return '<div class="hkf-sc hkf-set"><dt>' + esc(q.label) + '</dt><dd>' + esc(antwortText(q, answers[q.id])) + '</dd></div>';
+    }).join('');
+  }
+  function optionen(q) {
+    if (q.id === 'zimmer') {
+      return F.roomOptions(answers.hausart).map(function (z) {
+        return [String(z), z + ' Zimmer', 'zusätzlich zu Küche und Bad'];
+      });
+    }
+    return q.options || [];
+  }
+  function antwortText(q, v) {
+    var o = optionen(q).filter(function (o) { return o[0] === String(v); })[0];
+    return o ? o[1] : v;
+  }
+
+  function zeige(i) {
+    clearTimeout(timer);
+    var erstes = idx < 0;
+    idx = i; ergebnisOffen = false;
+    var q = Q[i];
+    card.classList.add('hkf-moving');
+    setTimeout(function () {
+      $('num').textContent = String(i + 1).padStart(2, '0');
+      $('numName').textContent = q.label;
+      $('eyebrow').textContent = 'Frage ' + (i + 1) + ' von ' + Q.length;
+      $('title').textContent = q.title;
+      $('lead').textContent = q.hint || '';
+      $('back').hidden = i === 0;
+      $('feld').innerHTML = '';
+      $('options').innerHTML = '';
+      $('options').classList.remove('kf-liste');
+      $('cta').hidden = true;
+      if (q.id === 'grundstueck') grundstueck();
+      else if (q.form) formular(q);
+      else knoepfe(q);
+      fortschritt(); auswahl();
+      root.setAttribute('data-ready', '');
+      card.classList.remove('hkf-moving');
+      karteHoehe();
+    }, erstes ? 0 : 350);
+    // Laeuft noch das Intro, bleibt es bei Frage 1 stehen; sonst die Szene der Frage.
+    if (!(i === 0 && szeneJetzt === '00')) szene(q.scene);
+  }
+
+  function knoepfe(q) {
+    $('options').innerHTML = optionen(q).map(function (o) {
+      return '<button type="button" class="hkf-opt" data-v="' + esc(o[0]) + '" aria-pressed="' +
+        (String(answers[q.id]) === o[0]) + '"><span class="hkf-l">' + esc(o[1]) + '</span><span class="hkf-h">' + esc(o[2]) + '</span></button>';
+    }).join('');
+  }
+  $('options').addEventListener('click', function (e) {
+    var b = e.target.closest('.hkf-opt'); if (!b) return;
+    var q = Q[idx], v = b.getAttribute('data-v');
+    if (q.id === 'grundstueck') {           // kein automatisches Weiter
+      F.setAnswer(answers, q.id, v);
+      grundstueck(true);
+      return;
+    }
+    F.setAnswer(answers, q.id, q.id === 'zimmer' ? Number(v) : v);
+    var fly = $('fly'); fly.textContent = b.querySelector('.hkf-h').textContent; fly.classList.add('hkf-on');
+    setTimeout(function () { fly.classList.remove('hkf-on'); }, 1600);
+    weiter(F.reactions(q.id, answers[q.id]));
+  });
+
+  /* ---------- Grundstueck: Antwort + aufklappende Felder in einem Schritt ---------- */
+  function grundstueck(fokus) {
+    var q = Q[idx], gewaehlt = answers.grundstueck;
+    var box = $('options');
+    box.classList.add('kf-liste');
+    box.innerHTML = q.options.map(function (o) {
+      var an = gewaehlt === o[0];
+      return '<button type="button" class="hkf-opt" data-v="' + esc(o[0]) + '" aria-pressed="' + an + '" aria-expanded="' + an + '">' +
+        '<span class="hkf-l">' + esc(o[1]) + '</span><span class="hkf-h">' + esc(o[2]) + '</span></button>' +
+        (an ? grundPanel(o[0]) : '');
+    }).join('');
+    var panel = box.querySelector('.kf-panel');
+    if (panel) {
+      panel.addEventListener('input', grundMerken);
+      panel.addEventListener('change', grundMerken);
+      if (fokus) {
+        var erstes = panel.querySelector('input:not([type=checkbox]):not(:disabled)');
+        if (erstes) erstes.focus({ preventScroll: true });
+        panel.scrollIntoView({ block: 'nearest' });   // Handy: Felder sichtbar machen
+      }
+    }
+    cta('Weiter', function () {
+      if (!grundOk()) return;
+      extra.grundstueck = Object.assign({ antwort: answers.grundstueck }, grund[answers.grundstueck]);
+      weiter([]);
+    });
+    grundPruefen();
+    karteHoehe();
+  }
+  function grundPanel(art) {
+    var def = GRUND_FELDER[art], d = grund[art];
+    return '<div class="kf-panel" data-art="' + art + '"><p class="kf-panel-frage">' + esc(def.frage) +
+      (def.hinweis ? ' <span>' + esc(def.hinweis) + '</span>' : '') + '</p>' +
+      def.felder.map(function (f) {
+        var offen = !!d[f.name + 'Offen'];
+        return '<label class="kf-feld">' + esc(f.label) +
+          '<input name="' + f.name + '" value="' + esc(offen ? '' : d[f.name] || '') + '"' +
+          (f.platz ? ' placeholder="' + esc(f.platz) + '"' : '') + (f.zahl ? ' inputmode="decimal"' : '') +
+          (f.auto ? ' autocomplete="' + f.auto + '"' : '') + (offen ? ' disabled' : '') + '>' +
+          (f.offen ? '<span class="kf-offen"><input type="checkbox" name="' + f.name + 'Offen"' + (offen ? ' checked' : '') + '> Noch offen</span>' : '') +
+          '</label>';
+      }).join('') + '<p class="kf-panel-fehler" data-id="grundFehler" hidden></p></div>';
+  }
+  function grundMerken(e) {
+    var art = answers.grundstueck, d = grund[art], t = e.target;
+    if (t.type === 'checkbox') {
+      d[t.name] = t.checked;
+      var feld = t.closest('label').querySelector('input:not([type=checkbox])');
+      feld.disabled = t.checked;
+      if (t.checked) feld.value = ''; else { feld.value = d[feld.name] || ''; feld.focus(); }
+    } else {
+      d[t.name] = t.value;
+    }
+    grundPruefen();
+  }
+  function grundOk() {
+    var art = answers.grundstueck; if (!art) return false;
+    var d = grund[art];
+    return GRUND_FELDER[art].felder.every(function (f) {
+      return !f.pflicht || d[f.name + 'Offen'] || String(d[f.name] || '').trim();
+    });
+  }
+  function grundPruefen() {
+    var ok = grundOk(), c = $('cta'), fehler = root.querySelector('[data-id="grundFehler"]');
+    c.disabled = !ok;
+    c.setAttribute('aria-disabled', String(!ok));
+    if (fehler) {
+      var art = answers.grundstueck;
+      fehler.hidden = ok;
+      fehler.textContent = art === 'nein' ? 'Bitte Wunschort und Größe angeben oder „Noch offen“ wählen.' : 'Bitte PLZ oder Ort angeben.';
+    }
+  }
+
+  function weiter(reaktionen) {
+    card.classList.add('hkf-moving');
+    var clips = (reaktionen || []).filter(function (r) { return (CFG.videos || {})[r]; });
+    var naechste = function () { if (idx < Q.length - 1) zeige(idx + 1); };
+    if (!clips.length || ruhig) return setTimeout(naechste, 450);
+    (function spiel(k) { if (k >= clips.length) return naechste(); szene(clips[k], function () { spiel(k + 1); }); })(0);
+  }
+
+  function formular(q) {
+    if (q.form === 'contact') {
+      var k = extra.kontakt || {};
+      $('feld').innerHTML = '<form class="kf-form" data-id="f">' +
+        '<label>Name<input name="name" autocomplete="name" value="' + esc(k.name) + '"></label>' +
+        '<label>E-Mail<input name="email" type="email" autocomplete="email" value="' + esc(k.email) + '"></label>' +
+        '<label>Telefon<input name="telefon" type="tel" autocomplete="tel" value="' + esc(k.telefon) + '"></label></form>' +
+        '<p class="kf-hinweis">Entwurf: Es wird noch nichts gesendet oder gespeichert.</p>';
+      cta('Meinen Hausvorschlag zeigen', function () { extra.kontakt = daten(); ergebnis(); });
+    }
+  }
+  function daten() { var f = $('feld').querySelector('form'); return f ? Object.fromEntries(new FormData(f)) : {}; }
+  function cta(text, tun) { var c = $('cta'); c.textContent = text; c.hidden = false; c.disabled = false; c.onclick = tun; }
+
+  function grundText() {
+    var g = extra.grundstueck; if (!g) return '';
+    var teile = [antwortText(Q[0], g.antwort)];
+    teile.push(g.ortOffen ? 'Ort noch offen' : g.ort);
+    teile.push(g.groesseOffen ? 'Größe noch offen' : (g.groesse ? g.groesse + ' m²' : ''));
+    return teile.filter(Boolean).join(' · ');
+  }
+
+  function ergebnis() {
+    card.classList.add('hkf-moving');
+    ergebnisOffen = true;
+    szene('08');
+    setTimeout(function () {
+      var p = F.prices[answers.zimmer];
+      $('num').textContent = '✓'; $('numName').textContent = 'Ergebnis';
+      $('eyebrow').textContent = 'Deine Hausgeschichte';
+      $('title').textContent = 'Dein Hausvorschlag';
+      $('lead').textContent = 'Passende Häuser mit Grundriss, Außenansicht und Preis folgen hier.';
+      $('options').innerHTML = ''; $('options').classList.remove('kf-liste');
+      $('feld').innerHTML = '<dl class="kf-ergebnis">' + Q.filter(function (q) { return !q.form && answers[q.id] != null; }).map(function (q) {
+        return '<dt>' + esc(q.label) + '</dt><dd>' + esc(q.id === 'grundstueck' ? grundText() : antwortText(q, answers[q.id])) + '</dd>';
+      }).join('') + (p ? '<dt>Preisrahmen</dt><dd>ca. ' + (p[0] / 1000) + '–' + (p[1] / 1000) + ' Tsd. €</dd>' : '') + '</dl>';
+      $('back').hidden = false;
+      cta('Passende Grundrisse ansehen', function () { location.href = CFG.katalog || '/grundriss-katalog/'; });
+      card.classList.remove('hkf-moving');
+      karteHoehe();
+    }, 400);
+  }
+
+  $('back').addEventListener('click', function () {
+    if (ergebnisOffen) return zeige(idx);   // vom Ergebnis zurueck zum Kontakt
+    if (idx > 0) zeige(idx - 1);
+  });
+
+  /* ---------- Start: Video sofort, Frage nach 3 s ---------- */
+  // Chef, 2026-11-09: zuerst fliegen Nummer und Frage 01 ein, danach startet der Film
+  // ueber der Karte (kein Vollbild). Danach wie gehabt: 0-Ende einmal, dann Endsegment.
+  if (FILM && !ruhig) {
+    // Rainer, 2026-11-09: Film laedt sofort vor, erstes Bild blendet ein und steht,
+    // gestartet wird nach Kartenflug (filmNachMs) und fertiger Einblendung.
+    szeneJetzt = '00';
+    var film = starteFilm(0, true);
+    zeige(0);
+    var bereit = false, zeitUm = false;
+    var spielen = function () {
+      if (!bereit || !zeitUm || szeneJetzt !== '00' || !film.isConnected || !film.paused) return;
+      var p = film.play(); if (p && p.catch) p.catch(function () { film.controls = true; });
+    };
+    film.addEventListener('loadeddata', function () { setTimeout(function () { bereit = true; spielen(); }, 800); }, { once: true });
+    setTimeout(function () { zeitUm = true; spielen(); }, CFG.filmNachMs || 900);
+  } else {
+    szene('00', introVorbei);
+    timer = setTimeout(function () { if (idx < 0) zeige(0); }, ruhig ? 0 : (CFG.frageNachMs || 3000));
+  }
+})();
+</script>
+</body>
+</html>

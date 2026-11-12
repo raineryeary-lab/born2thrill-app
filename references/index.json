@@ -1,0 +1,32 @@
+{
+  "schema": "zf-render-reference-registry-v1",
+  "references": [
+    {
+      "id": "twostorey-045-warm-modern-eg-approved-2026-09-14",
+      "role": "interior-style",
+      "path": "E:\\born2thrill-local-workbench-data\\corrections\\twostorey_045\\renders\\codex-twostorey_045-2026-09-14\\03-floorplan-warm-modern-eg.png",
+      "sha256": "284bf76605bc745b263f4ba44c73061fe10dca2f1167e984292a32d164ed9665",
+      "approval": "approved",
+      "approved_by": "Rainer",
+      "usage": "style-only; never geometry or furniture placement"
+    },
+    {
+      "id": "onehalfstorey-029-exterior-classic-approved-2026-08-23",
+      "role": "exterior-style",
+      "path": "E:\\born2thrill-local-workbench-data\\corrections\\onehalfstorey_029\\renders\\codex-final-2026-08-231907\\01-exterior-classic.png",
+      "sha256": "28b661bbd3bb472f1d2e8ff26f9e12d1697299038df0be556638efeed4b25c02",
+      "approval": "approved",
+      "approved_by": "Rainer",
+      "usage": "style-and-atmosphere-only; never house geometry"
+    },
+    {
+      "id": "onehalfstorey-029-exterior-modern-approved-2026-08-23",
+      "role": "exterior-style",
+      "path": "E:\\born2thrill-local-workbench-data\\corrections\\onehalfstorey_029\\renders\\codex-final-2026-08-231907\\02-exterior-modern.png",
+      "sha256": "80a826b4c9158c6f47083a8587327f01badc750e7d5264dd948bc5a1ea4d15c5",
+      "approval": "approved",
+      "approved_by": "Rainer",
+      "usage": "style-and-atmosphere-only; never house geometry"
+    }
+  ]
+}

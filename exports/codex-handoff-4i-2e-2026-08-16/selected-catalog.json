@@ -1,0 +1,91 @@
+{
+  "schema_version": "visual-handoff-v1",
+  "created_at": "2026-08-16",
+  "plan_family_id": "kitchen-inspect-groundfloor",
+  "assets": [
+    {
+      "asset_id": "interior-warm-modern-v1",
+      "file": "01-interior-warm-modern.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "warm_modern",
+      "description_de": "Warme moderne Innenraumvariante mit Eiche, Taupe, Naturtextilien und schwarzen Akzenten.",
+      "palette": ["warm_oak", "taupe", "oatmeal", "soft_black"],
+      "materials": ["wood", "textile", "stone", "matte_metal"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["kitchen_island", "six_seat_dining", "open_plan_living"],
+      "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/kitchen-inspect.blend",
+      "qc_status": "draft_needs_garderobe_alignment_review",
+      "search_text_de": "warm modern warme Eiche Taupe Naturtextilien Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide"
+    },
+    {
+      "asset_id": "interior-soft-scandinavian-v1",
+      "file": "02-interior-soft-scandinavian.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "soft_scandinavian",
+      "description_de": "Helle skandinavische Variante mit blasser Eiche, Off-White, Salbeigrün und weichen Textilien.",
+      "palette": ["pale_oak", "off_white", "muted_sage", "light_grey"],
+      "materials": ["light_wood", "linen", "woven_textile", "stone"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["kitchen_island", "six_seat_dining", "soft_textiles"],
+      "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/kitchen-inspect.blend",
+      "qc_status": "draft_needs_garderobe_alignment_review",
+      "search_text_de": "soft scandinavian skandinavisch helle Eiche Off White Salbeigrün Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide"
+    },
+    {
+      "asset_id": "interior-modern-architectural-v1",
+      "file": "03-interior-modern-architectural.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "modern_architectural",
+      "description_de": "Architektonisch-moderne Variante mit Räuchereiche, Kalkstein, Anthrazit und klaren Linien.",
+      "palette": ["smoked_oak", "limestone", "charcoal", "warm_grey"],
+      "materials": ["dark_wood", "stone", "leather", "metal"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["kitchen_island", "six_seat_dining", "architectural_minimalism"],
+      "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/kitchen-inspect.blend",
+      "qc_status": "draft_needs_garderobe_design_review",
+      "search_text_de": "modern architectural architektonisch Räuchereiche Kalkstein Anthrazit Küche Essen Wohnen Büro Diele Bad Schlafzimmer Ankleide"
+    },
+    {
+      "asset_id": "interior-dark-modern-final-v1",
+      "file": "04-interior-dark-modern-final.png",
+      "asset_type": "isometric_interior_concept",
+      "style": "dark_modern",
+      "description_de": "Dunkle moderne Variante mit dunklem Holzboden, cognacfarbenem Leder und offener echter Garderobe.",
+      "palette": ["dark_oak", "cognac", "charcoal", "warm_stone"],
+      "materials": ["dark_wood", "cognac_leather", "stone", "slatted_wood"],
+      "rooms_visible": ["kitchen", "dining", "living", "office", "hall", "bathroom", "bedroom", "dressing_room"],
+      "features": ["open_garderobe", "coat_hooks", "shoe_bench", "mirror", "compact_six_seat_dining", "matching_sofa_armchair", "kitchen_island"],
+      "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/kitchen-inspect.blend",
+      "qc_status": "preferred_candidate",
+      "search_text_de": "dark modern dunkler Boden Cognac Leder offene Garderobe Haken Sitzbank Schuhe Spiegel kompakter Esstisch sechs Stühle Küche Essen Wohnen"
+    },
+    {
+      "asset_id": "exterior-classic-v19-front-v1",
+      "file": "05-exterior-classic-v19-front.png",
+      "asset_type": "exterior_visualization",
+      "style": "classic_modern_bungalow",
+      "description_de": "Fotorealistische Eingangsansicht des klassischen Bungalows mit warmweißem Putz, Tonziegel-Walmdach, anthrazitfarbenen Öffnungen und strukturiertem Garten.",
+      "palette": ["warm_white", "terracotta", "anthracite", "garden_green"],
+      "materials": ["mineral_render", "clay_roof_tile", "glass", "metal", "paving", "lawn"],
+      "features": ["single_storey", "hip_roof", "solid_entrance_door", "anthracite_frames", "connected_driveway", "landscaped_garden"],
+      "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/exterior-classic-v19.blend",
+      "camera_view": "front_entrance_oblique",
+      "qc_status": "preferred_candidate",
+      "search_text_de": "Außenansicht Eingang klassisch modern Bungalow Walmdach Tonziegel warmweiß Anthrazit Garten Zufahrt Nachmittag"
+    },
+    {
+      "asset_id": "exterior-classic-v19-rear-terrace-v1",
+      "file": "06-exterior-classic-v19-rear-terrace.png",
+      "asset_type": "exterior_visualization",
+      "style": "classic_modern_terrace",
+      "description_de": "Fotorealistische Gartenansicht des klassischen Bungalows mit großzügiger Natursteinterrasse, abgestimmter Ess- und Loungegruppe und detaillierter Bepflanzung.",
+      "palette": ["warm_white", "terracotta", "anthracite", "taupe", "teak", "garden_green"],
+      "materials": ["mineral_render", "clay_roof_tile", "glass", "metal", "limestone_terrace", "outdoor_textile", "teak"],
+      "features": ["single_storey", "hip_roof", "rear_terrace", "six_seat_outdoor_dining", "coordinated_lounge_set", "barbecue", "planters", "landscaped_garden", "evening_wall_lights"],
+      "geometry_source": "C:/dev/Floorplan-tools/born2thrill-local-workbench/tmp/exterior-classic-v19.blend",
+      "camera_view": "rear_garden_oblique",
+      "qc_status": "preferred_candidate",
+      "search_text_de": "Rückseite Terrasse klassisch modern Bungalow Walmdach Naturstein Essgruppe sechs Plätze Lounge Gartenmöbel Grill Pflanzkübel Garten Abendlicht"
+    }
+  ]
+}

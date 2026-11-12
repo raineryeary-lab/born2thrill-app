@@ -1,0 +1,215 @@
+"""Preistabelle Hausart x Zimmer x Budget auf dem Grundriss-Katalog
+(plans/katalog-preistabelle-v1.md).
+
+Rainer, 2026-11-07: "that one i need" ... "on the grundrisskatalog site".
+Dieselbe Rechnung wie die Chefseite (preislogik-konfigurator.html):
+Marktpreis = m2 x 0,8 x Satz (Bungalow 2700, 1,5-Geschosser 2500,
+2-Geschosser 2650) x Faktor; "heute" = Matrixpreis (3.000 EUR/m2).
+Nur fuer eingeloggte Bearbeiter. Stand = Zeitpunkt des Erzeugens.
+
+Aufruf:  python katalog-preistabelle-snippet.py
+"""
+import csv
+import json
+import os
+import time
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DATA = os.environ.get("FLOORPLAN_WORKBENCH_DATA_DIR") or r"E:\born2thrill-local-workbench-data"
+QUELLE = os.path.join(DATA, "konfigurator-matrix.csv")
+ZIEL = os.path.join(HERE, "..", "wordpress", "katalog-preistabelle.php")
+PROJECTS = os.path.join(HERE, "..", "..", "floorplan-simplifier", "projects")
+HAUSART = {"bungalow": "Bungalow", "efh": "Einfamilienhaus", "dhh": "Doppelhaus",
+           "zfh": "Zweifamilienhaus", "mfh": "Mehrfamilienhaus"}
+
+
+def geschosse(plan):
+    try:
+        with open(os.path.join(PROJECTS, plan, "annotations.json"), encoding="utf-8") as f:
+            d = json.load(f)
+    except (OSError, ValueError):
+        return set()
+    return {a.get("floor_level") for a in (d.get("annotations") or []) if a.get("floor_level")}
+
+
+def satztyp(z):
+    """B Bungalow, A 1,5-Geschosser, Z 2-Geschosser (wie die Chefseite)."""
+    p = z["plan"]
+    if z["haustyp"] == "bungalow":
+        return "B"
+    g = geschosse(p)
+    if "onehalfstorey" in p or "1_5" in p or ("attic" in g and "upperfloor" not in g):
+        return "A"
+    return "Z"
+
+
+def daten(zeilen):
+    aus = []
+    for z in zeilen:
+        if not z.get("wohnflaeche_m2") or not z.get("haustyp"):
+            continue
+        aus.append([HAUSART.get(z["haustyp"], z["haustyp"]), satztyp(z), float(z["zimmer"] or 0),
+                    float(z["wohnflaeche_m2"]), int(float(z.get("preis_eur") or 0)),
+                    int(float(z.get("volumen_m3") or 0))])
+    return aus
+
+
+CSS = """.gk-pt{background:#1d2023;color:#e8e8e8;border:1px solid #3a3f44;margin:0 0 14px;font:14px/1.45 system-ui,sans-serif}
+.gk-pt > summary{cursor:pointer;padding:10px 18px;font-weight:600}
+.gk-pt-innen{padding:0 18px 14px}
+.gk-pt-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:6px 0}
+.gk-pt-zeile input[type=range]{width:220px}
+.gk-pt-wert{font-weight:700;min-width:3.2em}
+.gk-pt button{border:1px solid #3a3f44;background:#25292d;color:#e8e8e8;border-radius:5px;padding:3px 10px;cursor:pointer;font:inherit}
+.gk-pt button[aria-pressed=true]{border-color:#7fc8a9;color:#7fc8a9;font-weight:700}
+.gk-pt-erkl{color:#9aa0a6;font-size:13px;margin:4px 0 10px}
+.gk-pt table{border-collapse:separate;border-spacing:4px;width:100%;max-width:760px}
+.gk-pt th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9aa0a6;text-align:right;font-weight:600;padding:4px 8px}
+.gk-pt th:nth-child(-n+2),.gk-pt td:nth-child(-n+2){text-align:left}
+.gk-pt td{padding:6px 10px}
+.gk-pt td.z{text-align:right;font-weight:700;border-radius:4px;background:rgba(127,200,169,var(--a))}
+.gk-pt td.z.leer{background:#4a2421;color:#f0b8b0}
+.gk-pt-fuss{color:#9aa0a6;font-size:12px;margin-top:8px}
+.gk-pt-block{border-left:3px solid #3a3f44;padding:4px 0 4px 12px;margin:8px 0}
+.gk-pt-block.aktiv{border-left-color:#7fc8a9}
+.gk-pt-block.aktiv > .gk-pt-zeile > b:first-child{color:#7fc8a9}"""
+
+JS = """(function () {
+	// D = [hausart, satztyp, zimmer, m2, preis_heute, volumen_m3]
+	var D = __DATEN__;
+	var STAND = '__STAND__';
+	var SATZ = { B: 2700, A: 2500, Z: 2650 };
+	var FELDER = [['Einfamilienhaus', [4, 5]], ['Bungalow', [3, 4, 5]], ['Doppelhaus', [4, 5]], ['Zweifamilienhaus', [3, 4, 5]]];
+	// Marktpreis je m3 unseres Volumens: 2-Geschosser 0,8 x 2650 / 2,55 m3 je m2 = rund 830 EUR (Faktor 1,0).
+	var M3_MARKT = 830;
+	var modus = 'qm';
+	function komma(f) { return f.toFixed(2).replace('.', ','); }
+	function qm(e) { return (Math.round(e / 10) * 10).toLocaleString('de-DE') + ' €'; }
+	function spalte(p) { return p < 450000 ? 0 : p < 600000 ? 1 : 2; }
+	function start() {
+		var wrap = document.querySelector('.gk-wrap');
+		if (!wrap || wrap.querySelector('.gk-pt')) return;
+		var box = document.createElement('details');
+		box.className = 'gk-pt';
+		box.innerHTML = '<summary>Preislogik: Häuser je Hausart, Zimmer und Budget</summary><div class="gk-pt-innen">' +
+			'<div class="gk-pt-block" data-block="qm"><div class="gk-pt-zeile"><b>Nach Fläche: Faktor über Markt</b>' +
+			'<input data-regler="qm" type="range" min="1" max="1.6" step="0.05" value="1.3"><span class="gk-pt-wert" data-wert="qm"></span></div>' +
+			'<div class="gk-pt-zeile"><button data-modus="qm" data-f="1">1,0 Markt</button><button data-modus="qm" data-f="1.2">1,2</button>' +
+			'<button data-modus="qm" data-f="1.3">1,3</button><button data-modus="qm" data-f="1.4">1,4</button>' +
+			'<button data-modus="heute">heute zum Vergleich</button></div></div>' +
+			'<div class="gk-pt-block" data-block="m3"><div class="gk-pt-zeile"><b>Nach Volumen: € je m³ umbauter Raum</b>' +
+			'<input data-regler="m3" type="range" min="600" max="1400" step="10" value="1080"><span class="gk-pt-wert" data-wert="m3"></span></div>' +
+			'<div class="gk-pt-zeile"><button data-modus="m3" data-e="830">830 ≈ Markt</button><button data-modus="m3" data-e="1000">1.000</button>' +
+			'<button data-modus="m3" data-e="1080">1.080</button><button data-modus="m3" data-e="1160">1.160</button></div></div>' +
+			'<div class="gk-pt-erkl"></div><table><thead><tr><th>Hausart</th><th>Zimmer</th><th>bis 450.000 €</th>' +
+			'<th>450.000–600.000 €</th><th>über 600.000 €</th></tr></thead><tbody></tbody></table>' +
+			'<div class="gk-pt-fuss">Zahl = Häuser, die der Kunde bei dieser Kombination sieht. Rot = keine Häuser. ' +
+			'Die Tabelle folgt dem zuletzt bewegten Regler. Umbauter Raum = Außenumriss je Geschoss × 2,62 m; ' +
+			'Dach- und 1,5-Geschoss mit der nutzbaren Höhe unter der Schräge (Kniestock 1,0 m, 40°), das Dach selbst zählt nicht. ' +
+			'Stand ' + STAND + ' · nur für Bearbeiter sichtbar</div></div>';
+		var rq = box.querySelector('[data-regler="qm"]'), rv = box.querySelector('[data-regler="m3"]');
+		var erkl = box.querySelector('.gk-pt-erkl'), tbody = box.querySelector('tbody');
+		function preis(h) {
+			if (modus === 'heute') return h[4];
+			if (modus === 'm3') return h[5] * Number(rv.value);
+			return h[3] * 0.8 * SATZ[h[1]] * Number(rq.value);
+		}
+		function zeichne() {
+			var f = Number(rq.value), e = Number(rv.value);
+			box.querySelector('[data-wert="qm"]').textContent = komma(f);
+			box.querySelector('[data-wert="m3"]').textContent = e.toLocaleString('de-DE') + ' €';
+			box.querySelectorAll('.gk-pt-block').forEach(function (b) {
+				b.classList.toggle('aktiv', b.dataset.block === (modus === 'heute' ? 'qm' : modus));
+			});
+			box.querySelectorAll('button').forEach(function (k) {
+				var an = k.dataset.modus === modus && (modus === 'heute' ||
+					(modus === 'qm' && Number(k.dataset.f) === f) || (modus === 'm3' && Number(k.dataset.e) === e));
+				k.setAttribute('aria-pressed', String(an));
+			});
+			if (modus === 'heute') {
+				erkl.textContent = 'Heute: 3.000 € je m² gezeichneter Fläche = 3.750 € je m² Wohnfläche, für jeden Haustyp gleich.';
+			} else if (modus === 'm3') {
+				erkl.textContent = 'Nach Volumen: ' + e.toLocaleString('de-DE') + ' € je m³ umbauter Raum, für jeden Haustyp gleich ' +
+					'(entspricht etwa Faktor ' + komma(e / M3_MARKT) + ' auf den Flächen-Marktpreis). Dachschrägen machen ein Haus günstiger, ' +
+					'ein Luftraum zählt voll mit.';
+			} else {
+				erkl.textContent = 'Faktor ' + komma(f) + ' (' + (f === 1 ? 'reiner Marktpreis' : Math.round((f - 1) * 100) + ' % über dem Markt') +
+					') = je m² Wohnfläche: Bungalow ' + qm(SATZ.B * f) + ' · 1,5-Geschosser ' + qm(SATZ.A * f) +
+					' · 2-Geschosser/Doppelhaus/ZFH ' + qm(SATZ.Z * f) + '. Wohnfläche = gezeichnete Fläche × 0,8.';
+			}
+			var html = '';
+			FELDER.forEach(function (feld) {
+				feld[1].forEach(function (z) {
+					var n = [0, 0, 0];
+					D.forEach(function (h) {
+						if (modus === 'm3' && !h[5]) return;
+						if (h[0] === feld[0] && Math.min(Math.floor(h[2]), 5) === z) n[spalte(preis(h))]++;
+					});
+					html += '<tr><td>' + feld[0] + '</td><td>' + z + '</td>' + n.map(function (c) {
+						return '<td class="z' + (c === 0 ? ' leer' : '') + '" style="--a:' + (Math.min(c / 50, 1) * 0.45) + '">' + c + '</td>';
+					}).join('') + '</tr>';
+				});
+			});
+			tbody.innerHTML = html;
+		}
+		rq.addEventListener('input', function () { modus = 'qm'; zeichne(); });
+		rv.addEventListener('input', function () { modus = 'm3'; zeichne(); });
+		box.addEventListener('click', function (ev) {
+			var k = ev.target.closest('button');
+			if (!k) return;
+			modus = k.dataset.modus;
+			if (k.dataset.f) rq.value = k.dataset.f;
+			if (k.dataset.e) rv.value = k.dataset.e;
+			zeichne();
+		});
+		zeichne();
+		var cd = wrap.querySelector('.gk-cd');
+		if (cd) cd.parentNode.insertBefore(box, cd.nextSibling); else wrap.insertBefore(box, wrap.firstChild);
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+	else start();
+	setTimeout(start, 1600);
+})();"""
+
+
+def php(d, stand):
+    js = JS.replace("__DATEN__", json.dumps(d, ensure_ascii=False, separators=(",", ":"))).replace("__STAND__", stand)
+    return f"""<?php
+/**
+ * Katalog-Preistabelle (plans/katalog-preistabelle-v1.md). Erzeugt von
+ * born2thrill-local-workbench/scripts/katalog-preistabelle-snippet.py -- nicht
+ * von Hand aendern, neu erzeugen. Stand {stand}: {len(d)} Haeuser.
+ * Nur fuer eingeloggte Bearbeiter, nur auf Seiten mit [grundriss_katalog].
+ */
+add_action( 'wp_footer', function () {{
+	if ( is_admin() || ! current_user_can( 'edit_posts' ) ) {{
+		return;
+	}}
+	$post = get_post();
+	if ( ! $post || ! has_shortcode( $post->post_content, 'grundriss_katalog' ) ) {{
+		return;
+	}}
+	?>
+<style id="gk-preistabelle-css">
+{CSS}
+</style>
+<script id="gk-preistabelle-js">
+{js}
+</script>
+	<?php
+}} );
+"""
+
+
+def main():
+    with open(QUELLE, encoding="utf-8-sig") as f:
+        d = daten(csv.DictReader(f, delimiter=";"))
+    text = php(d, time.strftime("%Y-%m-%d %H:%M"))
+    with open(ZIEL, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+    from collections import Counter
+    print(os.path.abspath(ZIEL), len(d), dict(Counter(h[0] for h in d)))
+
+
+if __name__ == "__main__":
+    main()

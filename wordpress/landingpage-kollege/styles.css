@@ -1,0 +1,918 @@
+/* Hausbau-Konfigurator Landingpage
+   In OnePage: Inhalt dieser Datei in das Feld "Eigenes CSS" der Seite einfügen. */
+
+/* Nur für OnePage: blendet den leeren Seitenbereich des Baukastens aus,
+   damit die eigene Seite oben beginnt und nichts unsichtbar über den Knöpfen liegt.
+   Lokal und in WordPress ohne Wirkung. */
+#root {
+  min-height: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+#root .con-kit-page {
+  pointer-events: none !important;
+}
+
+/* Farben und Schrift wie im Funnel (hausklar-flug): weiß, rot, eckig.
+   Sand ist 4 Helligkeitsstufen (L*) dunkler als Weiß, damit Abschnitte sichtbar wechseln.
+   Blautöne sind 10 % und 5 % Blau auf Weiß. Alle Texte erfüllen WCAG AA (4,5:1). */
+:root {
+  --blue: #1d4e89;
+  --accent: #d42a10;
+  --accent-dark: #b8240b;
+  --bg: #f8f4ea;
+  --paper: #ffffff;
+  --blue-tint: #e8edf3;
+  --blue-soft: #f4f6f9;
+  --ink: #201e1d;
+  --muted: #6b6968;
+  --rule: rgba(32, 30, 29, .14);
+  --font: "Archivo", "Segoe UI", system-ui, sans-serif;
+  --header: 64px;
+}
+
+* {
+  box-sizing: border-box
+}
+
+html,
+body {
+  margin: 0
+}
+
+/* Grundfarbe weiß: Safari färbt damit die Flächen hinter den Browserleisten oben und unten.
+   Das Sand liegt nur auf den Abschnitten selbst. */
+html,
+body {
+  background: var(--paper)
+}
+
+.hero,
+section {
+  background: var(--bg)
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased
+}
+
+svg {
+  display: block
+}
+
+/* Zeilen möglichst gleich lang umbrechen */
+h1,
+h2,
+h3,
+.ask,
+.lead,
+.goal b,
+.goal small,
+.facts b,
+.path b {
+  text-wrap: balance
+}
+
+.text,
+.path p,
+.facts span,
+.col li span {
+  text-wrap: pretty
+}
+
+.wrap {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-left: max(32px, env(safe-area-inset-left, 0px));
+  padding-right: max(32px, env(safe-area-inset-right, 0px))
+}
+
+/* Kopfzeile weiß mit Linie, damit sie sich vom sandfarbenen ersten Bildschirm abhebt */
+body>header {
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule)
+}
+
+header .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header)
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -.015em;
+  color: var(--ink);
+  text-decoration: none
+}
+
+.logo b {
+  font-weight: 800;
+  color: var(--blue)
+}
+
+.head-note {
+  font-size: 14px;
+  color: var(--muted)
+}
+
+/* Erster Bildschirm: Versprechen, Einstieg, Los geht's – ohne Scrollen */
+.hero {
+  min-height: calc(100svh - var(--header));
+  display: flex;
+  align-items: center;
+  padding: clamp(16px, 4vh, 48px) 0
+}
+
+/* Beide Spalten gleich hoch: Ober- und Unterkanten liegen auf einer Linie */
+.hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: clamp(40px, 5vw, 72px);
+  align-items: center
+}
+
+.hero-text {
+  display: flex;
+  flex-direction: column
+}
+
+.eyebrow {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: clamp(12px, 2.6vh, 24px)
+}
+
+h1 {
+  /* erste Zeile ist ca. 10,6 × Schriftgröße breit und muss in die linke Spalte passen */
+  font-size: max(30px, min(4.5vw, 58px, 8.5vh));
+  line-height: 1.02;
+  letter-spacing: -.035em;
+  font-weight: 800;
+  margin: 0 0 clamp(16px, 3.4vh, 32px)
+}
+
+/* Zwei Zeilen, beide etwa gleich breit (ca. 10,6 × Schriftgröße) */
+h1>span {
+  display: block;
+  white-space: nowrap
+}
+
+h1 em {
+  font-style: normal;
+  color: var(--blue)
+}
+
+.lead {
+  font-size: clamp(16px, 2.8vh, 21px);
+  color: var(--muted);
+  margin: 0 0 clamp(24px, 5vh, 48px);
+  max-width: 30em
+}
+
+/* Emotionaler Einstieg: Besucher ordnet sich selbst zu */
+.panel {
+  background: var(--paper);
+  padding: clamp(20px, 4vh, 36px);
+  display: flex;
+  flex-direction: column
+}
+
+.ask {
+  font-weight: 800;
+  font-size: clamp(18px, 2.6vh, 21px);
+  letter-spacing: -.015em;
+  line-height: 1.2;
+  margin: 0 0 clamp(12px, 2.4vh, 20px)
+}
+
+.goals {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 10px;
+  margin: 0
+}
+
+.goal {
+  position: relative;
+  font: inherit;
+  cursor: pointer;
+  background: var(--paper);
+  border: 1.5px solid var(--rule);
+  padding: clamp(12px, 2.6vh, 24px) 18px;
+  justify-content: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink);
+  text-decoration: none;
+  text-align: left;
+  transition: border-color .15s, background-color .15s, transform .15s
+}
+
+/* Icon in getöntem, eckigem Kästchen */
+.goal svg {
+  box-sizing: border-box;
+  width: 44px;
+  height: 44px;
+  padding: 9px;
+  color: var(--blue);
+  background: var(--blue-tint);
+  margin-bottom: clamp(4px, 1.2vh, 10px);
+  transition: background-color .2s ease, color .2s ease
+}
+
+.panel .goal:hover svg,
+.panel .goal:focus-visible svg {
+  color: var(--paper);
+  background: var(--blue)
+}
+
+.goal b {
+  font-size: 17px;
+  line-height: 1.2
+}
+
+.goal small {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.3;
+  white-space: nowrap
+}
+
+/* Kacheln sind Links in den Funnel: deutlicher Hover mit Pfeil */
+.panel .goal::after {
+  content: "→";
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--blue);
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity .15s, transform .15s
+}
+
+.panel .goal:hover,
+.panel .goal:focus-visible {
+  border-color: var(--blue);
+  background-color: var(--blue-soft);
+  transform: translateY(-2px);
+  outline: none
+}
+
+.panel .goal:hover b,
+.panel .goal:focus-visible b {
+  color: var(--blue)
+}
+
+.panel .goal:hover::after,
+.panel .goal:focus-visible::after {
+  opacity: 1;
+  transform: none
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--accent);
+  color: var(--paper);
+  text-decoration: none;
+  font-weight: 800;
+  font-size: 21px;
+  padding: 20px 56px;
+  transition: background .2s
+}
+
+.btn:hover {
+  background: var(--accent-dark)
+}
+
+
+.btn svg {
+  width: 22px;
+  height: 22px;
+  transition: transform .2s
+}
+
+.btn:hover svg {
+  transform: translateX(4px)
+}
+
+.cta-row {
+  display: flex;
+  align-items: center;
+  gap: 24px
+}
+
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--muted)
+}
+
+.checks li {
+  display: flex;
+  align-items: center;
+  gap: 7px
+}
+
+.checks svg {
+  width: 15px;
+  height: 15px;
+  color: var(--blue)
+}
+
+/* Unterhalb: Problem, Big Picture, wer dahinter steht, zweiter Aufruf */
+/* Abschnitte wechseln zwischen Sand (var(--bg)) und Weiß (.alt) */
+section {
+  padding-block: clamp(56px, 9vh, 96px)
+}
+
+section.alt {
+  background: var(--paper)
+}
+
+section.alt .facts li {
+  background: var(--bg)
+}
+
+.section-cta {
+  margin-top: 40px
+}
+
+.btn--md {
+  font-size: 18px;
+  padding: 16px 32px
+}
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 9fr) minmax(0, 15fr);
+  gap: 56px;
+  align-items: start
+}
+
+.faq-grid .section-cta {
+  margin-top: 28px
+}
+
+.faq-list {
+  display: grid;
+  gap: 10px
+}
+
+.faq-list details {
+  background: var(--paper)
+}
+
+.faq-list summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 20px 56px 20px 24px;
+  font-weight: 700;
+  font-size: 18px;
+  position: relative;
+  text-wrap: balance
+}
+
+.faq-list summary::-webkit-details-marker {
+  display: none
+}
+
+.faq-list summary::after {
+  content: "+";
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 24px;
+  font-weight: 400;
+  color: var(--blue)
+}
+
+.faq-list details[open] summary::after {
+  content: "–"
+}
+
+.faq-list summary:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px
+}
+
+.faq-list details p {
+  margin: 0;
+  padding: 0 24px 22px;
+  color: var(--muted);
+  font-size: 16px;
+  text-wrap: pretty
+}
+
+.kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 12px
+}
+
+h2 {
+  font-size: clamp(28px, 3.4vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -.025em;
+  font-weight: 800;
+  margin: 0 0 16px;
+  max-width: 20em
+}
+
+.text {
+  font-size: 18px;
+  color: var(--muted);
+  max-width: 40em;
+  margin: 0
+}
+
+.path {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 40px
+}
+
+.path div {
+  background: var(--paper);
+  padding: 24px;
+  border-top: 4px solid var(--rule)
+}
+
+/* Zweispaltige Abschnitte: Text mit Knopf und Kacheln, im Wechsel links/rechts.
+   .flip tauscht die Seiten auf breiten Bildschirmen; auf dem Handy steht der Text immer zuerst. */
+.how {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center
+}
+
+.how .section-cta {
+  margin-top: 32px
+}
+
+.how .path {
+  grid-template-columns: 1fr;
+  margin-top: 0
+}
+
+.how .compare {
+  grid-template-columns: 1fr;
+  margin-top: 0
+}
+
+@media (min-width:901px) {
+  /* Text unter der Headline: Zeilen fest wie im HTML (eine Zeile pro span) */
+  .lead {
+    max-width: none
+  }
+
+  .lead>span {
+    display: block;
+    white-space: nowrap
+  }
+
+  .flip > :first-child {
+    order: 2
+  }
+}
+
+.how .path div {
+  border-top: 0;
+  border-left: 4px solid var(--rule)
+}
+
+.how .path div.now {
+  border-left-color: var(--accent)
+}
+
+.path div.now {
+  border-top-color: var(--accent)
+}
+
+.path small {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px
+}
+
+.path .now small {
+  color: var(--accent)
+}
+
+.path b {
+  display: block;
+  font-size: 19px;
+  margin-bottom: 6px
+}
+
+.path p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px
+}
+
+.compare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 10px;
+  margin-top: 40px
+}
+
+.col {
+  padding: 28px
+}
+
+.col--other {
+  /* ganze Pixel, sonst zeichnet Safari auf dem iPhone die seitlichen Striche nicht */
+  border: 2px dashed var(--rule)
+}
+
+.col--us {
+  background: var(--blue);
+  color: var(--paper)
+}
+
+.col h3 {
+  font-size: 19px;
+  margin: 0 0 18px
+}
+
+.col--other h3 {
+  color: var(--muted)
+}
+
+.col ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 14px
+}
+
+.col li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  font-size: 17px
+}
+
+.col--other li {
+  color: var(--muted)
+}
+
+.col li svg {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  margin-top: 3px
+}
+
+.about {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center
+}
+
+.facts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px
+}
+
+.facts li {
+  background: var(--paper);
+  padding: 18px 20px;
+  font-size: 16px
+}
+
+.facts b {
+  display: block;
+  font-size: 17px;
+  margin-bottom: 2px
+}
+
+.facts span {
+  color: var(--muted)
+}
+
+
+.final {
+  background: var(--blue);
+  color: var(--paper);
+  border: 0
+}
+
+.final .wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px
+}
+
+.final h2 {
+  color: var(--paper);
+  margin: 0 0 12px
+}
+
+.final .text {
+  color: rgba(255, 255, 255, .8)
+}
+
+.final .btn {
+  flex: none
+}
+
+footer {
+  font-size: 13px;
+  color: var(--muted);
+  background: var(--paper)
+}
+
+footer .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  padding-block: 18px;
+  justify-content: space-between;
+  align-items: center
+}
+
+footer nav {
+  display: flex;
+  gap: 18px
+}
+
+footer a {
+  color: inherit;
+  text-decoration: none
+}
+
+@media (max-width:900px) {
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px
+  }
+
+
+  .final .wrap {
+    flex-direction: column;
+    align-items: flex-start
+  }
+
+  .path,
+  .compare,
+  .faq-grid,
+  .how {
+    grid-template-columns: 1fr
+  }
+
+  .faq-grid {
+    gap: 28px
+  }
+
+  .about {
+    grid-template-columns: 1fr;
+    gap: 28px
+  }
+}
+
+@media (max-width:600px) {
+  :root {
+    --header: 54px
+  }
+
+  .wrap {
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px))
+  }
+
+  .head-note {
+    display: none
+  }
+
+  /* Erster Bildschirm: mittig, Reihenfolge Überschrift, Text, Kacheln, Knopf */
+  .hero {
+    padding-block: 24px
+  }
+
+  .hero-text {
+    display: contents
+  }
+
+  .hero-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0
+  }
+
+  .hero-text .eyebrow,
+  .hero h1 {
+    align-self: flex-start
+  }
+
+  /* "Oder direkt starten" passt nicht, wenn die Kacheln vor dem Knopf stehen */
+  .panel .eyebrow {
+    display: none
+  }
+
+  .hero-text .eyebrow {
+    order: 1
+  }
+
+  .hero h1 {
+    order: 2
+  }
+
+  .lead {
+    order: 3;
+    margin-bottom: 24px
+  }
+
+  .panel {
+    order: 4
+  }
+
+  .cta-row {
+    order: 5;
+    margin-top: 24px
+  }
+
+  .eyebrow {
+    margin-bottom: 10px
+  }
+
+  h1 {
+    font-size: clamp(26px, 7.6vw, 36px);
+    margin-bottom: 12px
+  }
+
+  .lead {
+    font-size: 16px;
+    text-wrap: pretty
+  }
+
+  .panel {
+    padding: 0;
+    background: none
+  }
+
+  .ask {
+    font-size: 15px;
+    margin-bottom: 10px
+  }
+
+  /* Kacheln: Icon links, Titel und Unterzeile daneben (Unterzeile nie ausblenden) */
+  .goal {
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: 34px 1fr;
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: center;
+    align-content: center
+  }
+
+  .goal svg {
+    grid-row: span 2;
+    width: 34px;
+    height: 34px;
+    padding: 7px;
+    margin: 0;
+    flex: none
+  }
+
+  .goal b {
+    font-size: 15px;
+    white-space: nowrap
+  }
+
+  /* Unterzeile immer zweizeilig, eine Zeile pro span */
+  .goal small {
+    display: block;
+    font-size: 12.5px
+  }
+
+  .goal small span {
+    display: block
+  }
+
+  .panel .goal::after {
+    top: 50%;
+    right: 12px;
+    font-size: 16px;
+    transform: translateY(-50%)
+  }
+
+  .logo {
+    font-size: 17px
+  }
+
+  /* Knöpfe: volle Breite, eine Zeile, nicht zu wuchtig */
+  .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 16px;
+    font-size: 18px;
+    white-space: nowrap
+  }
+
+  .btn--md {
+    font-size: 16px;
+    padding: 14px 16px
+  }
+
+  .btn svg {
+    width: 18px;
+    height: 18px
+  }
+
+  .section-cta,
+  .how .section-cta {
+    margin-top: 28px
+  }
+
+  .cta-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px
+  }
+
+  /* Häkchen als Leiste mit drei Spalten unter dem Knopf */
+  .checks {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    font-size: 13px;
+    line-height: 1.25;
+    text-align: center
+  }
+
+  .checks li {
+    flex-direction: column;
+    gap: 4px;
+    text-wrap: balance
+  }
+
+
+  .text {
+    font-size: 16px
+  }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  * {
+    transition: none !important;
+    animation: none !important
+  }
+}
+
+/* Emojis: sparsam eingesetzt, nie kursiv oder rot eingefärbt */
+.emo {
+  font-style: normal;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+h1 .emo {
+  font-size: .82em;
+}

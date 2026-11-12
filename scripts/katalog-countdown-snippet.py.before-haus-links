@@ -1,0 +1,157 @@
+"""Countdown ueber dem Grundriss-Katalog (plans/katalog-countdown-v1.md).
+
+Rainer, 2026-11-07: "could you add this list to the grundrisskatalog? towards
+the top so i can countdown?"
+
+Liest die Hausliste der Workbench (dieselben Zustaende wie /haus) und schreibt
+wordpress/katalog-countdown.php -- einen Code Snippet, der ueber den Filtern
+des Katalogs "X von N fertig" und die offenen Schritte zeigt. Nur fuer
+eingeloggte Bearbeiter (edit_posts), nie fuer Kunden. Die Zahlen sind ein
+Stand zum Zeitpunkt des Erzeugens: neu erzeugen und Snippet ersetzen.
+
+Aufruf:  python katalog-countdown-snippet.py   (Workbench auf :3020 muss laufen)
+"""
+import json
+import os
+import time
+import urllib.request
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ZIEL = os.path.join(HERE, "..", "wordpress", "katalog-countdown.php")
+STATE_URL = "http://127.0.0.1:3020/api/floorplan-workbench/state"
+GRUNDRISSE = os.path.join(os.environ.get("FLOORPLAN_WORKBENCH_DATA_DIR")
+                          or r"E:\born2thrill-local-workbench-data", "katalog-grundrisse")
+
+FERTIG = {"fertig", "fertig_update"}
+# Reihenfolge = Reihenfolge der Arbeit. Ein Haus steht genau in einem Schritt.
+SCHRITTE = [
+    ("Haus zeichnen / vermessen (Annotator)", {"unbegonnen", "keine_vorlage", "vermessung_noetig"}),
+    ("Geschosse ausrichten (Annotator)", {"ausrichtung_noetig"}),
+    ("Bauen", {"baubereit", "bau_veraltet"}),
+    ("Codex-Bilder fehlen", {"warten_auf_codex"}),
+    ("Bilder hochladen", {"bilder_hochladen"}),
+    ("Bilder freigeben", {"bilder_freigeben", "warten_auf_freigabe", "veroeffentlicht_build_alt"}),
+    ("Sonstiges", set()),
+]
+
+
+def zaehlen(haeuser, grundriss_bilder=()):
+    """Haeuser -> {gesamt, fertig, offen, schritte:[{titel, plaene}]}.
+
+    Ein Haus, dessen einziges Katalogbild das gezeichnete Grundrissbild ist,
+    meldet die Workbench als "Bilder freigeben" -- in Wahrheit fehlen dort
+    noch die Codex-Bilder. Es zaehlt deshalb unter "Codex-Bilder fehlen".
+    """
+    grundriss_bilder = set(grundriss_bilder)
+    gruppen = {titel: [] for titel, _ in SCHRITTE}
+    fertig = 0
+    for h in sorted(haeuser, key=lambda h: h["plan"]):
+        state = h.get("state")
+        if state in FERTIG:
+            fertig += 1
+            continue
+        if state == "bilder_freigeben" and h["plan"] in grundriss_bilder \
+                and int(h.get("catalogue_images") or 0) <= 1:
+            gruppen["Codex-Bilder fehlen"].append(h["plan"])
+            continue
+        titel = next((t for t, menge in SCHRITTE if state in menge), "Sonstiges")
+        gruppen[titel].append(h["plan"])
+    schritte = [{"titel": t, "plaene": gruppen[t]} for t, _ in SCHRITTE if gruppen[t]]
+    return {"gesamt": len(haeuser), "fertig": fertig, "offen": len(haeuser) - fertig,
+            "schritte": schritte}
+
+
+CSS = """.gk-cd{background:#1d2023;color:#e8e8e8;border:1px solid #3a3f44;padding:14px 18px;margin:0 0 14px;font:14px/1.45 system-ui,sans-serif}
+.gk-cd-kopf{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 16px}
+.gk-cd-zahl{font-size:22px;font-weight:700;color:#fff}
+.gk-cd-rest{font-size:16px;color:#ffd166;font-weight:600}
+.gk-cd-stand{margin-left:auto;font-size:12px;color:#9aa0a6}
+.gk-cd-balken{height:8px;background:#33383d;margin:10px 0 8px;border-radius:4px;overflow:hidden}
+.gk-cd-balken i{display:block;height:100%;background:#4caf50}
+.gk-cd details{border-top:1px solid #33383d;padding:6px 0}
+.gk-cd summary{cursor:pointer;display:flex;gap:10px}
+.gk-cd summary b{min-width:3em;text-align:right;color:#ffd166}
+.gk-cd-namen{display:flex;flex-wrap:wrap;gap:4px 6px;margin:6px 0 2px 3.6em}
+.gk-cd-namen a{color:#9fd3ff;text-decoration:none;font-size:12px;border:1px solid #3a4a58;padding:1px 6px;border-radius:3px;cursor:pointer}
+.gk-cd-namen a:hover{background:#2a3a48}"""
+
+JS = """(function () {
+	var C = __DATEN__;
+	function start() {
+		var wrap = document.querySelector('.gk-wrap');
+		if (!wrap || wrap.querySelector('.gk-cd')) return;
+		var box = document.createElement('div');
+		box.className = 'gk-cd';
+		var anteil = C.gesamt ? Math.round(100 * C.fertig / C.gesamt) : 0;
+		var html = '<div class="gk-cd-kopf"><span class="gk-cd-zahl">' + C.fertig + ' von ' + C.gesamt +
+			' fertig</span><span class="gk-cd-rest">noch ' + C.offen + '</span>' +
+			'<span class="gk-cd-stand">Stand ' + C.stand + ' · nur für Team sichtbar · Namen öffnen den Annotator</span></div>' +
+			'<div class="gk-cd-balken"><i style="width:' + anteil + '%"></i></div>';
+		C.schritte.forEach(function (s) {
+			html += '<details><summary><b>' + s.plaene.length + '</b><span>' + s.titel + '</span></summary>' +
+				'<div class="gk-cd-namen">' + s.plaene.map(function (p) {
+					// Rainer, 2026-11-08: anklicken = Haus im Annotator bearbeiten (neuer Tab).
+					// Der Annotator laeuft nur auf Rainers Rechner (localhost:8765).
+					return '<a data-plan="' + p + '" target="_blank" rel="noopener" title="Im Annotator öffnen" href="http://localhost:8765/annotate.html?project=' +
+						encodeURIComponent(p) + '">' + p + '</a>';
+				}).join('') + '</div></details>';
+		});
+		box.innerHTML = html;
+		wrap.insertBefore(box, wrap.firstChild);
+	}
+	if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+	else start();
+	setTimeout(start, 1500);
+})();"""
+
+
+def php(daten, stand):
+    daten = dict(daten, stand=stand)
+    js = JS.replace("__DATEN__", json.dumps(daten, ensure_ascii=False, separators=(",", ":")))
+    return f"""<?php
+/**
+ * Katalog-Countdown (plans/katalog-countdown-v1.md). Erzeugt von
+ * born2thrill-local-workbench/scripts/katalog-countdown-snippet.py -- nicht von
+ * Hand aendern, neu erzeugen. Stand {stand}: {daten['fertig']} von {daten['gesamt']} fertig.
+ * Nur fuer eingeloggte Bearbeiter, nur auf Seiten mit [grundriss_katalog].
+ */
+add_action( 'wp_footer', function () {{
+	// Team: auch wer mit dem Website-Zugang (Snippet 13) drin ist, sieht den Countdown.
+	if ( is_admin() || ! ( current_user_can( 'edit_posts' ) || ( function_exists( 'b2t_zugang_ok' ) && b2t_zugang_ok() ) ) ) {{
+		return;
+	}}
+	$post = get_post();
+	if ( ! $post || ! has_shortcode( $post->post_content, 'grundriss_katalog' ) ) {{
+		return;
+	}}
+	?>
+<style id="gk-countdown-css">
+{CSS}
+</style>
+<script id="gk-countdown-js">
+{js}
+</script>
+	<?php
+}} );
+"""
+
+
+def main():
+    with urllib.request.urlopen(STATE_URL, timeout=120) as antwort:
+        haeuser = json.load(antwort)["houses"]
+    try:
+        grundriss = {n[:-len("-grundriss.png")] for n in os.listdir(GRUNDRISSE)
+                     if n.endswith("-grundriss.png")}
+    except OSError:
+        grundriss = set()
+    daten = zaehlen(haeuser, grundriss)
+    text = php(daten, time.strftime("%Y-%m-%d %H:%M"))
+    with open(ZIEL, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
+    print(os.path.abspath(ZIEL), "--", daten["fertig"], "von", daten["gesamt"], "fertig")
+    for s in daten["schritte"]:
+        print("  {:4d}  {}".format(len(s["plaene"]), s["titel"]))
+
+
+if __name__ == "__main__":
+    main()

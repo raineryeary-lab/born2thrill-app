@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hausbau-Konfigurator</title>
+<link rel="stylesheet" href="konfigurator.css">
+</head>
+<body>
+<!-- Eigenstaendiges Paket (REGELN 38): diese Seite, konfigurator.js/.css,
+     haeuser.json und der Ordner clips/ laufen ohne WordPress. -->
+<main id="hk" class="hk">
+  <div class="hk-buehne">
+    <video id="hk-video" playsinline muted preload="auto"></video>
+    <img id="hk-standbild" alt="" hidden>
+    <div id="hk-frage" class="hk-frage" hidden>
+      <p id="hk-fragetext" class="hk-fragetext"></p>
+      <p id="hk-hinweis" class="hk-hinweis"></p>
+      <div id="hk-antworten" class="hk-antworten"></div>
+    </div>
+  </div>
+  <div class="hk-leiste">
+    <button id="hk-zurueck" class="hk-klein" type="button" hidden>&larr; Zurück</button>
+    <div class="hk-fortschritt"><span id="hk-balken"></span></div>
+    <button id="hk-ton" class="hk-klein" type="button">Ton an</button>
+  </div>
+</main>
+<script src="konfigurator.js"></script>
+</body>
+</html>

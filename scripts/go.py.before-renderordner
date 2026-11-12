@@ -1,0 +1,174 @@
+#!/usr/bin/env python3
+"""EIN Befehl. Er treibt ein Haus so weit wie es ohne dich geht.
+
+    python go.py bungalow_039
+    python go.py --alle
+    python go.py --alle --hochladen        auch in den Katalog schieben
+
+Er laeuft die Kette selbst ab und hoert erst auf, wenn er wirklich dich braucht:
+
+    Massstab   -> rechnet ihn aus der Katalog-Seitengeometrie, wenn moeglich
+    Dachform   -> setzt sie, wenn keine da ist
+    Bauen      -> ruft run_project fuer beide Stile
+    Pruefen    -> Verifier laeuft im Bau mit
+    Zertifikat -> schreibt run_project, wenn alles sauber ist
+    Hochladen  -> nur mit --hochladen
+    Freigeben  -> NIE automatisch, das ist deine Entscheidung
+
+Am Ende sagt er pro Haus genau einen Satz: fertig, oder was fehlt und mit
+welchem Befehl du es loest. Kein Suchen in Logs.
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SUITE = os.path.dirname(os.path.dirname(HERE))
+PROJECTS = os.path.join(SUITE, "floorplan-simplifier", "projects")
+DATA = (os.environ.get("FLOORPLAN_WORKBENCH_DATA_DIR")
+        or os.path.join(SUITE, "born2thrill-local-workbench-data"))
+PY = sys.executable
+
+
+def read_json(path, default=None):
+    try:
+        with open(path, encoding="utf-8-sig") as handle:
+            return json.load(handle)
+    except Exception:
+        return default
+
+
+def run(cmd, quiet=True):
+    result = subprocess.run(cmd, capture_output=quiet, text=True,
+                            errors="replace", cwd=HERE)
+    return result.returncode
+
+
+def hat_massstab(name):
+    folder = os.path.join(PROJECTS, name)
+    a = read_json(os.path.join(folder, "annotations.json")) or {}
+    if a.get("floor_scale"):
+        return True
+    return bool((read_json(os.path.join(folder, "gebaeudemass.json")) or {}).get("floor_scale"))
+
+
+def hat_dach(name):
+    folder = os.path.join(PROJECTS, name)
+    a = read_json(os.path.join(folder, "annotations.json")) or {}
+    if a.get("roof_type_modern") or a.get("roof_type_classic"):
+        return True
+    return bool((read_json(os.path.join(folder, "gebaeudemass.json")) or {}).get("roof_type_classic"))
+
+
+def zertifikat(name):
+    return read_json(os.path.join(DATA, "corrections", name, "renders",
+                                  "go-baseline", "delivery-manifest.json"))
+
+
+def verifier_fails(name):
+    log = os.path.join(DATA, "corrections", name, "renders", "go-baseline",
+                       "batch-build.log")
+    if not os.path.exists(log):
+        return []
+    with open(log, encoding="utf-8", errors="replace") as handle:
+        return sorted({l.split()[1] for l in handle
+                       if l.startswith("FAIL ") and len(l.split()) > 1})
+
+
+def storeys(name):
+    a = read_json(os.path.join(PROJECTS, name, "annotations.json")) or {}
+    lv = {x.get("floor_level") for x in (a.get("annotations") or []) if x.get("floor_level")}
+    return max(1, len(lv))
+
+
+def treibe(name, hochladen=False, laut=False):
+    """Push one house as far as it goes. Returns (fertig, satz)."""
+    a = read_json(os.path.join(PROJECTS, name, "annotations.json"))
+    if not a or not (a.get("annotations") or []):
+        return False, "nicht annotiert -- im Annotator die Raeume zeichnen"
+
+    # --- Massstab -------------------------------------------------------
+    if not hat_massstab(name):
+        run([PY, os.path.join(HERE, "gebaeudemass.py"), "--aus-katalog"])
+        if not hat_massstab(name):
+            folder = os.path.join(PROJECTS, name)
+            bild = any(x.lower().endswith((".png", ".jpg", ".jpeg", ".pdf"))
+                       and "room_concept" not in x.lower()
+                       for x in os.listdir(folder))
+            if bild:
+                return False, "Massstab fehlt -- im Annotator das Gebaeudemass ziehen"
+            return False, ("Massstab fehlt -- python gebaeudemass.py %s "
+                           "--breite B --tiefe T" % name)
+
+    # --- Dachform -------------------------------------------------------
+    if not hat_dach(name):
+        run([PY, os.path.join(HERE, "dachform.py"), name])
+
+    # --- Bauen ----------------------------------------------------------
+    if not zertifikat(name):
+        floors = ",".join(str(i) for i in range(storeys(name)))
+        code = run([PY, os.path.join(HERE, "run_project.py"), name,
+                    "--styles", "modern,classic", "--floors", floors],
+                   quiet=not laut)
+        if code == 2:
+            return False, "wird gerade von einem anderen Lauf gebaut"
+        if not zertifikat(name):
+            fails = verifier_fails(name)
+            if fails:
+                return False, ("Verifier: %s -- siehe plans/winkel-report.html"
+                               % ", ".join(fails))
+            return False, "Bau fehlgeschlagen -- Log in renders/go-baseline/"
+
+    # --- Hochladen ------------------------------------------------------
+    if hochladen:
+        ordner = os.path.join(DATA, "corrections", name, "renders", "go-baseline")
+        code = run([PY, os.path.join(HERE, "publish-renders.py"),
+                    "--plan", name, "--dir", ordner], quiet=not laut)
+        if code != 0:
+            return False, "gebaut und zertifiziert, Hochladen fehlgeschlagen"
+        return False, "hochgeladen -- jetzt freigeben: python approve-plan.py %s --reason \"...\"" % name
+
+    return True, "gebaut und zertifiziert -- mit --hochladen in den Katalog"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("haeuser", nargs="*")
+    parser.add_argument("--alle", action="store_true")
+    parser.add_argument("--hochladen", action="store_true")
+    parser.add_argument("--laut", action="store_true", help="Ausgaben der Teilschritte zeigen")
+    args = parser.parse_args()
+
+    namen = args.haeuser
+    if args.alle:
+        namen = sorted(n for n in os.listdir(PROJECTS)
+                       if os.path.exists(os.path.join(PROJECTS, n, "annotations.json")))
+    if not namen:
+        sys.exit("Welches Haus? Oder --alle")
+
+    fertig, offen = [], []
+    for i, name in enumerate(namen, 1):
+        print("[%d/%d] %-46s " % (i, len(namen), name[:46]), end="", flush=True)
+        ok, satz = treibe(name, hochladen=args.hochladen, laut=args.laut)
+        print(("fertig" if ok else satz)[:96])
+        (fertig if ok else offen).append((name, satz))
+
+    print("")
+    print("%d fertig, %d brauchen dich" % (len(fertig), len(offen)))
+    if offen:
+        gruppen = {}
+        for name, satz in offen:
+            schluessel = satz.split("--")[0].strip()
+            gruppen.setdefault(schluessel, []).append(name)
+        print("")
+        for schluessel, liste in sorted(gruppen.items(), key=lambda x: -len(x[1])):
+            print("  %4d  %s" % (len(liste), schluessel))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

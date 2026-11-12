@@ -1,0 +1,413 @@
+/**
+ * One truthful state per house, with its blocker and its single next action.
+ *
+ * Codex ranked this first for getting from 1 finished house to 50: "Authoritative
+ * per-house state machine/dashboard with truthful blockers and finish status."
+ *
+ * "Finished" is not "rendered". It is: searchable in the catalogue, images
+ * uploaded, EVERY image released to customers, and the plan approved. Codex,
+ * on the last two: "Automated verification approves geometry integrity — not
+ * customer suitability." So they stay human, and this only reports them.
+ *
+ * The states are ordered so the list reads as a queue: the closest to finished
+ * first, the impossible last.
+ */
+import { readdir, readFile, stat } from "node:fs/promises";
+import { angenommenerOrdner } from "@/lib/floorplan-workbench/angenommener-ordner.mjs";
+import { join, resolve } from "node:path";
+import { spawn } from "node:child_process";
+import { deriveHouseState, STATES, naechsteFertigVersion } from "@/lib/floorplan-workbench/house-state.mjs";
+import { createHash, randomUUID } from "node:crypto";
+import { rename, writeFile } from "node:fs/promises";
+import { hausdaten } from "@/lib/floorplan-workbench/hausdaten.mjs";
+import { sperreNehmen, ledgerAbgleichen } from "@/lib/floorplan-workbench/datei-sperre.mjs";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const SITE = (process.env.B2T_SITE || "https://born2thrill.de").replace(/\/+$/, "");
+const RASTER = [".png", ".jpg", ".jpeg", ".pdf"];
+
+// STATES und die Ableitung leben in src/lib/floorplan-workbench/house-state.mjs
+// -- eine Wahrheit fuer Liste, Knoepfe und Batch (Codex-Audit P0, Ralph-Item 1).
+type State = (typeof STATES)[number];
+
+function alignmentComplete(annotation: any, levels: string[], ground: string) {
+  const marks = annotation?.floor_alignment || {};
+  if (!Array.isArray(marks[ground]) || marks[ground].length !== 2) return false;
+  return levels.every((level) => Array.isArray(marks[level]) && marks[level].length === 2);
+}
+
+function normalizedHostname(value: string) {
+  const first = value.split(",")[0]?.trim().toLowerCase() || "";
+  if (first.startsWith("[")) return first.slice(1, first.indexOf("]"));
+  return first.split(":")[0];
+}
+
+function enabled(request: Request) {
+  const urlHost = new URL(request.url).hostname.toLowerCase();
+  const headerHost = normalizedHostname(
+    request.headers.get("x-forwarded-host") || request.headers.get("host") || "",
+  );
+  return process.env.FLOORPLAN_WORKBENCH_ENABLED === "true"
+    && ["127.0.0.1", "localhost", "::1"].includes(urlHost)
+    && ["127.0.0.1", "localhost", "::1"].includes(headerHost);
+}
+
+async function hasRaster(folder: string) {
+  try {
+    return (await readdir(folder)).some((e) => RASTER.some((x) => e.toLowerCase().endsWith(x)));
+  } catch {
+    return false;
+  }
+}
+
+async function countBlends(folder: string) {
+  try {
+    return (await readdir(folder)).filter((n) => n.endsWith(".blend")).length;
+  } catch {
+    return 0;
+  }
+}
+
+/** Wie viele Bilder haengen am Plan -- unabhaengig davon, ob freigegeben. */
+/** Wieviele Bilder liegen in der Mediathek, und wieviele sind angehakt?
+ *  null = WordPress war nicht erreichbar. Das ist ETWAS ANDERES als "keine
+ *  Bilder": aus einem Timeout wurde vorher "warten_auf_codex" samt der
+ *  Empfehlung, alles neu hochzuladen (Codex, 2026-08-20, P0). */
+async function bilderStand(plan: string) {
+  try {
+    const r = await fetch(`${SITE}/wp-json/b2t/v1/bilder?plan=${encodeURIComponent(plan)}`,
+      { cache: "no-store", signal: AbortSignal.timeout(15_000) });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const liste = Array.isArray(rows) ? rows : [];
+    return { hochgeladen: liste.length,
+             freigegeben: liste.filter((b: any) => b.send === true).length };
+  } catch {
+    return null;
+  }
+}
+
+/** Zertifikat + Frische fuer alle Haeuser, aus DERSELBEN Python-Quelle wie
+ *  go.py (batch-build.built_hash/annotation_state). Ein Prozess fuer den
+ *  ganzen Bestand; faellt er aus, bleibt das Feld null und die Ableitung
+ *  behandelt es als "nicht zertifiziert" statt still als "fertig". */
+type Lieferzustand = Record<string, { zertifikat: boolean; aktuell: boolean; grund: string; nur_renderer?: boolean; fehler?: boolean }>;
+
+/** ZUVERLAESSIGKEIT-001 (A4): vorher wurde JEDER Fehler hier zu {} -- ein
+ *  Startfehler, ein Absturz, eine Warnzeile vor dem JSON -- und die Liste
+ *  zeigte dann alle 264 Haeuser als "ohne Zertifikat". Jetzt kommt der
+ *  Fehler mit: Exit-Code, stderr-Ende, Zeitlimit. */
+async function lieferzustand(suite: string): Promise<{ daten: Lieferzustand; fehler: string | null }> {
+  const python = process.env.PYTHON_EXECUTABLE || "python";
+  const script = join(suite, "born2thrill-local-workbench", "scripts", "haus-zustand.py");
+  return new Promise((fertig) => {
+    let out = "";
+    let err = "";
+    let zuGross = false;
+    let erledigt = false;
+    const kind = spawn(python, [script, "--alle"], { cwd: join(suite, "born2thrill-local-workbench") });
+    const ende = (daten: Lieferzustand, fehler: string | null) => {
+      if (erledigt) return;
+      erledigt = true;
+      clearTimeout(frist);
+      fertig({ daten, fehler });
+    };
+    const frist = setTimeout(() => {
+      kind.kill();
+      ende({}, "Zertifikatspruefung nach 120 s abgebrochen");
+    }, 120_000);
+    kind.stdout.on("data", (c) => {
+      if (out.length < 4_000_000) out += String(c); else zuGross = true;
+    });
+    // stderr MUSS gelesen werden -- ein voller Puffer haelt das Kind an.
+    kind.stderr.on("data", (c) => { err = (err + String(c)).slice(-2000); });
+    kind.on("error", (e) => ende({}, `Zertifikatspruefung startet nicht: ${e.message}`));
+    kind.on("close", (code) => {
+      const rest = err.trim().split(/\r?\n/).slice(-3).join(" | ");
+      if (code !== 0) return ende({}, `Zertifikatspruefung Exit ${code}${rest ? ": " + rest : ""}`);
+      if (zuGross) return ende({}, "Zertifikatspruefung: Ausgabe zu gross");
+      try {
+        const daten = JSON.parse(out);
+        if (!daten || typeof daten !== "object" || Array.isArray(daten)) {
+          return ende({}, "Zertifikatspruefung: Ausgabe ist kein Objekt");
+        }
+        // Runde 2: jeden Eintrag pruefen. Ein Haus ohne gueltigen Eintrag
+        // fehlt hier und gilt im GET als "Zustand unbekannt", nicht als
+        // "ohne Zertifikat".
+        const gueltig: Lieferzustand = {};
+        for (const [plan, z] of Object.entries(daten as Record<string, any>)) {
+          if (z && typeof z === "object" && typeof z.zertifikat === "boolean"
+              && typeof z.aktuell === "boolean") {
+            gueltig[plan] = { zertifikat: z.zertifikat, aktuell: z.aktuell,
+                              grund: typeof z.grund === "string" ? z.grund : "",
+                              nur_renderer: z.nur_renderer === true,
+                              // Runde 3: Lesefehler im Haus (PermissionError &c.)
+                              fehler: z.fehler === true };
+          }
+        }
+        ende(gueltig, null);
+      } catch {
+        ende({}, `Zertifikatspruefung: Ausgabe kein JSON${rest ? " (" + rest + ")" : ""}`);
+      }
+    });
+  });
+}
+
+/** Hoechstens `n` gleichzeitig -- WordPress ist die Live-Seite. */
+async function begrenzt<T>(liste: T[], n: number, f: (x: T) => Promise<void>): Promise<void> {
+  let naechster = 0;
+  async function arbeiter() {
+    while (naechster < liste.length) {
+      const i = naechster++;
+      await f(liste[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(n, liste.length) }, arbeiter));
+}
+
+/** Fertige Codex-Bilder, die lokal liegen (renders/codex-final-*). */
+async function finalsLokal(dataRoot: string, plan: string) {
+  const renders = join(dataRoot, "corrections", plan, "renders");
+  try {
+    // Dieselbe Stelle wie im Bilder-Tab. Rainer, 2026-08-29: "i do not
+    // understand how there can be any confusion into where the stuff is
+    // saved" -- die Verwirrung kam daher, dass diese Frage an vier Stellen
+    // eigenstaendig beantwortet wurde. Jetzt nur noch an einer.
+    const neuester = await angenommenerOrdner(renders);
+    if (!neuester) return 0;
+    return (await readdir(join(renders, neuester)))
+      .filter((n) => /\.(png|jpg|jpeg|webp)$/i.test(n) && !n.startsWith("reference-")).length;
+  } catch {
+    return 0;
+  }
+}
+
+export async function GET(request: Request) {
+  if (!enabled(request)) return Response.json({ error: "Local-only endpoint." }, { status: 404 });
+
+  const suite = resolve(process.cwd(), "..");
+  const projects = join(suite, "floorplan-simplifier", "projects");
+  // Nicht raten. 2026-08-21: der Datenordner zog von C: nach E:; ein
+  // stiller Rueckfall auf den alten C:-Nachbarordner wuerde unbemerkt
+  // gegen veraltete Daten arbeiten (Codex-Review desselben Tages).
+  const _konfiguriert = process.env.FLOORPLAN_WORKBENCH_DATA_DIR?.trim();
+  if (!_konfiguriert) {
+    throw new Error("FLOORPLAN_WORKBENCH_DATA_DIR ist nicht gesetzt -- "
+      + "verweigere, den Datenordner zu erraten. Siehe .env.local.");
+  }
+  const dataRoot = resolve(_konfiguriert);
+
+  // The catalogue is the only place that knows what is published and approved.
+  // A5: Katalog und Python laufen gleichzeitig statt nacheinander.
+  const katalogHolen = (async () => {
+    const published: Record<string, { images: number; released: number; approved: string }> = {};
+    try {
+      const r = await fetch(`${SITE}/wp-json/b2t/v1/grundrisse`,
+        { cache: "no-store", signal: AbortSignal.timeout(20_000) });
+      if (!r.ok) return { published, fehler: `Katalog HTTP ${r.status}` };
+      const rows = await r.json();
+      if (!Array.isArray(rows)) return { published, fehler: "Katalog: Antwort ist keine Liste" };
+      for (const row of rows as { id: string; im: number; ok: string }[]) {
+        published[row.id] = { images: row.im || 0, released: 0, approved: row.ok || "offen" };
+      }
+      return { published, fehler: null as string | null };
+    } catch (e) {
+      return { published, fehler: `Katalog nicht erreichbar: ${(e as Error).message}` };
+    }
+  })();
+
+  let names: string[] = [];
+  try {
+    names = await readdir(projects);
+  } catch {
+    return Response.json({ error: `cannot read ${projects}` }, { status: 500 });
+  }
+
+  const [katalog, zustand] = await Promise.all([katalogHolen, lieferzustand(suite)]);
+  const published = katalog.published;
+  const lieferung = zustand.daten;
+
+  // A5: Bilder-Abfragen fuer alle aktuellen Haeuser vorab, je 6 gleichzeitig,
+  // statt eine nach der anderen in der Schleife.
+  const aktuelle = names.filter((p) => lieferung[p]?.aktuell);
+  const bilderJePlan = new Map<string, Awaited<ReturnType<typeof bilderStand>>>();
+  const finalsJePlan = new Map<string, number>();
+  await begrenzt(aktuelle, 6, async (p) => {
+    const [b, f] = await Promise.all([bilderStand(p), finalsLokal(dataRoot, p)]);
+    bilderJePlan.set(p, b);
+    finalsJePlan.set(p, f);
+  });
+
+  // FERTIG-BLEIBT-FERTIG-001 (Rainer, 2026-10-07): once fertig, a house stays
+  // fertig. The ledger remembers every house that reached it, with a version.
+  const ledgerPfad = join(dataRoot, "fertig-ledger.json");
+  let ledger: Record<string, { version: string; seit: string; zuletzt: string; build: string }> = {};
+  try { ledger = JSON.parse(await readFile(ledgerPfad, "utf8")); } catch { ledger = {}; }
+  let ledgerGeaendert = false;
+  // plan -> { build, jetzt }: was DIESE Anfrage ins Ledger schreiben will.
+  // Geschrieben wird erst unter der Sperre, gegen die dann frisch gelesene
+  // Platte (ledgerAbgleichen, Codex Runde 4 N3).
+  const wuensche = new Map<string, { build: string; jetzt: string }>();
+  const manifestBuild = async (plan: string) => {
+    try {
+      return createHash("sha256")
+        .update(await readFile(join(dataRoot, "corrections", plan, "renders", "go-baseline", "delivery-manifest.json")))
+        .digest("hex").slice(0, 16);
+    } catch { return ""; }
+  };
+
+  const houses = [];
+  for (const plan of names) {
+    const folder = join(projects, plan);
+    // Massstab und Dachform stehen je nach Haus in der Annotation ODER im
+    // Sidecar gebaeudemass.json. Zusammengefuehrt wird das nur an einer
+    // Stelle, mit derselben Vorrangregel wie der Bau:
+    // src/lib/floorplan-workbench/hausdaten.mjs.
+    const daten = await hausdaten(folder);
+    const annotation = daten.annotationen;
+    if (!annotation) continue;
+
+    const rooms = (annotation.annotations as any[]) || [];
+    const levels: string[] = Array.from(new Set(rooms.map((r) => r?.floor_level).filter(Boolean)));
+    const scale = daten.floor_scale;
+    const ground = levels.includes("groundfloor") ? "groundfloor" : levels[0];
+    const raster = await hasRaster(folder);
+
+    const renders = join(dataRoot, "corrections", plan, "renders", "go-baseline");
+    const blends = await countBlends(renders);
+    const catalogue = published[plan];
+
+    // Runde 2: fehlt ein Haus in der (sonst lesbaren) Pruefung oder ist sein
+    // Eintrag ungueltig, ist sein Zustand UNBEKANNT -- nicht "ohne Zertifikat".
+    // "_"-Ordner prueft haus-zustand.py bewusst nicht.
+    // Runde 3: ein Eintrag mit fehler:true (Datei unlesbar) ist ebenso unbekannt.
+    const hausFehler = lieferung[plan]?.fehler === true;
+    const unbekannt = hausFehler
+      || (!lieferung[plan] && (Boolean(zustand.fehler) || !plan.startsWith("_")));
+    const frisch = lieferung[plan] || { zertifikat: false, aktuell: false, grund: "" };
+    // WordPress nur fuer Haeuser fragen, deren Lieferung aktuell ist: eine
+    // Abfrage pro Haus ueber alle 234 machte aus der Statusroute einen
+    // 120-Sekunden-Haenger (2026-08-20).
+    const wordpress = frisch.aktuell ? (bilderJePlan.get(plan) ?? null) : null;
+    const abgeleitet = deriveHouseState({
+      raster,
+      rooms: rooms.length,
+      levels,
+      scale,
+      // Nur die Vermessung selbst -- die Dachform gehoert nicht in die
+      // Massstabs-Pruefung, das war der vierte Vorrang-Sonderweg.
+      gebaeudemass: daten.hat_gebaeudemass,
+      alignmentComplete: alignmentComplete(annotation, levels, ground),
+      zertifikat: frisch.zertifikat,
+      aktuell: frisch.aktuell,
+      aktuellGrund: frisch.grund,
+      nurRenderer: (frisch as any).nur_renderer === true,
+      blends,
+      finalsLokal: frisch.aktuell ? (finalsJePlan.get(plan) ?? 0) : 0,
+      wordpress: frisch.aktuell
+        ? (wordpress === null
+            ? { erreichbar: false }
+            : { erreichbar: true, hochgeladen: wordpress.hochgeladen,
+                freigegeben: wordpress.freigegeben })
+        : null,
+      catalogue: catalogue ? { images: catalogue.images, approved: catalogue.approved } : null,
+      fertigLedger: ledger[plan] || null,
+    }, plan);
+
+    // Record / move up the version. "fertig" on a different certified build
+    // than recorded is the next minor version; a house already published
+    // (veroeffentlicht_build_alt) when the ledger first sees it starts at 1.0.
+    // Ohne lesbare Zertifikatspruefung wird nichts ins Ledger geschrieben:
+    // aus "unbekannt" darf kein neuer fertig-Eintrag entstehen.
+    if (!zustand.fehler && !katalog.fehler && !unbekannt
+        && (abgeleitet.state === "fertig" || (!ledger[plan] && abgeleitet.state === "veroeffentlicht_build_alt"))) {
+      let build = "";
+      try {
+        build = createHash("sha256")
+          .update(await readFile(join(renders, "delivery-manifest.json")))
+          .digest("hex").slice(0, 16);
+      } catch { build = ""; }
+      const vorher = ledger[plan];
+      const naechste = naechsteFertigVersion(vorher || null, build);
+      if (!vorher || naechste.version !== vorher.version || (!vorher.build && build)) {
+        const jetzt = new Date().toISOString();
+        ledger[plan] = { version: naechste.version, seit: vorher?.seit || jetzt, zuletzt: jetzt,
+                         build: naechste.build || build };
+        ledgerGeaendert = true;
+        wuensche.set(plan, { build, jetzt });
+      }
+      (abgeleitet as any).version = ledger[plan].version;
+    }
+    const state = abgeleitet.state as State;
+    const blocker = abgeleitet.blocker;
+    const action = abgeleitet.action;
+    const bilder = wordpress;
+
+    houses.push({
+      plan, state,
+      // Ein Haus, dessen Zustand nicht pruefbar war, sagt das -- statt still
+      // "ohne Zertifikat" zu behaupten.
+      blocker: unbekannt
+        ? `Zustand unbekannt (${hausFehler ? lieferung[plan].grund
+            : zustand.fehler || "kein gueltiger Eintrag in der Zertifikatspruefung"}) · ${blocker}`
+        : blocker,
+      zustand_unbekannt: unbekannt,
+      // Kein Bauen/Hochladen auf Grundlage eines unbekannten Zustands.
+      action: unbekannt ? "Zustand unbekannt – Liste neu laden" : action,
+      version: (abgeleitet as any).version || null,
+      floors: levels.length,
+      scale_missing: levels.filter((l) => !scale[l]),
+      blends,
+      catalogue_images: catalogue?.images ?? 0,
+      approved: catalogue?.approved ?? null,
+      in_catalogue: Boolean(catalogue),
+    });
+  }
+
+  houses.sort((a, b) => STATES.indexOf(a.state) - STATES.indexOf(b.state)
+    || a.plan.localeCompare(b.plan));
+
+  let ledgerHinweis: string | null = null;
+  if (ledgerGeaendert) {
+    // Runde 3 (Codex): zwei gleichzeitige Statusabfragen ueberschrieben sich
+    // das Ledger gegenseitig aus veralteten Staenden. Jetzt unter einer
+    // Sperre neu einlesen und nur die eigenen Aenderungen einmischen. Ist die
+    // Sperre besetzt, wird diesmal nicht geschrieben -- die naechste Abfrage
+    // leitet dasselbe wieder ab.
+    const sperre = await sperreNehmen(`${ledgerPfad}.lock`, { zweck: "ledger" });
+    if (!sperre.ok) {
+      ledgerHinweis = "Ledger gerade gesperrt, diesmal nicht geschrieben";
+    } else {
+      try {
+        let platte: any = null;
+        try { platte = JSON.parse(await readFile(ledgerPfad, "utf8")); } catch { platte = null; }
+        // Unter der Sperre das Manifest jedes Hauses NEU lesen: hat sich der
+        // Bau seit dem Schnappschuss dieser Anfrage geaendert, ist ihr Wunsch
+        // veraltet und wird verworfen.
+        const aktuell: Record<string, string> = {};
+        for (const plan of wuensche.keys()) aktuell[plan] = await manifestBuild(plan);
+        const { ledger: zusammen, versionen } = ledgerAbgleichen(platte, wuensche, aktuell);
+        // write-then-rename: a crash mid-write must never leave a half ledger,
+        // because the ledger is the only memory of "fertig".
+        const tmp = `${ledgerPfad}.${process.pid}.${randomUUID()}.tmp`;
+        await writeFile(tmp, JSON.stringify(zusammen, null, 2), "utf8");
+        await rename(tmp, ledgerPfad);
+        const neu = versionen as Record<string, string>;
+        for (const haus of houses) {
+          if (neu[haus.plan]) haus.version = neu[haus.plan];
+        }
+      } finally {
+        await sperre.loesen();
+      }
+    }
+  }
+
+  const counts: Record<string, number> = {};
+  for (const house of houses) counts[house.state] = (counts[house.state] || 0) + 1;
+
+  return Response.json({ total: houses.length, counts, houses,
+    zustand_fehler: zustand.fehler, katalog_fehler: katalog.fehler, ledger_hinweis: ledgerHinweis },
+    { headers: { "Cache-Control": "no-store" } });
+}

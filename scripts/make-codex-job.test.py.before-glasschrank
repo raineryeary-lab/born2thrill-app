@@ -1,0 +1,1718 @@
+"""Der Auftrag muss sagen, WO ein Objekt liegt -- nicht nur, wie es heisst.
+
+Rainer, 2026-08-27, nach der Lieferung fuer
+german_catalog_review_bungalow_3_2_3_b_100_1: die Garderobe
+(`garderobe-25`, Bauplan x=4550 y=3246) stand in vier Bildern an drei
+verschiedenen Stellen. Zweimal ersetzte sie das offene Tuerblatt der
+Haustuer, zweimal wurde stattdessen eine Garderobenleiste an einer
+Dielenwand erfunden, an der die .blend nichts hat.
+
+Die Ursache war nicht Nachlaessigkeit, sondern fehlende Information: der
+Auftrag nannte den Objektnamen, und ein aufgeschlagenes Tuerblatt sieht im
+Rohrender aus wie ein Schrankbrett. Diese Tests decken die Rechenwege der
+Objektkarte ab -- Blender und Pillow bleiben aussen vor, damit sie ohne
+beides laufen.
+"""
+
+import importlib.util
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+
+# Das Modul verweigert den Start ohne gesetzten Datenordner. Das ist
+# beabsichtigt (ein stiller Rueckfall auf den alten C:-Pfad wuerde gegen
+# veraltete Daten arbeiten), also setzen die Tests ihn vor dem Laden.
+os.environ.setdefault("FLOORPLAN_WORKBENCH_DATA_DIR", str(HERE))
+
+
+def load_module():
+    spec = importlib.util.spec_from_file_location(
+        "make_codex_job", HERE / "make-codex-job.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class FrontImBildTests(unittest.TestCase):
+    """Rainer, 2026-10-13: die Front der Hochschraenke zeigte von der Kamera
+    weg, und Codex setzte den Ofen auf die sichtbare Seite. Die Pfeilrichtung
+    der Karte steht deshalb auch als Wort im Auftrag."""
+
+    def setUp(self):
+        self.mod = load_module()
+
+    def test_bildrichtungen(self):
+        f = self.mod.front_im_bild
+        self.assertEqual(f([100, 100], [140, 100]), "rechts")
+        self.assertEqual(f([100, 100], [130, 70]), "rechts oben")   # Bild-y waechst nach unten
+        self.assertEqual(f([100, 100], [100, 60]), "oben")
+        self.assertEqual(f([100, 100], [70, 130]), "links unten")
+        self.assertIsNone(f(None, [1, 2]))
+        self.assertIsNone(f([1, 1], [1, 1]))
+
+
+class LageZuPixelTests(unittest.TestCase):
+    def setUp(self):
+        self.mod = load_module()
+
+    def test_flips_the_vertical_axis(self):
+        """Blender misst von unten, ein Bild von oben.
+
+        Ohne die Spiegelung sitzt jeder Marker am gespiegelten Ort -- und
+        eine Karte, die auf den falschen Raum zeigt, ist schlimmer als gar
+        keine.
+        """
+        self.assertEqual(self.mod._lage_zu_pixel(0.5, 0.0, 2000, 1500),
+                         (1000, 1500))
+        self.assertEqual(self.mod._lage_zu_pixel(0.5, 1.0, 2000, 1500),
+                         (1000, 0))
+
+    def test_maps_the_horizontal_axis_straight_through(self):
+        self.assertEqual(self.mod._lage_zu_pixel(0.0, 0.5, 2000, 1500)[0], 0)
+        self.assertEqual(self.mod._lage_zu_pixel(1.0, 0.5, 2000, 1500)[0], 2000)
+
+    def test_keeps_points_outside_the_frame_outside(self):
+        """Nicht heimlich an den Rand klemmen.
+
+        Ein Objekt ausserhalb des Bildes ist eine Aussage ueber die Szene.
+        Wer es auf den Rand zieht, behauptet eine Lage, die es nicht gibt.
+        """
+        x, y = self.mod._lage_zu_pixel(1.4, -0.2, 1000, 1000)
+        self.assertGreater(x, 1000)
+        self.assertGreater(y, 1000)
+
+
+class TuerblattTests(unittest.TestCase):
+    """Tuerblaetter gehoeren auf die Karte -- sie sind das, was verwechselt wird.
+
+    `wall-12-door` misst aufgeschlagen 898 x 898 mm und projiziert 190 Pixel
+    neben `garderobe-25`. Zwei Nachbesserungsrunden am 2026-08-27 haben in
+    Soft Scandinavian und Classic dasselbe geliefert: Garderobe richtig,
+    Tuerblatt weg. Ohne Marker weiss niemand, dass dort eine Tuer steht.
+    """
+
+    def setUp(self):
+        self.mod = load_module()
+
+    def test_a_door_leaf_gets_its_own_role(self):
+        self.assertEqual(self.mod._stamm("wall-12-door"), "tuer")
+        self.assertEqual(self.mod._stamm("garderobe-25"), "garderobe")
+        self.assertIn("tuer", self.mod.NENNENSWERT)
+
+    def test_a_door_leaf_is_never_folded_into_its_wall(self):
+        """`wall-12-door` darf nicht ueber die 12 zu `wall-12` werden.
+
+        Die Zusammenfassung sucht das erste rein numerische Segment. Bei einem
+        Tuerblatt stuende danach die Wand auf der Karte statt der Tuer.
+        """
+        self.assertEqual(self.mod._bauteil("wall-12-door"), "wall-12-door")
+
+    def test_wall_and_door_stay_two_markers(self):
+        objekte = {"tuer": ["wall-12-door"], "garderobe": ["garderobe-25"]}
+        lagen = {"wall-12-door": [0.24, 0.53], "garderobe-25": [0.24, 0.58]}
+        marker = self.mod._marker_liste(objekte, lagen)
+        self.assertEqual(len(marker), 2)
+        self.assertEqual(sorted(m["name"] for m in marker),
+                         ["garderobe-25", "wall-12-door"])
+
+    def test_colour_separates_replace_from_keep(self):
+        """Rot heisst ersetzen, blau heisst stehenlassen.
+
+        Eine Karte, auf der alles gleich aussieht, beantwortet die Frage nicht,
+        die sie beantworten soll.
+        """
+        objekte = {"tuer": ["wall-12-door"], "garderobe": ["garderobe-25"]}
+        lagen = {"wall-12-door": [0.24, 0.53], "garderobe-25": [0.24, 0.58]}
+        farben = {m["name"]: m["farbe"] for m in self.mod._marker_liste(objekte, lagen)}
+        self.assertEqual(farben["garderobe-25"], "ersetzen")
+        self.assertEqual(farben["wall-12-door"], "bleibt")
+
+
+class MarkerListeTests(unittest.TestCase):
+    def setUp(self):
+        self.mod = load_module()
+        self.objekte = {
+            "garderobe": ["garderobe-25"],
+            "stuff": ["stuff-20", "stuff-26"],
+            "badewanne": ["badewanne-15"],
+        }
+        self.lagen = {
+            "garderobe-25": [0.25, 0.60],
+            "stuff-20": [0.40, 0.55],
+            "stuff-26": [0.70, 0.30],
+            "badewanne-15": [0.55, 0.70],
+        }
+
+    def test_numbers_are_unique_and_start_at_one(self):
+        marker = self.mod._marker_liste(self.objekte, self.lagen)
+        nummern = [m["n"] for m in marker]
+        self.assertEqual(nummern, list(range(1, len(nummern) + 1)))
+
+    def test_one_marker_per_piece_of_furniture_not_per_mesh(self):
+        """Eine Dusche ist ein Marker, nicht sieben.
+
+        In der .blend steht sie als `dusche_gross-16-tray`, `-glass-0`,
+        `-rim-1` ... Sieben Kreise im Abstand weniger Zentimeter verdecken
+        einander und lassen das Duschbad wichtiger aussehen als die
+        Garderobe, um die es eigentlich geht.
+        """
+        objekte = {"dusche": ["dusche_gross-16-tray", "dusche_gross-16-glass-0",
+                              "dusche_gross-16-rim-1", "dusche_gross-16-rim-2"]}
+        lagen = {"dusche_gross-16-tray": [0.60, 0.64],
+                 "dusche_gross-16-glass-0": [0.63, 0.71],
+                 "dusche_gross-16-rim-1": [0.63, 0.67],
+                 "dusche_gross-16-rim-2": [0.59, 0.63]}
+        marker = self.mod._marker_liste(objekte, lagen)
+        self.assertEqual(len(marker), 1)
+        self.assertEqual(marker[0]["name"], "dusche_gross-16")
+        self.assertEqual(marker[0]["teile"], 4)
+
+    def test_groups_parts_whose_label_comes_before_the_number(self):
+        """`kochfeld-ring-13--1--1` gehoert zu `kochfeld-13`.
+
+        Die Teilbezeichnung steht nicht immer hinten. Wer stumpf nach den
+        ersten zwei Segmenten schneidet, bekommt `kochfeld-13` und
+        `kochfeld-ring` als zwei Marker uebereinander -- zwei Nummern auf
+        demselben Kochfeld.
+        """
+        objekte = {"kochfeld": ["kochfeld-13", "kochfeld-ring-13--1--1",
+                                "kochfeld-ring-13-1-1"]}
+        lagen = {"kochfeld-13": [0.76, 0.49],
+                 "kochfeld-ring-13--1--1": [0.761, 0.487],
+                 "kochfeld-ring-13-1-1": [0.765, 0.495]}
+        marker = self.mod._marker_liste(objekte, lagen)
+        self.assertEqual([m["name"] for m in marker], ["kochfeld-13"])
+        self.assertEqual(marker[0]["uv"], [0.76, 0.49])
+
+    def test_places_a_grouped_marker_at_the_average_of_its_parts(self):
+        """Ohne Hauptnetz zaehlt die Mitte der Teile, nicht das erste Teil.
+
+        Das erste Teil ist alphabetisch bestimmt -- bei der Dusche eine
+        Glasscheibe am Rand. Der Marker gehoert in die Mitte des Objekts.
+        """
+        objekte = {"dusche": ["dusche_gross-16-glass-0", "dusche_gross-16-glass-1"]}
+        lagen = {"dusche_gross-16-glass-0": [0.40, 0.60],
+                 "dusche_gross-16-glass-1": [0.60, 0.80]}
+        marker = self.mod._marker_liste(objekte, lagen)
+        self.assertEqual(marker[0]["uv"], [0.5, 0.7])
+
+    def test_order_matches_the_order_of_the_markdown_list(self):
+        """Die Karte und die Liste im Auftrag muessen dieselbe Reihenfolge haben.
+
+        Sonst zeigt Marker 3 auf das Objekt, das im Text als 5 steht -- und
+        die Karte richtet mehr Schaden an als das Raten vorher.
+        """
+        marker = self.mod._marker_liste(self.objekte, self.lagen)
+        erwartet = []
+        for stamm in sorted(self.objekte):
+            erwartet.extend(self.objekte[stamm])
+        self.assertEqual([m["name"] for m in marker], erwartet)
+
+    def test_objects_without_a_position_get_no_marker(self):
+        """Kein Marker ist ehrlicher als ein geratener.
+
+        `stuff` wird als Flaeche gebaut und hat im Bauplan oft gar keine
+        Punktposition. Ein Marker in der Bildmitte waere eine Erfindung.
+        """
+        lagen = dict(self.lagen)
+        del lagen["stuff-26"]
+        marker = self.mod._marker_liste(self.objekte, lagen)
+        self.assertNotIn("stuff-26", [m["name"] for m in marker])
+        self.assertEqual([m["n"] for m in marker], [1, 2, 3])
+
+    def test_carries_the_role_so_the_list_can_be_read_without_the_map(self):
+        marker = self.mod._marker_liste(self.objekte, self.lagen)
+        rollen = {m["name"]: m["rolle"] for m in marker}
+        self.assertEqual(rollen["garderobe-25"], self.mod.NENNENSWERT["garderobe"])
+        self.assertEqual(rollen["badewanne-15"], self.mod.NENNENSWERT["badewanne"])
+
+
+class InventarTests(unittest.TestCase):
+    """Die Objektkarte schuetzt nur, was einen Marker hat.
+
+    Am 2026-08-27 verschwand der Schreibtisch aus drei Bildern. Er traegt
+    keinen Marker -- markiert sind nur Garderobe, Stuff, Sanitaer, Kueche und
+    Tueren. Die Karte mit 30 Markern zu ueberladen macht sie unlesbar; also
+    bekommt der Auftrag zusaetzlich eine vollstaendige Inventarliste, und
+    Abschnitt 11 verlangt, dass jedes Stueck daraus im Bild vorkommt.
+    """
+
+    def setUp(self):
+        self.mod = load_module()
+
+    def test_counts_every_piece_of_furniture_by_kind(self):
+        namen = ["doppelbett-1", "schreibtisch-3", "schreibtischstuhl-4",
+                 "essgruppe_stuhl-9", "essgruppe_stuhl-10", "wall-5", "floor-2",
+                 "cut-plane", "ground", "proto-7"]
+        inv = self.mod._inventar(namen)
+        self.assertEqual(inv["doppelbett"], 1)
+        self.assertEqual(inv["essgruppe_stuhl"], 2)
+        self.assertEqual(inv["schreibtisch"], 1)
+
+    def test_counts_pieces_not_meshes(self):
+        """Eine Dusche ist ein Stueck, nicht sieben.
+
+        `dusche_gross-16` steht als tray, zwei Glasscheiben und vier Rahmen in
+        der Datei. Wer Netze zaehlt, schreibt "dusche_gross x 7" in den Auftrag
+        -- und Codex baut sieben Duschen oder haelt die Liste fuer unsinnig.
+        """
+        namen = ["dusche_gross-16-tray", "dusche_gross-16-glass-0",
+                 "dusche_gross-16-glass-1", "dusche_gross-16-rim-1",
+                 "dusche_gross-16-rim-2", "dusche_gross-16-rim-3",
+                 "dusche_gross-16-rim-4"]
+        self.assertEqual(self.mod._inventar(namen), {"dusche_gross": 1})
+
+    def test_counts_each_id_once(self):
+        """Drei Kleiderschraenke bleiben drei, auch mit Teilnetzen."""
+        namen = ["kleiderschrank-5", "kleiderschrank-5-gap-1",
+                 "kleiderschrank-8", "kleiderschrank-8-gap-1",
+                 "kleiderschrank-8-gap-2", "kleiderschrank-11"]
+        self.assertEqual(self.mod._inventar(namen), {"kleiderschrank": 3})
+
+    def test_leaves_out_what_is_not_furniture(self):
+        """Waende, Boeden, Schnittebene und Hilfsobjekte sind kein Inventar.
+
+        Sie stehen zu Hunderten in der Datei und wuerden die Liste unbrauchbar
+        machen.
+        """
+        inv = self.mod._inventar(["wall-5", "wall-5-door", "floor-2", "cut-plane",
+                                  "ground", "proto-7", "sockel-wall-1"])
+        self.assertEqual(inv, {})
+
+    def test_lists_the_inventory_in_the_order(self):
+        job = {
+            "job_id": "haus-2026-08-27", "plan_id": "haus",
+            "folder": r"E:\daten", "delivery_folder": r"E:\liefer",
+            "source": {"annotation_hash": "abc123"},
+            "inputs": [], "required_outputs": [],
+            "constraints": {"models_locked": ".", "exterior_hero_shot": ".",
+                            "interiors": ".", "naming": "."},
+            "publish": {"command": ".", "note": "."},
+            "inventar": {"doppelbett": 1, "schreibtisch": 1, "essgruppe_stuhl": 6},
+        }
+        text = self.mod.render_markdown(job)
+        self.assertIn("Inventar", text)
+        self.assertIn("schreibtisch", text)
+        self.assertIn("essgruppe_stuhl", text)
+        self.assertIn("6", text)
+
+
+class MarkdownTests(unittest.TestCase):
+    def setUp(self):
+        self.mod = load_module()
+        self.job = {
+            "job_id": "haus-2026-08-27",
+            "plan_id": "haus",
+            "folder": r"E:\daten\haus\renders\go-baseline",
+            "delivery_folder": r"E:\daten\haus\renders\codex-haus-2026-08-27",
+            "source": {"annotation_hash": "abc123"},
+            "inputs": [],
+            "required_outputs": [],
+            "constraints": {
+                "models_locked": "Architektur ist unantastbar.",
+                "exterior_hero_shot": "24-35 mm, Kamera waagerecht.",
+                "interiors": "Vier Stile je Geschoss.",
+                "naming": "Genau die Dateinamen aus Rueckgabe.",
+            },
+            "publish": {"command": "python publish-renders.py", "note": "."},
+            "objects": {"garderobe": ["garderobe-25"], "stuff": ["stuff-20"]},
+            "object_map": {
+                "file": "OBJEKTKARTE-interior-modern-baseline.png",
+                "image": [2000, 1500],
+                "markers": [
+                    {"n": 1, "name": "garderobe-25", "rolle": "Garderobe (ersetzen)",
+                     "px": [500, 900]},
+                    {"n": 2, "name": "stuff-20", "rolle": "Stuff (ersetzen)",
+                     "px": [800, 825]},
+                ],
+            },
+        }
+
+    def test_every_marker_number_appears_exactly_once(self):
+        text = self.mod.render_markdown(self.job)
+        for marker in self.job["object_map"]["markers"]:
+            self.assertEqual(text.count("**%d**" % marker["n"]), 1,
+                             "Marker %d steht nicht genau einmal im Auftrag"
+                             % marker["n"])
+
+    def test_names_the_map_file_so_it_can_be_found(self):
+        text = self.mod.render_markdown(self.job)
+        self.assertIn(self.job["object_map"]["file"], text)
+
+    def test_warns_about_the_open_door_leaf(self):
+        """Die Falle beim Namen nennen, nicht nur die Karte danebenlegen.
+
+        Genau dieser Irrtum hat zwei der vier Bilder gekostet.
+        """
+        text = self.mod.render_markdown(self.job)
+        self.assertIn("Tuerblatt", text)
+
+    def test_a_job_without_a_map_stays_valid(self):
+        """Ohne Pillow oder ohne Baseline-Render gibt es keine Karte.
+
+        Der Auftrag muss dann trotzdem vollstaendig sein -- ein Generator,
+        der an einer fehlenden Zusatzbibliothek scheitert, blockiert die
+        ganze Lieferkette.
+        """
+        job = dict(self.job)
+        del job["object_map"]
+        text = self.mod.render_markdown(job)
+        self.assertIn("Objekte in dieser Datei", text)
+        self.assertNotIn("OBJEKTKARTE", text)
+
+
+class JedesMoebelBekommtEinenMarker(unittest.TestCase):
+    """Nicht nur Platzhalter und Sanitaer -- alles, was im Raum steht.
+
+    Rainer, 2026-08-28, nach der Lieferung fuer
+    `german_catalog_review_bungalow_3_2_5_b_100_1`: "ja wir brauchen
+    Ergebnisse."
+
+    In jener Lieferung stand im Baseline-Render ein Schreibtisch mit
+    Buerostuhl. Drei der vier Stile tauschten ihn aus: warm modern stellte ein
+    Lowboard mit Fernseher hin, scandinavian ein Einzelbett, classic ein
+    Sideboard. Nur dark modern liess den Schreibtisch stehen. Der
+    `marker_check` meldete trotzdem 12 von 12 in Ordnung -- weil der
+    Schreibtisch keinen Marker hatte.
+
+    Die Karte trug bisher nur `garderobe`, `stuff`, Sanitaer, Kueche und
+    Tueren. Der Kommentar an `_inventar` hielt schon am 2026-08-27 fest, dass
+    der Schreibtisch aus drei Bildern verschwand, und entschied sich trotzdem
+    fuer die kurze Karte plus eine Inventarliste. Die Liste hat es nicht
+    verhindert.
+
+    Wer nicht markiert ist, wird nicht geprueft.
+    """
+
+    def setUp(self):
+        self.mod = load_module()
+
+    def test_a_desk_gets_a_role(self):
+        """Der Fall vom 2026-08-28."""
+        self.assertTrue(self.mod.rolle_fuer("schreibtisch"))
+
+    def test_every_piece_of_furniture_gets_a_role(self):
+        for stamm in ("doppelbett", "einzelbett", "kleiderschrank", "lowboard",
+                      "fernseher", "ecksofa", "essgruppe_6", "schreibtischstuhl",
+                      "kuechenzeile", "waschmaschine", "trockner"):
+            self.assertTrue(self.mod.rolle_fuer(stamm), stamm)
+
+    def test_the_named_roles_keep_their_wording(self):
+        """Sanitaer und Kueche behalten ihren scharfen Satz."""
+        self.assertEqual(self.mod.rolle_fuer("dusche_gross"),
+                         "Sanitaer (muss sichtbar bleiben)")
+        self.assertEqual(self.mod.rolle_fuer("garderobe"), "Garderobe (ersetzen)")
+        # Der Wortlaut von `stuff` wurde am 2026-09-01 mit Rainers
+        # Zustimmung GESCHAERFT, nicht abgeschwaecht -- der Sinn dieses
+        # Tests bleibt gewahrt. "Stuff (ersetzen)" sagte nicht, was daraus
+        # werden soll, und Codex riet viermal verschieden (in 03 und 06 von
+        # german_catalog_review_bungalow_3_3_4_b_100_2 blieb ein glatter
+        # Kasten stehen, in 04 und 05 wurde eine Kuechenzeile daraus).
+        #
+        # Gepruefft wird weiter STRENG: die Marke `(ersetzen)` woertlich,
+        # denn `farbe_fuer` sucht genau sie, und der scharfe Satz dazu.
+        self.assertIn("(ersetzen)", self.mod.rolle_fuer("stuff"))
+        self.assertIn("glatter Kasten ist kein Ergebnis",
+                      self.mod.rolle_fuer("stuff"))
+
+    def test_building_parts_get_none(self):
+        """Waende, Boden, Dach und Treppen sind keine Moebel."""
+        for stamm in ("wall", "floor", "roof", "stair", "loch", "sockel",
+                      "window", "ceiling"):
+            self.assertIsNone(self.mod.rolle_fuer(stamm), stamm)
+
+    def test_only_placeholders_are_red(self):
+        """Rot heisst ersetzen. Ein Schreibtisch wird umgestaltet, nicht ersetzt."""
+        self.assertEqual(self.mod.farbe_fuer("garderobe"), "ersetzen")
+        self.assertEqual(self.mod.farbe_fuer("stuff"), "ersetzen")
+        for stamm in ("schreibtisch", "doppelbett", "dusche_gross", "tuer"):
+            self.assertEqual(self.mod.farbe_fuer(stamm), "bleibt", stamm)
+
+
+class EineKarteJeGeschoss(unittest.TestCase):
+    """Ein zweigeschossiges Haus braucht zwei Objektkarten.
+
+    Rainer, 2026-08-28: der Auftrag fuer `onehalfstorey_020` verlangte zehn
+    Bilder -- vier aus dem Erd-, vier aus dem Obergeschoss und zwei
+    Aussenansichten -- lieferte aber nur eine Karte, die des Erdgeschosses.
+    Fuer die vier OG-Bilder gab es also nichts zu bestaetigen, und genau dort
+    verschwand dreimal die Eckbadewanne, ohne dass eine Pruefung anschlug.
+
+    `object_map` ist deshalb eine Liste. Auftraege von vorher tragen dort ein
+    einzelnes Objekt; beide Leser muessen das aushalten, sonst faellt jede
+    aeltere Lieferung durch.
+    """
+
+    def setUp(self):
+        self.mod = load_module()
+
+    def test_a_list_of_maps_stays_a_list(self):
+        karten = [{"file": "OBJEKTKARTE-a.png", "markers": []},
+                  {"file": "OBJEKTKARTE-b.png", "markers": []}]
+        self.assertEqual(len(self.mod.karten_liste({"object_map": karten})), 2)
+
+    def test_a_single_map_from_an_older_job_still_reads(self):
+        karte = {"file": "OBJEKTKARTE-a.png", "markers": []}
+        self.assertEqual(self.mod.karten_liste({"object_map": karte}), [karte])
+
+    def test_a_job_without_a_map_gives_an_empty_list(self):
+        self.assertEqual(self.mod.karten_liste({}), [])
+        self.assertEqual(self.mod.karten_liste({"object_map": None}), [])
+
+    def test_the_markdown_names_every_map(self):
+        """Sonst legt Codex die zweite Karte nicht neben sein Bild."""
+        job = _beispiel_job()
+        job["object_map"] = [
+            {"file": "OBJEKTKARTE-interior-modern-baseline.png",
+             "image": [2000, 1500],
+             "markers": [{"n": 1, "name": "garderobe-25", "rolle": "Garderobe (ersetzen)",
+                          "px": [500, 900]}]},
+            {"file": "OBJEKTKARTE-interior-modern-upper-baseline.png",
+             "image": [2000, 1500],
+             "markers": [{"n": 1, "name": "eckbadewanne-9",
+                          "rolle": "Sanitaer (muss sichtbar bleiben)", "px": [700, 800]}]},
+        ]
+        text = self.mod.render_markdown(job)
+        self.assertIn("OBJEKTKARTE-interior-modern-baseline.png", text)
+        self.assertIn("OBJEKTKARTE-interior-modern-upper-baseline.png", text)
+        self.assertIn("eckbadewanne-9", text)
+
+    def test_each_map_numbers_from_one_again(self):
+        """Die Nummern gehoeren zu ihrer Karte, nicht zum Haus.
+
+        Sonst muesste Codex beim zweiten Geschoss bei 18 weiterzaehlen und
+        jede Verwechslung waere unsichtbar.
+        """
+        job = _beispiel_job()
+        job["object_map"] = [
+            {"file": "OBJEKTKARTE-a.png", "image": [2000, 1500],
+             "markers": [{"n": 1, "name": "garderobe-25", "rolle": "Garderobe (ersetzen)",
+                          "px": [1, 1]}]},
+            {"file": "OBJEKTKARTE-b.png", "image": [2000, 1500],
+             "markers": [{"n": 1, "name": "eckbadewanne-9", "rolle": "Sanitaer",
+                          "px": [2, 2]}]},
+        ]
+        text = self.mod.render_markdown(job)
+        self.assertEqual(text.count("**1**"), 2)
+
+
+class CodexLiefertEinmal(unittest.TestCase):
+    """Kein zweiter Durchgang nur wegen der Dateinamen.
+
+    Rainer, 2026-08-28: "das muss jetzt endlich vorbei sein." Zweimal in
+    Folge hing eine sonst fehlerfreie Lieferung allein am Suffix, und beide
+    Male kostete es eine ganze Runde bei Codex.
+
+    Der Name zaehlt an genau einer Stelle -- `publish-renders.py` macht aus
+    ihm den WordPress-Slug. `lieferung-pruefen.py --annehmen` schneidet ihn
+    seit dem 2026-08-28 hier ab. Der Auftrag muss das sagen, sonst wartet
+    Codex weiter auf eine Nachbestellung, die nicht mehr kommt.
+
+    Erst hatte ich das Gegenteil eingebaut: einen Abschnitt, der Codex
+    erklaerte, wie er einen Finalsatz erzeugt. Das war eine Runde mehr, nicht
+    weniger.
+    """
+
+    def setUp(self):
+        self.mod = load_module()
+        self.text = self.mod.render_markdown(_beispiel_job())
+
+    def test_the_order_says_codex_delivers_once(self):
+        self.assertIn("Du lieferst einmal", self.text)
+
+    def test_the_order_says_renaming_happens_here(self):
+        self.assertIn("geforderten Namen gebracht", self.text)
+
+    def test_the_order_forbids_re_rendering_an_accepted_image(self):
+        """Das eine Wort, das die Badewanne rettet."""
+        self.assertIn("nie neu rendern", self.text.lower())
+
+    def test_the_order_no_longer_orders_a_final_set(self):
+        """Der Abschnitt von heute Vormittag ist wieder raus."""
+        self.assertNotIn("Finalsatz", self.text)
+        # `-final` darf nur noch in der Verneinung vorkommen.
+        self.assertIn("keine zweite Runde und keinen `-final`-Ordner", self.text)
+
+    def test_the_order_still_allows_intermediate_names(self):
+        """Zwischenstaende bleiben erlaubt -- sonst landen sie auf den
+        geforderten Namen, bevor jemand sie gesehen hat."""
+        self.assertIn("-review", self.text)
+
+
+def _beispiel_job():
+    return {
+        "job_id": "haus-2026-08-27",
+        "plan_id": "haus",
+        "folder": "E:/daten/haus/renders/go-baseline",
+        "delivery_folder": "E:/daten/haus/renders/codex-haus-2026-08-27",
+        "source": {"annotation_hash": "abc123"},
+        "inputs": [],
+        "required_outputs": [],
+        "constraints": {
+            "models_locked": "Architektur ist unantastbar.",
+            "exterior_hero_shot": "24-35 mm, Kamera waagerecht.",
+            "interiors": "Vier Stile je Geschoss.",
+            "naming": "Genau die Dateinamen aus Rueckgabe.",
+        },
+        "publish": {"command": "python publish-renders.py", "note": "."},
+        "objects": {"garderobe": ["garderobe-25"]},
+    }
+
+
+
+
+class MoebelGruppenTragenDasselbe(unittest.TestCase):
+    """Was zusammensteht, ist ein Satz.
+
+    Rainer, 2026-08-30, an einem frisch erzeugten Grundriss: "codex is using
+    different materials for a 2 seater and threeseater in the same group, is
+    there not a rule against that?"
+
+    Es gab keine. Das Regelwerk verlangte Unterschiede ZWISCHEN den vier
+    Bildern (Abschnitt 10, Punkt 2) und je Stil eine Akzentfarbe -- aber
+    nichts ueber die Einheitlichkeit INNERHALB einer Gruppe.
+
+    Jetzt an zwei Stellen: als Regel in Abschnitt 10 und als Ablehnungsgrund
+    in der Liste. Beides muss dastehen -- eine Regel ohne Ablehnungsgrund
+    wird zur Empfehlung.
+    """
+
+    def regelwerk(self):
+        pfad = os.path.join(os.path.dirname(HERE), "docs",
+                            "CODEX-REGELN-4PLUS2.md")
+        with open(pfad, encoding="utf-8") as datei:
+            return datei.read()
+
+    def test_die_regel_steht_im_regelwerk(self):
+        text = self.regelwerk()
+        self.assertIn("Was zusammensteht, ist ein Satz", text)
+
+    def test_sie_nennt_die_faelle(self):
+        text = self.regelwerk()
+        for fall in ("Zweisitzer", "Dreisitzer", "Esstisches", "Kuechenzeile",
+                     "Nachttische"):
+            self.assertIn(fall, text, fall)
+
+    def test_ein_akzent_bleibt_erlaubt(self):
+        """Sonst waere jeder gesetzte Sessel ein Fehler."""
+        text = self.regelwerk()
+        self.assertIn("genau EIN Stueck je Raum", text)
+
+    def test_sie_steht_auch_in_der_ablehnungsliste(self):
+        text = self.regelwerk()
+        liste = text[text.index("Das Bild wird abgelehnt"):]
+        self.assertIn("als Gruppe zusammenstehen", liste)
+
+    def test_das_regelwerk_liegt_dem_auftrag_bei(self):
+        """Ohne das waere die Regel geschrieben und ungelesen."""
+        with open(os.path.join(HERE, "make-codex-job.py"), encoding="utf-8") as datei:
+            quelle = datei.read()
+        self.assertIn("CODEX-REGELN-4PLUS2.md", quelle)
+        self.assertIn('"file": "CODEX-REGELN.md"', quelle)
+
+
+
+
+class WasBeimLetztenMalBeanstandetWurde(unittest.TestCase):
+    """Die Beanstandung muss Codex erreichen, nicht nur die Regel.
+
+    Rainer, 2026-08-30: "wie bringen wir das jetzt codex bei?"
+
+    Zwei Wege, und einer war offen. Das Regelwerk liegt jedem Auftrag als
+    `CODEX-REGELN.md` bei -- neue Regeln erreichen ihn also von selbst. Was
+    an DIESEM Haus beanstandet wurde, erreichte ihn nicht:
+    `lieferung-pruefen.py --auge` schreibt es in `RUNDEN.jsonl`, und
+    `make-codex-job.py` las die Datei nie. Notiert und vergessen.
+
+    Ein Auftrag ohne die Beanstandung der letzten Runde ist derselbe Auftrag
+    wie vorher -- und bekommt dieselbe Antwort.
+    """
+
+    def zeile(self, was, auge=None):
+        eintrag = {"plan_id": "haus", "job_id": "haus-2026-08-29",
+                   "geprueft_am": "2026-08-29T12:00:00",
+                   "beanstandungen": len(was), "was": was}
+        if auge:
+            eintrag["auge"] = auge
+        return eintrag
+
+    def test_die_letzte_runde_wird_gelesen(self):
+        letzte = load_module().letzte_runde([
+            self.zeile(["alt"]),
+            self.zeile(["neu", "noch eins"]),
+        ])
+        self.assertEqual(letzte["was"], ["neu", "noch eins"])
+
+    def test_ohne_runden_gibt_es_nichts(self):
+        self.assertIsNone(load_module().letzte_runde([]))
+        self.assertIsNone(load_module().letzte_runde(None))
+
+    def test_der_menschliche_blick_zaehlt_mit(self):
+        """`auge` ist das Wichtigere: was der Pruefer NICHT gefunden hat."""
+        letzte = load_module().letzte_runde([
+            self.zeile([], auge="Zweisitzer und Dreisitzer verschiedene Stoffe")])
+        self.assertIn("Stoffe", letzte["auge"])
+
+    def test_eine_saubere_runde_ergibt_keinen_abschnitt(self):
+        text = load_module().beanstandungs_abschnitt(self.zeile([]))
+        self.assertEqual(text, "")
+
+    def test_beanstandungen_stehen_im_abschnitt(self):
+        text = load_module().beanstandungs_abschnitt(
+            self.zeile(["04: Marker 7 fehlt", "06: Marker 9 fehlt"]))
+        self.assertIn("Marker 7 fehlt", text)
+        self.assertIn("Marker 9 fehlt", text)
+
+    def test_der_menschliche_blick_steht_zuerst(self):
+        text = load_module().beanstandungs_abschnitt(
+            self.zeile(["Formfehler"], auge="Sofas in verschiedenen Stoffen"))
+        self.assertLess(text.index("verschiedenen Stoffen"), text.index("Formfehler"))
+
+    def test_der_abschnitt_landet_im_auftrag(self):
+        """Nicht nur definiert -- eingebaut. Ein Helfer, den niemand aufruft,
+        ist keine Uebermittlung."""
+        with open(os.path.join(HERE, "make-codex-job.py"), encoding="utf-8") as datei:
+            quelle = datei.read()
+        bau = quelle[quelle.index("Modelle sind gesperrt"):]
+        bau = bau[:bau.index("## Dateien")]
+        self.assertIn("beanstandungs_abschnitt(", bau)
+        self.assertIn("letzte_runde(", bau)
+        self.assertIn("runden_lesen(", bau)
+
+
+class HilfsbilderGehoerenInDenAuftrag(unittest.TestCase):
+    """Tiefenpass, Kantenpass und Objektkarte muessen in der Dateiliste stehen.
+
+    Rainer, 2026-08-31, an 3_3_4: im Elternschlafzimmer fehlte der
+    Kleiderschrank in ALLEN VIER Bildern, und das Bett lag an seiner Stelle.
+
+    Codex selbst, read-only gefragt, was er dort sieht:
+
+        "In Bild A liegt bei (253,646) ein glatter, weisser laenglicher
+         Quader ... Ein glatter, merkmalloser Quader ist semantisch
+         mehrdeutig: Der Bearbeiter kann ihn fuer WAND, Platzhalter oder
+         unwichtiges Bauteil halten. Fehlen feste Objektmasken, Tiefen-/
+         Geometriedaten und eine ausdrueckliche Positionsbindung, koennen
+         Gestaltungsprioren daraus eine 'plausiblere' Moeblierung ableiten
+         und Objekte entfernen oder umstellen."
+
+    Er hat den Schrank nicht entfernt -- er hat ihn nie als Moebel gesehen.
+
+    Zwei der drei genannten Dinge liegen fertig im Ordner und standen in
+    keiner Dateiliste: `*-depth.png` kam im ganzen Auftrag NULL Mal vor.
+    Genau der Tiefenpass unterscheidet die zwei Faelle: ein Schrank steht
+    500 mm vor der Wand, eine Wand ist buendig. Im Farbbild sind beide ein
+    weisser Quader, im Tiefenbild zwei Grauwerte.
+    """
+
+    def test_die_hilfsbilder_stehen_in_inputs(self):
+        modul = load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            ordner = os.path.join(tmp, "corrections", "haus", "renders", "go-baseline")
+            os.makedirs(ordner)
+            for name in ("interior-modern-baseline.blend",
+                         "interior-modern-baseline.png",
+                         "interior-modern-baseline-depth.png",
+                         "interior-modern-baseline-edge.png",
+                         "OBJEKTKARTE-interior-modern-baseline.png",
+                         "zufall.txt"):
+                with open(os.path.join(ordner, name), "wb") as datei:
+                    datei.write(b"x")
+            dabei = modul.auftragsdateien(ordner)
+        self.assertIn("interior-modern-baseline.blend", dabei)
+        self.assertIn("interior-modern-baseline-depth.png", dabei,
+                      "der Tiefenpass fehlt -- genau er unterscheidet "
+                      "Schrank von Wand")
+        self.assertIn("interior-modern-baseline-edge.png", dabei)
+        self.assertIn("OBJEKTKARTE-interior-modern-baseline.png", dabei)
+        self.assertNotIn("zufall.txt", dabei)
+
+    def test_der_rohrender_gehoert_dazu(self):
+        # Ohne ihn hat er nur die .blend und muesste selbst rendern.
+        modul = load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            ordner = os.path.join(tmp, "go-baseline")
+            os.makedirs(ordner)
+            for name in ("interior-modern-baseline.blend",
+                         "interior-modern-baseline.png"):
+                with open(os.path.join(ordner, name), "wb") as datei:
+                    datei.write(b"x")
+            self.assertIn("interior-modern-baseline.png",
+                          modul.auftragsdateien(ordner))
+
+    def test_masken_und_andere_bilder_bleiben_draussen(self):
+        # `-mask.png` gibt es nur aussen; ein fremdes PNG im Ordner ist keine
+        # Auftragsdatei. Die Liste ist ein Vertrag, kein Ordnerabzug.
+        modul = load_module()
+        with tempfile.TemporaryDirectory() as tmp:
+            ordner = os.path.join(tmp, "go-baseline")
+            os.makedirs(ordner)
+            for name in ("interior-modern-baseline.blend", "irgendwas.png",
+                         "winkel-report.png"):
+                with open(os.path.join(ordner, name), "wb") as datei:
+                    datei.write(b"x")
+            dabei = modul.auftragsdateien(ordner)
+            self.assertNotIn("irgendwas.png", dabei)
+            self.assertNotIn("winkel-report.png", dabei)
+
+
+def pruef_job(**zusatz):
+    """Ein Auftrag mit allem, was render_markdown liest -- und nichts sonst."""
+    job = {
+        "plan_id": "pruef_haus", "job_id": "pruef", "folder": ".",
+        "source": {}, "inputs": [], "required_outputs": [],
+        "constraints": {"models_locked": "x", "naming": "x",
+                        "interiors": "x", "exterior_hero_shot": "x"},
+        "rules": [], "publish": {"command": "x", "note": "x"},
+    }
+    job.update(zusatz)
+    return job
+
+
+class StueckzahlenTest(unittest.TestCase):
+    """Der Auftrag muss die ANZAHL sagen, nicht nur die Namen.
+
+    Rainer, 2026-08-31, zur Lieferung fuer
+    german_catalog_review_bungalow_3_3_4_b_100_2: "look how many chairs ...
+    in the dining". Gezaehlt im gelieferten Bild: neun Stuehle am Esstisch.
+    Gebaut sind sechs.
+
+    Die Ursache steht in codex-job.json. Am selben Fleck (px 999,344) stehen
+    sieben Marker mit derselben Rolle:
+
+        essgruppe_6-25           "Moebel (umgestalten, muss sichtbar bleiben)"
+        essgruppe_stuhl-30..35   sechs Stueck, im Kreis darum
+
+    Gelesen wird das als "eine Essgruppe fuer sechs" PLUS "sechs Stuehle".
+    In Wahrheit ist `essgruppe_6` nur der Tisch; die sechs Stuehle leitet
+    build-simplifier-render-plan.py:3028 daraus ab (`derived_from`). Sie
+    sind die Stuehle DIESES Tisches, keine weiteren.
+
+    Derselbe Fall beim Schreibtisch: Zeile 2959 leitet den
+    `schreibtischstuhl` von jedem Objekt ab, dessen Name mit "schreibtisch"
+    beginnt.
+    """
+
+    def test_jede_sorte_bekommt_ihre_stueckzahl(self):
+        modul = load_module()
+        text = "\n".join(modul.stueckzahlen({
+            "doppelbett": ["doppelbett-18"],
+            "kleiderschrank": ["kleiderschrank-14", "kleiderschrank-19"],
+        }))
+        self.assertIn("kleiderschrank", text)
+        self.assertIn("2", text)
+        self.assertIn("doppelbett", text)
+
+    def test_die_stuehle_gehoeren_zum_tisch_und_zaehlen_nicht_doppelt(self):
+        modul = load_module()
+        text = "\n".join(modul.stueckzahlen({
+            "essgruppe_6": ["essgruppe_6-25"],
+            "essgruppe_stuhl": ["essgruppe_stuhl-%d" % n for n in range(30, 36)],
+        }))
+        # Die Zahl, die im Bild stehen muss, steht im Auftrag.
+        self.assertIn("6 Stuehle", text)
+        # Und es steht dabei, dass sie zum Tisch gehoeren -- sonst liest man
+        # sieben Moebelstuecke statt einer Essgruppe.
+        self.assertIn("essgruppe_6", text)
+        self.assertIn("gehoeren", text)
+        # Zwoelf darf nirgends herauslesbar sein.
+        self.assertNotIn("12 Stuehle", text)
+
+    def test_der_schreibtischstuhl_gehoert_zum_schreibtisch(self):
+        modul = load_module()
+        text = "\n".join(modul.stueckzahlen({
+            "schreibtisch_kind": ["schreibtisch_kind-12"],
+            "schreibtischstuhl": ["schreibtischstuhl-13"],
+        }))
+        self.assertIn("schreibtisch_kind", text)
+        self.assertIn("gehoeren", text)
+
+    def test_ohne_den_tisch_bleibt_der_stuhl_ein_eigenes_moebel(self):
+        # Keine erfundene Zugehoerigkeit: steht kein essgruppe_6 in der
+        # Datei, sind die Stuehle einzeln gestellte Stuehle.
+        modul = load_module()
+        text = "\n".join(modul.stueckzahlen({
+            "essgruppe_stuhl": ["essgruppe_stuhl-30", "essgruppe_stuhl-31"],
+        }))
+        self.assertNotIn("essgruppe_6", text)
+        self.assertIn("essgruppe_stuhl", text)
+
+    def test_leere_datei_gibt_keinen_abschnitt(self):
+        modul = load_module()
+        self.assertEqual(modul.stueckzahlen({}), [])
+
+    def test_der_auftragstext_traegt_die_stueckzahlen(self):
+        # Die Naht, nicht nur die Funktion: ein Helfer, den niemand aufruft,
+        # ist kein Feature.
+        modul = load_module()
+        text = modul.render_markdown({
+            "plan_id": "pruef_haus", "job_id": "pruef",
+            "folder": ".", "source": {}, "inputs": [],
+            "required_outputs": [], "constraints": {"models_locked": "x", "naming": "x",
+                            "interiors": "x", "exterior_hero_shot": "x"},
+            "rules": [],
+            "publish": {"command": "x", "note": "x"},
+            "objects": {
+                "essgruppe_6": ["essgruppe_6-25"],
+                "essgruppe_stuhl": ["essgruppe_stuhl-%d" % n
+                                    for n in range(30, 36)],
+            },
+        })
+        self.assertIn("## Stueckzahlen", text)
+        self.assertIn("6 Stuehle", text)
+
+    def test_der_auftragstext_verlangt_nachzaehlen(self):
+        modul = load_module()
+        text = modul.render_markdown({
+            "plan_id": "pruef_haus", "job_id": "pruef",
+            "folder": ".", "source": {}, "inputs": [],
+            "required_outputs": [], "constraints": {"models_locked": "x", "naming": "x",
+                            "interiors": "x", "exterior_hero_shot": "x"},
+            "rules": [],
+            "publish": {"command": "x", "note": "x"},
+            "objects": {"essgruppe_6": ["essgruppe_6-25"],
+                        "essgruppe_stuhl": ["essgruppe_stuhl-30"]},
+        })
+        self.assertIn("nachzaehlen", text.lower())
+
+
+class NachweisTest(unittest.TestCase):
+    """Der Auftrag muss BEWEISBAR machen, dass die .blend geoeffnet wurde.
+
+    Rainer, 2026-08-31: "the asshole is not reading the blender files" und
+    "hes guessing again". Codex hatte es am 2026-08-30 selbst gesagt: "Bei
+    meinen bisherigen Auftraegen in diesem Projekt habe ich keine .blend
+    tatsaechlich geoeffnet."
+
+    Der Auftrag sagt seit dem 2026-08-30 "OEFFNEN heisst AUFMACHEN". Das ist
+    Prosa, und Prosa laesst sich ueberlesen. Ein Nachweis nicht: der Auftrag
+    fragt nach einer Zahl, die NUR in der Datei steht -- der Anzahl der
+    MESH-Objekte. Die Objektliste im Auftrag nennt nur Moebel; Waende,
+    Boeden, Fenster und Dach fehlen darin, die Summe ist also nicht
+    ausrechenbar.
+
+    Die erwartete Antwort steht in codex-job.json, NICHT im Auftragstext.
+    """
+
+    def test_die_frage_steht_im_auftrag(self):
+        modul = load_module()
+        text = modul.render_markdown(pruef_job(nachweis={"mesh_objekte": 214}))
+        self.assertIn("## Nachweis", text)
+        self.assertIn("NACHWEIS:", text)
+
+    def test_die_antwort_steht_NICHT_im_auftrag(self):
+        # Sonst schreibt man sie ab, statt die Datei zu oeffnen -- genau der
+        # Fehler, den die Marker-Koordinaten am 2026-08-29 schon einmal
+        # ausgeloest haben.
+        modul = load_module()
+        text = modul.render_markdown(pruef_job(nachweis={"mesh_objekte": 214}))
+        self.assertNotIn("214", text)
+
+    def test_ohne_nachweis_im_auftrag_kein_abschnitt(self):
+        modul = load_module()
+        text = modul.render_markdown(pruef_job())
+        self.assertNotIn("## Nachweis", text)
+
+    def test_die_richtige_zahl_wird_angenommen(self):
+        modul = load_module()
+        self.assertTrue(modul.nachweis_stimmt("NACHWEIS: 214 MESH-Objekte",
+                                              {"mesh_objekte": 214}))
+
+    def test_eine_falsche_zahl_wird_abgelehnt(self):
+        modul = load_module()
+        self.assertFalse(modul.nachweis_stimmt("NACHWEIS: 213 MESH-Objekte",
+                                               {"mesh_objekte": 214}))
+
+    def test_ohne_nachweiszeile_gilt_er_als_nicht_erbracht(self):
+        modul = load_module()
+        self.assertFalse(modul.nachweis_stimmt("Alles erledigt, sieht gut aus.",
+                                               {"mesh_objekte": 214}))
+
+    def test_ohne_erwartung_wird_nichts_behauptet(self):
+        # Alte Auftraege tragen keinen Nachweis. Sie duerfen daran nicht
+        # scheitern -- und auch nicht stillschweigend bestehen.
+        modul = load_module()
+        self.assertIsNone(modul.nachweis_stimmt("NACHWEIS: 214", None))
+        self.assertIsNone(modul.nachweis_stimmt("NACHWEIS: 214", {}))
+
+
+class UmrissTest(unittest.TestCase):
+    """Ein Punkt sagt nicht, wie gross ein Moebel ist und wohin es zeigt.
+
+    Rainer, 2026-08-31: "wir brauchen hier bessere regeln, wegen
+    positionierung streng nach blender file". Vorher, zur Lieferung fuer
+    3_3_4: "das bett is auf der falschen seite es ist genau vor dem schrank".
+
+    Gemessen: `doppelbett-18` steht laut Marker bei px 603,820,
+    `kleiderschrank-19` bei px 253,646. Im gelieferten Bild lag das Bett auf
+    der Stelle des Schranks, und ein Schrank fehlte im Zimmer ganz.
+
+    Der Auftrag verlangte schon "Mitte, Fussabdruck, Groesse und Ausrichtung
+    des Ausgangsobjekts bleiben erhalten" -- gab aber nur EINEN Pixelpunkt je
+    Moebel. Aus einem Punkt laesst sich kein Fussabdruck ablesen. Die Regel
+    war nicht befolgbar.
+
+    Also kommt aus der .blend, was dort steht: die acht Ecken der
+    Bounding-Box in die Kameraansicht projiziert, die Masse in Millimetern
+    und die Drehung.
+    """
+
+    def test_die_masse_landen_am_marker(self):
+        modul = load_module()
+        marker = modul._marker_liste(
+            {"doppelbett": ["doppelbett-18"]},
+            {"doppelbett-18": [0.5, 0.5]},
+            masse={"doppelbett-18": {"masse_mm": [2000, 1800, 500],
+                                     "drehung_grad": 90}})
+        self.assertEqual(marker[0]["masse_mm"], [2000, 1800, 500])
+        self.assertEqual(marker[0]["drehung_grad"], 90)
+
+    def test_ohne_masse_bleibt_der_marker_wie_er_war(self):
+        # Alte Auftraege und Laeufe ohne Blender duerfen nicht scheitern.
+        modul = load_module()
+        marker = modul._marker_liste({"doppelbett": ["doppelbett-18"]},
+                                     {"doppelbett-18": [0.5, 0.5]})
+        self.assertEqual(marker[0]["name"], "doppelbett-18")
+        self.assertNotIn("masse_mm", marker[0])
+
+    def test_der_umriss_wird_zu_pixeln(self):
+        # Die acht Ecken kommen als uv aus Blender und muessen dieselbe
+        # Spiegelung bekommen wie der Mittelpunkt -- sonst liegt der Kasten
+        # im falschen Raum.
+        modul = load_module()
+        ecken_uv = [[0.4, 0.4], [0.6, 0.4], [0.6, 0.6], [0.4, 0.6]]
+        raus = modul._umriss_zu_pixeln(ecken_uv, 1000, 800)
+        self.assertEqual(len(raus), 4)
+        self.assertIn([400, 480], raus)   # v=0.4 -> y = (1-0.4)*800
+        self.assertIn([600, 320], raus)   # v=0.6 -> y = (1-0.6)*800
+
+    def test_der_auftrag_nennt_masse_und_drehung(self):
+        modul = load_module()
+        text = modul.render_markdown(pruef_job(object_map=[{
+            "file": "OBJEKTKARTE-x.png", "image": [1456, 1080],
+            "markers": [{"n": 1, "name": "doppelbett-18", "rolle": "Moebel",
+                         "farbe": "bleibt", "teile": 1, "uv": [0.5, 0.5],
+                         "px": [728, 540], "masse_mm": [2000, 1800, 500],
+                         "drehung_grad": 90}],
+        }]))
+        self.assertIn("2000", text)
+        self.assertIn("1800", text)
+        self.assertIn("90", text)
+
+    def test_der_auftrag_kommt_auch_ohne_masse_klar(self):
+        modul = load_module()
+        text = modul.render_markdown(pruef_job(object_map=[{
+            "file": "OBJEKTKARTE-x.png", "image": [1456, 1080],
+            "markers": [{"n": 1, "name": "doppelbett-18", "rolle": "Moebel",
+                         "farbe": "bleibt", "teile": 1, "uv": [0.5, 0.5],
+                         "px": [728, 540]}],
+        }]))
+        self.assertIn("doppelbett-18", text)
+
+
+class WandRichtungTest(unittest.TestCase):
+    """Der Pfeil zeigt von der Wand FORT.
+
+    Rainer, 2026-08-31: "the arrow has to point away from the wall, so for the
+    bed it would be kopfteil to fussteil and schrank would be the back of the
+    schrank to the front".
+
+    Vorher zeigte der Pfeil die lokale +Y-Achse des Objekts. Die ist eine
+    Modellierkonvention und sagt einem Bearbeiter nichts: bei
+    `kleiderschrank-19` (Drehung 0) und `doppelbett-18` (Drehung 270) heisst
+    +Y nicht dasselbe. "Weg von der Wand" ist dagegen fuer jedes Moebel
+    dieselbe Aussage und im Bild nachpruefbar.
+
+    Gerechnet wird auf den Weltkoordinaten in Millimetern: der kuerzeste
+    Abstand vom Moebelmittelpunkt zu jeder Wandkiste, und die Richtung ist
+    die Gegenrichtung zur naechsten.
+    """
+
+    # Eine Wand entlang y = 0, von x = 0 bis x = 10000.
+    WAND_UNTEN = (0, -100, 10000, 100)
+    # Eine Wand entlang x = 0.
+    WAND_LINKS = (-100, 0, 100, 10000)
+
+    def test_ein_bett_an_der_unteren_wand_zeigt_nach_oben(self):
+        modul = load_module()
+        # Mittelpunkt 1000 mm ueber der Wand.
+        raus = modul.weg_von_der_wand((5000, 1000, 5000, 1000), [self.WAND_UNTEN])
+        self.assertEqual(raus, (0.0, 1.0))
+
+    def test_ein_schrank_an_der_linken_wand_zeigt_nach_rechts(self):
+        modul = load_module()
+        raus = modul.weg_von_der_wand((300, 5000, 300, 5000), [self.WAND_LINKS])
+        self.assertEqual(raus, (1.0, 0.0))
+
+    def test_die_NAECHSTE_Wand_entscheidet(self):
+        # In einer Ecke stehen zwei Waende zur Auswahl. Die naehere gewinnt --
+        # sonst zeigt der Pfeil eines Betts in der Ecke in die Wand hinein.
+        modul = load_module()
+        raus = modul.weg_von_der_wand((200, 3000, 200, 3000),
+                                      [self.WAND_UNTEN, self.WAND_LINKS])
+        self.assertEqual(raus, (1.0, 0.0))
+
+    def test_ohne_Wand_in_Reichweite_gibt_es_keinen_Pfeil(self):
+        # Ein Esstisch mitten im Raum hat keine Bezugswand. Lieber kein Pfeil
+        # als ein erfundener: ein Pfeil, der nichts bedeutet, wird trotzdem
+        # befolgt.
+        modul = load_module()
+        self.assertIsNone(modul.weg_von_der_wand((5000, 5000, 5000, 5000),
+                                                 [self.WAND_UNTEN],
+                                                 hoechstabstand=1000))
+
+    def test_ohne_Waende_gibt_es_keinen_Pfeil(self):
+        modul = load_module()
+        self.assertIsNone(modul.weg_von_der_wand((5000, 5000, 5000, 5000), []))
+
+    def test_die_Richtung_ist_auf_Laenge_eins_gebracht(self):
+        # Stand hier vorher mit einer QUADRATISCHEN Wandkiste
+        # (-100,-100,100,100). Seit der Stuetzenfilter solche Kloetze
+        # aussortiert, kam None heraus -- der Test prueft jetzt dieselbe
+        # Zusage an einer echten, langen Wand.
+        modul = load_module()
+        raus = modul.weg_von_der_wand((300, 300, 300, 300), [self.WAND_LINKS])
+        laenge = (raus[0] ** 2 + raus[1] ** 2) ** 0.5
+        self.assertAlmostEqual(laenge, 1.0, places=6)
+
+    def test_mitten_in_der_Wand_gibt_es_keine_Richtung(self):
+        # Ein Objekt, dessen Mittelpunkt genau auf der Wandmitte liegt,
+        # bekommt keinen Pfeil -- es gibt keine Seite, auf der es steht.
+        # Vorher stand hier eine quadratische Kiste; die wird seit dem
+        # Stuetzenfilter schon davor aussortiert, der Test war damit
+        # falsch-gruen. Jetzt eine echte Wand, Mittelpunkt auf Mittelpunkt.
+        modul = load_module()
+        self.assertIsNone(modul.weg_von_der_wand((5000, 0, 5000, 0),
+                                                 [self.WAND_UNTEN]))
+
+
+class EckeTest(unittest.TestCase):
+    """In der Ecke gibt es keinen eindeutigen Pfeil.
+
+    Codex, 2026-09-01, zur neuen Objektkarte befragt: "'Naechste Wand' ist
+    bei Ecken oder aehnlich entfernten Wänden uneindeutig."
+
+    Stimmt. Ein Bett in der Zimmerecke hat zwei Waende in fast demselben
+    Abstand; welche gewinnt, entscheidet dann ein Millimeter. Der Pfeil zeigt
+    einmal so und beim naechsten Bau anders, und beide Male wird er befolgt.
+
+    Also: liegen die zwei naechsten Waende dicht beieinander, gibt es keinen
+    Pfeil. Die Drehung in Grad steht weiter in der Liste.
+    """
+
+    ECKE_UNTEN = (0, -100, 10000, 100)
+    ECKE_LINKS = (-100, 0, 100, 10000)
+
+    def test_in_der_Ecke_gibt_es_keinen_Pfeil(self):
+        modul = load_module()
+        # 300 mm von unten, 300 mm von links -- gleich weit.
+        self.assertIsNone(modul.weg_von_der_wand((400, 400, 400, 400), [self.ECKE_UNTEN, self.ECKE_LINKS]))
+
+    def test_eine_deutlich_naehere_Wand_gewinnt_weiter(self):
+        modul = load_module()
+        # 200 mm von links, 2900 mm von unten -- kein Zweifel.
+        raus = modul.weg_von_der_wand((300, 3000, 300, 3000),
+                                      [self.ECKE_UNTEN, self.ECKE_LINKS])
+        self.assertEqual(raus, (1.0, 0.0))
+
+    def test_zwei_Waende_derselben_Richtung_streiten_nicht(self):
+        # Gegenueberliegende Kanten DERSELBEN Wand duerfen einander nicht
+        # ausschalten: sonst haette ein Moebel an einer langen Wand nie
+        # einen Pfeil.
+        modul = load_module()
+        raus = modul.weg_von_der_wand((5000, 400, 5000, 400), [self.ECKE_UNTEN])
+        self.assertEqual(raus, (0.0, 1.0))
+
+
+class KistenAbstandTest(unittest.TestCase):
+    """Gemessen wird ab der MOEBELKANTE, nicht ab dem Mittelpunkt.
+
+    An german_catalog_review_bungalow_3_3_4_b_100_2 nachgemessen, in Metern:
+
+        doppelbett-18      naechste Wand 0.898, uebernaechste 1.038
+        kleiderschrank-19  naechste Wand 0.370, uebernaechste 1.333
+
+    Das Bett steht genauso an seiner Wand wie der Schrank an seiner -- aber
+    sein Mittelpunkt ist eine halbe Bettlaenge davon entfernt. Vom Mittelpunkt
+    aus gemessen sah es deshalb aus wie ein Moebel in der Zimmerecke, und die
+    Eckenregel loeschte seinen Pfeil. Von der Kante aus liegt das Bett auf
+    der Wand und die querstehende Wand ist klar weiter weg.
+
+    Ein Punkt ist dabei eine Kiste ohne Ausdehnung; die Aussagen der
+    uebrigen Tests bleiben damit unveraendert gueltig.
+    """
+
+    WAND_UNTEN = (0, -100, 10000, 100)
+    WAND_LINKS = (-100, 0, 100, 10000)
+
+    def test_ein_langes_Bett_an_der_Wand_behaelt_seinen_Pfeil(self):
+        # 2000 tief, mit dem Kopfende auf der Wand: Kante 0, Mitte 1000.
+        modul = load_module()
+        bett = (3000, 100, 4800, 2100)
+        self.assertEqual(modul.weg_von_der_wand(
+            bett, [self.WAND_UNTEN, self.WAND_LINKS]), (0.0, 1.0))
+
+    def test_der_Mittelpunkt_desselben_Betts_haette_keinen_Pfeil(self):
+        # Der Beleg fuer den Grund: derselbe Fall, vom Mittelpunkt gerechnet.
+        # Mitte (3900, 1100) -- 1000 zur unteren, 3800 zur linken Wand.
+        # Hier gewinnt die untere zwar noch, aber bei einem Bett naeher an
+        # der Seitenwand kippt es. Deshalb steht die Kante im Vertrag.
+        modul = load_module()
+        mitte = modul.weg_von_der_wand((3900, 1100, 3900, 1100),
+                                       [self.WAND_UNTEN, self.WAND_LINKS])
+        kante = modul.weg_von_der_wand((3000, 100, 4800, 2100),
+                                       [self.WAND_UNTEN, self.WAND_LINKS])
+        self.assertEqual(kante, (0.0, 1.0))
+        self.assertEqual(mitte, (0.0, 1.0))
+
+    def test_ein_Bett_das_in_der_Ecke_klemmt_bekommt_keinen_Pfeil(self):
+        # Kante 0 zu BEIDEN Waenden -- hier ist die Eckenregel richtig.
+        modul = load_module()
+        self.assertIsNone(modul.weg_von_der_wand(
+            (100, 100, 1900, 2100), [self.WAND_UNTEN, self.WAND_LINKS]))
+
+    def test_ragt_das_Moebel_in_die_Wand_entscheidet_sein_Schwerpunkt(self):
+        # Meine erste Erwartung hier war None: "aus einer Ueberlappung laesst
+        # sich keine Richtung ableiten". Das war falsch gedacht. Ein
+        # Waschtisch, der in die Vorwand ragt, hat sehr wohl eine freie
+        # Seite -- naemlich die, auf der sein Schwerpunkt liegt.
+        #
+        # Und es ist nicht der Ausnahmefall, sondern der Normalfall: ein
+        # Bett, das die Wand BERUEHRT, hat Kantenabstand null. Haette die
+        # Regel dort geschwiegen, bekaeme ausgerechnet jedes wandstaendige
+        # Moebel keinen Pfeil.
+        modul = load_module()
+        self.assertEqual(modul.weg_von_der_wand((0, -50, 500, 500),
+                                                [self.WAND_UNTEN]), (0.0, 1.0))
+
+    def test_deckungsgleiche_Mittelpunkte_geben_keine_Seite_her(self):
+        # Die Grenze davon: liegt das Moebel exakt mittig auf der Wand, gibt
+        # es keine Seite. Lieber kein Pfeil als eine geratene Haelfte.
+        # (Auch dieser Test stand mit einer quadratischen Kiste da und war
+        # falsch-gruen -- er lief gegen den Stuetzenfilter, nicht gegen die
+        # Regel, die er beschreibt.)
+        modul = load_module()
+        self.assertIsNone(modul.weg_von_der_wand((4950, -50, 5050, 50),
+                                                 [self.WAND_UNTEN]))
+
+    def test_eine_Wand_seitlich_daneben_ist_NICHT_nah(self):
+        # Der Abstand muss auf BEIDEN Achsen gemessen werden, die Richtung
+        # kommt nur von der Normalen. Vorher wurde nur entlang der Normalen
+        # gerechnet: eine Wand, die auf ihrer Laengsachse fuenf Meter neben
+        # dem Moebel liegt, meldete Abstand null.
+        #
+        # An german_catalog_review_bungalow_3_3_4_b_100_2 gemessen:
+        # doppelbett-18 liegt bei x 4,25..6,25 -- und eine Wandstuetze bei
+        # x 9,61..9,71 kam als "Abstand 0,000" heraus, weil sie sich in y
+        # mit dem Bett ueberschnitt. Zusammen mit der Eckenregel loeschte
+        # das den Pfeil des Betts.
+        modul = load_module()
+        bett = (4250, 2120, 6250, 3920)
+        wand_daneben = (9610, 3790, 9710, 3900)
+        wand_am_bett = (4000, 3900, 7000, 4000)
+        raus = modul.weg_von_der_wand(bett, [wand_am_bett, wand_daneben])
+        self.assertEqual(raus, (0.0, -1.0))
+
+    def test_ein_quadratischer_Klotz_ist_keine_Wand(self):
+        # An 3_3_4 gemessen: rund um doppelbett-18 stehen `wall`-Objekte von
+        # 0,10 x 0,11 m -- Stuetzen an den Wandkreuzungen. Bei einem fast
+        # quadratischen Kasten entscheidet der Millimeter, welche Achse die
+        # "Normale" ist, und die Richtung ist ein Muenzwurf. Zusammen mit der
+        # Eckenregel loeschten sie den Pfeil des Betts.
+        #
+        # An so einen Klotz stellt niemand ein Bett. Eine Wand ist laenger
+        # als breit; das Verhaeltnis entscheidet, nicht ein Absolutmass --
+        # sonst haengt die Regel wieder an der Einheit.
+        modul = load_module()
+        klotz = (5560, 3880, 5670, 3980)
+        wand = (4000, 3900, 7000, 4000)
+        self.assertEqual(modul.weg_von_der_wand((4250, 2120, 6250, 3820),
+                                                [wand, klotz]), (0.0, -1.0))
+
+    def test_ohne_echte_Wand_bleibt_es_bei_keinem_Pfeil(self):
+        # Und die Klotze allein ergeben keinen Pfeil, statt einen geratenen.
+        modul = load_module()
+        self.assertIsNone(modul.weg_von_der_wand(
+            (4250, 2120, 6250, 3820), [(5560, 3880, 5670, 3980)]))
+
+    def test_die_Einheit_ist_egal(self):
+        # Frueher stand in der Eckenregel ein "+ 50" -- gedacht als 50 mm.
+        # Der Blender-Lauf reicht Meter herein, und aus 50 wurden 50 Meter:
+        # die Regel griff bei JEDEM Moebel und loeschte alle 40 Pfeile
+        # (gemessen am 2026-09-01). Die Toleranz ist seitdem rein relativ.
+        modul = load_module()
+        in_mm = modul.weg_von_der_wand((3000, 100, 4800, 2100),
+                                       [self.WAND_UNTEN, self.WAND_LINKS])
+        in_m = modul.weg_von_der_wand((3.0, 0.1, 4.8, 2.1),
+                                      [(0, -0.1, 10, 0.1), (-0.1, 0, 0.1, 10)],
+                                      hoechstabstand=1.4)
+        self.assertEqual(in_mm, in_m)
+
+
+class StuffHatEinenNamenTest(unittest.TestCase):
+    """"Stuff" sagt nicht, was daraus werden soll.
+
+    Rainer, 2026-09-01: "why does this still keep happening?"
+
+    An german_catalog_review_bungalow_3_3_4_b_100_2 gemessen. `stuff-9` ist
+    im Bauplan:
+
+        asset_id     stuff
+        type         storage_shelving
+        build        rect          <- es gibt KEIN Modell, es ist ein Quader
+        Masse        400 x 2450 x 800 mm, an der Kuechenwand
+
+    Im Auftrag stand davon nur "Stuff (ersetzen)". Der Bauer baut einen
+    nackten Quader, der Auftrag nennt ihn "Stuff", und was daraus werden
+    soll, muss Codex erraten. Es riet viermal verschieden: in 04 und 05
+    wurde eine Kuechenzeile daraus, in 03 und 06 blieb der Quader stehen.
+
+    Die Rolle muss sagen, was zu tun ist -- nicht nur, dass etwas zu tun ist.
+    """
+
+    def test_die_rolle_sagt_was_daraus_werden_soll(self):
+        modul = load_module()
+        rolle = modul.rolle_fuer("stuff")
+        self.assertIn("(ersetzen)", rolle)
+        self.assertNotEqual(rolle, "Stuff (ersetzen)",
+                            '"Stuff" allein sagt nicht, was daraus werden soll')
+        self.assertIn("Kasten", rolle,
+                      "die Rolle muss sagen, dass ein Kasten kein Ergebnis ist")
+
+    def test_der_marker_traegt_die_neue_rolle(self):
+        modul = load_module()
+        marker = modul._marker_liste({"stuff": ["stuff-9"]}, {"stuff-9": [0.5, 0.5]})
+        self.assertIn("Kasten", marker[0]["rolle"])
+
+    def test_stuff_bleibt_rot(self):
+        # Rot heisst ersetzen. Daran aendert die Formulierung nichts.
+        modul = load_module()
+        self.assertEqual(modul.farbe_fuer("stuff"), "ersetzen")
+
+    def test_die_garderobe_bleibt_wie_sie_war(self):
+        # Sie hat einen Namen, der sagt, was sie ist. Nur `stuff` nicht.
+        modul = load_module()
+        self.assertEqual(modul.rolle_fuer("garderobe"), "Garderobe (ersetzen)")
+
+
+class AngenommeneBilderTest(unittest.TestCase):
+    """Ein angenommenes Bild wird nicht noch einmal bestellt.
+
+    `make-codex-job.py` schrieb bei jedem Lauf `"state": "pending"` fuer jedes
+    geforderte Bild -- fest verdrahtet, ohne je nachzusehen, ob es das Bild
+    laengst gibt.
+
+    Am 2026-09-01 fiel das an german_catalog_review_bungalow_3_3_4_b_100_2
+    auf: sechs Bilder geliefert, geprueft, angenommen, hochgeladen und im
+    Kundenkatalog freigegeben (im=6) -- und der frisch geschriebene Auftrag
+    verlangte alle sechs erneut. Jeder neue Durchgang ist ein neuer
+    Wuerfelwurf; dabei ist schon dreimal die Badewanne aus einem fertigen Bad
+    verschwunden.
+
+    `renders/ANGENOMMEN.json` weiss es: dort stehen Ordner, Dateinamen und
+    sha256 der angenommenen Lieferung. Gelesen hat es niemand.
+    """
+
+    ANGENOMMEN = {
+        "schema": "zf-angenommen-v1",
+        "ordner": "codex-pruef_haus-2026-09-01",
+        "angenommen_am": "2026-09-01T12:25:10",
+        "dateien": [{"name": "01-exterior-classic.png", "sha256": "aa"},
+                    {"name": "03-floorplan-warm-modern.png", "sha256": "bb"}],
+    }
+
+    def test_angenommene_bilder_stehen_auf_fertig(self):
+        modul = load_module()
+        raus = modul.zustand_setzen(
+            [{"filename_hint": "01-exterior-classic.png", "state": "pending"},
+             {"filename_hint": "02-exterior-modern.png", "state": "pending"}],
+            self.ANGENOMMEN)
+        self.assertEqual(raus[0]["state"], "angenommen")
+        self.assertEqual(raus[1]["state"], "pending")
+
+    def test_der_ordner_steht_dabei(self):
+        # Damit im Auftrag steht, WO das fertige Bild liegt.
+        modul = load_module()
+        raus = modul.zustand_setzen(
+            [{"filename_hint": "01-exterior-classic.png", "state": "pending"}],
+            self.ANGENOMMEN)
+        self.assertEqual(raus[0].get("angenommen_in"), "codex-pruef_haus-2026-09-01")
+
+    def test_ohne_angenommene_lieferung_bleibt_alles_offen(self):
+        modul = load_module()
+        raus = modul.zustand_setzen(
+            [{"filename_hint": "01-exterior-classic.png", "state": "pending"}], None)
+        self.assertEqual(raus[0]["state"], "pending")
+        self.assertEqual(
+            modul.zustand_setzen(
+                [{"filename_hint": "x.png", "state": "pending"}], {})[0]["state"],
+            "pending")
+
+    def test_der_auftrag_sagt_welche_bilder_fertig_sind(self):
+        modul = load_module()
+        text = modul.render_markdown(pruef_job(required_outputs=[
+            {"from_blend": "exterior-classic-baseline.blend",
+             "kind": "exterior",
+             "filename_hint": "01-exterior-classic.png", "state": "angenommen",
+             "angenommen_in": "codex-pruef_haus-2026-09-01"},
+            {"from_blend": "exterior-modern-baseline.blend", "kind": "exterior",
+             "filename_hint": "02-exterior-modern.png", "state": "pending"},
+        ]))
+        self.assertIn("angenommen", text.lower())
+        self.assertIn("01-exterior-classic.png", text)
+
+    def test_sind_alle_fertig_steht_es_deutlich_da(self):
+        # Der wichtigste Fall: nichts zu tun. Wer das ueberliest, rendert ein
+        # freigegebenes Bild neu.
+        modul = load_module()
+        text = modul.render_markdown(pruef_job(required_outputs=[
+            {"from_blend": "exterior-classic-baseline.blend",
+             "kind": "exterior",
+             "filename_hint": "01-exterior-classic.png", "state": "angenommen",
+             "angenommen_in": "codex-pruef_haus-2026-09-01"},
+        ]))
+        self.assertIn("NICHTS ZU TUN", text)
+
+
+class VierBilderEinHausTest(unittest.TestCase):
+    """Der Auftrag bestellte vier ENTWUERFE. Genau das kam zurueck.
+
+    Rainer, 2026-09-01: "kannst Du deine Prompts nochmals untersuchen, die
+    Tatsache dass Codex den Blender-File 4 mal interpretiert faellt auf Dich
+    zurueck."
+
+    Er hat recht. Im Auftrag stand woertlich:
+
+        "Vier echte Entwuerfe, kein Farbfilter uebereinander."
+        "Der Rohrender mit Farbstich ist KEIN Stil und wird abgelehnt."
+
+    Der erste Satz bestellt vier Entwuerfe; der zweite verbietet den sicheren
+    Weg. Zwei Saetze weiter stand "gleiche Geometrie in allen vieren" -- ein
+    Widerspruch, den Codex zugunsten der Entwuerfe aufgeloest hat. Ergebnis
+    an german_catalog_review_bungalow_3_4_2_b_120: eine Dusche fehlt in einem
+    Bild, ein Schreibtisch in dreien, acht Stuehle statt sechs.
+
+    Der Auftrag muss trennen, was variieren DARF von dem, was nicht darf.
+    """
+
+    def innen(self):
+        # Der Text entsteht in build_job, nicht im Markdown -- geprueft wird
+        # deshalb die Konstante selbst. Mein erster Versuch las
+        # render_markdown(pruef_job()) und damit den Platzhalter "x".
+        return load_module().INNEN_REGEL
+
+    def test_der_auftrag_bestellt_keine_entwuerfe_mehr(self):
+        self.assertNotIn("Vier echte Entwuerfe", self.innen())
+
+    def test_er_sagt_was_variieren_darf(self):
+        text = self.innen()
+        for wort in ("Material", "Licht"):
+            self.assertIn(wort, text, wort + " fehlt in der Liste des Erlaubten")
+
+    def test_er_sagt_was_NICHT_variieren_darf(self):
+        text = self.innen()
+        self.assertIn("welche Moebel dastehen", text)
+        self.assertIn("wie viele", text)
+
+    def test_der_rohrender_wird_nicht_mehr_pauschal_abgelehnt(self):
+        # Der Satz verbot den einzigen Weg, der Objektpersistenz garantiert.
+        self.assertNotIn("Der Rohrender mit Farbstich ist KEIN Stil", self.innen())
+
+    def test_die_atmosphaere_bleibt_gefordert(self):
+        # Sie war der Grund fuer den alten Satz und faellt nicht weg.
+        text = self.innen()
+        self.assertIn("Kontaktschatten", text)
+        self.assertIn("Akzentfarbe", text)
+
+
+class BeanstandungSchlaegtAngenommenTest(unittest.TestCase):
+    """Ein beanstandetes Bild ist nicht mehr angenommen.
+
+    Codex, 2026-09-01, auf einen Auftrag mit Beanstandung:
+
+        "Der Auftrag sagt ausdruecklich: Alle sechs Bilder sind bereits
+         angenommen -- 'NICHTS ZU TUN. Rendere nichts.' Ich habe deshalb
+         keine Bilder oder Dateien veraendert."
+
+    Er hat recht. Der Abschnitt "Schon angenommen -- NICHT neu rendern"
+    entstand am selben Tag, weil ein frisch geschriebener Auftrag die
+    freigegebenen Bilder erneut bestellte. Verzahnt mit den Beanstandungen
+    wurde er nicht: seitdem kann ein Auftrag gleichzeitig "alles angenommen"
+    und "hier sind fuenfzehn Fehler" sagen.
+
+    Eine Beanstandung hebt die Annahme auf -- fuer die Bilder, um die es
+    geht. Alles andere bleibt liegen und wird nicht neu gewuerfelt.
+    """
+
+    def outs(self):
+        return [{"from_blend": "exterior-classic-baseline.blend", "kind": "exterior",
+                 "filename_hint": "01-exterior-classic.png", "state": "angenommen",
+                 "angenommen_in": "codex-haus-2026-09-01"},
+                {"from_blend": "interior-modern-baseline.blend", "kind": "interior",
+                 "filename_hint": "03-floorplan-warm-modern.png", "state": "angenommen",
+                 "angenommen_in": "codex-haus-2026-09-01"}]
+
+    def test_ohne_beanstandung_bleibt_alles_angenommen(self):
+        modul = load_module()
+        raus = modul.annahme_aufheben(self.outs(), None)
+        self.assertTrue(all(e["state"] == "angenommen" for e in raus))
+
+    def test_eine_beanstandung_hebt_die_annahme_der_INNENbilder_auf(self):
+        # Beanstandet wird an den Grundrissen; die Aussenansichten bleiben.
+        modul = load_module()
+        raus = modul.annahme_aufheben(self.outs(), {"auge": "acht Stuehle statt sechs"})
+        zustand = {e["filename_hint"]: e["state"] for e in raus}
+        self.assertEqual(zustand["03-floorplan-warm-modern.png"], "pending")
+        self.assertEqual(zustand["01-exterior-classic.png"], "angenommen")
+
+    def test_ein_ausdruecklich_genanntes_bild_wird_aufgehoben(self):
+        # Steht ein Dateiname in der Beanstandung, gilt genau der.
+        modul = load_module()
+        raus = modul.annahme_aufheben(
+            self.outs(), {"auge": "01-exterior-classic: Dach falsch"})
+        zustand = {e["filename_hint"]: e["state"] for e in raus}
+        self.assertEqual(zustand["01-exterior-classic.png"], "pending")
+
+    def test_kein_NICHTS_ZU_TUN_wenn_beanstandet_wurde(self):
+        modul = load_module()
+        raus = modul.annahme_aufheben(self.outs(), {"auge": "acht Stuehle"})
+        text = "\n".join(modul.rueckgabe_abschnitt_kopf(raus))
+        self.assertNotIn("NICHTS ZU TUN", text)
+
+    def test_eine_leere_runde_hebt_nichts_auf(self):
+        modul = load_module()
+        raus = modul.annahme_aufheben(self.outs(), {"beanstandungen": 0, "was": []})
+        self.assertTrue(all(e["state"] == "angenommen" for e in raus))
+
+
+class StuffNachRaumTest(unittest.TestCase):
+    """Was ein Stauraum-Platzhalter wird, sagt der RAUM.
+
+    Rainer, 2026-09-01: "should we define Stuff? it would usually be shelves
+    with whatever would fit to the room: kids room toys, living room deco or
+    books, HWR storage area shelves with things in them, bathroom towels and
+    deco."
+
+    Bis dahin stand im Auftrag nur "Stauraum-Platzhalter (ersetzen)". Codex
+    musste raten, was daraus wird, und riet je Bild anders -- an
+    german_catalog_review_bungalow_3_3_4_b_100_2 war stuff-9 in einem Bild
+    ein Sideboard mit Tueren und Griffen und im naechsten ein glatter Klotz.
+
+    Die Raumnamen stammen aus dem Bestand, nicht aus der Phantasie; gezaehlt
+    ueber alle 61 Plaene: Kind 74, Diele 63, Bad 62, HWR / HTR 61,
+    Eltern / Schlafen 60, Wohnen / Essen / Kochen 40, WC 28, Flur 22,
+    Kochen 21, Gast 20, Buero 18, Ankleide 16, DU-WC 16, Abstellraum 6.
+    """
+
+    def test_kinderzimmer_bekommt_spielzeug(self):
+        modul = load_module()
+        self.assertIn("Spielzeug", modul.stuff_inhalt("Kind"))
+
+    def test_wohnzimmer_bekommt_buecher_und_deko(self):
+        modul = load_module()
+        text = modul.stuff_inhalt("Wohnen / Essen / Kochen")
+        self.assertIn("Buecher", text)
+
+    def test_hwr_bekommt_vorraete(self):
+        modul = load_module()
+        text = modul.stuff_inhalt("HWR / HTR")
+        self.assertTrue("Vorrat" in text or "Kisten" in text or "Waschmittel" in text)
+
+    def test_bad_bekommt_handtuecher(self):
+        modul = load_module()
+        self.assertIn("Handtuecher", modul.stuff_inhalt("Bad"))
+        self.assertIn("Handtuecher", modul.stuff_inhalt("DU-WC"))
+
+    def test_die_zusammengesetzten_namen_werden_erkannt(self):
+        # "Wohnen / Essen / Kochen" und "Eltern / Schlafen" sind der
+        # Normalfall im Bestand, nicht die Ausnahme.
+        modul = load_module()
+        self.assertNotEqual(modul.stuff_inhalt("Eltern / Schlafen"),
+                            modul.stuff_inhalt("Kind"))
+
+    def test_ein_unbekannter_raum_bekommt_etwas_neutrales(self):
+        modul = load_module()
+        text = modul.stuff_inhalt("Luftraum")
+        self.assertTrue(text)
+        self.assertIn("Regal", text)
+
+    def test_ohne_raum_gibt_es_trotzdem_einen_satz(self):
+        modul = load_module()
+        self.assertTrue(modul.stuff_inhalt(None))
+
+    def test_die_rolle_traegt_den_rauminhalt(self):
+        # Die Naht: der Marker muss es zeigen, nicht nur die Funktion.
+        modul = load_module()
+        marker = modul._marker_liste(
+            {"stuff": ["stuff-13"]}, {"stuff-13": [0.5, 0.5]},
+            raeume={"stuff-13": "Kind"})
+        self.assertIn("Spielzeug", marker[0]["rolle"])
+
+    def test_ohne_raumangabe_bleibt_die_allgemeine_rolle(self):
+        modul = load_module()
+        marker = modul._marker_liste({"stuff": ["stuff-13"]}, {"stuff-13": [0.5, 0.5]})
+        self.assertIn("(ersetzen)", marker[0]["rolle"])
+
+
+class BettachseTest(unittest.TestCase):
+    """Bei einem Bett zeigt der Pfeil vom KOPF- zum FUSSENDE.
+
+    Rainer, 2026-08-31: "the arrow has to point away from the wall, so for
+    the bed it would be kopfteil to fussteil". Gebaut wurde "weg von der
+    naechsten Wand" -- und das ist bei einem Bett, das mit der LAENGSSEITE an
+    der Wand steht, die falsche Achse.
+
+    Rainer, 2026-09-01: "codex has the wrong rotation of the bed again."
+    Nachgemessen an german_catalog_review_bungalow_3_4_2_b_120:
+
+        doppelbett-1    px 986,369    Drehung 270   Pfeil None
+        einzelbett-14   px 604,388    Drehung 270   Pfeil None
+        einzelbett-18   px 1051,895   Drehung 270   Pfeil quer zur Liegeachse
+
+    Zwei von drei Betten hatten GAR KEINEN Pfeil, der dritte zeigte zur
+    Laengsseite. Damit stand die Kopfrichtung nirgends -- der Kasten allein
+    ist symmetrisch, 0 und 180 Grad sehen darin gleich aus.
+
+    Ein Bett ist laenger als breit. Der Pfeil gehoert auf die LANGE Achse,
+    und zwar von dem Ende weg, das an der Wand steht.
+    """
+
+    WAND_OBEN = (0, 5000, 10000, 5100)     # waagerechte Wand bei y = 5000
+    WAND_LINKS = (-100, 0, 0, 10000)       # senkrechte Wand bei x = 0
+
+    def test_das_kopfende_an_der_wand_zeigt_der_pfeil_in_den_raum(self):
+        # Bett 900 breit, 2000 lang, Kopfende oben an der Wand.
+        modul = load_module()
+        bett = (3000, 2900, 3900, 4900)
+        raus = modul.weg_von_der_wand(bett, [self.WAND_OBEN], laengsachse=(0.0, 1.0))
+        self.assertEqual(raus, (0.0, -1.0),
+                         "der Pfeil muss vom Kopfende weg in den Raum zeigen")
+
+    def test_die_laengsseite_an_der_wand_kippt_die_achse_nicht(self):
+        # Genau der Fall aus 3_4_2: das Bett steht mit der LANGEN Seite an
+        # der Wand. Ohne Achsenbindung zeigte der Pfeil quer.
+        modul = load_module()
+        bett = (100, 1000, 2100, 1900)     # 2000 lang in x, 900 breit in y
+        raus = modul.weg_von_der_wand(bett, [self.WAND_LINKS], laengsachse=(1.0, 0.0))
+        self.assertEqual(raus, (1.0, 0.0))
+
+    def test_ohne_laengsachse_bleibt_alles_wie_bisher(self):
+        # Schraenke, Sofas, Kommoden: dort ist "weg von der Wand" richtig.
+        modul = load_module()
+        raus = modul.weg_von_der_wand((3000, 2900, 3900, 4900), [self.WAND_OBEN])
+        self.assertEqual(raus, (0.0, -1.0))
+
+    def test_ein_bett_frei_im_raum_bekommt_trotzdem_eine_richtung(self):
+        # Auch ohne Wand in Reichweite braucht ein Bett eine Kopfrichtung --
+        # sonst steht sie wieder nirgends. Genommen wird die Achse selbst.
+        modul = load_module()
+        raus = modul.weg_von_der_wand((3000, 2900, 3900, 4900), [],
+                                      laengsachse=(0.0, 1.0))
+        self.assertIn(raus, [(0.0, 1.0), (0.0, -1.0)])
+
+    def test_die_achse_wird_nicht_verlassen(self):
+        # Selbst wenn die naechste Wand quer steht: der Pfeil bleibt auf der
+        # Liegeachse.
+        modul = load_module()
+        raus = modul.weg_von_der_wand((100, 1000, 2100, 1900), [self.WAND_LINKS],
+                                      laengsachse=(1.0, 0.0))
+        self.assertEqual(abs(raus[1]), 0.0)
+
+
+class GeschossInventarTest(unittest.TestCase):
+    """twostorey_051, 2026-09-20: zwei Fehler im Auftrag fuer ein Obergeschoss.
+
+    1. Elf Deckenstreifen (`slab-0` ... `slab-10`) standen als "Moebel
+       (umgestalten, muss sichtbar bleiben)" auf der OG-Objektkarte.
+    2. Stueckzahlen und "Inventar dieses Geschosses" beschrieben das
+       ERDGESCHOSS (Sofa, Esstisch, Waschmaschine) und standen hinter der
+       OG-Karte -- fuer die OG-Bilder eine Liste erfundener Moebel.
+    """
+
+    EG_MAP = "OBJEKTKARTE-interior-modern-baseline.png"
+    OG_MAP = "OBJEKTKARTE-interior-modern-upper-baseline.png"
+
+    def setUp(self):
+        self.mod = load_module()
+
+    def two_floor_job(self):
+        job = _beispiel_job()
+        job["objects"] = {"ecksofa": ["ecksofa-10"], "waschmaschine": ["waschmaschine-2"]}
+        job["inventar"] = {"ecksofa": 1, "waschmaschine": 1}
+        marker = lambda name, rolle: {"n": 1, "name": name, "rolle": rolle, "px": [10, 10]}
+        job["object_map"] = [
+            {"file": self.EG_MAP, "image": [2000, 1500],
+             "markers": [marker("ecksofa-10", "Moebel")],
+             "objects": {"ecksofa": ["ecksofa-10"], "waschmaschine": ["waschmaschine-2"]},
+             "inventar": {"ecksofa": 1, "waschmaschine": 1}},
+            {"file": self.OG_MAP, "image": [2000, 1500],
+             "markers": [marker("doppelbett-0", "Moebel")],
+             "objects": {"doppelbett": ["doppelbett-0"], "kleiderschrank": ["kleiderschrank-1"]},
+             "inventar": {"doppelbett": 1, "kleiderschrank": 1}},
+        ]
+        return job
+
+    def test_slab_strips_are_building_fabric_not_furniture(self):
+        self.assertIsNone(self.mod.rolle_fuer("slab"))
+        self.assertEqual(self.mod._inventar(["slab-0", "slab-10", "doppelbett-3"]),
+                         {"doppelbett": 1})
+
+    def test_slab_strips_never_reach_the_marker_candidates(self):
+        """objekte_und_lagen() laesst nur Namen durch, deren Stamm eine Rolle hat."""
+        for name in ("slab-0", "slab-10", "slab-under-wall-3"):
+            self.assertIsNone(self.mod.rolle_fuer(self.mod._stamm(name)), name)
+        self.assertIsNotNone(self.mod.rolle_fuer(self.mod._stamm("doppelbett-3")))
+        self.assertIsNotNone(self.mod.rolle_fuer(self.mod._stamm("kleiderschrank-1")))
+
+    def test_each_floor_gets_its_own_inventory_behind_its_own_map(self):
+        text = self.mod.render_markdown(self.two_floor_job())
+        eg_kopf = text.index("## Inventar dieses Geschosses (EG)")
+        og_kopf = text.index("## Inventar dieses Geschosses (OG)")
+        og_karte = text.index(self.OG_MAP)
+        self.assertLess(eg_kopf, og_karte)          # EG-Inventar steht vor der OG-Karte
+        self.assertGreater(og_kopf, og_karte)       # OG-Inventar steht hinter ihr
+        eg_teil, og_teil = text[eg_kopf:og_karte], text[og_kopf:]
+        self.assertIn("ecksofa", eg_teil)
+        self.assertNotIn("doppelbett", eg_teil)
+        self.assertIn("doppelbett", og_teil)
+        self.assertIn("kleiderschrank", og_teil)
+        # das Erdgeschoss-Inventar taucht im OG-Abschnitt nicht mehr auf
+        self.assertNotIn("- `ecksofa`", og_teil)
+        self.assertNotIn("- `waschmaschine`", og_teil)
+
+    def test_the_second_floor_gets_its_own_counts(self):
+        text = self.mod.render_markdown(self.two_floor_job())
+        self.assertIn("## Stueckzahlen (EG)", text)
+        self.assertIn("## Stueckzahlen (OG)", text)
+        og = text[text.index("## Stueckzahlen (OG)"):]
+        self.assertIn("`doppelbett`: 1", og)
+        self.assertNotIn("`ecksofa`: 1", og)
+
+    def test_the_first_floors_objects_section_names_its_floor(self):
+        text = self.mod.render_markdown(self.two_floor_job())
+        self.assertIn("## Objekte in dieser Datei (EG)", text)
+
+    def test_a_single_floor_keeps_the_plain_headings(self):
+        job = _beispiel_job()
+        job["object_map"] = [{"file": self.EG_MAP, "image": [2000, 1500], "markers": [],
+                              "objects": {"ecksofa": ["ecksofa-10"]},
+                              "inventar": {"ecksofa": 1}}]
+        text = self.mod.render_markdown(job)
+        self.assertIn("## Inventar dieses Geschosses" + chr(10), text)
+        self.assertNotIn("(EG)", text)
+        self.assertNotIn("(OG)", text)
+
+    def test_an_older_job_without_per_map_inventory_reads_as_before(self):
+        job = _beispiel_job()
+        job["inventar"] = {"doppelbett": 1}
+        job["object_map"] = [{"file": self.EG_MAP, "image": [2000, 1500], "markers": []}]
+        text = self.mod.render_markdown(job)
+        self.assertEqual(text.count("## Inventar dieses Geschosses"), 1)
+        self.assertIn("doppelbett", text)
+
+
+if __name__ == "__main__":
+    unittest.main()
