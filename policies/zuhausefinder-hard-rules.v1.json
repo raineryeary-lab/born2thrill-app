@@ -1,0 +1,14 @@
+{
+  "schema": "zf-render-policy-v1",
+  "policy_version": "ZF-RENDER-HARD-RULES-v1",
+  "hard_rules": {
+    "architecture_locked": true,
+    "camera_locked": true,
+    "entrance_door": "anthracite-brushed-steel-vertical-handle",
+    "entrance_door_closed": true,
+    "furniture_transform_locked": true,
+    "roof_colors_excluded": ["red", "orange", "terracotta"],
+    "wall_color_family": "warm-white-ivory",
+    "wall_light_anchor": "window-door-head-height"
+  }
+}

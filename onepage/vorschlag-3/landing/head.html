@@ -1,0 +1,46 @@
+<!-- In OnePage: in das Feld "Code im Kopfbereich" einfügen (Schrift, Skript). -->
+<meta name="theme-color" content="#ffffff">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+  // Hausbau-Konfigurator Landingpage
+  // Ziel des Funnels (vorläufig die Testseite); Zielgruppen-Kacheln geben ?ziel= mit.
+  const FUNNEL_URL = new URL('/vorschlag-konfigurator-3', location.href).href;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-start]').forEach(a => {
+      const url = new URL(FUNNEL_URL);
+      if (a.dataset.start) url.searchParams.set('ziel', a.dataset.start);
+      a.href = url.toString();
+    });
+
+    // Häufige Fragen: immer genau eine Antwort offen, Bereich behält seine Höhe
+    const list = document.querySelector('.faq-list');
+    if (!list) return;
+    const items = [...list.querySelectorAll('details')];
+
+    items.forEach(item => {
+      item.querySelector('summary').addEventListener('click', event => {
+        event.preventDefault();
+        if (item.open) return;
+        items.forEach(other => { other.open = other === item; });
+      });
+    });
+
+    // Höhe der Liste auf die längste Antwort festlegen, damit nichts springt
+    const lockHeight = () => {
+      const current = items.find(item => item.open);
+      list.style.minHeight = '';
+      let max = 0;
+      items.forEach(item => {
+        items.forEach(other => { other.open = other === item; });
+        max = Math.max(max, list.offsetHeight);
+      });
+      items.forEach(other => { other.open = other === current; });
+      list.style.minHeight = max + 'px';
+    };
+    lockHeight();
+    window.addEventListener('resize', lockHeight);
+  });
+</script>

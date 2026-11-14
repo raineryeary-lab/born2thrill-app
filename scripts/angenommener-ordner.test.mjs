@@ -1,0 +1,77 @@
+/**
+ * Welcher Lieferordner ist DER Ordner? Der aus ANGENOMMEN.json.
+ *
+ * Rainer, 2026-08-29, nach dem Hochladen: "i cant see them in Bilder."
+ *
+ * Der Bilder-Tab suchte Ordner, die `codex-final-` heissen, und nahm den
+ * alphabetisch letzten. Die Ordner, die `lieferung-pruefen.py` annimmt,
+ * heissen aber `codex-<plan>-<datum>` -- der Tab fand also nichts, obwohl
+ * sechs angenommene Bilder danebenlagen.
+ *
+ * Das ist dieselbe Ordner-Verwirrung wie am 2026-08-27 ("wieso werden so
+ * viele unterschiedliche ordner verwendet?"), nur an einer zweiten Stelle.
+ * Seither gibt es eine Wahrheit je Haus: `renders/ANGENOMMEN.json`. Der Tab
+ * muss sie lesen, statt aus Namen zu raten.
+ *
+ * Geprueft wird das ECHTE Modul, nicht eine Kopie der Regel -- der ganze
+ * Fehler bestand darin, dieselbe Entscheidung an mehreren Stellen zu treffen.
+ */
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { ordnerAusZeiger as angenommenerOrdner }
+  from "../src/lib/floorplan-workbench/angenommener-ordner.mjs";
+
+test("der Zeiger bestimmt den Ordner", () => {
+  const zeiger = { ordner: "codex-german_catalog_review_bungalow_3_3_1_b_100_2-2026-08-29" };
+  assert.equal(angenommenerOrdner(zeiger, ["codex-final-2026-08-20", "go-baseline"]),
+               "codex-german_catalog_review_bungalow_3_3_1_b_100_2-2026-08-29");
+});
+
+test("der Zeiger schlaegt auch einen juengeren codex-final-Ordner", () => {
+  // Sonst zeigte der Tab weiter einen Zwischenstand, den niemand angenommen hat.
+  const zeiger = { ordner: "codex-haus-2026-08-29" };
+  assert.equal(angenommenerOrdner(zeiger, ["codex-final-2026-08-30"]), "codex-haus-2026-08-29");
+});
+
+test("ohne Zeiger gilt die alte Regel weiter", () => {
+  // `bungalow_040_66` und die anderen Haeuser ohne Zeiger sollen nicht leer
+  // werden, nur weil es die Datei noch nicht gibt.
+  assert.equal(angenommenerOrdner(null, ["codex-final-2026-08-20", "codex-final-2026-08-22"]),
+               "codex-final-2026-08-22");
+});
+
+test("die alte Regel sortiert alphabetisch, und das ist eine Falle", () => {
+  // `bungalow_039` hatte acht solcher Ordner: `-v2` schlaegt das juengere
+  // `-2110`. Genau deshalb gibt es den Zeiger.
+  assert.equal(angenommenerOrdner(null, ["codex-final-2026-08-26-2110", "codex-final-2026-08-26-v2"]),
+               "codex-final-2026-08-26-v2");
+});
+
+test("gibt es weder Zeiger noch passenden Ordner, ist nichts da", () => {
+  assert.equal(angenommenerOrdner(null, ["go-baseline", "nachtrag-2026-08-27"]), null);
+});
+
+test("ein Zeiger ohne Ordnerfeld faellt auf die alte Regel zurueck", () => {
+  assert.equal(angenommenerOrdner({ schema: "zf-angenommen-v1" }, ["codex-final-2026-08-20"]),
+               "codex-final-2026-08-20");
+});
+
+// Plan bilder-tab-zeigt-codex-ordner-v1 (Rainer, 2026-10-21: "i have to be
+// able to see it"). Der Ordner aus codex-job.json, wenn er Bilder hat.
+test("ohne Zeiger gilt der Codex-Lieferordner aus dem Auftrag", () => {
+  assert.equal(angenommenerOrdner(null, ["codex-final-2026-08-20", "codex-haus-2026-10-20", "go-baseline"],
+                                  "codex-haus-2026-10-20"),
+               "codex-haus-2026-10-20");
+});
+
+test("der Zeiger schlaegt den Codex-Lieferordner", () => {
+  assert.equal(angenommenerOrdner({ ordner: "codex-haus-2026-08-29" },
+                                  ["codex-haus-2026-08-29", "codex-haus-2026-10-20"],
+                                  "codex-haus-2026-10-20"),
+               "codex-haus-2026-08-29");
+});
+
+test("ein genannter, aber fehlender Lieferordner faellt auf die alte Regel zurueck", () => {
+  assert.equal(angenommenerOrdner(null, ["codex-final-2026-08-20"], "codex-haus-2026-10-20"),
+               "codex-final-2026-08-20");
+});

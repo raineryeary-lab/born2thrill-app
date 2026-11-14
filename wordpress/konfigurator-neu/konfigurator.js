@@ -1,0 +1,364 @@
+/* konfigurator-neu-v1 (Rainer, 2026-11-08): "test einfach kopieren und das neue
+   nach unseren neuen Vorgaben". Layout von /test (HausKlar, Kino), statt 3D die
+   Comic-Clips. Fragen aus Codex' comic-flow.js (window.ComicFlow), Szenen aus
+   storyboards.js. Das Einstiegsvideo laeuft sofort, die erste Frage fliegt nach
+   3 s unten ein. Kontakt sendet nichts (Entwurf).
+
+   v2 (Rainer ueber Codex, 2026-11-08): Grundstueck und Details sind EIN Schritt.
+   Die gewaehlte Antwort klappt ihre Felder direkt darunter auf, nur eine offen,
+   Eingaben bleiben bei Wechsel/Zurueck erhalten, erst "Weiter" fuehrt zum Budget.
+   Nach dem Intro steht das Warte-Standbild (Szene 01), beim Budget das
+   Sparschwein (Szene 02). */
+(function () {
+  'use strict';
+  var CFG = window.KONFIG_CFG || {};
+  var F = window.ComicFlow;
+  var BOARDS = window.COMIC_STORYBOARDS || {};
+  var root = document.querySelector('.hkf');
+  var $ = function (id) { return root.querySelector('[data-id="' + id + '"]'); };
+  var stage = $('stage'), card = $('card');
+  var ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Der separate Detail-Schritt ist jetzt Teil der Grundstuecksfrage.
+  var Q = F.questions.filter(function (q) { return q.id !== 'details'; });
+  var idx = -1, answers = {}, extra = {}, szeneJetzt = null, timer = 0, ergebnisOffen = false;
+  // Grundstuecksangaben je Antwort -- bleiben bei Wechsel und Zurueck erhalten.
+  var grund = { ja: {}, aussicht: {}, nein: {} };
+  var GRUND_FELDER = {
+    ja: { frage: 'Wo liegt dein Grundstück?', felder: [
+      { name: 'ort', label: 'PLZ / Ort', pflicht: true, auto: 'postal-code' },
+      { name: 'groesse', label: 'Grundstücksgröße in m²', platz: 'z. B. 600', zahl: true }] },
+    aussicht: { frage: 'Wo liegt das Grundstück?', hinweis: 'Geschätzte Angaben reichen.', felder: [
+      { name: 'ort', label: 'PLZ / Ort', pflicht: true, auto: 'postal-code' },
+      { name: 'groesse', label: 'Grundstücksgröße in m² (geschätzt)', platz: 'z. B. ca. 600', zahl: true }] },
+    nein: { frage: 'Wo möchtest du bauen?', felder: [
+      { name: 'ort', label: 'Gewünschte PLZ / Region', pflicht: true, offen: true },
+      { name: 'groesse', label: 'Gewünschte Grundstücksgröße in m²', platz: 'z. B. 500', pflicht: true, offen: true, zahl: true }] }
+  };
+
+  // Das Video endet ueber der Fragekarte, statt dahinter zu verschwinden.
+  function karteHoehe() {
+    // Gemessen wird, wo die Karte oben anfaengt (Handy: sie beginnt bei 46 %).
+    var sichtbar = root.hasAttribute('data-ready') && !card.classList.contains('hkf-moving');
+    var szeneBox = stage.parentElement.getBoundingClientRect();
+    var frei = sichtbar ? Math.max(0, szeneBox.bottom - (szeneBox.top + card.offsetTop)) : 0;
+    root.style.setProperty('--kf-karte', frei + 'px');
+  }
+  new MutationObserver(karteHoehe).observe(card, { attributes: true, attributeFilter: ['class'] });
+  addEventListener('resize', karteHoehe);
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* ---------- Buehne: Clip, Standbild oder Szenenkarte ---------- */
+  function szene(id, danach) {
+    if (szeneJetzt === id && !danach) return;
+    // Gesamtfilm (Rainer, 2026-11-08): Szene 00 = Film ab 0 s, Szene 01 = Endsegment ab schleifeAb.
+    if (FILM && !ruhig && (id === '00' || id === '01')) {
+      szeneJetzt = id;
+      return starteFilm(id === '00' ? 0 : FILM.schleifeAb);
+    }
+    szeneJetzt = id;
+    var url = (CFG.videos || {})[id], bild = (CFG.stills || {})[id];
+    stage.innerHTML = '';
+    // Warteschleife (z. B. Grundstueck): endlos, stumm, ohne Ueberspringen.
+    // Reduced motion bleibt beim Standbild; neue Szene ersetzt die Buehne -> Schleife stoppt.
+    var schleife = (CFG.loops || {})[id];
+    if (schleife && !danach && !ruhig) {
+      var s = document.createElement('video');
+      s.className = 'kf-schleife';
+      s.src = schleife; s.muted = true; s.loop = true; s.playsInline = true; s.autoplay = true; s.preload = 'auto';
+      s.setAttribute('playsinline', ''); s.setAttribute('aria-hidden', 'true');
+      if (bild) s.poster = bild;
+      s.onerror = function () { standOderKarte(id); };
+      stage.appendChild(s);
+      var sp = s.play(); if (sp && sp.catch) sp.catch(function () {});
+      return;
+    }
+    if (url && !ruhig) {
+      var v = document.createElement('video');
+      v.src = url; v.muted = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+      v.setAttribute('aria-label', 'Szene ' + id);
+      var fertig = false;
+      var ende = function () { if (fertig) return; fertig = true; if (danach) danach(); };
+      v.onended = ende;
+      v.onerror = function () { standOderKarte(id); ende(); };
+      stage.appendChild(v);
+      var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; });
+      var w = document.createElement('button');
+      w.type = 'button'; w.className = 'kf-weiter'; w.textContent = 'Video überspringen';
+      w.onclick = function () { v.pause(); ende(); };
+      stage.appendChild(w);
+    } else {
+      standOderKarte(id, bild);
+      if (danach) setTimeout(danach, 600);
+    }
+  }
+  function standOderKarte(id) {
+    var bild = (CFG.stills || {})[id];
+    if (bild) {
+      stage.innerHTML = '<img class="kf-still" src="' + esc(bild) + '" alt="">';
+      return;
+    }
+    var b = BOARDS[id] || {};
+    stage.innerHTML = '<div class="kf-szene"><small>Szene ' + esc(id) + ' · Clip folgt</small><b>' +
+      esc(b.title || 'Unsere Hausgeschichte') + '</b><span>' +
+      esc((b.frames || []).map(function (f) { return f.text; }).slice(0, 2).join(' · ')) + '</span></div>';
+  }
+
+  /* ---------- Gesamtfilm: einmal 0-Ende, danach nur [schleifeAb, Ende) ----------
+     Kein natives loop (das springt auf 0): bei Ende auf schleifeAb setzen und weiter. */
+  var FILM = CFG.film || null;
+  function imEndsegment(v, w) {
+    if (w && w.parentNode) w.parentNode.removeChild(w);
+    if (szeneJetzt === '00') { szeneJetzt = '01'; if (idx < 0) zeige(0); }
+  }
+  // halten = vorladen, erstes Bild einblenden und stehen lassen; abgespielt wird von aussen.
+  function starteFilm(ab, halten) {
+    stage.innerHTML = '';
+    var v = document.createElement('video'), w = null;
+    v.className = 'kf-film';
+    v.src = FILM.url + (ab > 0 ? '#t=' + ab : '');
+    v.muted = true; v.playsInline = true; v.autoplay = !halten; v.preload = 'auto';
+    v.addEventListener('loadeddata', function () { v.classList.add('kf-da'); }, { once: true });
+    v.setAttribute('playsinline', ''); v.setAttribute('aria-label', 'Hausgeschichte');
+    v.onended = function () { v.currentTime = FILM.schleifeAb; var p = v.play(); if (p && p.catch) p.catch(function () {}); };
+    v.ontimeupdate = function () { if (v.currentTime >= FILM.schleifeAb) imEndsegment(v, w); };
+    v.onerror = function () { standOderKarte('01'); imEndsegment(v, w); };
+    stage.appendChild(v);
+    if (!halten) { var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; }); }
+    if (ab < FILM.schleifeAb) {
+      w = document.createElement('button');
+      w.type = 'button'; w.className = 'kf-weiter'; w.textContent = 'Video überspringen';
+      w.onclick = function () { v.currentTime = FILM.schleifeAb; v.play(); imEndsegment(v, w); };
+      stage.appendChild(w);
+    }
+    return v;
+  }
+  // Nach dem Intro (Ende oder Ueberspringen): Warte-Standbild der Grundstuecksfrage.
+  function introVorbei() {
+    if (idx < 0) zeige(0);
+    if (idx === 0 || szeneJetzt === '00') { szeneJetzt = null; szene(Q[Math.max(idx, 0)].scene); }
+  }
+
+  /* ---------- Karte unten ---------- */
+  function fortschritt() {
+    $('prog').innerHTML = Q.map(function (q, i) {
+      return '<div class="hkf-seg' + (i <= idx ? ' hkf-on' : '') + (i === idx ? ' hkf-cur' : '') + '"></div>';
+    }).join('');
+  }
+  function auswahl() {
+    $('spec').innerHTML = Q.filter(function (q) { return answers[q.id] != null && !q.form; }).map(function (q) {
+      return '<div class="hkf-sc hkf-set"><dt>' + esc(q.label) + '</dt><dd>' + esc(antwortText(q, answers[q.id])) + '</dd></div>';
+    }).join('');
+  }
+  function optionen(q) {
+    if (q.id === 'zimmer') {
+      return F.roomOptions(answers.hausart).map(function (z) {
+        return [String(z), z + ' Zimmer', 'zusätzlich zu Küche und Bad'];
+      });
+    }
+    return q.options || [];
+  }
+  function antwortText(q, v) {
+    var o = optionen(q).filter(function (o) { return o[0] === String(v); })[0];
+    return o ? o[1] : v;
+  }
+
+  function zeige(i) {
+    clearTimeout(timer);
+    var erstes = idx < 0;
+    idx = i; ergebnisOffen = false;
+    var q = Q[i];
+    card.classList.add('hkf-moving');
+    setTimeout(function () {
+      $('num').textContent = String(i + 1).padStart(2, '0');
+      $('numName').textContent = q.label;
+      $('eyebrow').textContent = 'Frage ' + (i + 1) + ' von ' + Q.length;
+      $('title').textContent = q.title;
+      $('lead').textContent = q.hint || '';
+      $('back').hidden = i === 0;
+      $('feld').innerHTML = '';
+      $('options').innerHTML = '';
+      $('options').classList.remove('kf-liste');
+      $('cta').hidden = true;
+      if (q.id === 'grundstueck') grundstueck();
+      else if (q.form) formular(q);
+      else knoepfe(q);
+      fortschritt(); auswahl();
+      root.setAttribute('data-ready', '');
+      card.classList.remove('hkf-moving');
+      karteHoehe();
+    }, erstes ? 0 : 350);
+    // Laeuft noch das Intro, bleibt es bei Frage 1 stehen; sonst die Szene der Frage.
+    if (!(i === 0 && szeneJetzt === '00')) szene(q.scene);
+  }
+
+  function knoepfe(q) {
+    $('options').innerHTML = optionen(q).map(function (o) {
+      return '<button type="button" class="hkf-opt" data-v="' + esc(o[0]) + '" aria-pressed="' +
+        (String(answers[q.id]) === o[0]) + '"><span class="hkf-l">' + esc(o[1]) + '</span><span class="hkf-h">' + esc(o[2]) + '</span></button>';
+    }).join('');
+  }
+  $('options').addEventListener('click', function (e) {
+    var b = e.target.closest('.hkf-opt'); if (!b) return;
+    var q = Q[idx], v = b.getAttribute('data-v');
+    if (q.id === 'grundstueck') {           // kein automatisches Weiter
+      F.setAnswer(answers, q.id, v);
+      grundstueck(true);
+      return;
+    }
+    F.setAnswer(answers, q.id, q.id === 'zimmer' ? Number(v) : v);
+    var fly = $('fly'); fly.textContent = b.querySelector('.hkf-h').textContent; fly.classList.add('hkf-on');
+    setTimeout(function () { fly.classList.remove('hkf-on'); }, 1600);
+    weiter(F.reactions(q.id, answers[q.id]));
+  });
+
+  /* ---------- Grundstueck: Antwort + aufklappende Felder in einem Schritt ---------- */
+  function grundstueck(fokus) {
+    var q = Q[idx], gewaehlt = answers.grundstueck;
+    var box = $('options');
+    box.classList.add('kf-liste');
+    box.innerHTML = q.options.map(function (o) {
+      var an = gewaehlt === o[0];
+      return '<button type="button" class="hkf-opt" data-v="' + esc(o[0]) + '" aria-pressed="' + an + '" aria-expanded="' + an + '">' +
+        '<span class="hkf-l">' + esc(o[1]) + '</span><span class="hkf-h">' + esc(o[2]) + '</span></button>' +
+        (an ? grundPanel(o[0]) : '');
+    }).join('');
+    var panel = box.querySelector('.kf-panel');
+    if (panel) {
+      panel.addEventListener('input', grundMerken);
+      panel.addEventListener('change', grundMerken);
+      if (fokus) {
+        var erstes = panel.querySelector('input:not([type=checkbox]):not(:disabled)');
+        if (erstes) erstes.focus({ preventScroll: true });
+        panel.scrollIntoView({ block: 'nearest' });   // Handy: Felder sichtbar machen
+      }
+    }
+    cta('Weiter', function () {
+      if (!grundOk()) return;
+      extra.grundstueck = Object.assign({ antwort: answers.grundstueck }, grund[answers.grundstueck]);
+      weiter([]);
+    });
+    grundPruefen();
+    karteHoehe();
+  }
+  function grundPanel(art) {
+    var def = GRUND_FELDER[art], d = grund[art];
+    return '<div class="kf-panel" data-art="' + art + '"><p class="kf-panel-frage">' + esc(def.frage) +
+      (def.hinweis ? ' <span>' + esc(def.hinweis) + '</span>' : '') + '</p>' +
+      def.felder.map(function (f) {
+        var offen = !!d[f.name + 'Offen'];
+        return '<label class="kf-feld">' + esc(f.label) +
+          '<input name="' + f.name + '" value="' + esc(offen ? '' : d[f.name] || '') + '"' +
+          (f.platz ? ' placeholder="' + esc(f.platz) + '"' : '') + (f.zahl ? ' inputmode="decimal"' : '') +
+          (f.auto ? ' autocomplete="' + f.auto + '"' : '') + (offen ? ' disabled' : '') + '>' +
+          (f.offen ? '<span class="kf-offen"><input type="checkbox" name="' + f.name + 'Offen"' + (offen ? ' checked' : '') + '> Noch offen</span>' : '') +
+          '</label>';
+      }).join('') + '<p class="kf-panel-fehler" data-id="grundFehler" hidden></p></div>';
+  }
+  function grundMerken(e) {
+    var art = answers.grundstueck, d = grund[art], t = e.target;
+    if (t.type === 'checkbox') {
+      d[t.name] = t.checked;
+      var feld = t.closest('label').querySelector('input:not([type=checkbox])');
+      feld.disabled = t.checked;
+      if (t.checked) feld.value = ''; else { feld.value = d[feld.name] || ''; feld.focus(); }
+    } else {
+      d[t.name] = t.value;
+    }
+    grundPruefen();
+  }
+  function grundOk() {
+    var art = answers.grundstueck; if (!art) return false;
+    var d = grund[art];
+    return GRUND_FELDER[art].felder.every(function (f) {
+      return !f.pflicht || d[f.name + 'Offen'] || String(d[f.name] || '').trim();
+    });
+  }
+  function grundPruefen() {
+    var ok = grundOk(), c = $('cta'), fehler = root.querySelector('[data-id="grundFehler"]');
+    c.disabled = !ok;
+    c.setAttribute('aria-disabled', String(!ok));
+    if (fehler) {
+      var art = answers.grundstueck;
+      fehler.hidden = ok;
+      fehler.textContent = art === 'nein' ? 'Bitte Wunschort und Größe angeben oder „Noch offen“ wählen.' : 'Bitte PLZ oder Ort angeben.';
+    }
+  }
+
+  function weiter(reaktionen) {
+    card.classList.add('hkf-moving');
+    var clips = (reaktionen || []).filter(function (r) { return (CFG.videos || {})[r]; });
+    var naechste = function () { if (idx < Q.length - 1) zeige(idx + 1); };
+    if (!clips.length || ruhig) return setTimeout(naechste, 450);
+    (function spiel(k) { if (k >= clips.length) return naechste(); szene(clips[k], function () { spiel(k + 1); }); })(0);
+  }
+
+  function formular(q) {
+    if (q.form === 'contact') {
+      var k = extra.kontakt || {};
+      $('feld').innerHTML = '<form class="kf-form" data-id="f">' +
+        '<label>Name<input name="name" autocomplete="name" value="' + esc(k.name) + '"></label>' +
+        '<label>E-Mail<input name="email" type="email" autocomplete="email" value="' + esc(k.email) + '"></label>' +
+        '<label>Telefon<input name="telefon" type="tel" autocomplete="tel" value="' + esc(k.telefon) + '"></label></form>' +
+        '<p class="kf-hinweis">Entwurf: Es wird noch nichts gesendet oder gespeichert.</p>';
+      cta('Meinen Hausvorschlag zeigen', function () { extra.kontakt = daten(); ergebnis(); });
+    }
+  }
+  function daten() { var f = $('feld').querySelector('form'); return f ? Object.fromEntries(new FormData(f)) : {}; }
+  function cta(text, tun) { var c = $('cta'); c.textContent = text; c.hidden = false; c.disabled = false; c.onclick = tun; }
+
+  function grundText() {
+    var g = extra.grundstueck; if (!g) return '';
+    var teile = [antwortText(Q[0], g.antwort)];
+    teile.push(g.ortOffen ? 'Ort noch offen' : g.ort);
+    teile.push(g.groesseOffen ? 'Größe noch offen' : (g.groesse ? g.groesse + ' m²' : ''));
+    return teile.filter(Boolean).join(' · ');
+  }
+
+  function ergebnis() {
+    card.classList.add('hkf-moving');
+    ergebnisOffen = true;
+    szene('08');
+    setTimeout(function () {
+      var p = F.prices[answers.zimmer];
+      $('num').textContent = '✓'; $('numName').textContent = 'Ergebnis';
+      $('eyebrow').textContent = 'Deine Hausgeschichte';
+      $('title').textContent = 'Dein Hausvorschlag';
+      $('lead').textContent = 'Passende Häuser mit Grundriss, Außenansicht und Preis folgen hier.';
+      $('options').innerHTML = ''; $('options').classList.remove('kf-liste');
+      $('feld').innerHTML = '<dl class="kf-ergebnis">' + Q.filter(function (q) { return !q.form && answers[q.id] != null; }).map(function (q) {
+        return '<dt>' + esc(q.label) + '</dt><dd>' + esc(q.id === 'grundstueck' ? grundText() : antwortText(q, answers[q.id])) + '</dd>';
+      }).join('') + (p ? '<dt>Preisrahmen</dt><dd>ca. ' + (p[0] / 1000) + '–' + (p[1] / 1000) + ' Tsd. €</dd>' : '') + '</dl>';
+      $('back').hidden = false;
+      cta('Passende Grundrisse ansehen', function () { location.href = CFG.katalog || '/grundriss-katalog/'; });
+      card.classList.remove('hkf-moving');
+      karteHoehe();
+    }, 400);
+  }
+
+  $('back').addEventListener('click', function () {
+    if (ergebnisOffen) return zeige(idx);   // vom Ergebnis zurueck zum Kontakt
+    if (idx > 0) zeige(idx - 1);
+  });
+
+  /* ---------- Start: Video sofort, Frage nach 3 s ---------- */
+  // Chef, 2026-11-09: zuerst fliegen Nummer und Frage 01 ein, danach startet der Film
+  // ueber der Karte (kein Vollbild). Danach wie gehabt: 0-Ende einmal, dann Endsegment.
+  if (FILM && !ruhig) {
+    // Rainer, 2026-11-09: Film laedt sofort vor, erstes Bild blendet ein und steht,
+    // gestartet wird nach Kartenflug (filmNachMs) und fertiger Einblendung.
+    szeneJetzt = '00';
+    var film = starteFilm(0, true);
+    zeige(0);
+    var bereit = false, zeitUm = false;
+    var spielen = function () {
+      if (!bereit || !zeitUm || szeneJetzt !== '00' || !film.isConnected || !film.paused) return;
+      var p = film.play(); if (p && p.catch) p.catch(function () { film.controls = true; });
+    };
+    film.addEventListener('loadeddata', function () { setTimeout(function () { bereit = true; spielen(); }, 800); }, { once: true });
+    setTimeout(function () { zeitUm = true; spielen(); }, CFG.filmNachMs || 900);
+  } else {
+    szene('00', introVorbei);
+    timer = setTimeout(function () { if (idx < 0) zeige(0); }, ruhig ? 0 : (CFG.frageNachMs || 3000));
+  }
+})();

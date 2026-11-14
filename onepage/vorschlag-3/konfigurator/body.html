@@ -1,0 +1,939 @@
+<div class="hkf hkf-c" data-theme="light" data-layout="cine" data-look="modell" role="region" aria-label="Hausbau-Konfigurator">
+  <div class="hkf-scene">
+    <div class="hkf-stage" data-id="stage"></div>
+    <div class="hkf-ui">
+      <div class="hkf-num" aria-hidden="true"><b data-id="num"></b><span data-id="numName"></span></div>
+      <div class="hkf-fly" data-id="fly" aria-live="polite"></div>
+    </div>
+  </div>
+  <header class="hkf-top">
+    <div class="hkf-brand">born2thrill<span>Hausbau-Konfigurator</span></div>
+    <div class="hkf-prog" data-id="prog" aria-hidden="true"></div>
+    <div class="hkf-badge" data-id="badge"><i></i><span>Entwurf · sendet noch nichts</span></div>
+  </header>
+  <section class="hkf-card hkf-moving" data-id="card" aria-label="Frage">
+    <div class="hkf-q">
+      <p class="hkf-eyebrow" data-id="eyebrow"></p>
+      <h2 class="hkf-title" data-id="title" tabindex="-1"></h2>
+      <p class="hkf-lead" data-id="lead"></p>
+    </div>
+    <div class="hkf-a">
+      <div class="hkf-options" data-id="options" role="group" aria-label="Antworten"></div>
+      <div data-id="feld"></div>
+      <button type="button" class="hkf-cta" data-id="cta" hidden></button>
+    </div>
+    <div class="hkf-foot">
+      <button type="button" class="hkf-ghost" data-id="back" hidden>Zurück</button>
+      <dl class="hkf-spec" data-id="spec" aria-label="Ihre Auswahl"></dl>
+    </div>
+  </section>
+  <noscript><div class="hkf-nojs">Für den Konfigurator wird JavaScript benötigt.</div></noscript>
+</div>
+<script>window.KONFIG_CFG={"film": {"url": "https://born2thrill.de/wp-content/uploads/2026/11/konfigurator-film-hq-v1.mp4", "schleifeAb": 15.0}, "videos": {}, "stills": {"01": "https://born2thrill.de/wp-content/uploads/2026/11/konfigurator-grundstueck-warten-v1.png", "02": "https://born2thrill.de/wp-content/uploads/2026/11/konfigurator-budget-sparschwein-v1.png"}, "katalog": "https://born2thrill.de/grundriss-katalog/", "frageNachMs": 3000};</script>
+<script>(function(scope){
+ 'use strict';
+ const questions=[
+ {id:'grundstueck',label:'Grundstück',title:'Hast du bereits ein Grundstück?',scene:'01',options:[['ja','Ja','Der Platz für unsere Geschichte steht fest.'],['aussicht','In Aussicht','Wir haben schon etwas im Blick.'],['nein','Noch nicht','Wir suchen noch unseren Lieblingsplatz.']]},
+ {id:'details',label:'Grundstück',title:'Ein Platz für dein Zuhause.',scene:'01',form:'plot'},
+ {id:'budget',label:'Budget',title:'Wie viel möchtest du investieren?',scene:'02',hint:'Für diese Vorschau sind die drei Budgetstufen noch ohne feste Beträge. Hauspreise werden später nach Zimmerzahl gezeigt.',options:[['wenig','Kleines Budget','Das Sparschwein wird befragt.'],['mittel','Mittleres Budget','Vielleicht hilft die Familie mit.'],['viel','Großes Budget','Da kommt noch etwas dazu.']]},
+ {id:'hausart',label:'Hausart',title:'Was möchtest du bauen?',scene:'03',options:[['efh','Einfamilienhaus','Ein Zuhause für eure Geschichte.'],['bungalow','Bungalow','Alles auf einer Ebene.'],['dhh','Doppelhaus / Doppelhaushälfte','Tür an Tür, ganz für euch.'],['zfh','Zweifamilienhaus','Zwei Haushalte unter einem Dach.']]},
+ {id:'baustil',label:'Baustil',title:'Welcher Baustil spricht dich an?',scene:'04',options:[['klassisch','Klassisch','Vertraute Formen, zeitlos gedacht.'],['modern','Modern','Klare Linien, neue Perspektiven.']]},
+ {id:'dachform',label:'Dachform',title:'Welcher Look gefällt dir?',scene:'05',options:[['satteldach','Satteldach','Zwei Flächen, ein Klassiker.'],['walmdach','Walmdach','Zu allen Seiten geneigt.'],['pultdach','Pultdach','Eine Neigung, eine klare Linie.'],['flachdach','Flachdach','Geradlinig und reduziert.']]},
+ {id:'zimmer',label:'Zimmer',title:'Wie viel Platz braucht dein Zuhause?',scene:'06',hint:'Die Zimmeranzahl versteht sich zusätzlich zu Küche und Bad.'},
+ {id:'gaeste_wc',label:'Dusch-WC',title:'Eine zusätzliche Dusche im Gäste-WC?',scene:'07',options:[['ja','Ja, gerne','Ein bisschen mehr Freiraum im Alltag.'],['nein','Nein, danke','Das Hauptbad reicht uns.']]},
+ {id:'kontakt',label:'Kontakt',title:'Deine Hausgeschichte auf einen Blick.',scene:'08',form:'contact'}
+ ];
+ const prices={3:[450000,500000],4:[480000,550000],5:[550000,650000]};
+ function roomOptions(type){return ['efh','dhh'].includes(type)?[4,5]:[3,4,5];}
+ function setAnswer(answers,id,value){answers[id]=value;if(id==='hausart'&&answers.zimmer&&!roomOptions(value).includes(Number(answers.zimmer)))delete answers.zimmer;}
+ function reactions(id,value){if(id==='budget')return value==='wenig'?['02a']:value==='mittel'?['02a','02b']:['02a','02b','02c'];const map={grundstueck:{ja:'01a',aussicht:'01b',nein:'01c'},hausart:{efh:'03a',bungalow:'03b',dhh:'03c',zfh:'03d'},zimmer:{3:'06a',4:'06b',5:'06c'}};return map[id]?.[value]?[map[id][value]]:[];}
+ const api={questions,prices,roomOptions,setAnswer,reactions};scope.ComicFlow=api;if(typeof module!=='undefined')module.exports=api;
+})(typeof window==='undefined'?globalThis:window);
+</script>
+<script>window.COMIC_STORYBOARDS = {
+  "00": {
+    "title": "Start: Hund kennt den Weg",
+    "frames": [
+      {
+        "id": "00-K1",
+        "text": "Vater nach links gewandt, ratlos; Karte in einer Hand, andere hält Leine und kratzt am Kopf"
+      },
+      {
+        "id": "00-K2",
+        "text": "Hund steht mit gebeugten Hinterläufen und studiert Kartenrückseite; Vater dreht Karte"
+      },
+      {
+        "id": "00-K3",
+        "text": "Hund rennt rechts los, Leine straff, Leinenarm wird gezogen; normale Proportionen im Keyframe, maßvolles Stretch & Squash nur in Animation"
+      },
+      {
+        "id": "00-K4",
+        "text": "Harter Schnitt: Hund kommt von links nach rechts, zieht Vater auf dem Rücken; ausgestreckter Arm hält Leine, andere Hand Karte über Gesicht"
+      },
+      {
+        "id": "00-K5",
+        "text": "Halt am X: Vater bleibt auf Rücken und liest weiter; Hund sitzt und schüttelt resigniert-genervt den Kopf, nicht wütend; Vater hilflos-begriffsstutzig, ohne Lächeln"
+      }
+    ]
+  },
+  "01": {
+    "title": "Grundstück: Spaten-Pogostick",
+    "frames": [
+      {
+        "id": "01-K1",
+        "text": "Vater setzt entschlossen zum Spatenstich an"
+      },
+      {
+        "id": "01-K2",
+        "text": "Spaten steckt und biegt sich federnd; Körper staucht sich"
+      },
+      {
+        "id": "01-K3",
+        "text": "Federstoß schleudert Vater hoch"
+      },
+      {
+        "id": "01-K4",
+        "text": "Mutter fängt ihn gelassen am Kragen"
+      },
+      {
+        "id": "01-K5",
+        "text": "Beide wieder sicher am Boden, fragender Blick"
+      }
+    ]
+  },
+  "01a": {
+    "title": "Ja: stolzer Entdecker",
+    "frames": [
+      {
+        "id": "01a-K1",
+        "text": "Vater posiert stolz, Hund schnuppert"
+      },
+      {
+        "id": "01a-K2",
+        "text": "Hund beginnt Turbo-Buddeln"
+      },
+      {
+        "id": "01a-K3",
+        "text": "Erde überschüttet Vater"
+      },
+      {
+        "id": "01a-K4",
+        "text": "Vater voller Erde bleibt stolz stehen, Mutter beobachtet"
+      }
+    ]
+  },
+  "01b": {
+    "title": "In Aussicht: Fernglas",
+    "frames": [
+      {
+        "id": "01b-K1",
+        "text": "Mutter schaut verkehrt herum durchs Fernglas"
+      },
+      {
+        "id": "01b-K2",
+        "text": "Sohn dreht es richtig herum"
+      },
+      {
+        "id": "01b-K3",
+        "text": "Mutter erkennt etwas: Brauen hoch, Mund überrascht; Punktaugen bleiben"
+      },
+      {
+        "id": "01b-K4",
+        "text": "Fernglas gesenkt, Mutter zeigt Daumen hoch"
+      }
+    ]
+  },
+  "01c": {
+    "title": "Nein: endlose Karte",
+    "frames": [
+      {
+        "id": "01c-K1",
+        "text": "Vater öffnet Karte, Mutter schaut mit"
+      },
+      {
+        "id": "01c-K2",
+        "text": "Immer mehr Kartenfalten öffnen sich"
+      },
+      {
+        "id": "01c-K3",
+        "text": "Karte wickelt Vater wie eine Mumie ein, Kopf bleibt frei"
+      },
+      {
+        "id": "01c-K4",
+        "text": "Teen hält gelassen Handy hoch; Eltern schauen dorthin"
+      }
+    ]
+  },
+  "02": {
+    "title": "Budgetfrage: lauschen",
+    "frames": [
+      {
+        "id": "02-K1",
+        "text": "Vater hält Schwein vor dem Körper"
+      },
+      {
+        "id": "02-K2",
+        "text": "Hebt es ans Ohr und lauscht angestrengt"
+      },
+      {
+        "id": "02-K3",
+        "text": "Fragender Blick zum Zuschauer; Schwein noch am Ohr"
+      }
+    ]
+  },
+  "02a": {
+    "title": "Wenig Geld: Motten",
+    "frames": [
+      {
+        "id": "02a-K1",
+        "text": "Exakter Anschluss an 02-K3"
+      },
+      {
+        "id": "02a-K2",
+        "text": "Vater dreht das Schwein kopfüber; Hände außen"
+      },
+      {
+        "id": "02a-K3",
+        "text": "Deutliche Schüttelpose; zwei Schüttelbewegungen zwischen den Posen"
+      },
+      {
+        "id": "02a-K4",
+        "text": "Genau zwei Motten kommen aus dem Münzschlitz"
+      },
+      {
+        "id": "02a-K5",
+        "text": "Motten kreisen um seine Nase; Vater enttäuscht/verlegen, ohne Lächeln"
+      }
+    ]
+  },
+  "02b": {
+    "title": "Mittleres Geld: Sohn mit Cash",
+    "frames": [
+      {
+        "id": "02b-K1",
+        "text": "Exaktes Schlussbild von 02a"
+      },
+      {
+        "id": "02b-K2",
+        "text": "Rückfahrt enthüllt den deutlich kleineren Sohn rechts mit Cash-Stapel"
+      },
+      {
+        "id": "02b-K3",
+        "text": "Vater bemerkt Sohn und Geld, schaut zu ihm"
+      },
+      {
+        "id": "02b-K4",
+        "text": "Vater schaut verlegen ohne Lächeln direkt in die Kamera; Sohn hält Cash weiter; links Platz für Buggy"
+      }
+    ]
+  },
+  "02c": {
+    "title": "Viel Geld: Baby übertrumpft Vater",
+    "frames": [
+      {
+        "id": "02c-K1",
+        "text": "Exaktes Schlussbild von 02b; Mutter noch außerhalb links"
+      },
+      {
+        "id": "02c-K2",
+        "text": "Mutter schlendert herein und schiebt Geldsack-Buggy; Baby verborgen"
+      },
+      {
+        "id": "02c-K3",
+        "text": "Buggy hält neben Vater, Säcke bewegen sich als Vorbereitung"
+      },
+      {
+        "id": "02c-K4",
+        "text": "Baby poppt von unter den Säcken hoch, hält einen Sack in der Hand"
+      },
+      {
+        "id": "02c-K5",
+        "text": "Baby präsentiert den Sack dem Vater; Mutter und Baby selbstzufrieden"
+      },
+      {
+        "id": "02c-K6",
+        "text": "Vaters Schultern fallen, Kopf sinkt, Oberkörper sackt zusammen: komplett erniedrigt"
+      }
+    ]
+  },
+  "03": {
+    "title": "Hausart: in den Plan gefallen",
+    "frames": [
+      {
+        "id": "03-K1",
+        "text": "Familie um die Skizze, Vater beugt sich vor"
+      },
+      {
+        "id": "03-K2",
+        "text": "Vater beugt sich zu weit und kippt"
+      },
+      {
+        "id": "03-K3",
+        "text": "Oberkörper verschwindet cartoonhaft im Papier, Beine ragen heraus"
+      },
+      {
+        "id": "03-K4",
+        "text": "Familie zieht ihn an den Knöcheln heraus"
+      },
+      {
+        "id": "03-K5",
+        "text": "Vater sitzt verdutzt neben dem Plan"
+      }
+    ]
+  },
+  "03a": {
+    "title": "Einfamilienhaus: Fußball-Billard",
+    "frames": [
+      {
+        "id": "03a-K1",
+        "text": "Sohn am Ball; Eltern in der Flugbahn"
+      },
+      {
+        "id": "03a-K2",
+        "text": "Ball federt weich von Papas Kopf ab"
+      },
+      {
+        "id": "03a-K3",
+        "text": "Ball springt an Mamas Dutt zurück zum Sohn"
+      },
+      {
+        "id": "03a-K4",
+        "text": "Sohn stoppt Ball am Fuß, Familie lacht; Vater bleibt verdutzt ohne Lächeln"
+      }
+    ]
+  },
+  "03b": {
+    "title": "Bungalow: auf einer Ebene",
+    "frames": [
+      {
+        "id": "03b-K1",
+        "text": "Großeltern bereit zum Anschieben"
+      },
+      {
+        "id": "03b-K2",
+        "text": "Schlittern wie Eisschnellläufer"
+      },
+      {
+        "id": "03b-K3",
+        "text": "Finden zueinander und drehen sich"
+      },
+      {
+        "id": "03b-K4",
+        "text": "Lustige stabile Tanzpose"
+      }
+    ]
+  },
+  "03c": {
+    "title": "Doppelhaus: Hund zwischen Hälften",
+    "frames": [
+      {
+        "id": "03c-K1",
+        "text": "Familie vor Comic-Haus, Hund mittig"
+      },
+      {
+        "id": "03c-K2",
+        "text": "Haus wird spielerisch in zwei Hälften aufgefächert"
+      },
+      {
+        "id": "03c-K3",
+        "text": "Hund läuft zwischen Hälften hin und her"
+      },
+      {
+        "id": "03c-K4",
+        "text": "Hund plumpst schwindlig in die Mitte"
+      }
+    ]
+  },
+  "03d": {
+    "title": "Zweifamilienhaus: gemeinsame Tür",
+    "frames": [
+      {
+        "id": "03d-K1",
+        "text": "Beide Generationen vor der Tür, Kinder dahinter"
+      },
+      {
+        "id": "03d-K2",
+        "text": "Alle Erwachsenen wollen gleichzeitig hinein"
+      },
+      {
+        "id": "03d-K3",
+        "text": "Klemmen cartoonhaft zusammen"
+      },
+      {
+        "id": "03d-K4",
+        "text": "Ploppen durch, Kinder folgen"
+      }
+    ]
+  },
+  "04": {
+    "title": "Baustil: zwei Geschmäcker",
+    "frames": [
+      {
+        "id": "04-K1",
+        "text": "Mutter mittig mit Bildern; Teen bei modern, Oma bei klassisch"
+      },
+      {
+        "id": "04-K2",
+        "text": "Beide ziehen, Mamas Arme dehnen sich"
+      },
+      {
+        "id": "04-K3",
+        "text": "Mutter federt zur Mitte zurück"
+      },
+      {
+        "id": "04-K4",
+        "text": "Hält beide Bilder zur Auswahl, fragender Blick"
+      }
+    ]
+  },
+  "05": {
+    "title": "Dachform: Opa am Kran",
+    "frames": [
+      {
+        "id": "05-K1",
+        "text": "Vater gibt Zeichen, Opa am Kran, Hund beobachtet"
+      },
+      {
+        "id": "05-K2",
+        "text": "Satteldach am Haken über Haus, Vater korrigiert wild"
+      },
+      {
+        "id": "05-K3",
+        "text": "Walmdach an gleicher Position, Hund schüttelt Kopf"
+      },
+      {
+        "id": "05-K4",
+        "text": "Pultdach, Vater winkt erneut"
+      },
+      {
+        "id": "05-K5",
+        "text": "Flachdach, Hund blickt Vater tief enttäuscht an"
+      },
+      {
+        "id": "05-K6",
+        "text": "Ruhige Auswahlansicht mit Platz für vier gleichwertige Dachbuttons"
+      }
+    ]
+  },
+  "06": {
+    "title": "Zimmer: Clownsauto",
+    "frames": [
+      {
+        "id": "06-K1",
+        "text": "Familie vor kleinem Haus, Hund am Reihenende"
+      },
+      {
+        "id": "06-K2",
+        "text": "Immer mehr Personen quetschen sich hinein, Wände beulen aus"
+      },
+      {
+        "id": "06-K3",
+        "text": "Letzte Person und Baby sicher drinnen; Hund nimmt Anlauf"
+      },
+      {
+        "id": "06-K4",
+        "text": "Hund springt hinein, Fenster ploppt auf"
+      },
+      {
+        "id": "06-K5",
+        "text": "Haus prall gefüllt, Gesichter an Öffnungen, ruhige Fragepose"
+      }
+    ]
+  },
+  "06a": {
+    "title": "Drei Zimmer: Hund hinaus",
+    "frames": [
+      {
+        "id": "06a-K1",
+        "text": "Exakter Anschluss an 06-K5"
+      },
+      {
+        "id": "06a-K2",
+        "text": "Tür wölbt sich und springt auf"
+      },
+      {
+        "id": "06a-K3",
+        "text": "Hund kullert heraus"
+      },
+      {
+        "id": "06a-K4",
+        "text": "Hund sitzt verdutzt vor dem weiterhin prallen Haus"
+      }
+    ]
+  },
+  "06b": {
+    "title": "Vier Zimmer: Akkordeon",
+    "frames": [
+      {
+        "id": "06b-K1",
+        "text": "Exakter Anschluss an 06-K5"
+      },
+      {
+        "id": "06b-K2",
+        "text": "Haus dehnt sich seitlich in Akkordeonfalten"
+      },
+      {
+        "id": "06b-K3",
+        "text": "Familie bekommt Platz, Schultern entspannen"
+      },
+      {
+        "id": "06b-K4",
+        "text": "Haus beruhigt sich, alle atmen auf"
+      }
+    ]
+  },
+  "06c": {
+    "title": "Fünf Zimmer: endlich Platz",
+    "frames": [
+      {
+        "id": "06c-K1",
+        "text": "Exakter Anschluss an 06-K5"
+      },
+      {
+        "id": "06c-K2",
+        "text": "Zusätzlicher Raum wächst/klappt seitlich heraus"
+      },
+      {
+        "id": "06c-K3",
+        "text": "Innenansicht wird lesbar, Familie verteilt sich"
+      },
+      {
+        "id": "06c-K4",
+        "text": "Alle entspannt in ihren Bereichen, Hund hat ebenfalls Platz"
+      }
+    ]
+  },
+  "07": {
+    "title": "Dusch-WC: Opa voller Schlamm",
+    "frames": [
+      {
+        "id": "07-K1",
+        "text": "Opa kommt vom Joggen, schlammiger Hund daneben"
+      },
+      {
+        "id": "07-K2",
+        "text": "Hund setzt zum Schütteln an"
+      },
+      {
+        "id": "07-K3",
+        "text": "Schlamm trifft Opa; nur Brillengläser sauber"
+      },
+      {
+        "id": "07-K4",
+        "text": "Opa blickt trocken zum Nutzer und zeigt auf Dusche"
+      }
+    ]
+  },
+  "08": {
+    "title": "Kontakt: Briefkasten",
+    "frames": [
+      {
+        "id": "08-K1",
+        "text": "Hund mit Umschlag vor Briefkasten"
+      },
+      {
+        "id": "08-K2",
+        "text": "Schiebt/wirft Umschlag hinein"
+      },
+      {
+        "id": "08-K3",
+        "text": "Klappe schnappt zu, Hund springt erschrocken zurück"
+      },
+      {
+        "id": "08-K4",
+        "text": "Hund steht wieder sicher und wedelt"
+      }
+    ]
+  },
+  "09": {
+    "title": "Ergebnis: alle hinein",
+    "frames": [
+      {
+        "id": "09-K1",
+        "text": "Vater öffnet Tür, Familie dicht dahinter"
+      },
+      {
+        "id": "09-K2",
+        "text": "Alle wollen gleichzeitig hinein und verkeilen sich"
+      },
+      {
+        "id": "09-K3",
+        "text": "Hund flitzt zwischen den Beinen hindurch"
+      },
+      {
+        "id": "09-K4",
+        "text": "Gruppe purzelt lachend hinein, Baby geschützt"
+      },
+      {
+        "id": "09-K5",
+        "text": "Ruhiges Schlussbild, Übergang zu echten Ergebnisdaten"
+      }
+    ]
+  }
+};
+</script>
+<script>/* konfigurator-neu-v1 (Rainer, 2026-11-08): "test einfach kopieren und das neue
+   nach unseren neuen Vorgaben". Layout von /test (HausKlar, Kino), statt 3D die
+   Comic-Clips. Fragen aus Codex' comic-flow.js (window.ComicFlow), Szenen aus
+   storyboards.js. Das Einstiegsvideo laeuft sofort, die erste Frage fliegt nach
+   3 s unten ein. Kontakt sendet nichts (Entwurf).
+
+   v2 (Rainer ueber Codex, 2026-11-08): Grundstueck und Details sind EIN Schritt.
+   Die gewaehlte Antwort klappt ihre Felder direkt darunter auf, nur eine offen,
+   Eingaben bleiben bei Wechsel/Zurueck erhalten, erst "Weiter" fuehrt zum Budget.
+   Nach dem Intro steht das Warte-Standbild (Szene 01), beim Budget das
+   Sparschwein (Szene 02). */
+(function () {
+  'use strict';
+  var CFG = window.KONFIG_CFG || {};
+  var F = window.ComicFlow;
+  var BOARDS = window.COMIC_STORYBOARDS || {};
+  var root = document.querySelector('.hkf');
+  var $ = function (id) { return root.querySelector('[data-id="' + id + '"]'); };
+  var stage = $('stage'), card = $('card');
+  var ruhig = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Der separate Detail-Schritt ist jetzt Teil der Grundstuecksfrage.
+  var Q = F.questions.filter(function (q) { return q.id !== 'details'; });
+  var idx = -1, answers = {}, extra = {}, szeneJetzt = null, timer = 0, ergebnisOffen = false;
+  // Grundstuecksangaben je Antwort -- bleiben bei Wechsel und Zurueck erhalten.
+  var grund = { ja: {}, aussicht: {}, nein: {} };
+  var GRUND_FELDER = {
+    ja: { frage: 'Wo liegt dein Grundstück?', felder: [
+      { name: 'ort', label: 'PLZ / Ort', pflicht: true, auto: 'postal-code' },
+      { name: 'groesse', label: 'Grundstücksgröße in m²', platz: 'z. B. 600', zahl: true }] },
+    aussicht: { frage: 'Wo liegt das Grundstück?', hinweis: 'Geschätzte Angaben reichen.', felder: [
+      { name: 'ort', label: 'PLZ / Ort', pflicht: true, auto: 'postal-code' },
+      { name: 'groesse', label: 'Grundstücksgröße in m² (geschätzt)', platz: 'z. B. ca. 600', zahl: true }] },
+    nein: { frage: 'Wo möchtest du bauen?', felder: [
+      { name: 'ort', label: 'Gewünschte PLZ / Region', pflicht: true, offen: true },
+      { name: 'groesse', label: 'Gewünschte Grundstücksgröße in m²', platz: 'z. B. 500', pflicht: true, offen: true, zahl: true }] }
+  };
+
+  // Das Video endet ueber der Fragekarte, statt dahinter zu verschwinden.
+  function karteHoehe() {
+    // Gemessen wird, wo die Karte oben anfaengt (Handy: sie beginnt bei 46 %).
+    var sichtbar = root.hasAttribute('data-ready') && !card.classList.contains('hkf-moving');
+    var szeneBox = stage.parentElement.getBoundingClientRect();
+    var frei = sichtbar ? Math.max(0, szeneBox.bottom - (szeneBox.top + card.offsetTop)) : 0;
+    root.style.setProperty('--kf-karte', frei + 'px');
+  }
+  new MutationObserver(karteHoehe).observe(card, { attributes: true, attributeFilter: ['class'] });
+  addEventListener('resize', karteHoehe);
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /* ---------- Buehne: Clip, Standbild oder Szenenkarte ---------- */
+  function szene(id, danach) {
+    if (szeneJetzt === id && !danach) return;
+    // Gesamtfilm (Rainer, 2026-11-08): Szene 00 = Film ab 0 s, Szene 01 = Endsegment ab schleifeAb.
+    if (FILM && !ruhig && (id === '00' || id === '01')) {
+      szeneJetzt = id;
+      return starteFilm(id === '00' ? 0 : FILM.schleifeAb);
+    }
+    szeneJetzt = id;
+    var url = (CFG.videos || {})[id], bild = (CFG.stills || {})[id];
+    stage.innerHTML = '';
+    // Warteschleife (z. B. Grundstueck): endlos, stumm, ohne Ueberspringen.
+    // Reduced motion bleibt beim Standbild; neue Szene ersetzt die Buehne -> Schleife stoppt.
+    var schleife = (CFG.loops || {})[id];
+    if (schleife && !danach && !ruhig) {
+      var s = document.createElement('video');
+      s.className = 'kf-schleife';
+      s.src = schleife; s.muted = true; s.loop = true; s.playsInline = true; s.autoplay = true; s.preload = 'auto';
+      s.setAttribute('playsinline', ''); s.setAttribute('aria-hidden', 'true');
+      if (bild) s.poster = bild;
+      s.onerror = function () { standOderKarte(id); };
+      stage.appendChild(s);
+      var sp = s.play(); if (sp && sp.catch) sp.catch(function () {});
+      return;
+    }
+    if (url && !ruhig) {
+      var v = document.createElement('video');
+      v.src = url; v.muted = true; v.playsInline = true; v.autoplay = true; v.preload = 'auto';
+      v.setAttribute('aria-label', 'Szene ' + id);
+      var fertig = false;
+      var ende = function () { if (fertig) return; fertig = true; if (danach) danach(); };
+      v.onended = ende;
+      v.onerror = function () { standOderKarte(id); ende(); };
+      stage.appendChild(v);
+      var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; });
+      var w = document.createElement('button');
+      w.type = 'button'; w.className = 'kf-weiter'; w.textContent = 'Video überspringen';
+      w.onclick = function () { v.pause(); ende(); };
+      stage.appendChild(w);
+    } else {
+      standOderKarte(id, bild);
+      if (danach) setTimeout(danach, 600);
+    }
+  }
+  function standOderKarte(id) {
+    var bild = (CFG.stills || {})[id];
+    if (bild) {
+      stage.innerHTML = '<img class="kf-still" src="' + esc(bild) + '" alt="">';
+      return;
+    }
+    var b = BOARDS[id] || {};
+    stage.innerHTML = '<div class="kf-szene"><small>Szene ' + esc(id) + ' · Clip folgt</small><b>' +
+      esc(b.title || 'Unsere Hausgeschichte') + '</b><span>' +
+      esc((b.frames || []).map(function (f) { return f.text; }).slice(0, 2).join(' · ')) + '</span></div>';
+  }
+
+  /* ---------- Gesamtfilm: einmal 0-Ende, danach nur [schleifeAb, Ende) ----------
+     Kein natives loop (das springt auf 0): bei Ende auf schleifeAb setzen und weiter. */
+  var FILM = CFG.film || null;
+  function imEndsegment(v, w) {
+    if (w && w.parentNode) w.parentNode.removeChild(w);
+    if (szeneJetzt === '00') { szeneJetzt = '01'; if (idx < 0) zeige(0); }
+  }
+  // halten = vorladen, erstes Bild einblenden und stehen lassen; abgespielt wird von aussen.
+  function starteFilm(ab, halten) {
+    stage.innerHTML = '';
+    var v = document.createElement('video'), w = null;
+    v.className = 'kf-film';
+    v.src = FILM.url + (ab > 0 ? '#t=' + ab : '');
+    v.muted = true; v.playsInline = true; v.autoplay = !halten; v.preload = 'auto';
+    v.addEventListener('loadeddata', function () { v.classList.add('kf-da'); }, { once: true });
+    v.setAttribute('playsinline', ''); v.setAttribute('aria-label', 'Hausgeschichte');
+    v.onended = function () { v.currentTime = FILM.schleifeAb; var p = v.play(); if (p && p.catch) p.catch(function () {}); };
+    v.ontimeupdate = function () { if (v.currentTime >= FILM.schleifeAb) imEndsegment(v, w); };
+    v.onerror = function () { standOderKarte('01'); imEndsegment(v, w); };
+    stage.appendChild(v);
+    if (!halten) { var p = v.play(); if (p && p.catch) p.catch(function () { v.controls = true; }); }
+    if (ab < FILM.schleifeAb) {
+      w = document.createElement('button');
+      w.type = 'button'; w.className = 'kf-weiter'; w.textContent = 'Video überspringen';
+      w.onclick = function () { v.currentTime = FILM.schleifeAb; v.play(); imEndsegment(v, w); };
+      stage.appendChild(w);
+    }
+    return v;
+  }
+  // Nach dem Intro (Ende oder Ueberspringen): Warte-Standbild der Grundstuecksfrage.
+  function introVorbei() {
+    if (idx < 0) zeige(0);
+    if (idx === 0 || szeneJetzt === '00') { szeneJetzt = null; szene(Q[Math.max(idx, 0)].scene); }
+  }
+
+  /* ---------- Karte unten ---------- */
+  function fortschritt() {
+    $('prog').innerHTML = Q.map(function (q, i) {
+      return '<div class="hkf-seg' + (i <= idx ? ' hkf-on' : '') + (i === idx ? ' hkf-cur' : '') + '"></div>';
+    }).join('');
+  }
+  function auswahl() {
+    $('spec').innerHTML = Q.filter(function (q) { return answers[q.id] != null && !q.form; }).map(function (q) {
+      return '<div class="hkf-sc hkf-set"><dt>' + esc(q.label) + '</dt><dd>' + esc(antwortText(q, answers[q.id])) + '</dd></div>';
+    }).join('');
+  }
+  function optionen(q) {
+    if (q.id === 'zimmer') {
+      return F.roomOptions(answers.hausart).map(function (z) {
+        return [String(z), z + ' Zimmer', 'zusätzlich zu Küche und Bad'];
+      });
+    }
+    return q.options || [];
+  }
+  function antwortText(q, v) {
+    var o = optionen(q).filter(function (o) { return o[0] === String(v); })[0];
+    return o ? o[1] : v;
+  }
+
+  function zeige(i) {
+    clearTimeout(timer);
+    var erstes = idx < 0;
+    idx = i; ergebnisOffen = false;
+    var q = Q[i];
+    card.classList.add('hkf-moving');
+    setTimeout(function () {
+      $('num').textContent = String(i + 1).padStart(2, '0');
+      $('numName').textContent = q.label;
+      $('eyebrow').textContent = 'Frage ' + (i + 1) + ' von ' + Q.length;
+      $('title').textContent = q.title;
+      $('lead').textContent = q.hint || '';
+      $('back').hidden = i === 0;
+      $('feld').innerHTML = '';
+      $('options').innerHTML = '';
+      $('options').classList.remove('kf-liste');
+      $('cta').hidden = true;
+      if (q.id === 'grundstueck') grundstueck();
+      else if (q.form) formular(q);
+      else knoepfe(q);
+      fortschritt(); auswahl();
+      root.setAttribute('data-ready', '');
+      card.classList.remove('hkf-moving');
+      karteHoehe();
+    }, erstes ? 0 : 350);
+    // Laeuft noch das Intro, bleibt es bei Frage 1 stehen; sonst die Szene der Frage.
+    if (!(i === 0 && szeneJetzt === '00')) szene(q.scene);
+  }
+
+  function knoepfe(q) {
+    $('options').innerHTML = optionen(q).map(function (o) {
+      return '<button type="button" class="hkf-opt" data-v="' + esc(o[0]) + '" aria-pressed="' +
+        (String(answers[q.id]) === o[0]) + '"><span class="hkf-l">' + esc(o[1]) + '</span><span class="hkf-h">' + esc(o[2]) + '</span></button>';
+    }).join('');
+  }
+  $('options').addEventListener('click', function (e) {
+    var b = e.target.closest('.hkf-opt'); if (!b) return;
+    var q = Q[idx], v = b.getAttribute('data-v');
+    if (q.id === 'grundstueck') {           // kein automatisches Weiter
+      F.setAnswer(answers, q.id, v);
+      grundstueck(true);
+      return;
+    }
+    F.setAnswer(answers, q.id, q.id === 'zimmer' ? Number(v) : v);
+    var fly = $('fly'); fly.textContent = b.querySelector('.hkf-h').textContent; fly.classList.add('hkf-on');
+    setTimeout(function () { fly.classList.remove('hkf-on'); }, 1600);
+    weiter(F.reactions(q.id, answers[q.id]));
+  });
+
+  /* ---------- Grundstueck: Antwort + aufklappende Felder in einem Schritt ---------- */
+  function grundstueck(fokus) {
+    var q = Q[idx], gewaehlt = answers.grundstueck;
+    var box = $('options');
+    box.classList.add('kf-liste');
+    box.innerHTML = q.options.map(function (o) {
+      var an = gewaehlt === o[0];
+      return '<button type="button" class="hkf-opt" data-v="' + esc(o[0]) + '" aria-pressed="' + an + '" aria-expanded="' + an + '">' +
+        '<span class="hkf-l">' + esc(o[1]) + '</span><span class="hkf-h">' + esc(o[2]) + '</span></button>' +
+        (an ? grundPanel(o[0]) : '');
+    }).join('');
+    var panel = box.querySelector('.kf-panel');
+    if (panel) {
+      panel.addEventListener('input', grundMerken);
+      panel.addEventListener('change', grundMerken);
+      if (fokus) {
+        var erstes = panel.querySelector('input:not([type=checkbox]):not(:disabled)');
+        if (erstes) erstes.focus({ preventScroll: true });
+        panel.scrollIntoView({ block: 'nearest' });   // Handy: Felder sichtbar machen
+      }
+    }
+    cta('Weiter', function () {
+      if (!grundOk()) return;
+      extra.grundstueck = Object.assign({ antwort: answers.grundstueck }, grund[answers.grundstueck]);
+      weiter([]);
+    });
+    grundPruefen();
+    karteHoehe();
+  }
+  function grundPanel(art) {
+    var def = GRUND_FELDER[art], d = grund[art];
+    return '<div class="kf-panel" data-art="' + art + '"><p class="kf-panel-frage">' + esc(def.frage) +
+      (def.hinweis ? ' <span>' + esc(def.hinweis) + '</span>' : '') + '</p>' +
+      def.felder.map(function (f) {
+        var offen = !!d[f.name + 'Offen'];
+        return '<label class="kf-feld">' + esc(f.label) +
+          '<input name="' + f.name + '" value="' + esc(offen ? '' : d[f.name] || '') + '"' +
+          (f.platz ? ' placeholder="' + esc(f.platz) + '"' : '') + (f.zahl ? ' inputmode="decimal"' : '') +
+          (f.auto ? ' autocomplete="' + f.auto + '"' : '') + (offen ? ' disabled' : '') + '>' +
+          (f.offen ? '<span class="kf-offen"><input type="checkbox" name="' + f.name + 'Offen"' + (offen ? ' checked' : '') + '> Noch offen</span>' : '') +
+          '</label>';
+      }).join('') + '<p class="kf-panel-fehler" data-id="grundFehler" hidden></p></div>';
+  }
+  function grundMerken(e) {
+    var art = answers.grundstueck, d = grund[art], t = e.target;
+    if (t.type === 'checkbox') {
+      d[t.name] = t.checked;
+      var feld = t.closest('label').querySelector('input:not([type=checkbox])');
+      feld.disabled = t.checked;
+      if (t.checked) feld.value = ''; else { feld.value = d[feld.name] || ''; feld.focus(); }
+    } else {
+      d[t.name] = t.value;
+    }
+    grundPruefen();
+  }
+  function grundOk() {
+    var art = answers.grundstueck; if (!art) return false;
+    var d = grund[art];
+    return GRUND_FELDER[art].felder.every(function (f) {
+      return !f.pflicht || d[f.name + 'Offen'] || String(d[f.name] || '').trim();
+    });
+  }
+  function grundPruefen() {
+    var ok = grundOk(), c = $('cta'), fehler = root.querySelector('[data-id="grundFehler"]');
+    c.disabled = !ok;
+    c.setAttribute('aria-disabled', String(!ok));
+    if (fehler) {
+      var art = answers.grundstueck;
+      fehler.hidden = ok;
+      fehler.textContent = art === 'nein' ? 'Bitte Wunschort und Größe angeben oder „Noch offen“ wählen.' : 'Bitte PLZ oder Ort angeben.';
+    }
+  }
+
+  function weiter(reaktionen) {
+    card.classList.add('hkf-moving');
+    var clips = (reaktionen || []).filter(function (r) { return (CFG.videos || {})[r]; });
+    var naechste = function () { if (idx < Q.length - 1) zeige(idx + 1); };
+    if (!clips.length || ruhig) return setTimeout(naechste, 450);
+    (function spiel(k) { if (k >= clips.length) return naechste(); szene(clips[k], function () { spiel(k + 1); }); })(0);
+  }
+
+  function formular(q) {
+    if (q.form === 'contact') {
+      var k = extra.kontakt || {};
+      $('feld').innerHTML = '<form class="kf-form" data-id="f">' +
+        '<label>Name<input name="name" autocomplete="name" value="' + esc(k.name) + '"></label>' +
+        '<label>E-Mail<input name="email" type="email" autocomplete="email" value="' + esc(k.email) + '"></label>' +
+        '<label>Telefon<input name="telefon" type="tel" autocomplete="tel" value="' + esc(k.telefon) + '"></label></form>' +
+        '<p class="kf-hinweis">Entwurf: Es wird noch nichts gesendet oder gespeichert.</p>';
+      cta('Meinen Hausvorschlag zeigen', function () { extra.kontakt = daten(); ergebnis(); });
+    }
+  }
+  function daten() { var f = $('feld').querySelector('form'); return f ? Object.fromEntries(new FormData(f)) : {}; }
+  function cta(text, tun) { var c = $('cta'); c.textContent = text; c.hidden = false; c.disabled = false; c.onclick = tun; }
+
+  function grundText() {
+    var g = extra.grundstueck; if (!g) return '';
+    var teile = [antwortText(Q[0], g.antwort)];
+    teile.push(g.ortOffen ? 'Ort noch offen' : g.ort);
+    teile.push(g.groesseOffen ? 'Größe noch offen' : (g.groesse ? g.groesse + ' m²' : ''));
+    return teile.filter(Boolean).join(' · ');
+  }
+
+  function ergebnis() {
+    card.classList.add('hkf-moving');
+    ergebnisOffen = true;
+    szene('08');
+    setTimeout(function () {
+      var p = F.prices[answers.zimmer];
+      $('num').textContent = '✓'; $('numName').textContent = 'Ergebnis';
+      $('eyebrow').textContent = 'Deine Hausgeschichte';
+      $('title').textContent = 'Dein Hausvorschlag';
+      $('lead').textContent = 'Passende Häuser mit Grundriss, Außenansicht und Preis folgen hier.';
+      $('options').innerHTML = ''; $('options').classList.remove('kf-liste');
+      $('feld').innerHTML = '<dl class="kf-ergebnis">' + Q.filter(function (q) { return !q.form && answers[q.id] != null; }).map(function (q) {
+        return '<dt>' + esc(q.label) + '</dt><dd>' + esc(q.id === 'grundstueck' ? grundText() : antwortText(q, answers[q.id])) + '</dd>';
+      }).join('') + (p ? '<dt>Preisrahmen</dt><dd>ca. ' + (p[0] / 1000) + '–' + (p[1] / 1000) + ' Tsd. €</dd>' : '') + '</dl>';
+      $('back').hidden = false;
+      cta('Passende Grundrisse ansehen', function () { location.href = CFG.katalog || '/grundriss-katalog/'; });
+      card.classList.remove('hkf-moving');
+      karteHoehe();
+    }, 400);
+  }
+
+  $('back').addEventListener('click', function () {
+    if (ergebnisOffen) return zeige(idx);   // vom Ergebnis zurueck zum Kontakt
+    if (idx > 0) zeige(idx - 1);
+  });
+
+  /* ---------- Start: Video sofort, Frage nach 3 s ---------- */
+  // Chef, 2026-11-09: zuerst fliegen Nummer und Frage 01 ein, danach startet der Film
+  // ueber der Karte (kein Vollbild). Danach wie gehabt: 0-Ende einmal, dann Endsegment.
+  if (FILM && !ruhig) {
+    // Rainer, 2026-11-09: Film laedt sofort vor, erstes Bild blendet ein und steht,
+    // gestartet wird nach Kartenflug (filmNachMs) und fertiger Einblendung.
+    szeneJetzt = '00';
+    var film = starteFilm(0, true);
+    zeige(0);
+    var bereit = false, zeitUm = false;
+    var spielen = function () {
+      if (!bereit || !zeitUm || szeneJetzt !== '00' || !film.isConnected || !film.paused) return;
+      var p = film.play(); if (p && p.catch) p.catch(function () { film.controls = true; });
+    };
+    film.addEventListener('loadeddata', function () { setTimeout(function () { bereit = true; spielen(); }, 800); }, { once: true });
+    setTimeout(function () { zeitUm = true; spielen(); }, CFG.filmNachMs || 900);
+  } else {
+    szene('00', introVorbei);
+    timer = setTimeout(function () { if (idx < 0) zeige(0); }, ruhig ? 0 : (CFG.frageNachMs || 3000));
+  }
+})();
+</script>

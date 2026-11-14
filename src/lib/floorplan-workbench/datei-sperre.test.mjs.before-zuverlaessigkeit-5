@@ -1,0 +1,178 @@
+// node src/lib/floorplan-workbench/datei-sperre.test.mjs
+import assert from "node:assert/strict";
+import { mkdtemp, readFile, writeFile, rm, utimes, mkdir, readdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { sperreNehmen, ledgerAbgleichen, VERWAIST_MS } from "./datei-sperre.mjs";
+
+let n = 0;
+// Eine Sperrdatei so hinlegen, wie ein anderer Prozess sie angelegt haette.
+async function pflanze(pfad, inhalt, nr = 1) {
+  await mkdir(`${pfad}.d`, { recursive: true });
+  const datei = join(`${pfad}.d`, `${String(nr).padStart(9, "0")}.lock`);
+  await writeFile(datei, typeof inhalt === "string" ? inhalt : JSON.stringify(inhalt));
+  return datei;
+}
+async function besitzerZweck(pfad) {
+  const namen = (await readdir(`${pfad}.d`)).filter((x) => x.endsWith(".lock")).sort();
+  const info = JSON.parse(await readFile(join(`${pfad}.d`, namen[namen.length - 1]), "utf8"));
+  return info.frei ? null : info.zweck;
+}
+async function fall(name, f) { await f(); n += 1; console.log("ok -", name); }
+
+const ordner = await mkdtemp(join(tmpdir(), "sperre-"));
+try {
+  await fall("freie Sperre wird genommen und beim Loesen freigegeben", async () => {
+    const pfad = join(ordner, "a.lock");
+    const s = await sperreNehmen(pfad, { zweck: "ledger" });
+    assert.ok(s.ok);
+    assert.equal(await besitzerZweck(pfad), "ledger");
+    await s.loesen();
+    assert.equal(await besitzerZweck(pfad), null);
+    const wieder = await sperreNehmen(pfad, {});
+    assert.ok(wieder.ok);
+    await wieder.loesen();
+  });
+
+  await fall("zweite Sperre auf derselben Datei wird verweigert, mit Besitzer", async () => {
+    const pfad = join(ordner, "b.lock");
+    const erste = await sperreNehmen(pfad, { zweck: "ledger" });
+    const zweite = await sperreNehmen(pfad, { zweck: "ledger" });
+    assert.equal(zweite.ok, false);
+    assert.equal(zweite.besitzer.pid, process.pid);
+    await erste.loesen();
+    const dritte = await sperreNehmen(pfad, {});
+    assert.ok(dritte.ok);
+    await dritte.loesen();
+  });
+
+  await fall("eine junge Sperre wird nie uebernommen, auch von einem toten Prozess", async () => {
+    const pfad = join(ordner, "c.lock");
+    await pflanze(pfad, { pid: 999999, seit: Date.now() - 1000, token: "x" });
+    assert.equal((await sperreNehmen(pfad, {})).ok, false);
+  });
+
+  await fall(`eine Sperre aelter als ${VERWAIST_MS / 1000} s gilt als verwaist`, async () => {
+    const pfad = join(ordner, "d.lock");
+    await pflanze(pfad, { pid: process.pid, seit: Date.now() - VERWAIST_MS - 1000, token: "alt" });
+    const s = await sperreNehmen(pfad, {});
+    assert.ok(s.ok);
+    await s.loesen();
+  });
+
+  await fall("unlesbare Sperrdatei: jung blockiert, alt (mtime) wird uebernommen", async () => {
+    const pfad = join(ordner, "e.lock");
+    const datei = await pflanze(pfad, "kaputt");
+    assert.equal((await sperreNehmen(pfad, {})).ok, false);
+    const alt = new Date(Date.now() - VERWAIST_MS - 5000);
+    await utimes(datei, alt, alt);
+    const s = await sperreNehmen(pfad, {});
+    assert.ok(s.ok);
+    await s.loesen();
+  });
+
+  await fall("loesen gibt keine fremde Sperre frei", async () => {
+    const pfad = join(ordner, "f.lock");
+    const s = await sperreNehmen(pfad, {});
+    // als haette ein anderer sie (nach Verwaisung) mit Nummer 2 uebernommen
+    await pflanze(pfad, { pid: 999999, seit: Date.now(), token: "fremd", zweck: "fremd" }, 2);
+    await s.loesen();
+    assert.equal(await besitzerZweck(pfad), "fremd");
+    assert.equal((await sperreNehmen(pfad, {})).ok, false);
+  });
+
+  // Codex Runde 4, N1: drei Bewerber. Ein lebender Besitzer (< 120 s) darf
+  // nie seine Sperre verlieren, und nie duerfen zwei gleichzeitig besitzen.
+  await fall("drei Bewerber auf eine eben freigegebene Sperre: genau einer bekommt sie", async () => {
+    for (let runde = 0; runde < 20; runde += 1) {
+      const pfad = join(ordner, `frei${runde}.lock`);
+      const vorher = await sperreNehmen(pfad, { zweck: "vorher" });
+      await vorher.loesen();
+      const alle = await Promise.all(["A", "B", "C"].map((z) => sperreNehmen(pfad, { zweck: z })));
+      assert.equal(alle.filter((s) => s.ok).length, 1, `Runde ${runde}`);
+      await alle.find((s) => s.ok).loesen();
+    }
+  });
+
+  await fall("langsamer Bewerber auf eine alte Nummer zieht sich zurueck", async () => {
+    const pfad = join(ordner, "slow.lock");
+    const a = await sperreNehmen(pfad, { zweck: "A" });     // Nummer 1
+    await a.loesen();
+    const b = await sperreNehmen(pfad, { zweck: "B" });     // Nummer 2, raeumt 1 weg
+    assert.ok(b.ok);
+    // Ein Bewerber, der noch "hoechste = 0" gelesen hatte, legt 1 neu an:
+    await pflanze(pfad, { pid: 5, seit: Date.now(), token: "langsam", zweck: "langsam" }, 1);
+    assert.equal(await besitzerZweck(pfad), "B");
+    assert.equal((await sperreNehmen(pfad, { zweck: "C" })).ok, false);
+    await b.loesen();
+  });
+
+  await fall("drei Bewerber auf eine lebende Sperre: keiner kommt dazu, A bleibt Besitzer", async () => {
+    const pfad = join(ordner, "g.lock");
+    const a = await sperreNehmen(pfad, { zweck: "A" });
+    assert.ok(a.ok);
+    const [b, c] = await Promise.all([sperreNehmen(pfad, { zweck: "B" }), sperreNehmen(pfad, { zweck: "C" })]);
+    assert.equal(b.ok, false);
+    assert.equal(c.ok, false);
+    assert.equal(await besitzerZweck(pfad), "A");
+    await a.loesen();
+  });
+
+  await fall("drei Bewerber auf eine verwaiste Sperre: genau einer bekommt sie", async () => {
+    for (let runde = 0; runde < 20; runde += 1) {
+      const pfad = join(ordner, `h${runde}.lock`);
+      await pflanze(pfad, { pid: 1, seit: Date.now() - VERWAIST_MS - 1000, token: "tot" });
+      const alle = await Promise.all(["A", "B", "C"].map((z) => sperreNehmen(pfad, { zweck: z })));
+      const gewinner = alle.filter((s) => s.ok);
+      assert.equal(gewinner.length, 1, `Runde ${runde}: ${gewinner.length} Besitzer`);
+      const besitzer = await besitzerZweck(pfad);
+      assert.ok(["A", "B", "C"].includes(besitzer));
+      // und waehrend er besitzt, kommt auch ein vierter nicht dazu
+      assert.equal((await sperreNehmen(pfad, { zweck: "D" })).ok, false);
+      await gewinner[0].loesen();
+      assert.equal(await besitzerZweck(pfad), null);
+    }
+  });
+
+  await fall("Ledger: fremde Haeuser bleiben, eigenes neues Haus kommt dazu", () => {
+    const platte = { a: { version: "1.0", build: "aa", seit: "s", zuletzt: "z" } };
+    const { ledger, versionen } = ledgerAbgleichen(platte,
+      new Map([["b", { build: "bb", jetzt: "T" }]]), { b: "bb" });
+    assert.deepEqual(ledger.a, platte.a);
+    assert.deepEqual(ledger.b, { version: "1.0", build: "bb", seit: "T", zuletzt: "T" });
+    assert.equal(versionen.b, "1.0");
+  });
+
+  // Codex Runde 4, N3: ein verspaeteter Lauf darf eine neuere Version nicht
+  // mit seiner alten ueberschreiben.
+  await fall("Ledger: veralteter Schnappschuss ueberschreibt keine neuere Version", () => {
+    const platte = { a: { version: "1.2", build: "neu", seit: "s", zuletzt: "z" } };
+    // Die Anfrage las noch das alte Manifest ("alt"); heute liegt "neu" da.
+    const { ledger, versionen } = ledgerAbgleichen(platte,
+      new Map([["a", { build: "alt", jetzt: "T" }]]), { a: "neu" });
+    assert.deepEqual(ledger.a, platte.a);
+    assert.equal(versionen.a, "1.2");
+  });
+
+  await fall("Ledger: gleicher Build auf der Platte bleibt unveraendert", () => {
+    const platte = { a: { version: "1.1", build: "x", seit: "s", zuletzt: "z" } };
+    const { ledger } = ledgerAbgleichen(platte, new Map([["a", { build: "x", jetzt: "T" }]]), { a: "x" });
+    assert.deepEqual(ledger.a, platte.a);
+  });
+
+  await fall("Ledger: neuer Build zaehlt gegen den HEUTIGEN Platteneintrag hoch", () => {
+    // Die Anfrage sah vorher 1.0; inzwischen steht 1.1 auf der Platte.
+    const platte = { a: { version: "1.1", build: "b1", seit: "s", zuletzt: "z" } };
+    const { ledger } = ledgerAbgleichen(platte, new Map([["a", { build: "b2", jetzt: "T" }]]), { a: "b2" });
+    assert.deepEqual(ledger.a, { version: "1.2", build: "b2", seit: "s", zuletzt: "T" });
+  });
+
+  await fall("Ledger: kaputte Platte wird nicht zu {} plattgemacht, eigene kommen dazu", () => {
+    const { ledger } = ledgerAbgleichen(null, new Map([["x", { build: "xx", jetzt: "T" }]]), { x: "xx" });
+    assert.deepEqual(Object.keys(ledger), ["x"]);
+  });
+} finally {
+  await rm(ordner, { recursive: true, force: true });
+}
+console.log(`${n} Faelle ok`);

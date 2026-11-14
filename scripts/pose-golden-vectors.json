@@ -1,0 +1,43 @@
+{
+  "_provenance": [
+    "Editor->compiled furniture-pose contract, frozen as data so both the",
+    "Python plan builder and (in a later slice) the TypeScript editor test",
+    "against the SAME external truth instead of re-implementing each other.",
+    "Ground truth: Rainer's 4-combination contact sheet, 2026-08-22 (real",
+    "ecksofa mesh through the real render pipeline, bungalow_040_66 room):",
+    "compiled poses (0,not-mirrored)=A, (0,mirrored)=B, (90,not-mirrored)=C,",
+    "(90,mirrored)=D -- Rainer confirmed 'B and D are Mirrored' (correct).",
+    "The editor->compiled rotation negation (y-down SVG -> y-up render) was",
+    "settled in plans/renderer-switch-execution-order.md: render_rotation =",
+    "(-svg_rotation) mod 360. mirrored passes through UNINVERTED on this",
+    "path (workbench_furniture(), see its long warning comment) -- exactly",
+    "what the contact sheet validated end-to-end.",
+    "Editor space: render-geometry-mm-y-down-v1 (mm, y grows down).",
+    "Compiled space: render plan mm, y grows up; position y maps lo+hi-y",
+    "against the level room extent (represented here by lo_plus_hi)."
+  ],
+  "editor_coordinate_space": "render-geometry-mm-y-down-v1",
+  "lo_plus_hi": 10000.0,
+  "vectors": [
+    {
+      "name": "contact-sheet-A",
+      "editor": { "position_mm": [3000.0, 4000.0], "rotation_deg": 0, "mirrored": false },
+      "compiled": { "position_mm": [3000.0, 6000.0], "rotation_deg": 0, "mirrored": false }
+    },
+    {
+      "name": "contact-sheet-B-mirrored",
+      "editor": { "position_mm": [3000.0, 4000.0], "rotation_deg": 0, "mirrored": true },
+      "compiled": { "position_mm": [3000.0, 6000.0], "rotation_deg": 0, "mirrored": true }
+    },
+    {
+      "name": "contact-sheet-C-rot90",
+      "editor": { "position_mm": [5000.0, 2500.0], "rotation_deg": 270, "mirrored": false },
+      "compiled": { "position_mm": [5000.0, 7500.0], "rotation_deg": 90, "mirrored": false }
+    },
+    {
+      "name": "contact-sheet-D-rot90-mirrored",
+      "editor": { "position_mm": [5000.0, 2500.0], "rotation_deg": 270, "mirrored": true },
+      "compiled": { "position_mm": [5000.0, 7500.0], "rotation_deg": 90, "mirrored": true }
+    }
+  ]
+}
